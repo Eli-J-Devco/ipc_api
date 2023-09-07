@@ -1,3 +1,9 @@
+# /********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/ 
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 import mysql.connector

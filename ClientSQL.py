@@ -1,3 +1,9 @@
+# /********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/ 
+
 import requests
 
  # Thay đổi URL thành URL thực tế của server
