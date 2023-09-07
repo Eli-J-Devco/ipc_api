@@ -1,28 +1,30 @@
-# /********************************************************
-# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
-# * All rights reserved.
-# *
-# *********************************************************/ 
+import httpx
+import json
+import asyncio
 
-import requests
+url = "http://127.0.0.1:8000/receive_data/"  # Địa chỉ của server FastAPI
 
-inputtk=input("nhập vào tài khoản :")
-inputmk=input("nhập vào mật khẩu : ")
+data_to_send = {"key": "value"}  # Dữ liệu bạn muốn gửi
 
-# Địa chỉ URL của API server
-url = "http://127.0.0.1:8000/login"
+async def send_data():
+    while True:
+        try:
+            response = httpx.post(url, json=data_to_send)
 
-# Tạo một yêu cầu POST để đăng nhập
-data = {"username": inputtk, "password": inputmk}
-response = requests.post(f"{url}/login", json=data)
+            if response.status_code == 200:
+                response_data = response.json()
+                print(response_data['message'])
+            else:
+                print("Error sending data")
 
-# # Xem xét phản hồi từ API server
-if response.status_code == 200:
-    response_json = response.json()
-    if "message" in response_json and response_json["message"] == "Đăng nhập thành công":
-        print("Đăng nhập thành công")
-        # Ở đây, bạn có thể xử lý token hoặc thông tin khác từ phản hồi
-    else:
-        print("Đăng nhập thất bại")
-else:
-    print("Lỗi khi gửi yêu cầu đến server")
+            await asyncio.sleep(5)  # Chờ 5 giây trước khi gửi lần tiếp theo
+        except Exception as e:
+            print(f"Error: {str(e)}")
+
+if __name__ == "__main__":
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(send_data())
+
+
+
+

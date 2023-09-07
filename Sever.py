@@ -1,41 +1,36 @@
-# /********************************************************
-# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
-# * All rights reserved.
-# *
-# *********************************************************/ 
+#gửi api +file lên server thì server return lại json data báo gửi thành công, client sẽ gửi file tiếp theo.
+#Data gửi lên tuần tự từng file
+#Em viết code tạo file đó, có thể  lưu đường dẫn , thống tin file, nội dung file Trên MySQL
+#Nội dung file đó:
+#'2023-08-15 10:35:04',0,0,0,50,23,55
+#các giá trị random. 5p tạo 1 file, để nhanh thì 5s tạo file 1 lần. sau này hệ thống log 5p
 
-from fastapi import FastAPI
-from pydantic import BaseModel
+#uvicorn sever:app --reload
+
+from fastapi import FastAPI, Form
+import os
+import json
+
 app = FastAPI()
 
-# Tạo một lớp Pydantic để đại diện cho dữ liệu đăng nhập từ client
-class LoginData(BaseModel):
-    username: str
-    password: str
-# Danh sách người dùng hợp lệ (đây là ví dụ, bạn nên sử dụng cơ sở dữ liệu thực tế)
-valid_users = {
-    "user1": "password1",
-    "user2": "password2",
-}
-# /**
-# 	 * @description Login
-# 	 * @author binhnguyen
-# 	 * @since 09-07-2023
-# 	 * @param {}
-# 	 * @return data (status, message)
-# 	 */
-@app.post("/login")
-async def login(data: LoginData):
-    username = data.username
-    password = data.password
+@app.post("/receive_data/")
+async def receive_data(data: dict):
+    try:
+        # Chuyển dữ liệu thành chuỗi JSON
+        json_data = json.dumps(data)
 
-    # Kiểm tra thông tin đăng nhập với danh sách người dùng hợp lệ
-    if username in valid_users and valid_users[username] == password:
-        return {"message": "Đăng nhập thành công"}
-    else:
-        return {"message": "Đăng nhập thất bại"}
+        # Tạo file dưới định dạng .json
+        file_path = os.path.join(r"C:\Users\HP\Desktop\CaNhan\API\learnapi\DuyBinhLearnAPI\LuuData", f"{data['key']}.json")
+        with open(file_path, "w") as f:
+            f.write(json_data)
 
-if __name__ == "__main__":
-    import uvicorn
+        return {"message": f"File '{data['key']}.json' created and saved successfully"}
+    except Exception as e:
+        return {"message": f"Error: {str(e)}"}
+    # kết nối thành công giữa client và sever 
+    
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
