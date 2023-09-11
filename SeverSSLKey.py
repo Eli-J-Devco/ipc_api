@@ -10,6 +10,7 @@ import mysql.connector
 import bcrypt
 from cryptography.fernet import Fernet
 import binascii
+import time 
 
 app = FastAPI()
 
@@ -76,6 +77,20 @@ async def receive_input(client_data: InformationUser):
         # So sánh mật khẩu đã mã hóa
         if chuoi1== chuoi2:
             print("đăng nhập thành công")
+            timeout_minutes = 5
+        timeout_seconds = timeout_minutes * 60
+        start_time = time.time()  # Lấy thời gian bắt đầu đăng nhập
+        
+        while True:
+            elapsed_time = time.time() - start_time
+            remaining_time = timeout_seconds - elapsed_time
+            
+            if remaining_time <= 0:
+                print("Thời gian đăng nhập đã hết. Tự động thoát ra ngoài.")
+                break
+            
+            print(f"Thời gian còn lại: {int(remaining_time)} giây", end="\r")
+            time.sleep(1)  # Đợi 1 giây trước khi kiểm tra lại
         return {"message": "Đăng nhập thành công"}
     else:
         print("đăng nhập thất bại : ")

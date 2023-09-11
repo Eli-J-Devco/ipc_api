@@ -48,3 +48,4 @@ except:
  
 print("record inserted!")
 mycursor.close()
+# chú thích tạo đăng kí 
