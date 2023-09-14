@@ -1,36 +1,46 @@
-import bcrypt
-from cryptography.fernet import Fernet
-import binascii
-import requests
-import time
 from fastapi import FastAPI
 from pydantic import BaseModel
 import mysql.connector
+import bcrypt
+from cryptography.fernet import Fernet
+import binascii
+import time
 
 app = FastAPI()
 
+# Tạo 1 lớp để nhận dữ liệu từ client đăng nhập
 class Login(BaseModel):
-    username_input: str
-    password_input: str
-    salt: str
-    key: str
+    taikhoannhap: str
+    matkhaunhap: str
 
+# Tạo 1 lớp để nhận dữ liệu từ client đăng kí
 class Register(BaseModel):
-    username_input: str
-    password_input: str
-    salt: str
-    key: str
+    taikhoannhap: str
+    matkhaunhap: str
 
 @app.post("/register")
 async def RegisterInformation(Register_data: Register):
-    user_register = Register_data.username_input
-    password_register = Register_data.password_input
-    salt_register = Register_data.salt
-    key_register = Register_data.key
-    print("Received salt_register information: ", salt_register)
-    print("Received key_register information: ", key_register)
+    user_register = Register_data.taikhoannhap
+    password_lv1_register = Register_data.matkhaunhap
+    # password_decode_hex = binascii.unhexlify(password_lv1_register)
+    # print("mật khẩu nhận đã mã hóa hex  ", password_decode_hex)
+    #mật khẩu cố định cho cho Fernet
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+    # password_goc = client_key.decrypt( password_decode_hex)
+    # print("mật khẩu người dùng nhập vào là " , password_goc)
+    
+
+    # Tạo một khóa Fernet ngẫu nhiên
+    fernet_key_lv2 = Fernet.generate_key()
+    fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
+    sever_key = Fernet(fernet_key_lv2)
+
+    # Mã hóa mật khẩu bcrypt với khóa Fernet lần 2 lấy tiếp nội dung từ client gửi qua dưới dạng hex 
+    matkhauki_mahoa = sever_key.encrypt(password_lv1_register.encode())
 
     try:
+        # Tạo kết nối đến database
         connection = mysql.connector.connect(
             user="root",
             password="123456",
@@ -38,20 +48,23 @@ async def RegisterInformation(Register_data: Register):
             database="login",
         )
 
+        # Tạo con trỏ trong MySQL
         mycursor = connection.cursor()
 
-        Cmd_register = ("INSERT INTO `login`.`data`(`user`, `password`, `salt`, `key`) "
-                        "VALUES (%s, %s, %s, %s)")
-        val_register = (user_register, password_register, salt_register, key_register)
+        # Câu truy vấn INSERT
+        Cmd_register = ("INSERT INTO `login`.`data`(`user`, `password`, `salt`) "
+                        "VALUES (%s, %s, %s)")
+        val_register = (user_register, matkhauki_mahoa,fernet_key_gui_sql)
 
         mycursor.execute(Cmd_register, val_register)
 
+        # Commit giao dịch
         connection.commit()
         print("Record inserted successfully!")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
-        connection.rollback()
+        connection.rollback()  # Lưu ý: Rollback giao dịch nếu có lỗi
 
     finally:
         mycursor.close()
@@ -59,14 +72,11 @@ async def RegisterInformation(Register_data: Register):
 
 @app.post("/login")
 async def LoginInformation(Login_data: Login):
-    user_login = Login_data.username_input
-    password_login = Login_data.password_input
-    salt_login = Login_data.salt
-    key_login = Login_data.key
-    print("Received salt_login information: ", salt_login)
-    print("Received key_login information: ", key_login)
+    user_login = Login_data.taikhoannhap
+    password_login = Login_data.matkhaunhap
 
     try:
+        # Tạo kết nối đến database
         connection = mysql.connector.connect(
             user="root",
             password="123456",
@@ -74,67 +84,63 @@ async def LoginInformation(Login_data: Login):
             database="login",
         )
 
+        # Tạo con trỏ trong MySQL
         mycursor = connection.cursor()
 
-        Cmd_Login = ("SELECT `password`, `salt`, `key` FROM `login`.`data` WHERE `user` = %s")
+        # Câu truy vấn SELECT
+        Cmd_Login = ("SELECT  `user` ,`password`, `salt`  FROM `login`.`data` WHERE `user` = %s")
         val_login = (user_login,)
 
         mycursor.execute(Cmd_Login, val_login)
         result = mycursor.fetchall()
         if result:
             datarow = result[0]
-            password_find_lv2_hex = datarow[0]
-            salt_find_hex = datarow[1]
-            key_find_hex = datarow[2]
-            print("Salt retrieved from the SQL matches the registration: ", salt_find_hex)
-            print("Key retrieved from the SQL matches the registration: ", key_find_hex)
+            user_find = datarow[0]
+            password_find_lv2 = datarow[1]
+            keyfernet_find_hex = datarow[2]
+            print("key sql lấy lên là ", keyfernet_find_hex)
+            print("thông tin người dùng lấy lên từ sql là : ", user_find)
+            
+            # dùng mật khẩu từ sql để dịch lần 1
+            keyfernet_find_sql = binascii.unhexlify(keyfernet_find_hex)
+            create_key_sever = Fernet(keyfernet_find_sql)
+            password_lv1_hex = create_key_sever.decrypt( password_find_lv2)
+            password_lv1 = binascii.unhexlify(password_lv1_hex)
+            # dùng mật khẩu cố định giống bên client để dịch lần 2
+            fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+            client_key = Fernet(fernet_key)
+            # mật khẩu sau khi dịch 2 lần lấy này so sánh với mật khẩu người dùng nhập qua
+            password_sql = client_key.decrypt( password_lv1)
+            print("mật khẩu đã dịch ra", password_sql)
+            
 
-            salt_find_sql = binascii.unhexlify(salt_find_hex)
-            key_find_sql = binascii.unhexlify(key_find_hex)
-            password_find_lv2_sql = binascii.unhexlify(password_find_lv2_hex)
+            # Giải mã mật khẩu lấy từ client  
+            password_nhan_client = binascii.unhexlify(password_login)
+            # mật khẩu sau khi dịch 2 lần lấy này so sánh với mật khẩu người dùng nhập qua
+            password_client = client_key.decrypt( password_nhan_client)
 
-            key_sql = Fernet(key_find_sql)
-            password_lv1_salt_sql = key_sql.decrypt(password_find_lv2_sql)
-
-            salt_find_client = binascii.unhexlify(salt_login)
-            key_find_client = binascii.unhexlify(key_login)
-            password_login_client = binascii.unhexlify(password_login)
-
-            key_client = Fernet(key_find_client)
-            password_lv1_salt_client = key_client.decrypt(password_login_client)
-
-            chuoi3 = str(password_find_lv2_hex)
-            print("chuoi3", chuoi3)
-            chuoi4 = str(password_login)
-            print("chuoi4", chuoi4)
-            chuoi1 = str(password_lv1_salt_sql)
-            print("chuoi1", chuoi1)
-            chuoi2 = str(password_lv1_salt_client)
-            print("chuoi2", chuoi2)
-
-            if chuoi3 == chuoi4 and chuoi1 == chuoi2:
-                print("Login successful")
+            if  user_login == user_find and password_sql == password_client :
+                print("Đăng nhập thành công")
                 timeout_minutes = 1
                 timeout_seconds = timeout_minutes * 60
-                start_time = time.time()
+                start_time = time.time()  # Lấy thời gian bắt đầu đăng nhập
 
                 while True:
                     elapsed_time = time.time() - start_time
                     remaining_time = timeout_seconds - elapsed_time
 
                     if remaining_time <= 0:
-                        print("Login time expired. Automatically logging out.")
+                        print("Thời gian đăng nhập đã hết. Tự động thoát ra ngoài.")
                         break
 
-                    print(f"Remaining time: {int(remaining_time)} seconds", end="\r")
-                    time.sleep(1)
-
+                    print(f"Thời gian còn lại: {int(remaining_time)} giây", end="\r")
+                    time.sleep(1)  # Đợi 1 giây trước khi kiểm tra lại
                 else:
-                    print("Login failed")
+                    print("Đăng nhập thất bại")
             else:
-                print("Login failed")
+                print("Đăng nhập thất bại")
         else:
-            print("Account does not exist")
+            print("Tài khoản không tồn tại")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")

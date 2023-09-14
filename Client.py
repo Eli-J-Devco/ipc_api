@@ -3,93 +3,117 @@ from cryptography.fernet import Fernet
 import binascii
 import requests
 
+
+
 def main():
-    choose = int(input("Choose 0 to register or 1 to log in: "))
+    choose = int(input("Chọn 0 để đăng kí hoặc 1 để đăng nhập: "))
     if choose == 0:
-        register()
+        dangki()
     elif choose == 1:
-        login()
+        dangnhap()
     else:
-        print("Invalid choice")
+        print("Lựa chọn không hợp lệ")
 
-def login():
-    # Change the URL to the actual server URL
-    login_server_url = "http://127.0.0.1:8000/login"
+def dangnhap():
 
-    # Encrypt information with two layers
-    # Encrypt the password in step 1
-    # Generate a random salt
-    salt = bcrypt.gensalt()
-    # Use the generated salt to hash the password in level 1
-    # Generate a key for Fernet encryption
-    fernet_key = Fernet.generate_key()
-    # Create a random key
-    key = Fernet(fernet_key)
-    # Use the generated Fernet key to encrypt the level 1 hashed password
+    # Thay đổi URL thành URL thực tế của server
+    server_url_dangnhap = "http://127.0.0.1:8000/login"
 
-    # Convert salt and key to hex for transmission
-    salt_hex = binascii.hexlify(salt).decode()
-    key_hex = binascii.hexlify(fernet_key).decode()
+    # gửi thông tin tài khoản , mật khẩu , mật khẩu salt , mật khẩu fernet . 
+    #giá trị của một row được cung cấp dưới dạng tuple
+    taikhoannhap= input("Nhập tài khoản đăng nhập:")
+    matkhaunhap = input("Nhập mật khẩu đăng nhập:")
 
-    # Send account information, password, password salt, and Fernet password
-    # The value of a row is provided as a tuple
-    username_input = input("Enter your username:")
-    password_input = input("Enter your password:")
-    # Use the generated salt to hash the password in level 1
-    hashed_password_level1 = bcrypt.hashpw(username_input.encode(), salt)
-    encrypted_password_level2 = key.encrypt(hashed_password_level1)
-    encrypted_password_level2_hex = binascii.hexlify(encrypted_password_level2).decode()
-    # Create a dictionary containing input values
-    # The payload should match the class structure, for example:
-    # class InformationUser(BaseModel):
-    #     client_user: str
-    #     client_password: str
-    payload = {"client_user": username_input, "client_password": encrypted_password_level2_hex, "salt": salt_hex, "key": key_hex}
-    print("Sent salt for login ", salt_hex)
-    print("Sent key for login ", key_hex)
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+    print("Đây là khóa mặc định :", fernet_key)
 
-    # Send a POST request to the FastAPI server with JSON data
-    response = requests.post(login_server_url, json=payload)
+    # Mã hóa mật khẩu bcrypt với khóa Fernet
+    matkhauki_mahoa = client_key.encrypt(matkhaunhap.encode())
+    print("Mật khẩu đã được mã hóa:", matkhauki_mahoa.decode())
+    matkhaugocguidi_hex = binascii.hexlify(matkhauki_mahoa).decode()
+    print("thông tin gửi đi gồm :", matkhaugocguidi_hex)
+    # Tạo một dictionary chứa giá trị input // payload này tên như thế nào thì class InformationUser(BaseModel):/client_user: str/client_password: str tên như thế mới kết nối được 
+    payload = {"taikhoannhap": taikhoannhap,"matkhaunhap": matkhaugocguidi_hex}
 
-def register():
-    # Change the URL to the actual server URL
-    register_server_url = "http://127.0.0.1:8000/register"
+    #client_key_hex => mã hóa lại byte => client_key = Fernet(fernet_key) để lấy key thật 
 
-    # Encrypt information with two layers
-    # Encrypt the password in step 1
-    # Generate a random salt
-    salt = bcrypt.gensalt()
-    # Use the generated salt to hash the password in level 1
-    # Generate a key for Fernet encryption
-    fernet_key = Fernet.generate_key()
-    # Create a random key
-    key = Fernet(fernet_key)
-    # Use the generated Fernet key to encrypt the level 1 hashed password
+    # Gửi yêu cầu POST đến server FastAPI với dữ liệu JSON
+    response = requests.post(server_url_dangnhap, json=payload)
 
-    # Convert salt and key to hex for transmission
-    salt_hex = binascii.hexlify(salt).decode()
-    key_hex = binascii.hexlify(fernet_key).decode()
+def dangki():
+    # Thay đổi URL thành URL thực tế của server
+    server_url_dangki = "http://127.0.0.1:8000/register"
 
-    # Send account information, password, password salt, and Fernet password
-    # The value of a row is provided as a tuple
-    username_register = input("Register a new username:")
-    password_register = input("Register a new password: ")
-    # Use the generated salt to hash the password in level 1
-    hashed_password_level1 = bcrypt.hashpw(password_register.encode(), salt)
-    encrypted_password_level2 = key.encrypt(hashed_password_level1)
+#     tableCode = [
+#     {'value': '2ZS', 'id': '!'}, {'value': 'X3p', 'id': '“'}, {'value': 'imE', 'id': '#'}, {'value': 'EUT', 'id': '$'},
+#     {'value': 'XSh', 'id': '%'}, {'value': 'E5P', 'id': '&'}, {'value': 'WEj', 'id': '‘'}, {'value': '45Q', 'id': '('},
+#     {'value': 'iI1', 'id': ')'}, {'value': 't6x', 'id': '*'}, {'value': 'hd9', 'id': '+'}, {'value': 'jiJ', 'id': ','},
+#     {'value': 'UPw', 'id': '-'}, {'value': 'AxC', 'id': '.'}, {'value': 'Ywb', 'id': '/'}, {'value': 'aY8', 'id': '0'},
+#     {'value': 'mLR', 'id': '1'}, {'value': 'qae', 'id': '2'}, {'value': 'Xpg', 'id': '3'}, {'value': 'oS3', 'id': '4'},
+#     {'value': 'dTN', 'id': '5'}, {'value': 'jSC', 'id': '6'}, {'value': 'Dfz', 'id': '7'}, {'value': 'Sz1', 'id': '8'},
+#     {'value': 'Qu1', 'id': '9'}, {'value': 'i5E', 'id': ':'}, {'value': 'IQ6', 'id': ';'}, {'value': 'Qnn', 'id': '<'},
+#     {'value': 'ZPA', 'id': '='}, {'value': 'N9x', 'id': '>'}, {'value': 'oiI', 'id': '?'}, {'value': 'yU3', 'id': '@'},
+#     {'value': '46o', 'id': 'A'}, {'value': '7nE', 'id': 'B'}, {'value': 'wuQ', 'id': 'C'}, {'value': 'O1O', 'id': 'D'},
+#     {'value': 'SKy', 'id': 'E'}, {'value': 'r1H', 'id': 'F'}, {'value': 'aUW', 'id': 'G'}, {'value': 'Tew', 'id': 'H'},
+#     {'value': 'chh', 'id': 'I'}, {'value': '7FA', 'id': 'J'}, {'value': 'ekK', 'id': 'K'}, {'value': 'Ewp', 'id': 'L'},
+#     {'value': 'Oxa', 'id': 'M'}, {'value': 'T6g', 'id': 'N'}, {'value': 'xYx', 'id': 'O'}, {'value': 'gbz', 'id': 'P'},
+#     {'value': 'd4h', 'id': 'Q'}, {'value': '1Ow', 'id': 'R'}, {'value': 'Fw6', 'id': 'S'}, {'value': 'mor', 'id': 'T'},
+#     {'value': 'NDC', 'id': 'U'}, {'value': '7pm', 'id': 'V'}, {'value': 'Rn4', 'id': 'W'}, {'value': 'RVu', 'id': 'X'},
+#     {'value': 'dUW', 'id': 'Y'}, {'value': 'ic8', 'id': 'Z'}, {'value': 'aRm', 'id': '['}, {'value': 'po7', 'id': '\\'},
+#     {'value': 'tVA', 'id': ']'}, {'value': 'C5a', 'id': '^'}, {'value': 'G0m', 'id': '_'}, {'value': 'WHB', 'id': '`'},
+#     {'value': 'P91', 'id': 'a'}, {'value': 'cDf', 'id': 'b'}, {'value': '5Zp', 'id': 'c'}, {'value': 'pX5', 'id': 'd'},
+#     {'value': 'beG', 'id': 'e'}, {'value': 'sgd', 'id': 'f'}, {'value': '2Dl', 'id': 'g'}, {'value': 'YjH', 'id': 'h'},
+#     {'value': 'SQB', 'id': 'i'}, {'value': 'jJE', 'id': 'j'}, {'value': 'Gtw', 'id': 'k'}, {'value': 'JsK', 'id': 'l'},
+#     {'value': 'qfv', 'id': 'm'}, {'value': '5ty', 'id': 'n'}, {'value': 'BSm', 'id': 'o'}, {'value': 'Fbd', 'id': 'p'},
+#     {'value': 'xO7', 'id': 'q'}, {'value': 'W5R', 'id': 'r'}, {'value': 'ugh', 'id': 's'},{ 'value': 'nbs' , 'id': 't'},
+# 	{'value': 'mgl', 'id': 'u'}, {'value': 'aqL', 'id': 'v'}, {'value': 'QJN', 'id': 'w'},{ 'value': 'X9d' , 'id': 'x'},
+# 	{'value': 'lIB', 'id': 'y'}, {'value': 'Csm', 'id': 'z'}, {'value': 'uQ8', 'id': ''},{ 'value': 'EW7' , 'id': '|'},
+# 	{'value': 'pP9', 'id': ''} , {'value': '5r3', 'id': '~'}, {'value': 'Nq0', 'id' :' '}]
 
-    encrypted_password_level2_hex = binascii.hexlify(encrypted_password_level2).decode()
-    # Create a dictionary containing input values
-    # The payload should match the class structure, for example:
-    # class InformationUser(BaseModel):
-    #     client_user: str
-    #     client_password: str
-    payload = {"client_user": username_register, "client_password": encrypted_password_level2_hex, "salt": salt_hex, "key": key_hex}
-    print("Sent salt for registration ", salt_hex)
-    print("Sent key for registration ", key_hex)
+#     taikhoanki =input("Đăng kí tên tài khoản mới :")
+#     matkhauki =input("Đăng kí mật khẩu tài khoản mới : ")
 
-    # Send a POST request to the FastAPI server with JSON data
-    response = requests.post(register_server_url, json=payload)
+#     def convert_value_to_id(matkhauki, table_code):
+#         for item in table_code:
+#             if item['id'] == matkhauki:
+#                 return item['value']
+#         return None 
+# # Trong trường hợp không tìm thấy ánh xạ, trả về None hoặc giá trị mặc định khác
+
+# # Sử dụng hàm để ánh xạ giá trị
+#     result = convert_value_to_id(matkhauki, tableCode)
+#     if result:
+#         print("Kết quả ánh xạ:", result)
+#     else:
+#         print("Không tìm thấy ánh xạ cho giá trị đầu vào:", matkhauki)
+    taikhoanki =input("Đăng kí tên tài khoản mới :")
+    matkhauki =input("Đăng kí mật khẩu mới : ")
+    # mã hóa thông tin qua 2 lớp
+    # mật khẩu cố định cho cho Fernet
+    # Tạo một khóa Fernet mặc định 
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+    print("Đây là khóa mặc định :", fernet_key)
+
+    # Mã hóa mật khẩu bcrypt với khóa Fernet
+    matkhauki_mahoa = client_key.encrypt(matkhauki.encode())
+    print("Mật khẩu đã được mã hóa:", matkhauki_mahoa.decode())
+    matkhaugocguidi_hex = binascii.hexlify(matkhauki_mahoa).decode()
+    print("thông tin gửi đi gồm :", matkhaugocguidi_hex)
+
+    # Tạo một dictionary chứa giá trị input // payload này tên như thế nào thì class InformationUser(BaseModel):/client_user: str/client_password: str tên như thế mới kết nối được 
+    payload = {"taikhoannhap": taikhoanki,"matkhaunhap": matkhaugocguidi_hex}
+    #client_key_hex => mã hóa lại byte => client_key = Fernet(fernet_key) để lấy key thật 
+
+    # Gửi yêu cầu POST đến server FastAPI với dữ liệu JSON
+    response = requests.post(server_url_dangki, json=payload)
+
+    #gửi thông tin tài khoản và mật khẩu 
+    #Giá trị input bạn muốn gửi lên server
+
 
 if __name__ == "__main__":
     main()
+
+    
