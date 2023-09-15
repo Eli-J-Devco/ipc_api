@@ -1,3 +1,8 @@
+# /********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/ 
 from fastapi import FastAPI ,Request
 from pydantic import BaseModel
 import mysql.connector
@@ -9,13 +14,21 @@ import time
 
 app = FastAPI()
 
-# Tạo 1 lớp để nhận dữ liệu từ client đăng nhập
+# Create a class to receive data from logged in clients
 class Login(BaseModel):
     taikhoannhap: str
     matkhaunhap: str
 
-# Tạo 1 lớp để nhận dữ liệu từ client đăng kí
+# Create a class to receive data from registered clients
 class Register(BaseModel):
+    taikhoannhap: str
+    matkhaunhap: str
+
+# Create a class to receive data from the delete client
+class delete(BaseModel):
+    taikhoanxoa: str
+# Create a class to receive data from update client
+class update(BaseModel):
     taikhoannhap: str
     matkhaunhap: str
 
@@ -45,30 +58,18 @@ tableCode = [
 	{'value': 'lIB', 'id': 'y'}, {'value': 'Csm', 'id': 'z'}, {'value': 'uQ8', 'id': ''},{ 'value': 'EW7' , 'id': '|'},
 	{'value': 'pP9', 'id': ''} , {'value': '5r3', 'id': '~'}, {'value': 'Nq0', 'id' :' '}]
 
-
-@app.post("/register")
-async def RegisterInformation(Register_data: Register):
-    user_register = Register_data.taikhoannhap
-    password_lv1_register = Register_data.matkhaunhap
-    # password_decode_hex = binascii.unhexlify(password_lv1_register)
-    # print("mật khẩu nhận đã mã hóa hex  ", password_decode_hex)
-    #mật khẩu cố định cho cho Fernet
-    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
-    client_key = Fernet(fernet_key)
-    # password_goc = client_key.decrypt( password_decode_hex)
-    # print("mật khẩu người dùng nhập vào là " , password_goc)
-    
-
-    # Tạo một khóa Fernet ngẫu nhiên
-    fernet_key_lv2 = Fernet.generate_key()
-    fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
-    sever_key = Fernet(fernet_key_lv2)
-
-    # Mã hóa mật khẩu bcrypt với khóa Fernet lần 2 lấy tiếp nội dung từ client gửi qua dưới dạng hex 
-    matkhauki_mahoa = sever_key.encrypt(password_lv1_register.encode())
-
+# /**
+# 	 * @description delete user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {user_delete  }
+# 	 * @return data (payload, message)
+# 	 */
+@app.post("/delete")
+async def deleteInformation(delete_data: delete):
+    user_delete = delete_data.taikhoanxoa
     try:
-        # Tạo kết nối đến database
+        # Create connect to database
         connection = mysql.connector.connect(
             user="root",
             password="123456",
@@ -76,35 +77,178 @@ async def RegisterInformation(Register_data: Register):
             database="login",
         )
 
-        # Tạo con trỏ trong MySQL
+        # create connection to sql 
         mycursor = connection.cursor()
 
-        # Câu truy vấn INSERT
-        Cmd_register = ("INSERT INTO `login`.`user`(`user`, `password`, `salt`) "
-                        "VALUES (%s, %s, %s)")
-        val_register = (user_register, matkhauki_mahoa,fernet_key_gui_sql)
+        # Command INSERT in sql 
+        Cmd_delete = ("DELETE FROM `login`.`user` WHERE `user` = %s")
+        val_delete = (user_delete,)
 
-        mycursor.execute(Cmd_register, val_register)
+        mycursor.execute(Cmd_delete, val_delete)
 
-        # Commit giao dịch
+        # Commit 
         connection.commit()
         print("Record inserted successfully!")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
-        connection.rollback()  # Lưu ý: Rollback giao dịch nếu có lỗi
+        connection.rollback()  
 
     finally:
         mycursor.close()
         connection.close()
+# /**
+# 	 * @description show user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {  }
+# 	 * @return data (payload, message)
+# 	 */
+@app.post("/show")
+async def showInformation():
+    try:
+        # Create connection to database
+        connection = mysql.connector.connect(
+            user="root",
+            password="123456",
+            host="localhost",
+            database="login",
+        )
 
+        # create connection to sql
+        mycursor = connection.cursor()
+
+        # Command INSERT
+        Cmd_show = ("SELECT  `user` FROM `login`.`user`")
+
+        mycursor.execute(Cmd_show)
+        result = mycursor.fetchall()
+        print("bảng show người dùng trong hệ thông :",result)
+        # Commit 
+        connection.commit()
+        print("Record inserted successfully!")
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        connection.rollback()  
+
+    finally:
+        mycursor.close()
+        connection.close()
+# /**
+# 	 * @description registe user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {user_register,password_lv1_register }
+# 	 * @return data (payload, message)
+# 	 */
+@app.post("/register")
+def RegisterInformation(Register_data: Register):
+    user_register = Register_data.taikhoannhap
+    password_lv1_register = Register_data.matkhaunhap
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+    fernet_key_lv2 = Fernet.generate_key()
+    fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
+    sever_key = Fernet(fernet_key_lv2)
+    matkhauki_mahoa = sever_key.encrypt(password_lv1_register.encode())
+
+    try:
+        connection = mysql.connector.connect(
+            user="root",
+            password="123456",
+            host="localhost",
+            database="login",
+        )
+        mycursor = connection.cursor()
+
+        # Command Select 
+        Cmd_check_user = "SELECT * FROM `user` WHERE `user` = %s"
+        val_check_user = (user_register,)
+        mycursor.execute(Cmd_check_user, val_check_user)
+
+        if mycursor.fetchone():
+            print("User already exists. Please register another account.")
+        else:
+            Cmd_register = ("INSERT INTO `login`.`user`(`user`, `password`, `salt`) "
+                            "VALUES (%s, %s, %s)")
+            val_register = (user_register, matkhauki_mahoa, fernet_key_gui_sql)
+
+            mycursor.execute(Cmd_register, val_register)
+            connection.commit()
+            print("Sign Up Success!")
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        connection.rollback()
+    finally:
+        mycursor.close()
+        connection.close()
+# /**
+# 	 * @description update user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {user_update,password_lv1_update }
+# 	 * @return data (payload, message)
+# 	 */
+@app.post("/update")
+async def update_user(update_data: update):
+    user_update = update_data.taikhoannhap
+    password_lv1_update = update_data.matkhaunhap
+    # This is default key 
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+
+    # Create key random 
+    fernet_key_lv2 = Fernet.generate_key()
+    fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
+    sever_key = Fernet(fernet_key_lv2)
+
+    matkhauki_mahoa = sever_key.encrypt(password_lv1_update.encode())
+    print("The new password has been updated according to the key to download sql:", matkhauki_mahoa)
+    try:
+        # Create connecton to database 
+        connection = mysql.connector.connect(
+            user="root",
+            password="123456",
+            host="localhost",
+            database="login",
+        )
+
+        # create connection to sql
+        mycursor = connection.cursor()
+
+        # Command INSERT
+        Cmd_update =  ("UPDATE `login`.`user` SET `password` = %s ,`salt` = %s WHERE `user` = %s")
+        val_update = (matkhauki_mahoa,fernet_key_gui_sql, user_update)
+
+        mycursor.execute(Cmd_update, val_update)
+
+        # Commit 
+        connection.commit()
+        print("Record inserted successfully!")
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        connection.rollback()  
+
+    finally:
+        mycursor.close()
+        connection.close()
+# /**
+# 	 * @description login user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {user_login,password_login }
+# 	 * @return data (payload, message)
+# 	 */
 @app.post("/login")
 async def LoginInformation(Login_data: Login):
     user_login = Login_data.taikhoannhap
     password_login = Login_data.matkhaunhap
 
     try:
-        # Tạo kết nối đến database
+        # Create connecttion to sql 
         connection = mysql.connector.connect(
             user="root",
             password="123456",
@@ -112,10 +256,10 @@ async def LoginInformation(Login_data: Login):
             database="login",
         )
 
-        # Tạo con trỏ trong MySQL
+        # # create connection to sql
         mycursor = connection.cursor()
 
-        # Câu truy vấn SELECT
+        # Command SELECT
         Cmd_Login = ("SELECT  `user` ,`password`, `salt`  FROM `login`.`user` WHERE `user` = %s")
         val_login = (user_login,)
 
@@ -125,32 +269,33 @@ async def LoginInformation(Login_data: Login):
             datarow = result[0]
             user_find = datarow[0]
             password_find_lv2 = datarow[1]
+            print ("password taken from sql is :", password_find_lv2)
             keyfernet_find_hex = datarow[2]
-            print("key sql lấy lên là ", keyfernet_find_hex)
-            print("thông tin người dùng lấy lên từ sql là : ", user_find)
+            print("sql key fetched is ", keyfernet_find_hex)
+            print("User information retrieved from sql is : ", user_find)
             
-            # dùng mật khẩu từ sql để dịch lần 1
+            # Use the password from sql for the first decoded password
             keyfernet_find_sql = binascii.unhexlify(keyfernet_find_hex)
             create_key_sever = Fernet(keyfernet_find_sql)
             password_lv1_hex = create_key_sever.decrypt( password_find_lv2)
             password_lv1 = binascii.unhexlify(password_lv1_hex)
-            # dùng mật khẩu cố định giống bên client để dịch lần 2
+            # Use the password from client for the seconds decoded password
             fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
             client_key = Fernet(fernet_key)
-            # mật khẩu sau khi dịch 2 lần lấy này so sánh với mật khẩu người dùng nhập qua
+            # After translating the password 2 times, compare it with the password the user entered
             password_sql = client_key.decrypt( password_lv1)
-            print("mật khẩu lấy từ sql đã dịch ra", password_sql)
+            print("Password taken from translated sql", password_sql)
             
 
-            # Giải mã mật khẩu lấy từ client  
+            # Decrypt the password taken from the client 
             password_nhan_client = binascii.unhexlify(password_login)
-            # mật khẩu sau khi dịch 2 lần lấy này so sánh với mật khẩu người dùng nhập qua
+            # After translating the password 2 times, compare it with the password the user entered
             password_client = client_key.decrypt( password_nhan_client)
-            print("mật khẩu giãi mã dạng chuỗi value lấy từ client :" ,password_client )
-            # Giải mã chuỗi và in ra mật khẩu
+            print("The decrypted password is a value string taken from the client :" ,password_client )
+            #Decode the string and print out the password
             def decrypt_combined_value(combined_value):
                 decrypted_password = ''
-                for i in range(0, len(combined_value), 3):  # Mỗi giá trị 'value' có độ dài 3 ký tự
+                for i in range(0, len(combined_value), 3):  #Each 'value' value is 3 characters long
                     value_chunk = combined_value[i:i+3]
                     for item in tableCode:
                         if item['value'] == value_chunk:
@@ -158,30 +303,30 @@ async def LoginInformation(Login_data: Login):
                             break
                 return decrypted_password
             decrypted_password = decrypt_combined_value(password_client)
-            print(f"Mật khẩu gốc người dùng nhập là : {decrypted_password}")
+            print(f"The root password the user enters is: {decrypted_password}")
 
             if  user_login == user_find and password_sql == password_client :
-                print("Đăng nhập thành công")
+                print("Logged in successfully")
                 timeout_minutes = 1
                 timeout_seconds = timeout_minutes * 60
-                start_time = time.time()  # Lấy thời gian bắt đầu đăng nhập
+                start_time = time.time()  # Get the login start time
 
                 while True:
                     elapsed_time = time.time() - start_time
                     remaining_time = timeout_seconds - elapsed_time
 
                     if remaining_time <= 0:
-                        print("Thời gian đăng nhập đã hết. Tự động thoát ra ngoài.")
+                        print("Login time has expired. Automatically log out.")
                         break
 
-                    print(f"Thời gian còn lại: {int(remaining_time)} giây", end="\r")
-                    time.sleep(1)  # Đợi 1 giây trước khi kiểm tra lại
+                    print(f"Time remaining: {int(remaining_time)} seconds", end="\r")
+                    time.sleep(1)  # Wait 1 second before checking again
                 else:
-                    print("Đăng nhập thất bại")
+                    print("Login failed")
             else:
-                print("Đăng nhập thất bại")
+                print("Login failed")
         else:
-            print("Tài khoản không tồn tại")
+            print("Account does not exist")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")

@@ -1,3 +1,8 @@
+# /********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/ 
 import bcrypt
 from cryptography.fernet import Fernet
 import binascii
@@ -37,26 +42,30 @@ def find_value_by_string(input_string):
                 found_values.append(item['value'])
                 break
     return found_values
-
 def main():
-    print("""
-    1 - user_settings()
-    2 - data_record ()
-    3 - config_device()
-    4 - control_device()
-    """)
-    choosemain_menu = int(input("Command: "))
+    while True:
+        print("""
+        1 - user_settings()
+        2 - data_record()
+        3 - config_device()
+        4 - control_device()
+        0 - Exit
+        """)
+        choosemain_menu = int(input("Enter the corresponding number of your choice: "))
 
-    if choosemain_menu == 1 :
-        user_settings()
-    elif choosemain_menu == 2 :
-        data_record()
-    elif choosemain_menu == 3 :
-        config_device()
-    elif choosemain_menu == 4 :
-        control_device() 
-    else :
-        print("Lựa chọn không hợp lệ")
+        if choosemain_menu == 1:
+            user_settings()
+        elif choosemain_menu == 2:
+            data_record()
+        elif choosemain_menu == 3:
+            config_device()
+        elif choosemain_menu == 4:
+            control_device()
+        elif choosemain_menu == 0:
+            print("Exited the program.")
+            break
+        else:
+            print("Invalid selection")
         
 def data_record():
     return
@@ -65,89 +74,156 @@ def config_device():
 def control_device():
     return
 def user_settings():
-    choose_user = int(input("Chọn 0 để đăng kí hoặc 1 để đăng nhập: "))
+    print("""
+    1 - register()
+    2 - login ()
+    3 - delete()
+    4 - update()
+    5 - show_user()
+    """)
+    choose_user = int(input("Enter the corresponding number of your choice : "))
 
-    if choose_user == 0:
-        dangki()
-    elif choose_user == 1:
-        dangnhap()
+    if choose_user == 1:
+        register()
+    elif choose_user == 2:
+        login()
+    elif choose_user == 3 :
+        delete_user()
+    elif choose_user == 4 :
+        update_password()
+    elif choose_user == 5 :
+        showuser( )
     else:
-        print("Lựa chọn không hợp lệ")
+        print("Invalid selection")
+# /**
+# 	 * @description Login user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {taikhoannhap , matkhaunhap }
+# 	 * @return data (payload, message)
+# 	 */
+def login():
 
-def dangnhap():
-
-    # Thay đổi URL thành URL thực tế của server
+    # Url
     server_url_dangnhap = "http://127.0.0.1:8000/login"
 
-    # gửi thông tin tài khoản , mật khẩu , mật khẩu salt , mật khẩu fernet . 
-    #giá trị của một row được cung cấp dưới dạng tuple
-    taikhoannhap= input("Nhập tài khoản đăng nhập:")
-    matkhaunhap = input("Nhập mật khẩu đăng nhập:")
+    # Send to information sever 
+    taikhoannhap= input("Enter your login account:")
+    matkhaunhap = input("Enter your login password:")
 
-    # Tìm giá trị tương ứng và nối chúng thành một chuỗi
+    # find value in tablecode and connet it into a string 
     found_values = find_value_by_string(matkhaunhap)
 
     if found_values:
         chuoi_value_kethop = ''.join(found_values)
-        print(f"Mật khẩu nhập vào đã mã hóa sang kiểu chuổi của bảng : {chuoi_value_kethop}")
+        print(f"The entered password has been encoded into the table's string format : {chuoi_value_kethop}")
     else:
-        print(f"Không tìm thấy giá trị nào cho chuỗi {matkhaunhap}")
+        print(f"No value found for string {matkhaunhap}")
     
     
     fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
     client_key = Fernet(fernet_key)
-    print("Đây là khóa mặc định :", fernet_key)
 
-    # Mã hóa mật khẩu bcrypt với khóa Fernet
+    # decode paswords recieved from client and store them in sql 
     matkhauki_mahoa = client_key.encrypt(chuoi_value_kethop.encode())
-    # print("Mật khẩu đã được mã hóa:", matkhauki_mahoa.decode())
     matkhaugocguidi_hex = binascii.hexlify(matkhauki_mahoa).decode()
-    # print("thông tin gửi đi gồm :", matkhaugocguidi_hex)
-    # Tạo một dictionary chứa giá trị input // payload này tên như thế nào thì class InformationUser(BaseModel):/client_user: str/client_password: str tên như thế mới kết nối được 
+    # create a  dictionary sent to sever  . class InformationUser(BaseModel):/client_user: str/client_password: str 
     payload = {"taikhoannhap": taikhoannhap,"matkhaunhap": matkhaugocguidi_hex}
-
-    #client_key_hex => mã hóa lại byte => client_key = Fernet(fernet_key) để lấy key thật 
-
-    # Gửi yêu cầu POST đến server FastAPI với dữ liệu JSON
+    # comand post send request to sever 
     response = requests.post(server_url_dangnhap, json=payload)
-
-def dangki():
-    # Thay đổi URL thành URL thực tế của server
+# /**
+# 	 * @description Register user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {taikhoanki , matkhauki
+# 	 * @return data (payload, message)
+# 	 */
+def register():
+    # url
     server_url_dangki = "http://127.0.0.1:8000/register"
-    taikhoanki =input("Đăng kí tên tài khoản mới :")
-    matkhauki =input("Đăng kí mật khẩu mới : ")
-     # Tìm giá trị tương ứng và nối chúng thành một chuỗi
+    taikhoanki =input("Register a new account name :")
+    matkhauki =input("Register a new password: ")
+     # find value in tablecode and connet it into a string 
     found_values = find_value_by_string(matkhauki)
 
     if found_values:
         chuoi_value_kethop = ''.join(found_values)
-        print(f"Mật khẩu nhập vào đã mã hóa sang kiểu chuổi của bảng : {chuoi_value_kethop}")
+        print(f"The entered password has been encoded into the table's string format : {chuoi_value_kethop}")
     else:
-        print(f"Không tìm thấy giá trị nào cho chuỗi {matkhauki}")
-    # mã hóa thông tin qua 2 lớp
-    # mật khẩu cố định cho cho Fernet
-    # Tạo một khóa Fernet mặc định 
+        print(f"No value found for string {matkhauki}")
+    # decode information 2 levels 
+    # password defaults the same as in client
     fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
     client_key = Fernet(fernet_key)
-    print("Đây là khóa mặc định :", fernet_key)
 
-    # Mã hóa mật khẩu bcrypt với khóa Fernet
+    # decode password bcrypt with key Fernet
     matkhauki_mahoa = client_key.encrypt(chuoi_value_kethop.encode())
-    print("Mật khẩu đã được mã hóa:", matkhauki_mahoa)
+    print("passwword is decode is:", matkhauki_mahoa)
     matkhaugocguidi_hex = binascii.hexlify(matkhauki_mahoa).decode()
-    print("thông tin gửi đi gồm :", matkhaugocguidi_hex)
+    print("information sent to sever :", matkhaugocguidi_hex)
 
-    # Tạo một dictionary chứa giá trị input // payload này tên như thế nào thì class InformationUser(BaseModel):/client_user: str/client_password: str tên như thế mới kết nối được 
+    # create a  dictionary sent to sever  . class InformationUser(BaseModel):/client_user: str/client_password: str 
     payload = {"taikhoannhap": taikhoanki,"matkhaunhap": matkhaugocguidi_hex}
-    #client_key_hex => mã hóa lại byte => client_key = Fernet(fernet_key) để lấy key thật 
 
-    # Gửi yêu cầu POST đến server FastAPI với dữ liệu JSON
+   # comand post send request to sever
     response = requests.post(server_url_dangki, json=payload)
+# /**
+# 	 * @description Delete user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {taikhoannhap , matkhaunhap }
+# 	 * @return data (payload, message)
+# 	 */
+def delete_user():
+    server_url_delete = "http://127.0.0.1:8000/delete"
+    taikhoandelete =input("input accout need delete :")
+    # create a  dictionary sent to sever  . class InformationUser(BaseModel):/client_user: str/client_password: str 
+    payload = {"taikhoanxoa": taikhoandelete}
+    # comand post send request to sever
+    response = requests.post(server_url_delete, json=payload)
+    # /**
+# 	 * @description show user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {,}
+# 	 * @return data (json, message)
+# 	 */
+def showuser():
+    #url
+    server_url_show = "http://127.0.0.1:8000/show"
+    # comand post send request to sever
+    response = requests.post(server_url_show)
+# /**
+# 	 * @description update user
+# 	 * @author binhnguyen
+# 	 * @since 09-15-2023
+# 	 * @param {taikhoannhap , matkhaunhap }
+# 	 * @return data (payload, message)
+# 	 */
+def update_password():
+    server_url_update = "http://127.0.0.1:8000/update"
+    taikhoan_update =input("input user need update :")
+    password_update=input("input password need update :")
+    # find value in tablecode and connet it into a string 
+    found_values = find_value_by_string(password_update)
 
-    #gửi thông tin tài khoản và mật khẩu 
-    #Giá trị input bạn muốn gửi lên server
+    if found_values:
+        chuoi_value_kethop = ''.join(found_values)
+        print(f"The entered password has been encoded into the table's string format : {chuoi_value_kethop}")
+    else:
+        print(f"No value found for string {password_update}")
+    
+    
+    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    client_key = Fernet(fernet_key)
+    print("this is default key :", fernet_key)
 
-
+    matkhauki_mahoa = client_key.encrypt(chuoi_value_kethop.encode())
+    matkhaugocguidi_hex = binascii.hexlify(matkhauki_mahoa).decode()
+     # create a  dictionary sent to sever  . class InformationUser(BaseModel):/client_user: str/client_password: str 
+    payload = {"taikhoannhap": taikhoan_update,"matkhaunhap": matkhaugocguidi_hex}
+    # comand post send request to sever
+    response = requests.post(server_url_update, json=payload)
 if __name__ == "__main__":
     main()
 
