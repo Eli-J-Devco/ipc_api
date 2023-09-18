@@ -14,6 +14,9 @@ import time
 
 app = FastAPI()
 
+# Global variable for fernet_key
+fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+
 # Create a class to receive data from logged in clients
 class Login(BaseModel):
     taikhoannhap: str
@@ -30,7 +33,17 @@ class delete(BaseModel):
 # Create a class to receive data from update client
 class update(BaseModel):
     taikhoannhap: str
-    matkhaunhap: str
+    matkhau_update: str
+    matkhau_old: str
+# Create a class to receive data from logged in clients
+class Read_Modbus_TCP(BaseModel):
+    ip:str
+    registers_0: str
+    registers_1: str
+    registers_2: str
+    registers_3: str
+    registers_4: str
+    datetime   : str
 
 tableCode = [
     {'value': '2ZS', 'id': '!'}, {'value': 'X3p', 'id': '“'}, {'value': 'imE', 'id': '#'}, {'value': 'EUT', 'id': '$'},
@@ -58,6 +71,20 @@ tableCode = [
 	{'value': 'lIB', 'id': 'y'}, {'value': 'Csm', 'id': 'z'}, {'value': 'uQ8', 'id': ''},{ 'value': 'EW7' , 'id': '|'},
 	{'value': 'pP9', 'id': ''} , {'value': '5r3', 'id': '~'}, {'value': 'Nq0', 'id' :' '}]
 
+# Hàm tạo kết nối SQL và trả về nó
+def create_sql_connection():
+    connection = mysql.connector.connect(
+        user="root",
+        password="123456",
+        host="localhost",
+        database="login",
+    )
+    return connection
+
+# Hàm đóng kết nối SQL
+def close_sql_connection(connection):
+    connection.close()
+    
 # /**
 # 	 * @description delete user
 # 	 * @author binhnguyen
@@ -65,17 +92,14 @@ tableCode = [
 # 	 * @param {user_delete  }
 # 	 * @return data (payload, message)
 # 	 */
+
 @app.post("/delete")
 async def deleteInformation(delete_data: delete):
     user_delete = delete_data.taikhoanxoa
     try:
         # Create connect to database
-        connection = mysql.connector.connect(
-            user="root",
-            password="123456",
-            host="localhost",
-            database="login",
-        )
+        # Tạo kết nối SQL
+        connection = create_sql_connection()
 
         # create connection to sql 
         mycursor = connection.cursor()
@@ -94,9 +118,11 @@ async def deleteInformation(delete_data: delete):
         print(f"Error: {err}")
         connection.rollback()  
 
+
     finally:
+        # Close cursor and SQL connection
         mycursor.close()
-        connection.close()
+        close_sql_connection(connection)
 # /**
 # 	 * @description show user
 # 	 * @author binhnguyen
@@ -108,12 +134,8 @@ async def deleteInformation(delete_data: delete):
 async def showInformation():
     try:
         # Create connection to database
-        connection = mysql.connector.connect(
-            user="root",
-            password="123456",
-            host="localhost",
-            database="login",
-        )
+        # Tạo kết nối SQL
+        connection = create_sql_connection()
 
         # create connection to sql
         mycursor = connection.cursor()
@@ -132,9 +154,11 @@ async def showInformation():
         print(f"Error: {err}")
         connection.rollback()  
 
+
     finally:
+        # Close cursor and SQL connection
         mycursor.close()
-        connection.close()
+        close_sql_connection(connection)
 # /**
 # 	 * @description registe user
 # 	 * @author binhnguyen
@@ -146,7 +170,6 @@ async def showInformation():
 def RegisterInformation(Register_data: Register):
     user_register = Register_data.taikhoannhap
     password_lv1_register = Register_data.matkhaunhap
-    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
     client_key = Fernet(fernet_key)
     fernet_key_lv2 = Fernet.generate_key()
     fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
@@ -154,12 +177,8 @@ def RegisterInformation(Register_data: Register):
     matkhauki_mahoa = sever_key.encrypt(password_lv1_register.encode())
 
     try:
-        connection = mysql.connector.connect(
-            user="root",
-            password="123456",
-            host="localhost",
-            database="login",
-        )
+        # Tạo kết nối SQL
+        connection = create_sql_connection()
         mycursor = connection.cursor()
 
         # Command Select 
@@ -181,9 +200,11 @@ def RegisterInformation(Register_data: Register):
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         connection.rollback()
+
     finally:
+        # Close cursor and SQL connection
         mycursor.close()
-        connection.close()
+        close_sql_connection(connection)
 # /**
 # 	 * @description update user
 # 	 * @author binhnguyen
@@ -194,11 +215,14 @@ def RegisterInformation(Register_data: Register):
 @app.post("/update")
 async def update_user(update_data: update):
     user_update = update_data.taikhoannhap
-    password_lv1_update = update_data.matkhaunhap
-    # This is default key 
-    fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
+    password_lv1_update = update_data.matkhau_update
+    password_lv1_old_hex = update_data.matkhau_old
     client_key = Fernet(fernet_key)
-
+    # decode password_lv1_old
+    password_old_lv1 = binascii.unhexlify(password_lv1_old_hex)
+    create_key_old = Fernet(fernet_key)
+    password_old = create_key_old.decrypt( password_old_lv1)
+    # if passwword old client sent to sever the same as with password in sql effectuate 
     # Create key random 
     fernet_key_lv2 = Fernet.generate_key()
     fernet_key_gui_sql = binascii.hexlify(fernet_key_lv2).decode()
@@ -208,33 +232,57 @@ async def update_user(update_data: update):
     print("The new password has been updated according to the key to download sql:", matkhauki_mahoa)
     try:
         # Create connecton to database 
-        connection = mysql.connector.connect(
-            user="root",
-            password="123456",
-            host="localhost",
-            database="login",
-        )
-
+        # Tạo kết nối SQL
+        connection = create_sql_connection()
         # create connection to sql
         mycursor = connection.cursor()
+        #
+        Cmd_Login = ("SELECT  `user` ,`password`, `salt`  FROM `login`.`user` WHERE `user` = %s")
+        val_login = (user_update,)
 
+        mycursor.execute(Cmd_Login, val_login)
+        result = mycursor.fetchall()
+        if result:
+            datarow = result[0]
+            user_find = datarow[0]
+            password_find_lv2 = datarow[1]
+            print ("password taken from sql is :", password_find_lv2)
+            keyfernet_find_hex = datarow[2]
+         # Use the password from sql for the first decoded password
+            keyfernet_find_sql = binascii.unhexlify(keyfernet_find_hex)
+            create_key_sever = Fernet(keyfernet_find_sql)
+            password_lv1_hex = create_key_sever.decrypt( password_find_lv2)
+            password_lv1 = binascii.unhexlify(password_lv1_hex)
+            client_key = Fernet(fernet_key)
+            # After translating the password 2 times, compare it with the password the user entered
+            password_sql = client_key.decrypt( password_lv1)
+            print("mật khẩu cũ lấy lên từ sql và giãi mã ra là :", password_sql)
+
+
+        # code compare password old with password sql the same as code login 
+        if  password_sql == password_old :
+                print("Confirm the old password matches and change the password successfully")
         # Command INSERT
-        Cmd_update =  ("UPDATE `login`.`user` SET `password` = %s ,`salt` = %s WHERE `user` = %s")
-        val_update = (matkhauki_mahoa,fernet_key_gui_sql, user_update)
+                Cmd_update =  ("UPDATE `login`.`user` SET `password` = %s ,`salt` = %s WHERE `user` = %s")
+                val_update = (matkhauki_mahoa,fernet_key_gui_sql, user_update)
 
-        mycursor.execute(Cmd_update, val_update)
-
+                mycursor.execute(Cmd_update, val_update)
+        else:
+            print("Confirm old password does not match, change password failed ")
         # Commit 
         connection.commit()
-        print("Record inserted successfully!")
+        print("Record inserted successfully !")
 
     except mysql.connector.Error as err:
         print(f"Error: {err}")
         connection.rollback()  
 
     finally:
+        # Close cursor and SQL connection
         mycursor.close()
-        connection.close()
+        close_sql_connection(connection)
+        
+
 # /**
 # 	 * @description login user
 # 	 * @author binhnguyen
@@ -249,12 +297,8 @@ async def LoginInformation(Login_data: Login):
 
     try:
         # Create connecttion to sql 
-        connection = mysql.connector.connect(
-            user="root",
-            password="123456",
-            host="localhost",
-            database="login",
-        )
+        # Tạo kết nối SQL
+        connection = create_sql_connection()
 
         # # create connection to sql
         mycursor = connection.cursor()
@@ -279,8 +323,6 @@ async def LoginInformation(Login_data: Login):
             create_key_sever = Fernet(keyfernet_find_sql)
             password_lv1_hex = create_key_sever.decrypt( password_find_lv2)
             password_lv1 = binascii.unhexlify(password_lv1_hex)
-            # Use the password from client for the seconds decoded password
-            fernet_key = b'PjWEC41lNvBaTXZaQoSGwSA_tt9RD-D4cZMWn06R1H4='
             client_key = Fernet(fernet_key)
             # After translating the password 2 times, compare it with the password the user entered
             password_sql = client_key.decrypt( password_lv1)
@@ -332,8 +374,45 @@ async def LoginInformation(Login_data: Login):
         print(f"Error: {err}")
 
     finally:
+        # Close cursor and SQL connection
         mycursor.close()
-        connection.close()
+        close_sql_connection(connection)
+@app.post("/Read_Modbus_TCP")
+def Read_Modbus_TCP(Read_data: Read_Modbus_TCP):
+    ip          = Read_data.ip
+    print("ip là ", ip)
+    registers_0 = Read_data.registers_0
+    registers_1 = Read_data.registers_1
+    registers_2 = Read_data.registers_2
+    registers_3 = Read_data.registers_3
+    registers_4 = Read_data.registers_4
+    date_timer  = Read_data.datetime
+    try:
+        # Create connection to database
+        connection = create_sql_connection()
+
+        # create connection to sql
+        mycursor = connection.cursor()
+
+        # Command INSERT
+        Cmd_read = ("INSERT INTO `login`.`modbus`( `ip`,`thanhghi0`, `thanhghi1`, `thanhghi2`, `thanhghi3`, `thanhghi4`,`datetime`) "
+                            "VALUES (%s ,%s, %s, %s, %s, %s, %s)")
+        val_read = ( ip,registers_0, registers_1,registers_2,registers_3,registers_4,date_timer)
+
+        mycursor.execute(Cmd_read, val_read)
+        # Commit 
+        connection.commit()
+        print("Record inserted successfully!")
+
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        connection.rollback()  
+
+
+    finally:
+        # Close cursor and SQL connection
+        mycursor.close()
+        close_sql_connection(connection)
 
 
 
