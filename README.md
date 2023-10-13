@@ -13,7 +13,7 @@ pip install -r requirements.txt
 https://fastapi.tiangolo.com/
 <!-- Run a Server Manually - Uvicorn -->
 uvicorn main:app --host 0.0.0.0 --port 8000
-<!--  -->
+<!-- Run a Server Manually - Uvicorn and auto reload -->
 uvicorn main:app --reload
 <!-- Nodejs -->
 curl -sSL https://deb.nodesource.com/setup_14.x | sudo bash -
