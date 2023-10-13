@@ -1,7 +1,7 @@
 import requests
 from jose import jwt
 # access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE2OTcxMjk3NTd9.TgD8dqoSGaLnJb6GX7-H6fGu3vAkqv-BQM2vuDua27E"
-access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE2OTcxODM0MzZ9.97N8y_9F0VnxCF40zUodZse6PYt9O3jpXwDmwpGT-eU'
+access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozNCwiZXhwIjoxNjk3MjEyODE4fQ.7whxigQstjN5trWjMnKT4FsCBBH_6t6V0JE1t0bFKJ8'
 secret_key = "09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7"
 algorithm = "HS256"
 
@@ -42,7 +42,6 @@ def test_login_user():
     #                      settings.secret_key, algorithms=[settings.algorithm])
 
 
-# test_login_user()
 def test_create_posts():
     payload = jwt.decode(access_token,
                          secret_key, algorithms=[algorithm])
@@ -79,7 +78,8 @@ def test_get_one_post():
     print(j)
 
 
-test_create_user()
+# test_create_user()
+# test_login_user()
 # test_create_posts()
 # test_get_one_post()
 # decode_token()

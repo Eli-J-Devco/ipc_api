@@ -26,8 +26,8 @@ class UserOut(BaseModel):
     last_login: datetime
     date_joined: datetime
 
-    # status: bool = True
-    # is_active: bool = False
+    status: bool = True
+    is_active: bool = False
 
     class Config:
         orm_mode = True
