@@ -20,3 +20,8 @@ pandas
 uvicorn
 jwt
 python-jose
+pydantic-settings
+passlib
+pydantic
+pydantic[email]
+python-multipart
