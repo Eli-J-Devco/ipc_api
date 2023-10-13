@@ -17,3 +17,6 @@ flask-bcrypt
 psutil
 redis
 pandas
+uvicorn
+jwt
+python-jose
