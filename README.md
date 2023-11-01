@@ -4,11 +4,15 @@ https://ubuntu.com/download/alternative-downloads
 <!-- How do I disable the screensaver/lock in kali linux? -->
 Settings > Power Manager > Security
 unchecked Lockscreen when system is going to sleep
+<!-- Disable auto logout -->
+Setting > Privacy > Screen Lock > Automatic Screen Lock (Off)
 <!-- Language Python -->
 sudo apt-get update
 sudo apt-get install python
 pip --version
+<!-- pip -->
 sudo apt-get install pip
+or sudo apt install python3-pip
 <!-- Project -->
 python -m venv venv
 source venv/Scripts/activate
@@ -22,13 +26,17 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 uvicorn main:app --reload
 <!-- Nodejs -->
 sudo apt install nodejs npm
+sudo apt install curl
 curl -sSL https://deb.nodesource.com/setup_14.x | sudo bash -
-sudo apt install -y nodejs
+sudo apt-get install -y nodejs
 npm --version
 node --version
 <!-- Process Management -->
 https://pm2.keymetrics.io/docs/usage/quick-start/
-npm install pm2@latest
+method1: sudo npm install pm2@latest
+method2: sudo npm install pm2 -g
+
+
 <!-- Notes to self: installing PM2 on Windows, as a service -->
 https://thomasswilliams.github.io/development/2020/04/07/installing-pm2-windows.html
 <!-- Database -->
@@ -41,7 +49,7 @@ DROP USER 'ipc'@'%';
 DROP USER 'root'@'localhost';
 CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '123654789';
 CREATE USER 'ipc'@'%' IDENTIFIED WITH mysql_native_password BY '@$123654789';
-CREATE USER 'ipc'@'%' IDENTIFIED  BY '123654789';
+CREATE USER 'ipc'@'%' IDENTIFIED  BY '@$123654789';
 GRANT ALL PRIVILEGES ON * . * TO 'ipc'@'%';
 SELECT User, Host, Password FROM mysql.user;
 
@@ -54,6 +62,10 @@ https://www.vultr.com/docs/install-mosquitto-mqtt-broker-on-ubuntu-20-04-server/
 https://www.instructables.com/How-to-Use-MQTT-With-the-Raspberry-Pi-and-ESP8266/
 sudo apt update 
 sudo apt install -y mosquitto
+<!-- set user and pass MQTT -->
+sudo mosquitto_passwd -c /etc/mosquitto/pwfile nextwave
+mosquitto_pub -d -u nextwave -P 123654789 -t IPC -m "Hello, World!"
+mosquitto_sub -d -u nextwave -P 123654789  -t IPC
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
@@ -88,13 +100,18 @@ sudo systemctl status ssh
 sudo apt-get update
 sudo apt-get -y install dpkg
 <!-- remote computer TeamViewer -->
-
 https://pimylifeup.com/raspberry-pi-teamviewer/
 wget https://download.teamviewer.com/download/linux/teamviewer-host_armhf.deb
 sudo dpkg -i teamviewer-host_armhf.deb
 <!-- IPC -->
 wget https://download.teamviewer.com/download/linux/teamviewer-host_amd64.deb
 sudo dpkg -i teamviewer-host_amd64.deb
+<!-- TeamViewer Allow Remote Control without Confirmation in Linux -->
+sudo nano /etc/gdm3/custom.conf
 <!-- Modbus to MQTT -->
 https://qbee.io/misc/send-modbus-data-over-mqtt-using-qbee-io/
 https://pypi.org/project/modbus4mqtt/
+<!-- Free SFTP, SCP, S3 and FTP client for Windows -->
+https://winscp.net/eng/download.php
+<!-- Enhanced terminal for Windows with X11 server, tabbed SSH client, network tools and much more -->
+https://mobaxterm.mobatek.net/download-home-edition.html

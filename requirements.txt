@@ -25,3 +25,4 @@ passlib
 pydantic
 pydantic[email]
 python-multipart
+mysql-connector-python

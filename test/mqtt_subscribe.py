@@ -9,8 +9,8 @@ import time
 broker = 'test.mosquitto.org'
 port = 1883
 topic = "IPC"
-MQTT_USERNAME = "admin"
-MQTT_PASSWORD = "admin"
+MQTT_USERNAME = "nextwave"
+MQTT_PASSWORD = "123654789"
 
 # The callback function of connection
 
@@ -39,7 +39,8 @@ async def main():
     # while True:
     try:
         # async with aiomqtt.Client(hostname=broker, port=1883, username=MQTT_USERNAME, password=MQTT_PASSWORD, client_id="1234") as client:
-        async with aiomqtt.Client("test.mosquitto.org") as client:
+        async with aiomqtt.Client("192.168.80.161", username=MQTT_USERNAME, password=MQTT_PASSWORD) as client:
+            # async with aiomqtt.Client("test.mosquitto.org") as client:
             print("Connection to MQTT open")
             async with client.messages() as messages:
                 # await client.subscribe("humidity/#")
@@ -52,5 +53,6 @@ async def main():
         print("Connection to MQTT closed")
         # await asyncio.sleep(reconnect_interval)
 
-asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+asyncio.set_event_loop_policy(
+    asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
 asyncio.run(main())
