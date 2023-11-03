@@ -1,23 +1,35 @@
-from jose import JWTError, jwt
+import os
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
+
+import database
 # from . import schemas, database, models
 import models
 import schemas
-import database
-from fastapi import Depends, status, HTTPException
+from dotenv import load_dotenv
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-from config import settings
+
+# sys.path.insert(1, "D:/NEXTWAVE/project/ipc_api")
+# from config import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
+
 
 # SECRET_KEY
 # Algorithm
 # Expriation time
 
-SECRET_KEY = settings.secret_key
-ALGORITHM = settings.algorithm
-ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+# SECRET_KEY = settings.secret_key
+# ALGORITHM = settings.algorithm
+# ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+load_dotenv(dotenv_path=Path("../.env"))
+SECRET_KEY = os.getenv('SECRET_KEY')
+ALGORITHM = os.getenv('ALGORITHM')
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES'))
 
 
 def create_access_token(data: dict):

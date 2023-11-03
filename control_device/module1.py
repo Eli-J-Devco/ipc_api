@@ -1,9 +1,8 @@
 import mysql.connector
-from mysql.connector import Error
 import pandas as pd
+from mysql.connector import Error
 
-from ..backend_api import settings
-print(settings.database_username)
+# print(settings.database_username)
 # def create_server_connection(host_name, user_name, user_password, db_name):
 #     connection = None
 #     try:

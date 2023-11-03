@@ -1,11 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import sys
 
 import models
 from database import engine
-from routers import user, auth
-from config import settings
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from routers import auth, user
 
+# from config import settings
+
+# sys.path.insert(1, "./control_device")
+# from module1 import name
 
 models.Base.metadata.create_all(bind=engine)
 
