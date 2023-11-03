@@ -1,3 +1,4 @@
 /venv
+/backend_api/__pycache__
 /control_device/__pycache__
 /backend_api/__pycache__
