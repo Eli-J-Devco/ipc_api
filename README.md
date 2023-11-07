@@ -128,3 +128,6 @@ sql = "UPDATE books SET name = 'Web Programming in Python' WHERE id = 15"
 mycursor.execute(sql)
 mydb.commit()
 print(mycursor.rowcount, "record(s) affected")
+<!--  -->
+
+python driver_of_device/ModbusTCP.py
