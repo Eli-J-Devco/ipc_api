@@ -10,13 +10,15 @@
 # pm2 save
 # Watch and Restart app when files change
 # --watch
-import os
-import time
+# Pass extra arguments to the script
+# -- arg1 arg2 arg3
 import json
+import os
 import random
 import subprocess
 import sys
-import json
+import time
+
 # <!-- call file python and Rename the Process -->
 
 
@@ -31,6 +33,7 @@ print("------------------------------")
 # data = json.loads(raw)status
 out, err = shellscript.communicate()
 result = json.loads(out)
+print(result)
 # print(result[0]['name'])
 # print(result[0]['pm2_env']['status'])
 # print(result[0]['pm2_env']['pm_uptime'])
@@ -52,7 +55,7 @@ for item in range(len(result)):
     uptime = result[item]['pm2_env']['pm_uptime']
     status = result[item]['pm2_env']['status']
     cpu = result[item]['monit']['cpu']
-    mem = result[item]['monit']['memory']/1000000
+    mem = result[item]['monit']['memory'] / 1000000
 
     print(f'name: {name}')
     print(f'namespace: {namespace}')

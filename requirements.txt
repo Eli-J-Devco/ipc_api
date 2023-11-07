@@ -26,3 +26,4 @@ pydantic
 pydantic[email]
 python-multipart
 mysql-connector-python
+mybatis-mapper2sql
