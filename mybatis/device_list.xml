@@ -32,8 +32,15 @@
     <select id="select_point_list">
             SELECT device_list.id, device_list.name, 
             driver_list.name AS connect_type, device_type.name AS device_type,
-            device_group.name as device_group,
-            template_library.name as template_name
+            device_group.name AS device_group,
+            template_library.name AS template_name,
+            point_list.id_pointkey,point_list.name AS unit_desc,point_list.register, point_list.slope, point_list.slopeenabled,
+	          table_byteorder.value AS value_byteorder,
+	          table_byteorder.namekey AS name_byteorder,
+	          table_datatype.value AS value_datatype,
+	          table_datatype.namekey AS name_datatype,
+	          table_units.value AS value_units,
+	          table_units.namekey AS name_units
             FROM device_list
             INNER JOIN device_type ON device_list.id_device_type=device_type.id
             INNER JOIN communication ON device_list.id_communication=communication.id
@@ -41,6 +48,9 @@
             INNER JOIN device_group ON device_list.id_device_group=device_group.id
             INNER JOIN template_library ON device_group.id_template=template_library.id
             INNER JOIN point_list ON template_library.id=point_list.id_template
+	          INNER JOIN config_information table_byteorder ON point_list.id_type_byteorder=table_byteorder.id
+	          INNER JOIN config_information table_datatype ON point_list.id_type_datatype=table_datatype.id
+	          LEFT JOIN config_information table_units ON point_list.id_type_units=table_units.id
             where 
             device_list.id=%s;
             </select>
@@ -50,7 +60,8 @@
                 device_group.name as device_group,
                 template_library.name as template_name,
                 register_block.addr as addr,register_block.count as count,
-                config_information.namekey as Function
+                config_information.namekey as namekey,
+                config_information.value as Function
                 FROM device_list
                 INNER JOIN device_type ON device_list.id_device_type=device_type.id
                 INNER JOIN communication ON device_list.id_communication=communication.id
@@ -59,7 +70,7 @@
                 INNER JOIN template_library ON device_group.id_template=template_library.id
                 INNER JOIN register_block ON template_library.id=register_block.id_template
                 INNER JOIN config_information ON register_block.id_type_function=config_information.id
-                where 
+                where register_block.status=1 and
                 device_list.id=%s;
                 </select>
 </mapper>

@@ -129,5 +129,8 @@ mycursor.execute(sql)
 mydb.commit()
 print(mycursor.rowcount, "record(s) affected")
 <!--  -->
-
+[4, 3, 2, 1] - byteorder=Endian.Big, wordorder=Endian.Big
+[3, 4, 1, 2] - byteorder=Endian.Little, wordorder=Endian.Big
+[1, 2, 3, 4] - byteorder=Endian.Little, wordorder=Endian.Little
+<!--  -->
 python driver_of_device/ModbusTCP.py
