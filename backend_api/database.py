@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 # from config import *
 # import os
 # sys.path.insert(1, "D:/NEXTWAVE/project/ipc_api")
