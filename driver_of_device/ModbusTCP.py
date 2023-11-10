@@ -6,24 +6,30 @@
 # *
 # *********************************************************/
 
-import time
-import sys
-import os
 import datetime
 import json
-from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
-from pymodbus.exceptions import ConnectionException, ModbusException
-from pymodbus.constants import Endian
-from pymodbus.client.sync import ModbusTcpClient
+import os
+import sys
+import time
+
 import mybatis_mapper2sql
 import paho.mqtt.publish as publish
-sys.stdout.reconfigure(encoding='utf-8')
-sys.path.insert(1, "./")
-absDirname=os.path.dirname(os.path.abspath(__file__))
-from config import Config
-from libMySQL import *
-arr = sys.argv
+from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.constants import Endian
+from pymodbus.exceptions import ConnectionException, ModbusException
+from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
+# absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
+# absDirname=os.path.dirname(os.path.abspath(__file__))
+
+sys.stdout.reconfigure(encoding='utf-8')
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from config import *
+from libMySQL import *
+
+arr = sys.argv
+print(f'arr: {arr}')
 # MQTT_BROKER = Config.MQTT_BROKER
 MQTT_BROKER = 'test.mosquitto.org' #Demo
 MQTT_PORT = Config.MQTT_PORT
@@ -33,22 +39,23 @@ MQTT_PASSWORD =Config.MQTT_PASSWORD
 
 # config[0] -- id
 # ----- mybatis -----
-mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-    xml=os.path.abspath(os.getcwd()) + '/mybatis/device_list.xml')
+# mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+#     xml=os.path.abspath(os.getcwd()) + '/mybatis/device_list.xml')
 
-statement = mybatis_mapper2sql.get_statement(
-    mapper, result_type='list', reindent=True, strip_comments=True)
-
-query_all = statement[0]["select_all_device"]
-query_only_device = statement[1]["select_only_device"]
-query_point_list = statement[2]["select_point_list"]
-query_register_block = statement[3]["select_register_block"]
 # 
-print(f'arr: {arr}')
+
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     return now
+# Describe functions before writing code
+# /**
+# 	 * @description Definition of point data
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {}
+# 	 * @return data {ItemID, Name, Units, Value, Timestamp,Quality}
+# 	 */
 def point_object(ItemID,Name,Units,Value,Quality):
     
     return {"ItemID": ItemID, 
@@ -58,29 +65,56 @@ def point_object(ItemID,Name,Units,Value,Quality):
             "Timestamp": getUTC(),
             "Quality":Quality
             }
+# Describe functions before writing code
+# /**
+# 	 * @description Modbus Function Codes
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {client, FUNCTION, ADDRs, COUNT, slave_ID}
+# 	 * @return data (registers)
+# 	 */
 def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
-    if FUNCTION == 0:  # not used                 
-        return []
-    if FUNCTION == 1:  # Read Coils
-        ADDR = ADDRs                        
-        result_rb = client.read_coils(
-                            ADDR, COUNT, unit=slave_ID)
-        return result_rb
-    if FUNCTION == 2:  # Read Discrete Inputs                    
-        ADDR = ADDRs
-        result_rb = client.read_discrete_inputs(
-                            ADDR, COUNT, unit=slave_ID)
-        return result_rb
-    if FUNCTION == 3:  # Read Holding Registers
-        ADDR = ADDRs
-        result_rb = client.read_holding_registers(
-                            ADDR, COUNT, unit=slave_ID)
-        return result_rb
-    if FUNCTION == 4:  # Read Input Registers
-        ADDR = ADDRs
-        result_rb = client.read_input_registers(
-                            ADDR, COUNT, unit=slave_ID)
-        return result_rb
+    try:
+        match FUNCTION:
+            case 0:# not used           
+                return []
+            case 1:# Read Coils
+                ADDR = ADDRs                        
+                result_rb = client.read_coils(
+                                ADDR, COUNT, unit=slave_ID)
+                return result_rb
+
+            case 2:# Read Discrete Inputs      
+                ADDR = ADDRs
+                result_rb = client.read_discrete_inputs(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+            
+            case 3:# Read Holding Registers
+                ADDR = ADDRs
+                result_rb = client.read_holding_registers(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+
+            case 4:# Read Input Registers
+                ADDR = ADDRs
+                result_rb = client.read_input_registers(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+            case _:
+                return []
+    except:
+      print('An exception occurred')
+   
+# Describe functions before writing code
+# /**
+# 	 * @description convert data of register to point list
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {point_list_item,data_of_register}
+# 	 * @return data (ItemID, Name, Units, Value, Timestamp,Quality)
+# 	 */
+
 def convert_register_to_point_list(point_list_item,data_of_register):
     point_list=None
     if point_list_item['value_datatype'] == 3: # Short Signed 16-bit
@@ -170,7 +204,26 @@ def func_check_float(Value): #Check if a number is int or float
     else:
         result=Value
     return result
+def func_check_data_mybatis(data,item,object_name):
+    try:
+        
+        if data[item].get(object_name):
+           return data[item].get(object_name)
+        else:
+            return ""
+        
+    except:
+      print('Error not find object mybatis')
+      return ""
 # ----- MQTT -----
+# Describe functions before writing code
+# /**
+# 	 * @description public data MQTT
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {Broker, Port,Topic, UserName, Password, data_send}
+# 	 * @return data ()
+# 	 */
 def func_mqtt_public(Broker, Port,Topic, UserName, Password, data_send):
     try:
         payload = json.dumps(data_send)
@@ -185,60 +238,112 @@ def func_mqtt_public(Broker, Port,Topic, UserName, Password, data_send):
         print(f"MQTT Error: '{err}'")
 # 
 def device(ConfigPara):
-    results = MySQL_Select(query_only_device, (ConfigPara[1],))
-    print(results)
-    if len(results) >0:
-        results_RBlock= MySQL_Select(query_register_block, (ConfigPara[1],))
-        results_Plist= MySQL_Select(query_point_list, (ConfigPara[1],))
+    try:
+        
+        if len(ConfigPara)>=2 and type(ConfigPara) == list :
+            pass
+        else:
+            return -1
+        pathSource=ConfigPara[2]
+        # pathSource="D:/NEXTWAVE/project/ipc_api"
+        id_device=ConfigPara[1]
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        xml=pathSource + '/mybatis/device_list.xml')
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True) 
+        # 
+        query_all= func_check_data_mybatis(statement,0,"select_all_device")
+        query_only_device=func_check_data_mybatis(statement,1,"select_only_device")
+        query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
+        query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
+        if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
+          pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
+        # 
+        results_device = MySQL_Select(query_only_device, (id_device,))
+        # 
+        if type(results_device) == list and len(results_device)>=1:
+            pass
+        else:           
+            print("Error not found data device")
+            return -1
+     
+        results_RBlock= MySQL_Select(query_register_block, (id_device,))
+        results_Plist= MySQL_Select(query_point_list, (id_device,))
         # print(f'results_rblock: {results_RBlock[0]}')
         # print(f'results_plist: {results_Plist}')
-
-        
+        # Check the register Modbus
+        if type(results_RBlock) == list and len(results_RBlock)>=1:
+            pass
+        else:           
+            print("Error device register not found")
+            # return -1
+        # Check the point list Modbus
+        if type(results_Plist) == list and len(results_Plist)>=1:
+            pass
+        else:           
+            print("Error device point list not found")
+            # return -1 
+     
         while True:
-            slave_ip = results[0]["tcp_gateway_ip"]
-            slave_port = results[0]['tcp_gateway_port']
-            slave_ID =  results[0]['rtu_bus_address']          
-            try:
-                with ModbusTcpClient(slave_ip, port=slave_port) as client:
-                    Data = []
-                    for itemRB in results_RBlock:
-                        FUNCTION = itemRB["Function"]
-                        ADDR = itemRB["addr"]
-                        COUNT = itemRB["count"]
-                        result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
-                        if not result_rb.isError():
-                            INC = ADDR-1
-                            for itemR in result_rb.registers:
-                                INC = INC+1
-                                Data.append({"MRA": INC, "Value": itemR})
-                        else:            
-                            print("Error ------------------------------------")
-                            print(f'ADDR: {ADDR} COUNT: {COUNT}')
-                            # Exception Response(131, 3, IllegalAddress)
-                            print(result_rb.function_code)
-                            #
-                            print(f"Error reading from {slave_ip}: {result_rb}")
-                    new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
-                    # print(f"Register Block {slave_ip}: {new_Data}")  
-                    point_list = []
-                    for itemP in results_Plist:
-                        result= convert_register_to_point_list(itemP,new_Data)
-                        point_list.append(result)
-                        # time.sleep(1)
-                    print("----------------- point_list--------------------------------")
-                    for item in point_list:
-                        if item["Quality"]==0:
-                            print(f'item: {item}')
-                            pass
+                device_name=results_device[0]["name"]
+                slave_ip = results_device[0]["tcp_gateway_ip"]
+                slave_port = results_device[0]['tcp_gateway_port']
+                slave_ID =  results_device[0]['rtu_bus_address']     
+                try:
+                    with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                        Data = []
+                        for itemRB in results_RBlock:
+                            FUNCTION = itemRB["Function"]
+                            ADDR = itemRB["addr"]
+                            COUNT = itemRB["count"]
+                            result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
+                            if result_rb==[]:
+                                print("The device does not return results")
+                            else:
+                                if not result_rb.isError():
+                                    INC = ADDR-1
+                                    for itemR in result_rb.registers:
+                                        INC = INC+1
+                                        Data.append({"MRA": INC, "Value": itemR})
+                                else:            
+                                    print("Error ------------------------------------")
+                                    print(f'ADDR: {ADDR} COUNT: {COUNT}')
+                                    # Exception Response(131, 3, IllegalAddress)
+                                    print(result_rb.function_code)
+                                    #
+                                    print(f"Error reading from {slave_ip}: {result_rb}")
+                        new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
+                        # print(f"Register Block {slave_ip}: {new_Data}")  
+                        point_list = []
+                        for itemP in results_Plist:
+                            result= convert_register_to_point_list(itemP,new_Data)
+                            point_list.append(result)
+                            # time.sleep(1)
+                        print("-----------------Result point_list--------------------------------")
+                        for item in point_list:
+                            if item["Quality"]==0:
+                                print(f'item: {item}')
+                        time.sleep(5)
+                        # 
+                        func_mqtt_public(MQTT_BROKER,
+                                         MQTT_PORT,
+                                         MQTT_TOPIC+device_name,
+                                         MQTT_USERNAME,
+                                         MQTT_PASSWORD,
+                                         point_list)
+                        
+                except (ConnectionException, ModbusException) as e:
+                    print(f"Modbus error from {slave_ip}: {e}")
                     time.sleep(5)
-                    func_mqtt_public(MQTT_BROKER,MQTT_PORT,MQTT_TOPIC,MQTT_USERNAME,MQTT_PASSWORD,point_list)
-                    
-            except (ConnectionException, ModbusException) as e:
-                print(f"Modbus error from {slave_ip}: {e}")
-                time.sleep(5)
-            except AttributeError as ae:
-                print("AE ERROR", ae)
-                time.sleep(5)
+                except AttributeError as ae:
+                    print("AE ERROR", ae)
+                    time.sleep(5)
 
+    except Exception as e:
+      print('Error : ',e)
+   
 
 device(arr)

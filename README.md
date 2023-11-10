@@ -108,6 +108,32 @@ wget https://download.teamviewer.com/download/linux/teamviewer-host_amd64.deb
 sudo dpkg -i teamviewer-host_amd64.deb
 <!-- TeamViewer Allow Remote Control without Confirmation in Linux -->
 sudo nano /etc/gdm3/custom.conf
+<!-- Ubuntu 20.04 shows a black screen when connecting through Teamviewer -->
+sudo apt-get install xserver-xorg-video-dummy
+sudo nano /usr/share/X11/xorg.conf.d/xorg.conf
+and paste this (adjusting your desired resolution)
+Section "Device"
+    Identifier  "Configured Video Device"
+    Driver      "dummy"
+EndSection
+
+Section "Monitor"
+    Identifier  "Configured Monitor"
+    HorizSync 31.5-48.5
+    VertRefresh 50-70
+EndSection
+
+Section "Screen"
+    Identifier  "Default Screen"
+    Monitor     "Configured Monitor"
+    Device      "Configured Video Device"
+    DefaultDepth 24
+    SubSection "Display"
+    Depth 24
+    Modes "1920x1080"
+    EndSubSection
+EndSection
+
 <!-- Modbus to MQTT -->
 https://qbee.io/misc/send-modbus-data-over-mqtt-using-qbee-io/
 https://pypi.org/project/modbus4mqtt/

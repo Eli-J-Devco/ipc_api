@@ -53,7 +53,7 @@
 	          INNER JOIN config_information table_byteorder ON point_list.id_type_byteorder=table_byteorder.id
 	          INNER JOIN config_information table_datatype ON point_list.id_type_datatype=table_datatype.id
 	          LEFT JOIN config_information table_units ON point_list.id_type_units=table_units.id
-            where 
+            where point_list.status=1 and
             device_list.id=%s;
             </select>
         <select id="select_register_block">
