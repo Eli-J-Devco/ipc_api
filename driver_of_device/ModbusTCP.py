@@ -6,12 +6,14 @@
 # *
 # *********************************************************/
 
+import asyncio
 import datetime
 import json
 import os
 import sys
 import time
 
+import asyncio_mqtt as aiomqtt
 import mybatis_mapper2sql
 import paho.mqtt.publish as publish
 from pymodbus.client.sync import ModbusTcpClient
@@ -33,15 +35,21 @@ print(f'arr: {arr}')
 # MQTT_BROKER = Config.MQTT_BROKER
 MQTT_BROKER = 'test.mosquitto.org' #Demo
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC = Config.MQTT_TOPIC
+# Publish   -> IPC@device_name
+# Subscribe -> IPC@device_name@control
+MQTT_TOPIC = Config.MQTT_TOPIC 
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
+device_name=""
+status_register_block=[]
+status_Device=""
+point_list_device=[]
 
+# ----------------------------------------------------------------------
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
 #     xml=os.path.abspath(os.getcwd()) + '/mybatis/device_list.xml')
-
 # 
 
 def getUTC():
@@ -123,10 +131,13 @@ def convert_register_to_point_list(point_list_item,data_of_register):
         for itemD in data_of_register:
             if point_list_item['register'] == itemD["MRA"]:
                 result.append(itemD["Value"])
+                
         if len(result) > 0:
+            
             decoder = BinaryPayloadDecoder.fromRegisters(
                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
             point_value = decoder.decode_16bit_int()
+            
         else:
             point_list=point_object(point_list_item['id_pointkey'], 
                                     point_list_item['unit_desc'], 
@@ -181,8 +192,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
     if point_list_item['value_datatype'] == 10: # Double 64-bit real value
             pass
     return point_list
-def func_decoder_modbus():
-    pass
+
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
     if slopeenabled==1:
@@ -204,6 +214,7 @@ def func_check_float(Value): #Check if a number is int or float
     else:
         result=Value
     return result
+
 def func_check_data_mybatis(data,item,object_name):
     try:
         
@@ -236,8 +247,15 @@ def func_mqtt_public(Broker, Port,Topic, UserName, Password, data_send):
                     retain=False, port=Port)
     except Error as err:
         print(f"MQTT Error: '{err}'")
-# 
-def device(ConfigPara):
+# Describe functions before writing code
+# /**
+# 	 * @description read modbus TCP
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {id_device, path (source run file python)}
+# 	 * @return data ()
+# 	 */
+async def device(ConfigPara):
     try:
         
         if len(ConfigPara)>=2 and type(ConfigPara) == list :
@@ -245,7 +263,7 @@ def device(ConfigPara):
         else:
             return -1
         pathSource=ConfigPara[2]
-        # pathSource="D:/NEXTWAVE/project/ipc_api"
+        pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
@@ -288,13 +306,19 @@ def device(ConfigPara):
             # return -1 
      
         while True:
+                # Share data to Global variable
+                global device_name,status_Device
+                # 
                 device_name=results_device[0]["name"]
                 slave_ip = results_device[0]["tcp_gateway_ip"]
                 slave_port = results_device[0]['tcp_gateway_port']
-                slave_ID =  results_device[0]['rtu_bus_address']     
+                slave_ID =  results_device[0]['rtu_bus_address']
+
                 try:
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                        # 
                         Data = []
+                        status_rb=[]
                         for itemRB in results_RBlock:
                             FUNCTION = itemRB["Function"]
                             ADDR = itemRB["addr"]
@@ -307,43 +331,89 @@ def device(ConfigPara):
                                     INC = ADDR-1
                                     for itemR in result_rb.registers:
                                         INC = INC+1
-                                        Data.append({"MRA": INC, "Value": itemR})
-                                else:            
+                                        Data.append({"MRA": INC, "Value": itemR, })
+                                else:
                                     print("Error ------------------------------------")
                                     print(f'ADDR: {ADDR} COUNT: {COUNT}')
                                     # Exception Response(131, 3, IllegalAddress)
-                                    print(result_rb.function_code)
+                                    print(f'ERROR CODE: {result_rb.function_code}')
                                     #
                                     print(f"Error reading from {slave_ip}: {result_rb}")
+                                    status_rb.append({"ADDR":ADDR,
+                                                      "ERROR_CODE":result_rb.function_code,
+                                                       "Timestamp": getUTC(),
+                                                      })
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
                         # print(f"Register Block {slave_ip}: {new_Data}")  
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)
                             point_list.append(result)
-                            # time.sleep(1)
-                        print("-----------------Result point_list--------------------------------")
-                        for item in point_list:
-                            if item["Quality"]==0:
-                                print(f'item: {item}')
-                        time.sleep(5)
+                        # Share data to Global variable
+                        global point_list_device,status_register_block
+                        point_list_device=point_list
+                        status_register_block=status_rb
                         # 
-                        func_mqtt_public(MQTT_BROKER,
-                                         MQTT_PORT,
-                                         MQTT_TOPIC+device_name,
-                                         MQTT_USERNAME,
-                                         MQTT_PASSWORD,
-                                         point_list)
-                        
+                        await asyncio.sleep(10)
+                        # 
                 except (ConnectionException, ModbusException) as e:
                     print(f"Modbus error from {slave_ip}: {e}")
-                    time.sleep(5)
+                    status_Device=f"{slave_ip}: {e}"
+                    await asyncio.sleep(5)
                 except AttributeError as ae:
                     print("AE ERROR", ae)
-                    time.sleep(5)
+                    await asyncio.sleep(5)
 
     except Exception as e:
       print('Error : ',e)
-   
 
-device(arr)
+async def status_device():
+    while True:
+        print("Status Device ---------------------")
+        global device_name,status_Device,status_register_block,point_list_device
+        # for item in point_list_device:
+        #     if item["Quality"]==0:
+        #         print(f'item: {item}')
+        data_mqtt={
+            "STATUS_DEVICE":status_Device,
+            "STATUS_REGISTER":status_register_block,
+            "POINT_LIST":point_list_device,
+        }
+       
+        func_mqtt_public(   MQTT_BROKER,
+                            MQTT_PORT,
+                            MQTT_TOPIC+"@"+device_name,
+                            MQTT_USERNAME,
+                            MQTT_PASSWORD,
+                            data_mqtt)
+        await asyncio.sleep(10)
+async def mqtt_subscribe_control():
+    try:
+        global device_name
+        # async with aiomqtt.Client(hostname=MQTT_BROKER, port=MQTT_PORT, username=MQTT_USERNAME, password=MQTT_PASSWORD) as client:
+        async with aiomqtt.Client(MQTT_BROKER) as client:
+            print("Connection to MQTT open")
+            async with client.messages() as messages:
+                await client.subscribe(MQTT_TOPIC+"@"+device_name+"@control")
+                async for message in messages:
+                    print(message.payload.decode())
+    except aiomqtt.MqttError as error:
+        print("Connection to MQTT closed: " + str(error))
+    except Exception:
+        print("Connection to MQTT closed")
+        # await asyncio.sleep(reconnect_interval)
+async def main():
+    tasks = []
+    tasks.append(asyncio.create_task(device(arr)))
+    tasks.append(asyncio.create_task(status_device()))
+    tasks.append(asyncio.create_task(mqtt_subscribe_control()))
+    await asyncio.gather(*tasks, return_exceptions=False)
+if __name__ == '__main__':
+    if sys.platform == 'win32':
+        asyncio.set_event_loop_policy(
+        asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
+    asyncio.run(main())
+    # Declare event loop
+    loop = asyncio.get_event_loop()
+    # Run the code until completing all task
+    loop.run_until_complete(main())
