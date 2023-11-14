@@ -75,4 +75,23 @@
                 where register_block.status=1 and
                 device_list.id=%s;
                 </select>
+                <select id="select_device_control"> 
+                  SELECT device_list.id, device_list.name,  
+                  device_list.point_p,device_list.value_p,device_list.send_p,
+                  device_list.point_q,device_list.value_q,device_list.send_q,
+                  device_list.point_pf,device_list.value_pf,device_list.send_pf,
+                  device_list.enable_poweroff, device_list.inverter_shutdown,
+                  
+                  table_p.register AS register_p , table_p.id_type_datatype AS datatype_p,
+                  table_q.register AS register_p, table_q.id_type_datatype AS datatype_q,
+                  table_pf.register AS register_pf, table_pf.id_type_datatype AS datatype_pf
+                  
+                  
+                  FROM device_list
+                  INNER JOIN point_list table_p ON device_list.point_p=table_p.id
+                  INNER JOIN point_list table_q ON device_list.point_q=table_q.id
+                  INNER JOIN point_list table_pf ON device_list.point_q=table_pf.id
+                  
+                  WHERE device_list.status=1 AND device_list.name =%s ;
+                </select>    
 </mapper>

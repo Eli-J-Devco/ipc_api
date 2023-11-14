@@ -69,6 +69,14 @@ mosquitto_sub -d -u nextwave -P 123654789  -t IPC
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
+<!-- MQTT window -->
+https://www.youtube.com/watch?v=72u6gIkeqUc
+https://cedalo.com/blog/how-to-install-mosquitto-mqtt-broker-on-windows/
+https://mosquitto.org/download/
+create file no txt
+mosquitto_passwd -U passwd
+net stop mosquitto
+net start mosquitto
 <!-- Visual studio Code -->
 https://code.visualstudio.com/#alt-downloads
 sudo apt install ./code_1.67.2-1652811604_armhf.deb

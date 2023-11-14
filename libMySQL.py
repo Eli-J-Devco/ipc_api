@@ -46,6 +46,7 @@ def MySQL_Select(query,val):
         result = cursor.fetchall()
         return result
     except Error as err:
+        cursor.close()
         print(f"Error: '{err}'")
 
 
@@ -60,6 +61,7 @@ def MySQL_Insert(query):
         print(result, "Record inserted successfully into Laptop table")
         return result
     except Error as err:
+        cursor.close()
         print(f"Error: '{err}'")
     finally:
         # closing database connection.
@@ -80,6 +82,7 @@ def MySQL_Update(query):
         print("Record Updated successfully ")
         return result
     except Error as err:
+        cursor.close()
         print(f"Error: '{err}'")
 
 

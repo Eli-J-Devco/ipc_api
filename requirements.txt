@@ -27,3 +27,8 @@ pydantic[email]
 python-multipart
 mysql-connector-python
 mybatis-mapper2sql
+async-paho-mqtt-client
+hbmqtt
+mqttools
+backports.pbkdf2
+gmqtt

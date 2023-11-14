@@ -15,7 +15,12 @@ import time
 
 import asyncio_mqtt as aiomqtt
 import mybatis_mapper2sql
+# import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
+# from async_paho_mqtt_client import AsyncClient
+# from asyncio_paho import AsyncioPahoClient
+# from asyncio_paho.client import AsyncioMqttAuthError
+# 
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
@@ -27,13 +32,15 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 sys.stdout.reconfigure(encoding='utf-8')
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import mqttools
+
 from config import *
 from libMySQL import *
 
 arr = sys.argv
 print(f'arr: {arr}')
-# MQTT_BROKER = Config.MQTT_BROKER
-MQTT_BROKER = 'test.mosquitto.org' #Demo
+MQTT_BROKER = Config.MQTT_BROKER
+# MQTT_BROKER = 'test.mosquitto.org' #Demo
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC@device_name
 # Subscribe -> IPC@device_name@control
@@ -43,8 +50,10 @@ MQTT_PASSWORD =Config.MQTT_PASSWORD
 device_name=""
 status_register_block=[]
 status_Device=""
+msg_device=""
 point_list_device=[]
-
+enable_write_control=False
+query_device_control=""
 # ----------------------------------------------------------------------
 # config[0] -- id
 # ----- mybatis -----
@@ -64,13 +73,13 @@ def getUTC():
 # 	 * @param {}
 # 	 * @return data {ItemID, Name, Units, Value, Timestamp,Quality}
 # 	 */
-def point_object(ItemID,Name,Units,Value,Quality):
+def point_object(ItemID,Name,Units,Value,Quality,Timestamp=None):
     
     return {"ItemID": ItemID, 
             "Name": Name, 
             "Units": Units, 
             "Value":  Value, 
-            "Timestamp": getUTC(),
+            "Timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
             "Quality":Quality
             }
 # Describe functions before writing code
@@ -111,8 +120,9 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                 return result_rb
             case _:
                 return []
-    except:
-      print('An exception occurred')
+    except Error as err:
+        print(f'Error select_function {err}')
+        return []
    
 # Describe functions before writing code
 # /**
@@ -124,74 +134,90 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
 # 	 */
 
 def convert_register_to_point_list(point_list_item,data_of_register):
-    point_list=None
-    if point_list_item['value_datatype'] == 3: # Short Signed 16-bit
-        result = []
-        point_value :int = None
-        for itemD in data_of_register:
-            if point_list_item['register'] == itemD["MRA"]:
-                result.append(itemD["Value"])
-                
-        if len(result) > 0:
-            
-            decoder = BinaryPayloadDecoder.fromRegisters(
-                                        result, byteorder=Endian.Big, wordorder=Endian.Big)
-            point_value = decoder.decode_16bit_int()
-            
-        else:
-            point_list=point_object(point_list_item['id_pointkey'], 
-                                    point_list_item['unit_desc'], 
-                                    point_list_item['name_units'], 
-                                    point_value, 
-                                    1)
-        if point_value != None:
-            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-            point_list=point_object(point_list_item['id_pointkey'], 
-                                    point_list_item['unit_desc'], 
-                                    point_list_item['name_units'], 
-                                    func_check_float(point_value), 
-                                    0)
-    if point_list_item['value_datatype'] == 4: # Word Unsigned 16-bit
-        pass
-    if point_list_item['value_datatype'] == 5: # Long Signed 32-bit
-        pass
-    if point_list_item['value_datatype'] == 6: # DWord Unsigned 32-bit
-        pass
-    if point_list_item['value_datatype'] == 7: # LLong Signed 64-bit
-        pass
-    if point_list_item['value_datatype'] == 8: # QWord Unsigned 64-bit 
-            pass
-    if point_list_item['value_datatype'] == 9: # Float 32-bit real value IEEE-754
-        result = []
-        point_value : float = None
-        for itemD in data_of_register:
-            if point_list_item['register'] == itemD["MRA"]:
-                result.append(itemD["Value"])
-        for itemD in data_of_register:
-            if point_list_item['register']+1 == itemD["MRA"]:
-                result.append(itemD["Value"])
-        if len(result) > 0:
-            decoder = BinaryPayloadDecoder.fromRegisters(
-                                        result, byteorder=Endian.Big, wordorder=Endian.Big)
-            point_value = decoder.decode_32bit_float()
-        else:
-            point_list=point_object(point_list_item['id_pointkey'], 
-                                    point_list_item['unit_desc'], 
-                                    point_list_item['name_units'], 
-                                    point_value, 
-                                    1)      
-        if point_value != None:
-            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-            point_list=point_object(point_list_item['id_pointkey'], 
-                                    point_list_item['unit_desc'], 
-                                    point_list_item['name_units'], 
-                                    round(point_value,2), 
-                                    0)
-    if point_list_item['value_datatype'] == 10: # Double 64-bit real value
-            pass
-    return point_list
+    try:
+        point_list={}
+        match point_list_item['value_datatype']:
+            case 3: # Short Signed 16-bit
+                result = []
+                point_value :int = None
+                for itemD in data_of_register:
+                    if point_list_item['register'] == itemD["MRA"]:
+                        result.append(itemD["Value"])
+                        
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_16bit_int()
+                    
+                else:
+                    point_list=point_object(point_list_item['id_pointkey'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1)
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(point_list_item['id_pointkey'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return {}
+            case 4: # Word Unsigned 16-bit
+                return {}
+            case 5: # Long Signed 32-bit
+                return {}
+            case 6: # DWord Unsigned 32-bit
+                return {}
+            case 7: # LLong Signed 64-bit
+                return {}
+            case 8: # QWord Unsigned 64-bit 
+                return {}
+            case 9: # Float 32-bit real value IEEE-754       
+                result = []
+                point_value : float = None
+                for itemD in data_of_register:
+                    if point_list_item['register'] == itemD["MRA"]:
+                        result.append(itemD["Value"])
+                for itemD in data_of_register:
+                    if point_list_item['register']+1 == itemD["MRA"]:
+                        result.append(itemD["Value"])
+                if len(result) > 0:
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_32bit_float()
+                else:
+                    point_list=point_object(point_list_item['id_pointkey'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1)      
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(point_list_item['id_pointkey'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            round(point_value,2), 
+                                            0)
+                    
+                    return point_list 
+                else:
+                    return {}  
+                    
+            case 10: # Double 64-bit real value
+                return {}
+            case _:
+                return {}
+            # return point_list   
+    except Error as err:
+        print(f'Error convert_register_to_point_list {err}')
+        return {}
 
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
@@ -232,21 +258,21 @@ def func_check_data_mybatis(data,item,object_name):
 # 	 * @description public data MQTT
 # 	 * @author vnguyen
 # 	 * @since 10-11-2023
-# 	 * @param {Broker, Port,Topic, UserName, Password, data_send}
+# 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-def func_mqtt_public(Broker, Port,Topic, UserName, Password, data_send):
+def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
       
+        publish.single(topic, payload, hostname=host,
+                       retain=False, port=port,
+                       auth = {'username':f'{username}', 
+                               'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
-        #                retain=False, port=Port,
-        #                auth = {'username':f'{UserName}', 
-        #                        'password':f'{Password}'})
-        publish.single(Topic, payload, hostname=Broker,
-                    retain=False, port=Port)
+        #             retain=False, port=Port)
     except Error as err:
-        print(f"MQTT Error: '{err}'")
+        print(f"Error MQTT public: '{err}'")
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -262,8 +288,9 @@ async def device(ConfigPara):
             pass
         else:
             return -1
+        global query_device_control
         pathSource=ConfigPara[2]
-        pathSource="D:/NEXTWAVE/project/ipc_api"
+        # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
@@ -274,6 +301,7 @@ async def device(ConfigPara):
         query_only_device=func_check_data_mybatis(statement,1,"select_only_device")
         query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
         query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
+        query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
         if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
           pass
         else:           
@@ -307,8 +335,9 @@ async def device(ConfigPara):
      
         while True:
                 # Share data to Global variable
-                global device_name,status_Device
-                # 
+                global device_name,status_Device,msg_device
+                global point_list_device,status_register_block
+                global enable_write_control
                 device_name=results_device[0]["name"]
                 slave_ip = results_device[0]["tcp_gateway_ip"]
                 slave_port = results_device[0]['tcp_gateway_port']
@@ -316,6 +345,14 @@ async def device(ConfigPara):
 
                 try:
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                        #
+                        if enable_write_control ==True:
+                            print("---------- write data from Device ----------")
+                            enable_write_control =False
+                        # 
+                        # print("---------- read data from Device ----------")
+                        status_Device=""
+                        msg_device=""
                         # 
                         Data = []
                         status_rb=[]
@@ -343,22 +380,37 @@ async def device(ConfigPara):
                                                       "ERROR_CODE":result_rb.function_code,
                                                        "Timestamp": getUTC(),
                                                       })
+                                    status_register_block=status_rb
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
                         # print(f"Register Block {slave_ip}: {new_Data}")  
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)
-                            point_list.append(result)
-                        # Share data to Global variable
-                        global point_list_device,status_register_block
+                            if len(result)>0:
+                                point_list.append(result)
+                            else:
+                                pass
+                        #    
                         point_list_device=point_list
-                        status_register_block=status_rb
+                        
                         # 
-                        await asyncio.sleep(10)
+                        await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
                     print(f"Modbus error from {slave_ip}: {e}")
-                    status_Device=f"{slave_ip}: {e}"
+                    msg_device=f"{slave_ip}: {e}"
+                    # set value Quality of Point =1 when disconnect
+                    point_list_error=[]
+                    for item in point_list_device:
+                       point_list_error.append(point_object(
+                                            item['ItemID'], 
+                                            item['Name'], 
+                                            item['Units'], 
+                                            item['Value'], 
+                                            1,
+                                            item['Timestamp'], 
+                                            ))
+                    point_list_device=point_list_error
                     await asyncio.sleep(5)
                 except AttributeError as ae:
                     print("AE ERROR", ae)
@@ -366,54 +418,109 @@ async def device(ConfigPara):
 
     except Exception as e:
       print('Error : ',e)
-
-async def status_device():
+# Describe functions before writing code
+# /**
+# 	 * @description MQTT public status of device
+# 	 * @author vnguyen
+# 	 * @since 14-11-2023
+# 	 * @param {host, port,topic, username, password, device_name}
+# 	 * @return data ()
+# 	 */
+async def monitoring_device(host, port,topic, username, password
+                       
+                       ):
     while True:
-        print("Status Device ---------------------")
-        global device_name,status_Device,status_register_block,point_list_device
-        # for item in point_list_device:
-        #     if item["Quality"]==0:
-        #         print(f'item: {item}')
+        # print("Status Device ---------------------")
+        global  device_name,status_Device,msg_device,status_register_block,point_list_device
         data_mqtt={
             "STATUS_DEVICE":status_Device,
+            "MSG_DEVICE":msg_device,
             "STATUS_REGISTER":status_register_block,
             "POINT_LIST":point_list_device,
         }
-       
-        func_mqtt_public(   MQTT_BROKER,
-                            MQTT_PORT,
-                            MQTT_TOPIC+"@"+device_name,
-                            MQTT_USERNAME,
-                            MQTT_PASSWORD,
-                            data_mqtt)
-        await asyncio.sleep(10)
-async def mqtt_subscribe_control():
+        if device_name !="":
+            func_mqtt_public(   host,
+                                port,
+                                topic+"@"+device_name,
+                                username,
+                                password,
+                                data_mqtt)
+        await asyncio.sleep(2)
+# Describe functions before writing code
+# /**
+# 	 * @description mqtt subscribe
+# 	 * @author vnguyen
+# 	 * @since 14-11-2023
+# 	 * @param {host, port,topic, username, password, device_name}
+# 	 * @return data ()
+# 	 */
+async def mqtt_subscribe_controls(host, port,topic, username, password):
     try:
-        global device_name
-        # async with aiomqtt.Client(hostname=MQTT_BROKER, port=MQTT_PORT, username=MQTT_USERNAME, password=MQTT_PASSWORD) as client:
-        async with aiomqtt.Client(MQTT_BROKER) as client:
-            print("Connection to MQTT open")
-            async with client.messages() as messages:
-                await client.subscribe(MQTT_TOPIC+"@"+device_name+"@control")
-                async for message in messages:
-                    print(message.payload.decode())
-    except aiomqtt.MqttError as error:
-        print("Connection to MQTT closed: " + str(error))
-    except Exception:
-        print("Connection to MQTT closed")
-        # await asyncio.sleep(reconnect_interval)
+        # {
+        #    "DEVICE_NAME":"",
+        #    "CODE":1 # enable write parameter control
+        # }
+       
+        global enable_write_control,device_name
+        global query_device_control
+        Topic=topic+"@"+device_name+"@control"
+        client = mqttools.Client(host=host, 
+                                port=port,
+                                username= username, 
+                                password=bytes(password, 'utf-8'))
+        
+        await client.start()
+        await client.subscribe(Topic)
+        while True:
+            message = await client.messages.get()
+
+            if message is None:
+                print('Broker connection lost!')
+                break
+            print(f'Topic:   {message.topic}')
+            result=json.loads(message.message.decode())
+            print(f'Message: {result}')
+            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
+                DEVICE_NAME=result["DEVICE_NAME"]
+                CODE=result["CODE"]
+                
+                print(f'DEVICE_NAME: {DEVICE_NAME}')
+                print(f'CODE: {CODE}')
+                if DEVICE_NAME==device_name and CODE==1:
+                    # print(f'query_device_control: {query_device_control}')
+                    results_device_control = MySQL_Select(query_device_control, (device_name,))
+                    print(f'results_device_control: {results_device_control}')
+                    enable_write_control=True     
+                 
+    except json.JSONDecodeError as err:
+       
+        print(f"Error MQTT public: '{err}'")
+
 async def main():
     tasks = []
+    
     tasks.append(asyncio.create_task(device(arr)))
-    tasks.append(asyncio.create_task(status_device()))
-    tasks.append(asyncio.create_task(mqtt_subscribe_control()))
+    tasks.append(asyncio.create_task(monitoring_device( MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                                                        
+                                                    )))
+    tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
+                                                             MQTT_PORT,
+                                                             MQTT_TOPIC,
+                                                             MQTT_USERNAME,
+                                                             MQTT_PASSWORD
+                                                             )))
+    
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
         asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
     asyncio.run(main())
-    # Declare event loop
-    loop = asyncio.get_event_loop()
-    # Run the code until completing all task
-    loop.run_until_complete(main())
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(main())
+    
+
