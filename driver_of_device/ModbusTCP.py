@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import time
+from datetime import datetime as DT
 
 import asyncio_mqtt as aiomqtt
 import mybatis_mapper2sql
@@ -47,6 +48,7 @@ MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC = Config.MQTT_TOPIC 
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
+# 
 device_name=""
 status_register_block=[]
 status_Device=""
@@ -54,6 +56,8 @@ msg_device=""
 point_list_device=[]
 enable_write_control=False
 query_device_control=""
+query_only_device=""
+data_write_device=[]
 # ----------------------------------------------------------------------
 # config[0] -- id
 # ----- mybatis -----
@@ -120,7 +124,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                 return result_rb
             case _:
                 return []
-    except Error as err:
+    except Exception as err:
         print(f'Error select_function {err}')
         return []
    
@@ -215,10 +219,70 @@ def convert_register_to_point_list(point_list_item,data_of_register):
             case _:
                 return {}
             # return point_list   
-    except Error as err:
+    except Exception as err:
         print(f'Error convert_register_to_point_list {err}')
         return {}
+# Describe functions before writing code
+# /**
+# 	 * @description write modbus to device
+# 	 * @author vnguyen
+# 	 * @since 15-11-2023
+# 	 * @param {client, unit, datatype,register, value}
+# 	 * @return data (msg)
+# 	 */   
+def write_modbus_tcp(client, unit, datatype,register, value):
+    try:
+        print(f'unit: {unit}')
+        print(f'datatype: {datatype}')
+        print(f'register: {register}')
+        print(f'value: {value}')
 
+        builder = BinaryPayloadBuilder(
+        byteorder=Endian.Big)
+        match datatype:
+            case 3: # Short Signed 16-bit
+                builder.add_16bit_int(int(value))
+            case 4: # Word Unsigned 16-bit
+                builder.add_16bit_uint(int(value))
+            case 5: # Long Signed 32-bit
+                builder.add_32bit_int(int(value))
+            case 6: # DWord Unsigned 32-bit
+                builder.add_32bit_uint(int(value))
+            case 7: # LLong Signed 64-bit
+                builder.add_64bit_int(int(value))
+            case 8: # QWord Unsigned 64-bit
+                builder.add_64bit_uint(int(value))
+            case 9: # Float 32-bit real value IEEE-754
+                builder.add_32bit_float(float(value))
+            case 10: # Double 64-bit real value
+                builder.add_64bit_float(float(value))
+            case _:
+                pass
+        payload = builder.build()
+        address=register
+        result = client.write_registers(
+        address, payload, skip_encode=True, unit=unit)
+        print(f'result: {result.function_code }')
+        if result.function_code == 16:
+            msg ={ "msg":"Write success to INV-"+str(register),
+                   "code":result.function_code,
+                   "value":0
+                  }
+        else:
+             msg ={ "msg":"Write error to INV-"+str(register),
+                   "code":result.function_code,
+                   "value":1
+                  }
+        return msg
+    except Exception as err:
+      print(f'Error write_modbus_tcp : {err}')
+      return {
+                "msg":err,
+                "code":"",
+                "value":2
+            }
+      
+      
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
     if slopeenabled==1:
@@ -249,7 +313,7 @@ def func_check_data_mybatis(data,item,object_name):
         else:
             return ""
         
-    except:
+    except Exception as err:
       print('Error not find object mybatis')
       return ""
 # ----- MQTT -----
@@ -271,8 +335,13 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
                                'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
         #             retain=False, port=Port)
-    except Error as err:
+    # except Error as err:
+    #     print(f"Error MQTT public: '{err}'")
+    except Exception as err:
+    # except:
+        
         print(f"Error MQTT public: '{err}'")
+        pass
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -288,7 +357,7 @@ async def device(ConfigPara):
             pass
         else:
             return -1
-        global query_device_control
+        global query_device_control,query_only_device
         pathSource=ConfigPara[2]
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -308,6 +377,7 @@ async def device(ConfigPara):
             print("Error not found data in file mybatis")
             return -1
         # 
+   
         results_device = MySQL_Select(query_only_device, (id_device,))
         # 
         if type(results_device) == list and len(results_device)>=1:
@@ -315,9 +385,12 @@ async def device(ConfigPara):
         else:           
             print("Error not found data device")
             return -1
-     
+
+        
         results_RBlock= MySQL_Select(query_register_block, (id_device,))
+
         results_Plist= MySQL_Select(query_point_list, (id_device,))
+ 
         # print(f'results_rblock: {results_RBlock[0]}')
         # print(f'results_plist: {results_Plist}')
         # Check the register Modbus
@@ -332,22 +405,41 @@ async def device(ConfigPara):
         else:           
             print("Error device point list not found")
             # return -1 
-     
+
         while True:
                 # Share data to Global variable
                 global device_name,status_Device,msg_device
                 global point_list_device,status_register_block
                 global enable_write_control
-                device_name=results_device[0]["name"]
-                slave_ip = results_device[0]["tcp_gateway_ip"]
-                slave_port = results_device[0]['tcp_gateway_port']
-                slave_ID =  results_device[0]['rtu_bus_address']
+                global data_write_device
 
+  
+                device_name=results_device[0]["name"]
+                
+
+                slave_ip = results_device[0]["tcp_gateway_ip"]
+  
+                slave_port = results_device[0]['tcp_gateway_port']
+   
+                slave_ID =  results_device[0]['rtu_bus_address']
+ 
                 try:
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         #
                         if enable_write_control ==True:
                             print("---------- write data from Device ----------")
+                            
+                            for item in data_write_device:
+                                result_write_device= write_modbus_tcp(client,slave_ID,
+                                                 item["datatype"],
+                                                 item["register"],
+                                                 item["value"]
+                                                 )
+                                if result_write_device["value"]==0:
+                                    sql=f'UPDATE device_list SET {item["point"]} = 0 Where id ={id_device}'
+                                    MySQL_Update(sql)
+                                await asyncio.sleep(1)
+                            data_write_device=[]
                             enable_write_control =False
                         # 
                         # print("---------- read data from Device ----------")
@@ -357,6 +449,7 @@ async def device(ConfigPara):
                         Data = []
                         status_rb=[]
                         for itemRB in results_RBlock:
+                            await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Function"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
@@ -416,8 +509,10 @@ async def device(ConfigPara):
                     print("AE ERROR", ae)
                     await asyncio.sleep(5)
 
-    except Exception as e:
-      print('Error : ',e)
+    except Exception as err:
+        
+        print('Error device : ',err)
+        
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -429,23 +524,30 @@ async def device(ConfigPara):
 async def monitoring_device(host, port,topic, username, password
                        
                        ):
-    while True:
-        # print("Status Device ---------------------")
-        global  device_name,status_Device,msg_device,status_register_block,point_list_device
-        data_mqtt={
-            "STATUS_DEVICE":status_Device,
-            "MSG_DEVICE":msg_device,
-            "STATUS_REGISTER":status_register_block,
-            "POINT_LIST":point_list_device,
-        }
-        if device_name !="":
-            func_mqtt_public(   host,
-                                port,
-                                topic+"@"+device_name,
-                                username,
-                                password,
-                                data_mqtt)
-        await asyncio.sleep(2)
+    try:
+        while True:
+            print(f'-----{getUTC()} monitoring_device -----')
+            # print("Status Device ---------------------")
+            global  device_name,status_Device,msg_device,status_register_block,point_list_device
+            data_mqtt={
+                "STATUS_DEVICE":status_Device,
+                "MSG_DEVICE":msg_device,
+                "STATUS_REGISTER":status_register_block,
+                "POINT_LIST":point_list_device,
+            }
+            if device_name !="":
+                func_mqtt_public(   host,
+                                    port,
+                                    topic+"@"+device_name,
+                                    username,
+                                    password,
+                                    data_mqtt)
+            await asyncio.sleep(2)
+        
+    except Exception as err:
+        print('Error monitoring_device : ',err)
+        
+    #   return -1
 # Describe functions before writing code
 # /**
 # 	 * @description mqtt subscribe
@@ -463,6 +565,7 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
        
         global enable_write_control,device_name
         global query_device_control
+        global data_write_device
         Topic=topic+"@"+device_name+"@control"
         client = mqttools.Client(host=host, 
                                 port=port,
@@ -486,16 +589,135 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
                 
                 print(f'DEVICE_NAME: {DEVICE_NAME}')
                 print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1:
+                if DEVICE_NAME==device_name and CODE==1 and enable_write_control==False:
                     # print(f'query_device_control: {query_device_control}')
                     results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    print(f'results_device_control: {results_device_control}')
-                    enable_write_control=True     
+                    # print(f'results_device_control: {results_device_control}')
+                    
+                    if type(results_device_control) == list and len(results_device_control)>=1:
+                        data_control=[]
+                        enable_p=results_device_control[0]["send_p"]
+                        enable_q=results_device_control[0]["send_q"]
+                        enable_pf=results_device_control[0]["send_pf"]
+                        enable_poweroff=results_device_control[0]["enable_poweroff"]
+                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
+                        # 
+                        if enable_p==1:
+                            data_control.append({
+                                "point":"send_p",
+                                "datatype":results_device_control[0]["datatype_p"],
+                                "register":results_device_control[0]["register_p"],
+                                "value":results_device_control[0]["value_p"],
+                            })
+                        if enable_q==1:
+                            data_control.append({
+                                 "point":"send_q",
+                                "datatype":results_device_control[0]["datatype_q"],
+                                "register":results_device_control[0]["register_q"],
+                                "value":results_device_control[0]["value_q"],
+                            })
+                        if enable_pf==1:
+                            data_control.append({
+                                "point":"send_pf",
+                                "datatype":results_device_control[0]["datatype_pf"],
+                                "register":results_device_control[0]["register_pf"],
+                                "value":results_device_control[0]["value_pf"],
+                            })
+                        if enable_poweroff==1:
+                            today = DT.now(
+                                datetime.timezone.utc).strftime("%Y-%m-%d")
+                            datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
+                            if str(today)==str(datetime_shutdown) :
+                                print("Turn off the inverter")
+                                data_control.append({
+                                            "point":"enable_poweroff",
+                                            "datatype":results_device_control[0]["datatype_p"],
+                                            "register":results_device_control[0]["register_p"],
+                                            "value":0,
+                                        })
+
+                        if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
+                            data_write_device=data_control
+                            enable_write_control=True
+                        else:
+                            pass
                  
-    except json.JSONDecodeError as err:
+    except Exception as err:
        
         print(f"Error MQTT public: '{err}'")
+# Describe functions before writing code
+# /**
+# 	 * @description check device control
+# 	 * @author vnguyen
+# 	 * @since 15-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+async def check_device_control():
+    try:
+        
+        while True:
+            global enable_write_control,device_name
+            global query_device_control
+            global data_write_device
+            print(f'-----{getUTC()} Check control parameters -----')
+           
+            results_device_control = MySQL_Select(query_device_control, (device_name,))
+           
+            if type(results_device_control) == list and len(results_device_control)>=1 and enable_write_control==False:
+                data_control=[]
+                enable_p=results_device_control[0]["send_p"]
+                enable_q=results_device_control[0]["send_q"]
+                enable_pf=results_device_control[0]["send_pf"]
+                enable_poweroff=results_device_control[0]["enable_poweroff"]
+                inverter_shutdown=results_device_control[0]["inverter_shutdown"]
+                
+                # 
+                if enable_p==1:
+                                data_control.append({
+                                    "point":"send_p",
+                                    "datatype":results_device_control[0]["datatype_p"],
+                                    "register":results_device_control[0]["register_p"],
+                                    "value":results_device_control[0]["value_p"],
+                                })
+                if enable_q==1:
+                                data_control.append({
+                                    "point":"send_q",
+                                    "datatype":results_device_control[0]["datatype_q"],
+                                    "register":results_device_control[0]["register_q"],
+                                    "value":results_device_control[0]["value_q"],
+                                })
+                if enable_pf==1:
+                                data_control.append({
+                                    "point":"send_pf",
+                                    "datatype":results_device_control[0]["datatype_pf"],
+                                    "register":results_device_control[0]["register_pf"],
+                                    "value":results_device_control[0]["value_pf"],
+                                })
+                
+                if enable_poweroff==1:
+                    today = DT.now(
+                        datetime.timezone.utc).strftime("%Y-%m-%d")
+                    datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
+                    if str(today)==str(datetime_shutdown) :
+                        print("Turn off the inverter")
+                        data_control.append({
+                                    "point":"enable_poweroff",
+                                    "datatype":results_device_control[0]["datatype_p"],
+                                    "register":results_device_control[0]["register_p"],
+                                    "value":0,
+                                })
 
+                # 
+                if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
+                    data_write_device=data_control
+                    enable_write_control=True
+                else:
+                    pass
+            await asyncio.sleep(5)
+
+    except Exception as err:
+      print(f"Error check_device_control: '{err}'")
 async def main():
     tasks = []
     
@@ -507,13 +729,13 @@ async def main():
                                                     MQTT_PASSWORD
                                                                                         
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
-                                                             MQTT_PORT,
-                                                             MQTT_TOPIC,
-                                                             MQTT_USERNAME,
-                                                             MQTT_PASSWORD
-                                                             )))
-    
+    # tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
+    #                                                          MQTT_PORT,
+    #                                                          MQTT_TOPIC,
+    #                                                          MQTT_USERNAME,
+    #                                                          MQTT_PASSWORD
+    #                                                          )))
+    # tasks.append(asyncio.create_task(check_device_control()))
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':

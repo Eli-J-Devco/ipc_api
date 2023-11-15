@@ -15,6 +15,12 @@ DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 DATABASE_USERNAME = Config.DATABASE_USERNAME
 
+# print(f'DATABASE_HOSTNAME: {DATABASE_HOSTNAME}')
+# print(f'DATABASE_PORT: {DATABASE_PORT}')
+# print(f'DATABASE_PASSWORD: {DATABASE_PASSWORD}')
+# print(f'DATABASE_NAME: {DATABASE_NAME}')
+# print(f'DATABASE_USERNAME: {DATABASE_USERNAME}')
+
 
 def create_server_connection(host_name, port_name, user_name, user_password, db_name):
     connection = None
@@ -26,31 +32,38 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
             passwd=user_password,
             database=db_name,
         )
-        print("MySQL Database connection successful")
-    except Error as err:
+        # print("MySQL Database connection successful")
+    except Exception as err:
         print(f"Error: '{err}'")
 
     return connection
 
 
-db = create_server_connection(
-    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
 
 def MySQL_Select(query,val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
     try:
         cursor.execute(query,val)
         result = cursor.fetchall()
-        return result
-    except Error as err:
         cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
         print(f"Error: '{err}'")
 
 
 def MySQL_Insert(query):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -59,9 +72,12 @@ def MySQL_Insert(query):
         db.commit()
         result = cursor.rowcount
         print(result, "Record inserted successfully into Laptop table")
-        return result
-    except Error as err:
         cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
         print(f"Error: '{err}'")
     finally:
         # closing database connection.
@@ -71,6 +87,9 @@ def MySQL_Insert(query):
 
 
 def MySQL_Update(query):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -80,13 +99,19 @@ def MySQL_Update(query):
         db.commit()
         result = cursor.rowcount
         print("Record Updated successfully ")
-        return result
-    except Error as err:
         cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
         print(f"Error: '{err}'")
 
 
 def MySQL_Delete(query):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -95,6 +120,10 @@ def MySQL_Delete(query):
         db.commit()
         result = cursor.rowcount
         print('number of rows deleted', result)
+        cursor.close()
+        db.close()
         return result
-    except Error as err:
+    except Exception as err:
+        cursor.close()
+        db.close()
         print(f"Error: '{err}'")

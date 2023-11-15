@@ -2,16 +2,17 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="Test">
-    <select id="select_all_device">
+  <select id="select_all_device">
     SELECT device_list.id, device_list.name, driver_list.name AS connect_type, device_type.name AS device_type
     FROM device_list
     INNER JOIN device_type ON device_list.id_device_type=device_type.id
     INNER JOIN communication ON device_list.id_communication=communication.id
     INNER JOIN driver_list ON communication.id_driver_list=driver_list.id where device_list.status=1;
-    </select>
+  </select>
     
-    <select id="select_only_device">
+  <select id="select_only_device">
         SELECT device_list.id, device_list.name, 
+        device_list.value_p, device_list.send_p,
         device_list.rtu_bus_address AS rtu_bus_address,
         device_list.tcp_gateway_ip AS tcp_gateway_ip,
         device_list.tcp_gateway_port AS tcp_gateway_port,
@@ -28,8 +29,8 @@
         INNER JOIN template_library ON device_group.id_template=template_library.id
         where 
         device_list.id=%s;
-        </select>
-    <select id="select_point_list">
+  </select>
+  <select id="select_point_list">
             SELECT device_list.id, device_list.name, 
             driver_list.name AS connect_type, device_type.name AS device_type,
             device_group.name AS device_group,
@@ -55,8 +56,8 @@
 	          LEFT JOIN config_information table_units ON point_list.id_type_units=table_units.id
             where point_list.status=1 and
             device_list.id=%s;
-            </select>
-        <select id="select_register_block">
+  </select>
+  <select id="select_register_block">
                 SELECT device_list.id, device_list.name, 
                 driver_list.name AS connect_type, device_type.name AS device_type,
                 device_group.name as device_group,
@@ -74,8 +75,8 @@
                 INNER JOIN config_information ON register_block.id_type_function=config_information.id
                 where register_block.status=1 and
                 device_list.id=%s;
-                </select>
-                <select id="select_device_control"> 
+  </select>
+  <select id="select_device_control"> 
                   SELECT device_list.id, device_list.name,  
                   device_list.point_p,device_list.value_p,device_list.send_p,
                   device_list.point_q,device_list.value_q,device_list.send_q,
@@ -83,7 +84,7 @@
                   device_list.enable_poweroff, device_list.inverter_shutdown,
                   
                   table_p.register AS register_p , table_p.id_type_datatype AS datatype_p,
-                  table_q.register AS register_p, table_q.id_type_datatype AS datatype_q,
+                  table_q.register AS register_q, table_q.id_type_datatype AS datatype_q,
                   table_pf.register AS register_pf, table_pf.id_type_datatype AS datatype_pf
                   
                   
@@ -93,5 +94,19 @@
                   INNER JOIN point_list table_pf ON device_list.point_q=table_pf.id
                   
                   WHERE device_list.status=1 AND device_list.name =%s ;
-                </select>    
+  </select> 
+  <update id="testSet">
+    UPDATE
+    fruits
+    <set>
+        <if test="category != null and category !=''">
+            category = #{category},
+        </if>
+        <if test="price != null and price !=''">
+            price = ${price},
+        </if>
+    </set>
+    WHERE
+    name = #{name}
+</update>
 </mapper>
