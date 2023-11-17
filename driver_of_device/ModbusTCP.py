@@ -31,7 +31,6 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 # absDirname=os.path.dirname(os.path.abspath(__file__))
 
 sys.stdout.reconfigure(encoding='utf-8')
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import mqttools
 
@@ -41,7 +40,6 @@ from libMySQL import *
 arr = sys.argv
 print(f'arr: {arr}')
 MQTT_BROKER = Config.MQTT_BROKER
-# MQTT_BROKER = 'test.mosquitto.org' #Demo
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC@device_name
 # Subscribe -> IPC@device_name@control
@@ -58,7 +56,13 @@ enable_write_control=False
 query_device_control=""
 query_only_device=""
 data_write_device=[]
+# Set time shutdown of inverter
+inv_shutdown_enable=False
+inv_shutdown_datetime=""
+inv_shutdown_point=[]
+
 # ----------------------------------------------------------------------
+
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -316,6 +320,7 @@ def func_check_data_mybatis(data,item,object_name):
     except Exception as err:
       print('Error not find object mybatis')
       return ""
+
 # ----- MQTT -----
 # Describe functions before writing code
 # /**
@@ -358,6 +363,9 @@ async def device(ConfigPara):
         else:
             return -1
         global query_device_control,query_only_device
+        global data_control
+        global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
+
         pathSource=ConfigPara[2]
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -379,18 +387,15 @@ async def device(ConfigPara):
         # 
    
         results_device = MySQL_Select(query_only_device, (id_device,))
+        
         # 
         if type(results_device) == list and len(results_device)>=1:
             pass
         else:           
             print("Error not found data device")
             return -1
-
-        
         results_RBlock= MySQL_Select(query_register_block, (id_device,))
-
         results_Plist= MySQL_Select(query_point_list, (id_device,))
- 
         # print(f'results_rblock: {results_RBlock[0]}')
         # print(f'results_plist: {results_Plist}')
         # Check the register Modbus
@@ -405,7 +410,7 @@ async def device(ConfigPara):
         else:           
             print("Error device point list not found")
             # return -1 
-
+        inv_shutdown_enable=results_device[0]["enable_poweroff"]
         while True:
                 # Share data to Global variable
                 global device_name,status_Device,msg_device
@@ -415,14 +420,9 @@ async def device(ConfigPara):
 
   
                 device_name=results_device[0]["name"]
-                
-
                 slave_ip = results_device[0]["tcp_gateway_ip"]
-  
                 slave_port = results_device[0]['tcp_gateway_port']
-   
                 slave_ID =  results_device[0]['rtu_bus_address']
- 
                 try:
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         #
@@ -440,7 +440,26 @@ async def device(ConfigPara):
                                     MySQL_Update(sql)
                                 await asyncio.sleep(1)
                             data_write_device=[]
-                            enable_write_control =False
+                            enable_write_control = False
+                        if inv_shutdown_enable == 1 and inv_shutdown_datetime!="":
+                            print("---------- Control shutdown Inverter ----------")
+                            # Check today = time set
+                            today = DT.now(
+                            datetime.timezone.utc).strftime("%Y-%m-%d")
+                            datetime_shutdown = DT.strptime(str(inv_shutdown_datetime), "%Y-%m-%d").date()
+                            if str(today)==str(datetime_shutdown) :
+                                for item in inv_shutdown_point:
+                                    result_write_device= write_modbus_tcp(client,slave_ID,
+                                                    item["datatype"],
+                                                    item["register"],
+                                                    item["value"]
+                                                    )
+                                    if result_write_device["value"]==0:
+                                        sql=f'UPDATE device_list SET {item["point"]} = 0 Where id ={id_device}'
+                                        MySQL_Update(sql)
+                                    await asyncio.sleep(1)
+                                    inv_shutdown_enable=0
+                          
                         # 
                         # print("---------- read data from Device ----------")
                         status_Device=""
@@ -450,7 +469,7 @@ async def device(ConfigPara):
                         status_rb=[]
                         for itemRB in results_RBlock:
                             await asyncio.sleep(0.5)
-                            FUNCTION = itemRB["Function"]
+                            FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
@@ -566,6 +585,7 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
         global enable_write_control,device_name
         global query_device_control
         global data_write_device
+        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
         Topic=topic+"@"+device_name+"@control"
         client = mqttools.Client(host=host, 
                                 port=port,
@@ -589,7 +609,7 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
                 
                 print(f'DEVICE_NAME: {DEVICE_NAME}')
                 print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1 and enable_write_control==False:
+                if DEVICE_NAME==device_name and CODE==1 :
                     # print(f'query_device_control: {query_device_control}')
                     results_device_control = MySQL_Select(query_device_control, (device_name,))
                     # print(f'results_device_control: {results_device_control}')
@@ -623,20 +643,32 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
                                 "register":results_device_control[0]["register_pf"],
                                 "value":results_device_control[0]["value_pf"],
                             })
+                        # if enable_poweroff==1:
+                        #     today = DT.now(
+                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
+                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
+                        #     if str(today)==str(datetime_shutdown) :
+                        #         print("Turn off the inverter")
+                        #         data_control.append({
+                        #                     "point":"enable_poweroff",
+                        #                     "datatype":results_device_control[0]["datatype_p"],
+                        #                     "register":results_device_control[0]["register_p"],
+                        #                     "value":0,
+                        #                 })
                         if enable_poweroff==1:
-                            today = DT.now(
-                                datetime.timezone.utc).strftime("%Y-%m-%d")
-                            datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
-                            if str(today)==str(datetime_shutdown) :
-                                print("Turn off the inverter")
-                                data_control.append({
+                            inv_shutdown_datetime=inverter_shutdown
+                            
+                            item=[]
+                            item.append({
                                             "point":"enable_poweroff",
                                             "datatype":results_device_control[0]["datatype_p"],
                                             "register":results_device_control[0]["register_p"],
                                             "value":0,
                                         })
-
-                        if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
+                            inv_shutdown_point=item
+                            inv_shutdown_enable=1
+                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
+                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
                             data_write_device=data_control
                             enable_write_control=True
                         else:
@@ -729,12 +761,12 @@ async def main():
                                                     MQTT_PASSWORD
                                                                                         
                                                     )))
-    # tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
-    #                                                          MQTT_PORT,
-    #                                                          MQTT_TOPIC,
-    #                                                          MQTT_USERNAME,
-    #                                                          MQTT_PASSWORD
-    #                                                          )))
+    tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
+                                                             MQTT_PORT,
+                                                             MQTT_TOPIC,
+                                                             MQTT_USERNAME,
+                                                             MQTT_PASSWORD
+                                                             )))
     # tasks.append(asyncio.create_task(check_device_control()))
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':

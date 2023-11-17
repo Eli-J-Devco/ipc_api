@@ -41,23 +41,79 @@ def init_driver():
         else:           
             print("Error not found data device")
             return -1
+        result_rs485_group=[]
         for item in results:
-            # name of pid pm2=id@name
-            id = item["id"]
-            name = item["name"]
-            # pid = f'{id}@{name}'
-            pid = f'{name}'
-            print(f'pid: {pid}')
+           
             # call driver ModbusTCP
-            if item["connect_type"] == "Modbus/TCP" and item["id"] ==1:
-                if sys.platform == 'win32':
-                    # use run with window
-                    subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
-                else:
-                    # use run with ubuntu/linux
-                    subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+            if item["connect_type"] == "Modbus/TCP":
+                # name of pid pm2=Dev|id_communication|connect_type|id|name
+                id_communication=item["id_communication"]
+                id = item["id"]
+                name = item["name"]
+                connect_type=item["connect_type"]
+                pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
+             
+                print(f'pid: {pid}')
+                # if sys.platform == 'win32':
+                #     # use run with window
+                #     subprocess.Popen(
+                #         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                # else:
+                #     # use run with ubuntu/linux
+                #     subprocess.Popen(
+                #         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+            # join the same group ModbusRTU
+            if item["connect_type"] == "RS485":
+                result_rs485_group.append(item)
+        # Initialize the device RS485 RTU
+        if len(result_rs485_group)>0:
+                result_rs485_list = [x for i, x in enumerate(result_rs485_group) if x['serialport_name'] not in {y['serialport_name'] for y in result_rs485_group[:i]}]
+                data=[]
+                for rs485_item in result_rs485_list:
+                    item=[]
+                    for device_item in result_rs485_group:
+                            if rs485_item["serialport_name"]==device_item["serialport_name"]:
+                                    item.append({
+                                            'id_communication':device_item['id_communication'],            
+                                            'id':device_item['id'],
+                                            'name':device_item['name'],
+                                            'connect_type':device_item['connect_type'],                            
+                                            'serialport_name':rs485_item['serialport_name'],
+                                            'serialport_baud':int(rs485_item['serialport_baud']),
+                                            'serialport_stopbits':int(rs485_item['serialport_stopbits']),
+                                            # Get the first character of the first string
+                                            'serialport_parity':rs485_item['serialport_parity'][0],
+                                            # ----- End -----
+                                            'serialport_timeout':int(rs485_item['serialport_timeout']),
+                                            'serialport_debug_level':rs485_item['serialport_debug_level']
+                                        })
+                    data.append(item)
+                
+                for item in data:
+                    
+                    
+                    # print(item)
+                    
+                    # name of pid pm2=id_communication|connect_type|serialport_name
+                    id=item[0]["id_communication"]
+                    id_communication=item[0]["id_communication"]
+                    serialport_name=item[0]["serialport_name"]
+                    connect_type=item[0]["connect_type"]
+                    pid = f'Dev|{id_communication}|{connect_type}|{serialport_name}'
+                    
+                    print(f'pid: {pid}') 
+                    if id_communication ==1:
+                    
+                        if sys.platform == 'win32':
+                            # use run with window
+                            subprocess.Popen(
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}" "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                        else:
+                            # use run with ubuntu/linux
+                            subprocess.Popen(
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+                        
+                
     except Exception as e:
         print('Error init driver: ',e)
 def init_logfile():

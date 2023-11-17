@@ -168,3 +168,5 @@ print(mycursor.rowcount, "record(s) affected")
 [1, 2, 3, 4] - byteorder=Endian.Little, wordorder=Endian.Little
 <!--  -->
 python driver_of_device/ModbusTCP.py 1 "D:/NEXTWAVE/project/ipc_api"
+python driver_of_device/ModbusRTU.py
+python3 driver_of_device/ModbusTCP.py 1 "/home/ipc/ipc_api"
