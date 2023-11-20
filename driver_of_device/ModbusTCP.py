@@ -41,15 +41,16 @@ arr = sys.argv
 print(f'arr: {arr}')
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-# Publish   -> IPC@device_name
-# Subscribe -> IPC@device_name@control
+# Publish   -> IPC|device_id|device_name
+# Subscribe -> IPC|device_id|device_name|control
 MQTT_TOPIC = Config.MQTT_TOPIC 
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 # 
 device_name=""
 status_register_block=[]
-status_Device=""
+status_device=""
+device_id=""
 msg_device=""
 point_list_device=[]
 enable_write_control=False
@@ -365,10 +366,11 @@ async def device(ConfigPara):
         global query_device_control,query_only_device
         global data_control
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
-
+        global device_id
         pathSource=ConfigPara[2]
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
+        device_id = id_device
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
         statement = mybatis_mapper2sql.get_statement(
@@ -411,9 +413,11 @@ async def device(ConfigPara):
             print("Error device point list not found")
             # return -1 
         inv_shutdown_enable=results_device[0]["enable_poweroff"]
+        
         while True:
                 # Share data to Global variable
-                global device_name,status_Device,msg_device
+                global status_device
+                global device_name,msg_device
                 global point_list_device,status_register_block
                 global enable_write_control
                 global data_write_device
@@ -462,7 +466,7 @@ async def device(ConfigPara):
                           
                         # 
                         # print("---------- read data from Device ----------")
-                        status_Device=""
+                       
                         msg_device=""
                         # 
                         Data = []
@@ -477,6 +481,7 @@ async def device(ConfigPara):
                                 print("The device does not return results")
                             else:
                                 if not result_rb.isError():
+                                    status_device="ONLINE"
                                     INC = ADDR-1
                                     for itemR in result_rb.registers:
                                         INC = INC+1
@@ -484,15 +489,24 @@ async def device(ConfigPara):
                                 else:
                                     print("Error ------------------------------------")
                                     print(f'ADDR: {ADDR} COUNT: {COUNT}')
-                                    # Exception Response(131, 3, IllegalAddress)
-                                    print(f'ERROR CODE: {result_rb.function_code}')
-                                    #
-                                    print(f"Error reading from {slave_ip}: {result_rb}")
-                                    status_rb.append({"ADDR":ADDR,
-                                                      "ERROR_CODE":result_rb.function_code,
-                                                       "Timestamp": getUTC(),
-                                                      })
-                                    status_register_block=status_rb
+                                    if hasattr(result_rb, 'function_code'):
+                                        status_device="ONLINE"
+                                        # Exception Response(131, 3, IllegalAddress)
+                                        print(f'ERROR CODE: {result_rb.function_code}')
+                                        #
+                                        print(f"Error reading from {slave_ip}: {result_rb}")
+                                        status_rb.append({"ADDR":ADDR,
+                                                        "ERROR_CODE":result_rb.function_code,
+                                                        "Timestamp": getUTC(),
+                                                        })
+                                        status_register_block=status_rb
+                                    else:
+                                        print(f'This Slave {device_name} - [{slave_ip}] was not found')
+                                        status_device="OFFLINE"
+                                        status_rb.append({"ADDR":ADDR,
+                                                              "ERROR_CODE":139,
+                                                               "Timestamp": getUTC(),
+                                                              })      
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
                         # print(f"Register Block {slave_ip}: {new_Data}")  
                         point_list = []
@@ -509,6 +523,9 @@ async def device(ConfigPara):
                         await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
+                    print(f'Loi thiet bi')
+                
+                    status_device="OFFLINE"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"
                     # set value Quality of Point =1 when disconnect
@@ -547,9 +564,10 @@ async def monitoring_device(host, port,topic, username, password
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             # print("Status Device ---------------------")
-            global  device_name,status_Device,msg_device,status_register_block,point_list_device
+            global  device_name,status_device,msg_device,status_register_block,point_list_device
+            global device_id
             data_mqtt={
-                "STATUS_DEVICE":status_Device,
+                "STATUS_DEVICE":status_device,
                 "MSG_DEVICE":msg_device,
                 "STATUS_REGISTER":status_register_block,
                 "POINT_LIST":point_list_device,
@@ -557,7 +575,7 @@ async def monitoring_device(host, port,topic, username, password
             if device_name !="":
                 func_mqtt_public(   host,
                                     port,
-                                    topic+"@"+device_name,
+                                    topic+"|"+device_id+"|"+device_name,
                                     username,
                                     password,
                                     data_mqtt)
@@ -586,7 +604,9 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
         global query_device_control
         global data_write_device
         global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
-        Topic=topic+"@"+device_name+"@control"
+        global device_id
+        
+        Topic=f'topic+"|"+{str(device_id)}+""+{str(device_name)}+"|control"'
         client = mqttools.Client(host=host, 
                                 port=port,
                                 username= username, 

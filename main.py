@@ -36,7 +36,8 @@ def init_driver():
         query_all = statement[0]["select_all_device"]
         # 
         results = MySQL_Select(query_all, ())
-        if type(results) == list and len(results)>1:
+        
+        if type(results) == list and len(results)>=1:
             pass
         else:           
             print("Error not found data device")
@@ -54,14 +55,14 @@ def init_driver():
                 pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
              
                 print(f'pid: {pid}')
-                # if sys.platform == 'win32':
-                #     # use run with window
-                #     subprocess.Popen(
-                #         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
-                # else:
-                #     # use run with ubuntu/linux
-                #     subprocess.Popen(
-                #         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+                if sys.platform == 'win32':
+                    # use run with window
+                    subprocess.Popen(
+                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                else:
+                    # use run with ubuntu/linux
+                    subprocess.Popen(
+                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
             # join the same group ModbusRTU
             if item["connect_type"] == "RS485":
                 result_rs485_group.append(item)
@@ -102,7 +103,7 @@ def init_driver():
                     pid = f'Dev|{id_communication}|{connect_type}|{serialport_name}'
                     
                     print(f'pid: {pid}') 
-                    if id_communication ==1:
+                    if id_communication !=-1:
                     
                         if sys.platform == 'win32':
                             # use run with window

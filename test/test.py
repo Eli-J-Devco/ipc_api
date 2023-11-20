@@ -45,5 +45,65 @@ dict_example['d'] = 4  # new key, add
 
 print("updated dictionary: ", dict_example)
 
-                     
-                     
+
+user={
+    "name":"root",
+    "pass":1234
+}    
+print(user)                 
+modify_user={
+    "pass":4567
+}  
+                 
+user|=modify_user
+# 
+print(user)
+print(f'{4+4=}')
+import string
+
+print(string.punctuation)
+
+percent=11111111.2567
+print(f'{percent:,.2%}')
+data={
+    "id":1,
+    "name":[{"A":1},{"B":1}],
+    "desc":"2222222222222222222222222222222222222222222"
+}
+
+from pprint import pprint
+
+pprint(data, sort_dicts=False)
+
+my_list=['sp1','sp2','sp3']
+
+for index, item in enumerate(my_list, 1):
+    print(f'{index} :{item}')
+my_list=[1,1,1,2,3,4]
+import statistics
+
+print(statistics.mode(my_list))
+
+list1=[1,2,3]
+list2=[4,5,6]
+list1.extend(list2)
+print(list1)
+data=[
+        {"id":1,
+        "value":[{"tag1":1}]},
+        {"id":2,
+        "value":[{"tag1":23}]}
+      ]
+data={}
+data["ID"]=1
+data["NAME"]="INV1"
+print(data)
+
+try:
+    rr = await client.read_coils(1, 1, slave=1)
+except ModbusException as exc:
+    _logger.error(f"ERROR: exception in pymodbus {exc}")
+raise exc
+if rr.isError():
+    _logger.error("ERROR: pymodbus returned an error!")
+raise ModbusException(txt)

@@ -3,16 +3,19 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-from fastapi import FastAPI, Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session
+import datetime
+
 # from .. import models, schemas, utils
 import models
+import oauth2
 # from model import auth_user
 import schemas
-import oauth2
-from database import get_db
 import utils
-import datetime
+from database import get_db
+from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
+                     status)
+from sqlalchemy.orm import Session
+
 router = APIRouter(
     prefix="/users",
     tags=['Users']
@@ -30,7 +33,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     user.password = hashed_password
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    new_user = auth_user.User(date_joined=now,
+    new_user = models.User(date_joined=now,
                               last_login=now, **user.dict())
     db.add(new_user)
     db.commit()
@@ -43,7 +46,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def get_user(id: int, db: Session = Depends(get_db), ):
     print(f'id: {id}')
 
-    user = db.query(auth_user.User).filter(auth_user.User.id == id).first()
+    user = db.query(models.User).filter(models.User.id == id).first()
 
     print(f'{user}')
     if not user:
