@@ -32,3 +32,4 @@ hbmqtt
 mqttools
 backports.pbkdf2
 gmqtt
+async-timeout

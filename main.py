@@ -95,7 +95,7 @@ def init_driver():
                     
                     # print(item)
                     
-                    # name of pid pm2=id_communication|connect_type|serialport_name
+                    # name of pid pm2=Dev|id_communication|connect_type|serialport_name
                     id=item[0]["id_communication"]
                     id_communication=item[0]["id_communication"]
                     serialport_name=item[0]["serialport_name"]

@@ -42,6 +42,8 @@ class AppConfig:
     MQTT_TOPIC : str
     MQTT_USERNAME : str
     MQTT_PASSWORD : str
+    API_DOCS_USERNAME : str
+    API_DOCS_PASSWORD : str
     def __init__(self, env):
         for field in self.__annotations__:
             if not field.isupper():

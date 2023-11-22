@@ -579,7 +579,7 @@ async def monitoring_device(host, port,topic, username, password
                                     username,
                                     password,
                                     data_mqtt)
-            await asyncio.sleep(2)
+            await asyncio.sleep(10)
         
     except Exception as err:
         print('Error monitoring_device : ',err)
@@ -605,8 +605,9 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
         global data_write_device
         global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
         global device_id
-        
-        Topic=f'topic+"|"+{str(device_id)}+""+{str(device_name)}+"|control"'
+        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
+        Topic=f'IPC|{str(device_id)}|{str(device_name)}|control'
+        print(f'Topic: {Topic}')
         client = mqttools.Client(host=host, 
                                 port=port,
                                 username= username, 
@@ -696,7 +697,113 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
                  
     except Exception as err:
        
-        print(f"Error MQTT public: '{err}'")
+        print(f"Error MQTT subscribe: '{err}'")
+async def mqtt_subscribe_controlsV1(host, port,topic, username, password):
+    try:
+        # {
+        #    "DEVICE_NAME":"",
+        #    "CODE":1 # enable write parameter control
+        # }
+       
+        global enable_write_control,device_name
+        global query_device_control
+        global data_write_device
+        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
+        global device_id
+        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
+        Topic=f'IPC|{str(device_id)}|{str(device_name)}|control'
+        print(f'Topic: {Topic}')
+        client = mqttools.Client(host=host, 
+                                port=port,
+                                username= username, 
+                                password=bytes(password, 'utf-8'))
+        
+        await client.start()
+        await client.subscribe(Topic)
+        while True:
+            message = await client.messages.get()
+
+            if message is None:
+                print('Broker connection lost!')
+                break
+            print(f'Topic:   {message.topic}')
+            result=json.loads(message.message.decode())
+            print(f'Message: {result}')
+            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
+                DEVICE_NAME=result["DEVICE_NAME"]
+                CODE=result["CODE"]
+                
+                print(f'DEVICE_NAME: {DEVICE_NAME}')
+                print(f'CODE: {CODE}')
+                if DEVICE_NAME==device_name and CODE==1 :
+                    # print(f'query_device_control: {query_device_control}')
+                    results_device_control = MySQL_Select(query_device_control, (device_name,))
+                    # print(f'results_device_control: {results_device_control}')
+                    
+                    if type(results_device_control) == list and len(results_device_control)>=1:
+                        data_control=[]
+                        enable_p=results_device_control[0]["send_p"]
+                        enable_q=results_device_control[0]["send_q"]
+                        enable_pf=results_device_control[0]["send_pf"]
+                        enable_poweroff=results_device_control[0]["enable_poweroff"]
+                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
+                        # 
+                        if enable_p==1:
+                            data_control.append({
+                                "point":"send_p",
+                                "datatype":results_device_control[0]["datatype_p"],
+                                "register":results_device_control[0]["register_p"],
+                                "value":results_device_control[0]["value_p"],
+                            })
+                        if enable_q==1:
+                            data_control.append({
+                                 "point":"send_q",
+                                "datatype":results_device_control[0]["datatype_q"],
+                                "register":results_device_control[0]["register_q"],
+                                "value":results_device_control[0]["value_q"],
+                            })
+                        if enable_pf==1:
+                            data_control.append({
+                                "point":"send_pf",
+                                "datatype":results_device_control[0]["datatype_pf"],
+                                "register":results_device_control[0]["register_pf"],
+                                "value":results_device_control[0]["value_pf"],
+                            })
+                        # if enable_poweroff==1:
+                        #     today = DT.now(
+                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
+                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
+                        #     if str(today)==str(datetime_shutdown) :
+                        #         print("Turn off the inverter")
+                        #         data_control.append({
+                        #                     "point":"enable_poweroff",
+                        #                     "datatype":results_device_control[0]["datatype_p"],
+                        #                     "register":results_device_control[0]["register_p"],
+                        #                     "value":0,
+                        #                 })
+                        if enable_poweroff==1:
+                            inv_shutdown_datetime=inverter_shutdown
+                            
+                            item=[]
+                            item.append({
+                                            "point":"enable_poweroff",
+                                            "datatype":results_device_control[0]["datatype_p"],
+                                            "register":results_device_control[0]["register_p"],
+                                            "value":0,
+                                        })
+                            inv_shutdown_point=item
+                            inv_shutdown_enable=1
+                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
+                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
+                            data_write_device=data_control
+                            enable_write_control=True
+                        else:
+                            pass
+                 
+    except Exception as err:
+       
+        print(f"Error MQTT subscribe: '{err}'")
+
 # Describe functions before writing code
 # /**
 # 	 * @description check device control

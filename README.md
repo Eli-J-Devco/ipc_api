@@ -77,6 +77,7 @@ create file no txt
 mosquitto_passwd -U passwd
 net stop mosquitto
 net start mosquitto
+mosquitto_sub  -t "IPC|1|UNO-DM-3.3-TL-PLUS|control" -u nextwave -P 123654789 -d
 <!-- Visual studio Code -->
 https://code.visualstudio.com/#alt-downloads
 sudo apt install ./code_1.67.2-1652811604_armhf.deb
@@ -170,6 +171,8 @@ print(mycursor.rowcount, "record(s) affected")
 python driver_of_device/ModbusTCP.py 1 "D:/NEXTWAVE/project/ipc_api"
 python driver_of_device/ModbusRTU.py
 python3 driver_of_device/ModbusTCP.py 1 "/home/ipc/ipc_api"
+cd api_of_device
+uvicorn main:app --reload
 <!--  -->
 1 Operation not permitted
 2 No such file or directory

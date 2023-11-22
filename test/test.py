@@ -99,11 +99,3 @@ data["ID"]=1
 data["NAME"]="INV1"
 print(data)
 
-try:
-    rr = await client.read_coils(1, 1, slave=1)
-except ModbusException as exc:
-    _logger.error(f"ERROR: exception in pymodbus {exc}")
-raise exc
-if rr.isError():
-    _logger.error("ERROR: pymodbus returned an error!")
-raise ModbusException(txt)

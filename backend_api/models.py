@@ -3,12 +3,13 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DOUBLE
+# from sqlalchemy.dialect.mysql import BOOLEAN
+from database import Base
+from sqlalchemy import (DOUBLE, Boolean, Column, ForeignKey, Integer, String,
+                        Text)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
-# from sqlalchemy.dialect.mysql import BOOLEAN
-from database import Base
 
 
 class datalog_inv1(Base):
