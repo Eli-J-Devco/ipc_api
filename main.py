@@ -68,17 +68,19 @@ def init_driver():
                 result_rs485_group.append(item)
         # Initialize the device RS485 RTU
         if len(result_rs485_group)>0:
-                result_rs485_list = [x for i, x in enumerate(result_rs485_group) if x['serialport_name'] not in {y['serialport_name'] for y in result_rs485_group[:i]}]
+                result_rs485_list = [x for i, x in enumerate(result_rs485_group) if x['serialport_group'] not in {y['serialport_group'] for y in result_rs485_group[:i]}]
                 data=[]
                 for rs485_item in result_rs485_list:
                     item=[]
                     for device_item in result_rs485_group:
-                            if rs485_item["serialport_name"]==device_item["serialport_name"]:
+                            if rs485_item["serialport_group"]==device_item["serialport_group"]:
                                     item.append({
                                             'id_communication':device_item['id_communication'],            
                                             'id':device_item['id'],
                                             'name':device_item['name'],
+                                           
                                             'connect_type':device_item['connect_type'],                            
+                                            'serialport_group':rs485_item['serialport_group'],
                                             'serialport_name':rs485_item['serialport_name'],
                                             'serialport_baud':int(rs485_item['serialport_baud']),
                                             'serialport_stopbits':int(rs485_item['serialport_stopbits']),
@@ -98,9 +100,10 @@ def init_driver():
                     # name of pid pm2=Dev|id_communication|connect_type|serialport_name
                     id=item[0]["id_communication"]
                     id_communication=item[0]["id_communication"]
+                    serialport_group=item[0]["serialport_group"]
                     serialport_name=item[0]["serialport_name"]
                     connect_type=item[0]["connect_type"]
-                    pid = f'Dev|{id_communication}|{connect_type}|{serialport_name}'
+                    pid = f'Dev|{id_communication}|{connect_type}|{serialport_group}'
                     
                     print(f'pid: {pid}') 
                     if id_communication !=-1:
@@ -121,5 +124,13 @@ def init_logfile():
     while True:
         time.sleep(5)
         print("Initializing log")
+        
+def enable_permission_ipc():
+    from subprocess import PIPE, run
+
+    # cmd = "echo 123654789 | sudo nano /etc/network/interfaces"
+    cmd = "echo 123654789 | sudo chmod -R 777 /etc/netplan"
+    out = run(cmd, shell=True, stdout=PIPE)
+
 init_driver()
 

@@ -4,6 +4,7 @@
 # *
 # *********************************************************/
 import datetime
+import json
 
 import models
 import oauth2
@@ -47,13 +48,16 @@ def get_user(id: int, db: Session = Depends(get_db), ):
     print(f'id: {id}')
     # ----------------------
     user = db.query(models.User).filter(models.User.id == id).first()
-    users=user.__dict__
-    print(f'{users["fullname"]}')
-    # ----------------------
-    result = db.execute(
-    text(f'select * from user')).all()
-    results_dict = [row._asdict() for row in result]
-    print(f'{results_dict}')
+    # ----- only one row -----
+    # users=user.__dict__
+    # print(f'{users}')
+    # ---- good------------------
+    # result = db.execute(
+    # text(f'select * from user')).all()
+    # results_dict = [row._asdict() for row in result]
+    # print(f'{results_dict}')
+    
+    
     # ----------------------
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -62,7 +66,7 @@ def get_user(id: int, db: Session = Depends(get_db), ):
     return user
 
 
-@router.post("update/{id}", response_model=schemas.UserOut)
+@router.post("/update/{id}", response_model=schemas.UserOut)
 def update_user(id: int, updated_user: schemas.UserCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
 
     # cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",

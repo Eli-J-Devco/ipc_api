@@ -42,20 +42,27 @@ https://thomasswilliams.github.io/development/2020/04/07/installing-pm2-windows.
 <!-- Database -->
 https://blog.hostvn.net/chia-se/huong-dan-cai-dat-mysql-tren-ubuntu-20.html
 sudo apt install default-mysql-server
+sudo mysql
 mysql -u root -p
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
 
 DROP USER 'ipc'@'%';
 DROP USER 'root'@'localhost';
-CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY '123654789';
-CREATE USER 'ipc'@'%' IDENTIFIED WITH mysql_native_password BY '@$123654789';
-CREATE USER 'ipc'@'%' IDENTIFIED  BY '@$123654789';
+CREATE USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'Nw$123654789';
+CREATE USER 'ipc'@'%' IDENTIFIED WITH mysql_native_password BY 'Nw$123654789';
+CREATE USER 'ipc'@'%' IDENTIFIED WITH standard BY 'Nw$123654789';
+CREATE USER 'root'@'%' IDENTIFIED  BY 'Nw$123654789';
 GRANT ALL PRIVILEGES ON * . * TO 'ipc'@'%';
+GRANT ALL PRIVILEGES ON * . * TO 'root'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'ipc'@'%' WITH GRANT OPTION;
 SELECT User, Host, Password FROM mysql.user;
-
+<!-- connect to Remote MySQL Server (10061) -->
+sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
+sudo systemctl restart mysql
 <!-- Your password does not satisfy the current policy requirements -->
 SHOW VARIABLES LIKE 'validate_password%';
 SET GLOBAL validate_password.length = 4;
+SET GLOBAL validate_password.policy=LOW;
 SET GLOBAL validate_password.policy=LOW;
 <!-- MQTT -->
 https://www.vultr.com/docs/install-mosquitto-mqtt-broker-on-ubuntu-20-04-server/
@@ -73,6 +80,11 @@ https://mqtt-explorer.com/
 https://www.youtube.com/watch?v=72u6gIkeqUc
 https://cedalo.com/blog/how-to-install-mosquitto-mqtt-broker-on-windows/
 https://mosquitto.org/download/
+edit file mosquitto.conf 
+allow_anonymous false
+listener 1883 0.0.0.0
+password_file C:\Program Files\mosquitto\passwd
+
 create file no txt
 mosquitto_passwd -U passwd
 net stop mosquitto
@@ -171,6 +183,7 @@ print(mycursor.rowcount, "record(s) affected")
 python driver_of_device/ModbusTCP.py 1 "D:/NEXTWAVE/project/ipc_api"
 python driver_of_device/ModbusRTU.py
 python3 driver_of_device/ModbusTCP.py 1 "/home/ipc/ipc_api"
+python3 /home/ipc/ipc_api/main.py
 cd api_of_device
 uvicorn main:app --reload
 <!--  -->
@@ -211,3 +224,71 @@ uvicorn main:app --reload
 162 System time changed, caused logger to restart logging for intervals.
 163 System auto-restart
 164 Log entry corrupt
+<!--  wmi pyuac -->
+Fix IP of IPC
+https://github.com/snnkbb/python-ip-changer/blob/master/ipchanger.py
+https://askubuntu.com/questions/766131/how-do-i-set-a-static-ip-in-ubuntu
+<!--  Get Your System Information – Using Python Script -->
+https://www.geeksforgeeks.org/get-your-system-information-using-python-script/
+https://www.geeksforgeeks.org/psutil-module-in-python/
+https://linuxconfig.org/change-ip-address-on-ubuntu-server
+sudo ifconfig -a
+sudo nano etc/netplan/01-network-manager-all.yaml
+<!--  ifconfig missing after Ubuntu 18.04 install -->
+sudo apt install net-tools
+nmcli device status
+netstat -i
+ifcnfig
+<!-- wired device not managed  -->
+sudo nano /etc/NetworkManager/NetworkManager.conf
+change the line managed=false to managed=true
+Save, stop and start network manager:
+sudo service network-manager restart
+
+sudo ip link set enp2s0 down --> sudo ip link set enp2s0 up
+<!--  -->
+sudo nano /etc/network/interfaces
+auto lo enp2s0
+iface lo inet loopback
+<!-- Setup interface to dhcp -->
+iface enp2s0 inet dhcp
+<!-- efining physical interfaces such as eth0 -->
+iface enp2s0 inet static
+address 192.168.1.5
+netmask 255.255.255.0
+gateway 192.168.1.254
+<!--  -->
+auto enp2s0
+iface enp2s0 inet static
+address 192.168.0.42
+network 192.168.0.0
+netmask 255.255.255.0
+broadcast 192.168.0.255
+gateway 192.168.0.1
+<!-- netplan -->
+https://www.mondoze.com/guide/kb/how-to-configure-static-ip-address-on-ubuntu-18-04
+sudo nano /etc/netplan/01-network-manager-all.yaml
+
+<!-- use it -->
+sudo nano /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp2s0:
+      dhcp4: no
+      addresses:
+        - 192.168.121.199/24
+      gateway4: 192.168.121.1
+      nameservers:
+          addresses: [8.8.8.8, 1.1.1.1]
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp2s0:
+      dhcp4: yes
+<!--  -->
+sudo netplan apply
+<!-- Permission denied Ubuntu -->
+sudo chmod -R 777 /path/to/file

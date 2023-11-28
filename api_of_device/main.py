@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from routers import auth, device_list, user
+from routers import auth, device_list, ethernet, rs485, user
 from utils import path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project
@@ -38,6 +38,9 @@ app.add_middleware(
 app.include_router(user.router)
 app.include_router(auth.router)
 app.include_router(device_list.router)
+app.include_router(ethernet.router)
+app.include_router(rs485.router)
+
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, API_DOCS_USERNAME)
     correct_password = secrets.compare_digest(credentials.password, API_DOCS_PASSWORD)

@@ -287,11 +287,13 @@ async def device(ConfigPara):
             print("Error not found data device")
             return -1
         print(f'------ RS485 ----- ')
+        serialport_group=results_device[0]["serialport_group"]
         serialport_name=results_device[0]["serialport_name"]
         serialport_baud=int(results_device[0]["serialport_baud"])
         serialport_stopbits=int(results_device[0]["serialport_stopbits"])
         serialport_parity=results_device[0]["serialport_parity"][0]
         serialport_timeout=int(results_device[0]["serialport_timeout"])
+        print(f'serialport_group: {serialport_group}')
         print(f'serialport_name: {serialport_name}')
         print(f'serialport_baud: {serialport_baud}')
         print(f'serialport_stopbits: {serialport_stopbits}')
@@ -356,7 +358,7 @@ async def device(ConfigPara):
                 global all_device_data
                 all_device_data=[]
                 # 
-                client = ModbusSerialClient(method="rtu", port=serialport_name, 
+                client = ModbusSerialClient(method="rtu", port=serialport_group, 
                                             stopbits=serialport_stopbits, 
                                             bytesize=8, 
                                             parity=serialport_parity, 

@@ -369,7 +369,7 @@ class config_information(Base):
     id_type = Column(Integer, ForeignKey(
         "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
-
+   
 
 class config_type(Base):
     __tablename__ = "config_type"

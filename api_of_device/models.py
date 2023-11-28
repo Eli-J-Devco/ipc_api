@@ -12,6 +12,7 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
+# 
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -27,6 +28,7 @@ class User(Base):
         "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     is_active = Column(Boolean, nullable=False, default=False)
     status = Column(Boolean, nullable=False, default=True)
+# 
 class Device_list(Base):
     __tablename__ = "device_list"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -62,10 +64,32 @@ class Device_list(Base):
     inverter_shutdown = Column(TIMESTAMP(timezone=True),
                                nullable=True)
     status = Column(Boolean, nullable=True, default=True)
+# 
+class Config_information(Base):
+    __tablename__ = "config_information"
+    id = Column(Integer, primary_key=True, nullable=False)
+    parent = Column(Integer, nullable=True)
+    name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    value = Column(Integer, nullable=True)
+    type = Column(Integer, nullable=True)
+    id_type = Column(Integer, ForeignKey(
+        "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+# 
+class Driver_list(Base):
+    __tablename__ = "driver_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+
+# 
 class Communication(Base):
     __tablename__ = "communication"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=False)
     id_driver_list = Column(Integer, ForeignKey(
         "driver_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_type_baud_rates = Column(Integer, nullable=True)
@@ -80,3 +104,24 @@ class Communication(Base):
     note1 = Column(String(255), nullable=True)
     note2 = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
+    driver_list  = relationship('Driver_list', foreign_keys=[id_driver_list])
+# 
+
+class Ethernet(Base):
+    __tablename__ = "ethernet"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_project_setup = Column(Integer, ForeignKey(
+        "project_setup.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    namekey = Column(String(255), nullable=False)
+    id_type_ethernet = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    allow_dns = Column(Boolean, nullable=True, default=False)
+    ip_address = Column(String(255), nullable=True)
+    subnet_mask = Column(String(255), nullable=True)
+    gateway= Column(String(255), nullable=True)
+    mtu = Column(String(255), nullable=True)
+    dns1 = Column(String(255), nullable=True)
+    dns2 = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    type_ethernet  = relationship('Config_information')
