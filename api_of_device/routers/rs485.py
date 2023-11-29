@@ -15,6 +15,7 @@ import oauth2
 import psutil
 import schemas
 import serial.tools.list_ports as ports
+from async_timeout import timeout
 from database import get_db
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
@@ -40,29 +41,13 @@ def get_rs485(id: int, db: Session = Depends(get_db), ):
     # results_dict = [row._asdict() for row in result]
     # print(f'{results_dict}')
     # ----------------------
-    result_communication,result_driver_list = db.query(models.Communication,models.Driver_list).join(
-        models.Driver_list, models.Driver_list.id == models.Communication.id_driver_list, 
-        isouter=True).group_by(models.Communication.id,models.Driver_list.id).filter(models.Communication.id == id).first()
+    # result_communication,result_driver_list = db.query(models.Communication,models.Driver_list).join(
+    #     models.Driver_list, models.Driver_list.id == models.Communication.id_driver_list, 
+    #     isouter=True).group_by(models.Communication.id,models.Driver_list.id).filter(models.Communication.id == id).first()
     
-   
+
     
-   
-    # 
-    # p = schemas.BaudRate(**{'id': "1", 'name': '9600'})
-    # 
-    {
-        "baud":[{"id":136,"namekey":"9600"},{"id":137,"namekey":"19200"}],
-        "parity":[],
-        "stop_bits":[],
-        "timeout":[],
-        "debuglevel":[]
-    }
-    # 
-    # result_3=schemas.BaudRate(**communication_baud.__dict__).dict(by_alias=False)
-    # print(f'baud :{baud}')
-    # print(f'result_communication :{result_1}')
-    # print(f'result_driver_list :{result_2}')
-    # print(f'communication_baud :{result_3}')
+
     if not communication:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
@@ -90,15 +75,23 @@ def get_rs485_config( db: Session = Depends(get_db), ):
         "debuglevel":debuglevel,
         "timeout":timeout,
     }
-@router.post('/serial')
+@router.post('/serial', response_model=schemas.SerialListBase)
 def get_scan_serial():
     
     result=[]
     com_ports = list(ports.comports()) # create a list of com ['COM1','COM2'] 
     for i in com_ports:            
-        result.append(i.device) # returns 'COMx
-    print(result)
-    return result
+        result.append({"serial_port":i.device}) # returns 'COMx
+    
+    # {
+    #     "serial_list":[{
+    #         "serial_port":""
+    #     }]
+    # }
+    
+   
+    return {"serial_list":result}
+   
 @router.post("/update/{id}", response_model=schemas.CommunicationOut)
 async def update_rs485(id: int,  updated_communication: schemas.CommunicationCreate,db: Session = Depends(get_db)):
     try:
@@ -107,39 +100,56 @@ async def update_rs485(id: int,  updated_communication: schemas.CommunicationCre
         if communication_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"RS485 with id: {id} does not exist")
-        communication_list=communication_query.first().__dict__
-        # print(f'communication_list :{communication_list}')
-       
-        
-        # communication_query.update(updated_communication.dict(), synchronize_session=False)
-        # db.commit()
-        shellscript = subprocess.Popen(["pm2", "jlist"],
-                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-        print("------------------------------")
-        # data = json.loads(raw)status
-        out, err = shellscript.communicate()
-        result = json.loads(out)
-        # print(result)
-        # for item in range(len(result)):
-        #     print("+++++++++++++++++++++++++++++")
-
-        #     name = result[item]['name']
-        #     namespace = result[item]['pm2_env']['namespace']
-        #     mode = result[item]['pm2_env']['exec_mode']
-        #     pid = result[item]['pid']
-        #     uptime = result[item]['pm2_env']['pm_uptime']
-        #     status = result[item]['pm2_env']['status']
-        #     cpu = result[item]['monit']['cpu']
-        #     mem = result[item]['monit']['memory'] / 1000000
-
-        #     print(f'name: {name}')
-        #     print(f'namespace: {namespace}')
-        #     print(f'mode: {mode}')
-        #     print(f'pid: {pid}')
-        #     print(f'uptime: {uptime}')
-        #     print(f'status: {status}')
-        #     print(f'cpu: {cpu}')
-        #     print(f'mem: {mem}')
-        return communication_query.first()
+        # communication_list=communication_query.first().__dict__
+        # print(f'communication_list :{communication_list}')              
+            
+        async def execute_func():
+            try:       
+                shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+                out, err = shellscript.communicate()
+                result = json.loads(out)             
+                print("----- pm2 list ----- ")
+                app_detect=0
+                for item in result:
+                    name = item['name']
+                    namespace = item['pm2_env']['namespace']
+                    mode = item['pm2_env']['exec_mode']
+                    pid = item['pid']
+                    uptime = item['pm2_env']['pm_uptime']
+                    status = item['pm2_env']['status']
+                    cpu = item['monit']['cpu']
+                    mem = item['monit']['memory'] / 1000000
+                    # print(f'namespace: {namespace}')
+                    # print(f'mode: {mode}')
+                    # print(f'pid: {pid}')
+                    # print(f'uptime: {uptime}')
+                    # print(f'status: {status}')
+                    # print(f'cpu: {cpu}')
+                    # print(f'mem: {mem}')
+                    print(f'name: {name}')
+                    app_name=f'Dev|{str(id)}|'
+                    
+                    if name.find(app_name)==0:
+                        print(f'Find channel RS485: {name}')
+                        os.system(f'pm2 restart "{name}"')
+                        app_detect=1
+                if app_detect==1:
+                    return 100
+                else:
+                    return 200
+            except Exception as err:
+                print('Error restart pm2 : ',err)
+                return 200
+        async with timeout(5) as cm:
+            response=  await execute_func() 
+            if response==100:
+                communication_query.update(updated_communication.dict(), synchronize_session=False)
+                db.commit()
+                return communication_query.first()
+            elif response==200:
+                return communication_query.first()
+    
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")

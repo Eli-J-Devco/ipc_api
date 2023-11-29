@@ -106,13 +106,26 @@ def update_ethernet(id: int,  updated_ethernet: schemas.EthernetCreate,db: Sessi
     
     return ethernet_query.first()
 # 
-@router.post('/ifconfig')
+@router.post('/ifconfig', response_model=schemas.NetworkBase)
 def get_network_interface():
     result=psutil.net_if_addrs()
-    # print(result)
+    # print(result["Ethernet"])
+    # for key, value in result["Ethernet"].items(): 
+    #     print(key)
     # ----------------------
     # if not result:
     #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
     #                         detail=f"Not find network interface card")
-
-    return result
+    network_list=[]
+    for key, value in result.items(): 
+       
+        array_item=[]
+        for item in value:
+            array_item.append(str(item))
+        network_list.append({
+            "interface":key,
+            "information": array_item
+        })
+    return {
+        "network":network_list
+    }

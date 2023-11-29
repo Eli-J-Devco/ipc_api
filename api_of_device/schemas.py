@@ -119,7 +119,14 @@ class ConfigRS485Base(BaseModel):
     timeout:list[RS485Timeout]
     class Config:
         orm_mode = True
-        
+class SerialBase(BaseModel):
+    serial_port:Optional[str] = None
+    class Config:
+        orm_mode = True
+class SerialListBase(BaseModel):
+    serial_list:list[SerialBase]
+    class Config:
+        orm_mode = True
 class CommunicationOut(CommunicationBase):
     id: int
     driver_list: DeviceListOut
@@ -167,6 +174,76 @@ class EthernetOut(EthernetBase):
     class Config:
         orm_mode = True
 class EthernetCreate(EthernetBase):
+    class Config:
+        orm_mode = True 
+class NetworkInterfaceBase(BaseModel):
+    interface: Optional[str] = None
+    information: list[str] = None
+    class Config:
+        orm_mode = True
+class NetworkBase(BaseModel):
+    network:list[NetworkInterfaceBase]
+    class Config:
+        orm_mode = True
+# <- site_information ->
+class SiteInformBase(BaseModel):
+    # id_project_setup: int
+    name: Optional[str] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
+    administrative_contact: Optional[str] = None
+   
+class SiteInformOut(SiteInformBase):
+    id: Optional[int] = None
+   
+    class Config:
+        orm_mode = True
+class SiteInformCreate(SiteInformBase):
+    class Config:
+        orm_mode = True 
+# <- upload_channel ->
+class type_protocol(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(..., alias='Protocol')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class type_logging_interval(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(..., alias='Logging_Interval')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class UploadChannelBase(BaseModel):
+    # id_project_setup: int
+    name: Optional[str] = None
+    id_type_protocol: Optional[int] = None
+    uploadurl: Optional[str] = None
+    password: Optional[str] = None
+    selected_upload: Optional[str] = None
+    id_type_logging_interval: Optional[int] = None
+    enable: Optional[bool] = None
+    allow_remote_configuration: Optional[bool] = None
+    status: Optional[bool] = None
+    # 
+    type_protocol: type_protocol
+    # type_logging_interval: type_logging_interval
+    class Config:
+        orm_mode = True 
+class UploadChannelOut(UploadChannelBase):
+    id: Optional[int] = None
+   
+    class Config:
+        orm_mode = True
+class AllUploadChannelOut(BaseModel):
+    all_channel: list[UploadChannelOut]
+   
+    class Config:
+        orm_mode = True
+
+class UploadChannelCreate(UploadChannelBase):
     class Config:
         orm_mode = True 
 # 

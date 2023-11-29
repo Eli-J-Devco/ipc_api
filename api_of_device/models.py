@@ -124,4 +124,28 @@ class Ethernet(Base):
     dns1 = Column(String(255), nullable=True)
     dns2 = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
-    type_ethernet  = relationship('Config_information')
+    type_ethernet  = relationship('Config_information', foreign_keys=[id_type_ethernet])
+# 
+class Site_information(Base):
+    __tablename__ = "project_setup"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=True)
+    description = Column(String(255), nullable=True)
+    administrative_contact = Column(String(255), nullable=True)
+class Upload_channel(Base):
+    __tablename__ = "upload_channel"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    id_type_protocol = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    uploadurl = Column(String(255), nullable=True)
+    password = Column(String(255), nullable=True)
+    selected_upload = Column(String(255), nullable=True)
+    id_type_logging_interval = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    enable = Column(Boolean, nullable=False, default=True)
+    allow_remote_configuration = Column(Boolean, nullable=False, default=True)
+    status = Column(Boolean, nullable=False, default=True)
+    type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
+    type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
