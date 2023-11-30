@@ -22,7 +22,7 @@ from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
-from config import Config
+# from config import Config
 
 # 
 router = APIRouter(
@@ -40,7 +40,7 @@ router = APIRouter(
 @router.get('/{id}', response_model=schemas.SiteInformOut)
 def get_site_information(id: int, db: Session = Depends(get_db), ):
     # ----------------------
-    site_information_query = db.query(models.Site_information).filter(models.Site_information.id == id).first()
+    site_information_query = db.query(models.Project_setup).filter(models.Project_setup.id == id).first()
    
 
     if not site_information_query:
@@ -58,7 +58,7 @@ def get_site_information(id: int, db: Session = Depends(get_db), ):
 # 	 */
 @router.post("/update/{id}", response_model=schemas.SiteInformOut)
 def update_site_information(id: int,  updated_SiteInform: schemas.SiteInformUpdate,db: Session = Depends(get_db)):
-    site_information_query = db.query(models.Site_information).filter(models.Site_information.id == id)
+    site_information_query = db.query(models.Project_setup).filter(models.Project_setup.id == id)
     if site_information_query.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Site information with id: {id} does not exist")

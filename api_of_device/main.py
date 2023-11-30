@@ -13,8 +13,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from routers import (auth, device_list, ethernet, rs485, site_information,
-                     upload_channel, user)
+from routers import (auth, device_list, ethernet, project, rs485,
+                     site_information, upload_channel, user)
 from utils import path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project
@@ -48,6 +48,7 @@ app.include_router(ethernet.router)
 app.include_router(rs485.router)
 app.include_router(site_information.router)
 app.include_router(upload_channel.router)
+app.include_router(project.router)
 # 
 # Describe functions before writing code
 # /**

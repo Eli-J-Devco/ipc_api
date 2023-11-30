@@ -70,7 +70,7 @@ def get_rs485(id: int, db: Session = Depends(get_db), ):
 # 	 * @param {db}
 # 	 * @return data (RS485ConfigBase)
 # 	 */
-@router.post('/config', response_model=schemas.RS485ConfigBase)
+@router.post('/config/', response_model=schemas.RS485ConfigBase)
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), ):
     communication_rs485 = db.query(models.Config_information).filter(models.Config_information.id_type == 4).filter(models.Config_information.status == 1).all()
@@ -100,7 +100,7 @@ def get_rs485_config( db: Session = Depends(get_db), ):
 # 	 * @param {}
 # 	 * @return data (SerialListBase)
 # 	 */
-@router.post('/serial', response_model=schemas.SerialListBase)
+@router.post('/serial/', response_model=schemas.SerialListBase)
 def get_scan_serial():
     
     result=[]

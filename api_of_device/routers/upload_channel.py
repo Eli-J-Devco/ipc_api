@@ -66,7 +66,7 @@ def get_all_upload_channel(db: Session = Depends(get_db)):
 # 	 * @param {db}
 # 	 * @return data (UploadChannelConfig)
 # 	 */
-@router.post('/config', response_model=schemas.UploadChannelConfig)
+@router.post('/config/', response_model=schemas.UploadChannelConfig)
 def get_upload_channel_config( db: Session = Depends(get_db), ):
     try:
         config_information_query = db.query(models.Config_information).filter(models.Config_information.id_type >= 6).filter(models.Config_information.id_type <= 7).filter(models.Config_information.status == 1).all()
@@ -99,7 +99,7 @@ def get_upload_channel_config( db: Session = Depends(get_db), ):
 # 	 * @param {list[schemas.UploadChannelUpdate],db}
 # 	 * @return data (UploadChannelState)
 # 	 */
-@router.post("/update", response_model=schemas.UploadChannelState)
+@router.post("/update/", response_model=schemas.UploadChannelState)
 async def update_upload_channel(updated_communication: list[schemas.UploadChannelUpdate],db: Session = Depends(get_db)):
     try:
         

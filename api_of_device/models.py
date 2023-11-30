@@ -13,6 +13,58 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
 # 
+class Project_setup(Base):
+    __tablename__ = "project_setup"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    location = Column(String(255), nullable=True)
+    description = Column(String(255), nullable=True)
+    administrative_contact = Column(String(255), nullable=True)
+
+    id_first_page_on_login = Column(Integer, ForeignKey(
+        "page.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_logging_interval = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+
+    id_scheduled_upload_time = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    number_times_retry = Column(Integer, nullable=False, default=3)
+    id_time_wait_before_retry = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_upload_debug_information = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+
+    enable_upload_data_on_alarm_status = Column(
+        Boolean, nullable=False, default=True)
+    enable_upload_data_on_low_disk = Column(
+        Boolean, nullable=False, default=True)
+    enable_upload_data_on_system_startup = Column(
+        Boolean, nullable=False, default=True)
+    link_remote_access = Column(String(255), nullable=True)
+    allow_remote_access = Column(Boolean, nullable=False, default=False)
+    enable_static_routing = Column(Boolean, nullable=False, default=False)
+
+    id_time_zone = Column(Integer, ForeignKey(
+        "time_zone.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    Time1cycle = Column(DOUBLE(), nullable=False, default=5)
+    sampling_time1cycle = Column(DOUBLE(), nullable=False, default=15)
+
+    enable_zero_export = Column(Boolean, nullable=False, default=False)
+    value_zero_export = Column(DOUBLE(), nullable=False, default=100)
+
+    enable_limit_energy = Column(Boolean, nullable=False, default=False)
+    value_limit_energy = Column(DOUBLE(), nullable=False, default=100)
+
+    modhopper1 = Column(Integer, nullable=True)
+    modhopper2 = Column(Integer, nullable=True)
+    modhopper_key = Column(String(255), nullable=True)
+    modhopper_rf_config = Column(Integer, nullable=True)
+    modhopper_rf_channel = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
+    first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
+
+# 
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -126,13 +178,13 @@ class Ethernet(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_ethernet  = relationship('Config_information', foreign_keys=[id_type_ethernet])
 # 
-class Site_information(Base):
-    __tablename__ = "project_setup"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=False)
-    location = Column(String(255), nullable=True)
-    description = Column(String(255), nullable=True)
-    administrative_contact = Column(String(255), nullable=True)
+# class Site_information(Base):
+#     __tablename__ = "project_setup"
+#     id = Column(Integer, primary_key=True, nullable=False)
+#     name = Column(String(255), nullable=False)
+#     location = Column(String(255), nullable=True)
+#     description = Column(String(255), nullable=True)
+#     administrative_contact = Column(String(255), nullable=True)
 
 class Upload_channel(Base):
     __tablename__ = "upload_channel"
@@ -150,7 +202,12 @@ class Upload_channel(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
-
+class Page(Base):
+    __tablename__ = "page"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
 class Test(Base):
     __tablename__ = "test"
     id = Column(Integer, primary_key=True, nullable=False)

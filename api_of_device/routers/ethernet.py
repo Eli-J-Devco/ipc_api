@@ -123,7 +123,7 @@ def update_ethernet(id: int,  updated_ethernet: schemas.EthernetCreate,db: Sessi
 # 	 * @param {}
 # 	 * @return data (NetworkBase)
 # 	 */ 
-@router.post('/ifconfig', response_model=schemas.NetworkBase)
+@router.post('/ifconfig/', response_model=schemas.NetworkBase)
 def get_network_interface():
     result=psutil.net_if_addrs()
     # print(result["Ethernet"])

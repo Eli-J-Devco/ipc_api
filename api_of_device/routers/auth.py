@@ -23,7 +23,7 @@ router = APIRouter(tags=['Authentication'])
 # 	 * @param {user_credentials,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post('/login', response_model=schemas.Token)
+@router.post('/login/', response_model=schemas.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     print(user_credentials.username)
 
