@@ -29,7 +29,14 @@ SECRET_KEY = Config.SECRET_KEY
 ALGORITHM = Config.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = Config.ACCESS_TOKEN_EXPIRE_MINUTES
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description create access token
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {user_id}
+# 	 * @return data (encoded_jwt)
+# 	 */
 def create_access_token(data: dict):
     to_encode = data.copy()
 
@@ -40,7 +47,14 @@ def create_access_token(data: dict):
 
     return encoded_jwt
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description verify access token
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {token,credentials_exception}
+# 	 * @return data (token_data)
+# 	 */
 def verify_access_token(token: str, credentials_exception):
 
     try:
@@ -60,7 +74,14 @@ def verify_access_token(token: str, credentials_exception):
 
     return token_data
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description get current user
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {token,db}
+# 	 * @return data (user)
+# 	 */
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
     print("++++++++++++++++++++++++++++++++++++++++")
     # print(f'token:  {token}')

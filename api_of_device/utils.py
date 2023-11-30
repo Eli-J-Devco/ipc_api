@@ -9,6 +9,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Describe functions before writing code
+# /**
+# 	 * @description MQTT public status of device
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {project_name}
+# 	 * @return data (path of project)
+# 	 */
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -24,18 +32,19 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
-
-
 from passlib.context import CryptContext
 
 from config import Config
 
-# PATH_FILE_NETWORK_INTERFACE=Config.PATH_FILE_NETWORK_INTERFACE
-# print(f'PATH_FILE_NETWORK_INTERFACE:{PATH_FILE_NETWORK_INTERFACE}')
-# 
-# check_file = os.path.isfile(PATH_FILE_NETWORK_INTERFACE)
-# 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Describe functions before writing code
+# /**
+# 	 * @description create file config network
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {ethernet_list,network_interface,pathfile}
+# 	 * @return data ()
+# 	 */
 def create_file_config_network(ethernet_list,network_interface,pathfile):
   try:
       new_Line=[]
@@ -97,6 +106,14 @@ def create_file_config_network(ethernet_list,network_interface,pathfile):
           fileName.close()
   except Exception as err:
     print('Error create file config network',err)
+# Describe functions before writing code
+# /**
+# 	 * @description restart app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data ()
+# 	 */
 def restart_program_pm2(app_name):
     try:
         shellscript = subprocess.Popen(["pm2", "jlist"],
@@ -137,6 +154,14 @@ def restart_program_pm2(app_name):
     except Exception as err:
         print('Error restart pm2 : ',err)
         return 300
+# Describe functions before writing code
+# /**
+# 	 * @description delete app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data (status)
+# 	 */
 def delete_program_pm2(app_name):
     try:
         shellscript = subprocess.Popen(["pm2", "jlist"],
@@ -174,11 +199,72 @@ def delete_program_pm2(app_name):
         else:
             return 200
     except Exception as err:
-        print('Error restart pm2 : ',err)
+        print('Error delete pm2 : ',err)
         return 300
+# Describe functions before writing code
+# /**
+# 	 * @description stop app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data (status)
+# 	 */
+def stop_program_pm2(app_name):
+    try:
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        # print("----- pm2 list ----- ")
+        app_detect=0
+        for item in result:
+            name = item['name']
+            namespace = item['pm2_env']['namespace']
+            mode = item['pm2_env']['exec_mode']
+            pid = item['pid']
+            uptime = item['pm2_env']['pm_uptime']
+            status = item['pm2_env']['status']
+            cpu = item['monit']['cpu']
+            mem = item['monit']['memory'] / 1000000
+            # print(f'namespace: {namespace}')
+            # print(f'mode: {mode}')
+            # print(f'pid: {pid}')
+            # print(f'uptime: {uptime}')
+            # print(f'status: {status}')
+            # print(f'cpu: {cpu}')
+            # print(f'mem: {mem}')
+            # print(f'name: {name}')
+            # app_name=f'Dev|{str(id)}|'
+                    
+            if name.find(app_name)==0:
+                # print(f'Find channel RS485: {name}')
+                os.system(f'pm2 stop "{name}"')
+                app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error stop pm2 : ',err)
+        return 300
+# Describe functions before writing code
+# /**
+# 	 * @description hash password
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {password}
+# 	 * @return data (password)
+# 	 */
 def hash(password: str):
     return pwd_context.hash(password)
-
-
+# Describe functions before writing code
+# /**
+# 	 * @description verify password
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {plain_password, hashed_password}
+# 	 * @return data (password verify)
+# 	 */
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)

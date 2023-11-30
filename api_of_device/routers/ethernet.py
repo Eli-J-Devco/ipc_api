@@ -26,7 +26,14 @@ router = APIRouter(
     prefix="/ethernet",
     tags=['Ethernet']
 )
-# 
+# Describe functions before writing code
+# /**
+# 	 * @description get ethernet
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,db}
+# 	 * @return data (EthernetOut)
+# 	 */  
 @router.get('/{id}', response_model=schemas.EthernetOut)
 def get_ethernet(id: int, db: Session = Depends(get_db), ):
     # ----------------------
@@ -44,7 +51,14 @@ def get_ethernet(id: int, db: Session = Depends(get_db), ):
                             detail=f"Ethernet with id: {id} does not exist")
 
     return ethernet
-# 
+# Describe functions before writing code
+# /**
+# 	 * @description update ethernet
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,db}
+# 	 * @return data (EthernetOut)
+# 	 */  
 @router.post("/update/{id}", response_model=schemas.EthernetOut)
 def update_ethernet(id: int,  updated_ethernet: schemas.EthernetCreate,db: Session = Depends(get_db)):
    
@@ -99,13 +113,16 @@ def update_ethernet(id: int,  updated_ethernet: schemas.EthernetCreate,db: Sessi
                             detail=f"Ethernet with 01-netcfg.yaml: does not exist")
    
     ethernet_query.update(updated_ethernet.dict(), synchronize_session=False)
-    db.commit()
-    # check have file 01-netcfg.yaml
-    
-    # 
-    
+    db.commit() 
     return ethernet_query.first()
-# 
+# Describe functions before writing code
+# /**
+# 	 * @description get network interface
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data (NetworkBase)
+# 	 */ 
 @router.post('/ifconfig', response_model=schemas.NetworkBase)
 def get_network_interface():
     result=psutil.net_if_addrs()

@@ -21,7 +21,7 @@ from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-from utils import delete_program_pm2, restart_program_pm2
+from utils import delete_program_pm2, restart_program_pm2, stop_program_pm2
 
 from config import Config
 
@@ -30,7 +30,14 @@ router = APIRouter(
     prefix="/upload_channel",
     tags=['UploadChannel']
 )
-# 
+# Describe functions before writing code
+# /**
+# 	 * @description get all upload channel
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {db}
+# 	 * @return data (AllUploadChannelOut)
+# 	 */
 @router.post("/all_channel/", response_model=schemas.AllUploadChannelOut)
 def get_all_upload_channel(db: Session = Depends(get_db)):
     try:
@@ -51,6 +58,14 @@ def get_all_upload_channel(db: Session = Depends(get_db)):
     except Exception as err:
         
         print(f"Error : '{err}'")
+# Describe functions before writing code
+# /**
+# 	 * @description get upload channel config
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {db}
+# 	 * @return data (UploadChannelConfig)
+# 	 */
 @router.post('/config', response_model=schemas.UploadChannelConfig)
 def get_upload_channel_config( db: Session = Depends(get_db), ):
     try:
@@ -76,8 +91,14 @@ def get_upload_channel_config( db: Session = Depends(get_db), ):
         }
     except Exception as err: 
         print(f"Error : '{err}'")
-
-   
+# Describe functions before writing code
+# /**
+# 	 * @description update upload channel
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {list[schemas.UploadChannelUpdate],db}
+# 	 * @return data (UploadChannelState)
+# 	 */
 @router.post("/update", response_model=schemas.UploadChannelState)
 async def update_upload_channel(updated_communication: list[schemas.UploadChannelUpdate],db: Session = Depends(get_db)):
     try:
@@ -102,7 +123,7 @@ async def update_upload_channel(updated_communication: list[schemas.UploadChanne
                         # print(f'result: {result}')
                     # delete program log run pm2
                     else:
-                        result=delete_program_pm2(f'Log|{str(channel.id)}|')
+                        result=stop_program_pm2(f'Log|{str(channel.id)}|')
                         # print(f'result: {result}')              
                     if result == 100:
                         update_data = channel.dict()

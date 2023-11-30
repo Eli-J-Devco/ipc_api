@@ -49,7 +49,14 @@ app.include_router(rs485.router)
 app.include_router(site_information.router)
 app.include_router(upload_channel.router)
 # 
-
+# Describe functions before writing code
+# /**
+# 	 * @description get current username
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {credentials}
+# 	 * @return data (credentials.username)
+# 	 */
 
 def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = secrets.compare_digest(credentials.username, API_DOCS_USERNAME)
@@ -62,20 +69,49 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
         )
     return credentials.username
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description api doc
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 @app.get("/docs", include_in_schema=False)
 async def get_swagger_documentation(username: str = Depends(get_current_username)):
     return get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
-
+# Describe functions before writing code
+# /**
+# 	 * @description api redoc
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 
 @app.get("/redoc", include_in_schema=False)
 async def get_redoc_documentation(username: str = Depends(get_current_username)):
     return get_redoc_html(openapi_url="/openapi.json", title="docs")
-
+# Describe functions before writing code
+# /**
+# 	 * @description openapi.json
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 
 @app.get("/openapi.json", include_in_schema=False)
 async def openapi(username: str = Depends(get_current_username)):
     return get_openapi(title=app.title, version=app.version, routes=app.routes)
+# Describe functions before writing code
+# /**
+# 	 * @description root
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 @app.get("/")
 def root():
     return {"message": "Hello "}

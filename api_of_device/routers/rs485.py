@@ -30,6 +30,14 @@ router = APIRouter(
     prefix="/rs485",
     tags=['RS485']
 )
+# Describe functions before writing code
+# /**
+# 	 * @description get rs485
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,db}
+# 	 * @return data (CommunicationOut)
+# 	 */
 @router.get('/{id}', response_model=schemas.CommunicationOut)
 def get_rs485(id: int, db: Session = Depends(get_db), ):
     # ----------------------
@@ -54,6 +62,14 @@ def get_rs485(id: int, db: Session = Depends(get_db), ):
                             detail=f"User with id: {id} does not exist")
 
     return communication
+# Describe functions before writing code
+# /**
+# 	 * @description get rs485 config
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {db}
+# 	 * @return data (RS485ConfigBase)
+# 	 */
 @router.post('/config', response_model=schemas.RS485ConfigBase)
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), ):
@@ -76,6 +92,14 @@ def get_rs485_config( db: Session = Depends(get_db), ):
         "debuglevel":debuglevel,
         "timeout":timeout,
     }
+# Describe functions before writing code
+# /**
+# 	 * @description get scan serial
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data (SerialListBase)
+# 	 */
 @router.post('/serial', response_model=schemas.SerialListBase)
 def get_scan_serial():
     
@@ -92,7 +116,14 @@ def get_scan_serial():
     
    
     return {"serial_list":result}
-   
+# Describe functions before writing code
+# /**
+# 	 * @description update rs485
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,CommunicationCreate,db}
+# 	 * @return data (RS485State)
+# 	 */   
 @router.post("/update/{id}", response_model=schemas.RS485State)
 async def update_rs485(id: int,  updated_communication: schemas.CommunicationCreate,db: Session = Depends(get_db)):
     try:

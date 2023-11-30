@@ -17,14 +17,21 @@ from sqlalchemy.sql import text
 
 router = APIRouter(
     prefix="/device_list",
-    tags=['Device_list']
+    tags=['DeviceList']
 )
 
 # /device_list/
 # /device_list
 
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description get device list
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,db}
+# 	 * @return data (DeviceListOut)
+# 	 */ 
 
 @router.get('/{id}', response_model=schemas.DeviceListOut)
 def get_device_list(id: int, db: Session = Depends(get_db), ):

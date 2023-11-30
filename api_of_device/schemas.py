@@ -9,9 +9,8 @@ from typing import List, Optional
 from pydantic import BaseModel, EmailStr, Field
 from pydantic.types import conint
 
+
 # from sqlalchemy import 
-
-
 # <- User ->
 class UserBase(BaseModel):
     email: EmailStr

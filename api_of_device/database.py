@@ -3,9 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-# from config import *
-# import os
-# sys.path.insert(1, "D:/NEXTWAVE/project/ipc_api")
+
 import sys
 import time
 
@@ -15,9 +13,14 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from utils import path_directory_relative
 
-# from pathlib import Path
-
-
+# Describe functions before writing code
+# /**
+# 	 * @description path directory relative
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {project_name}
+# 	 * @return data (path of project)
+# 	 */
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 from config import Config
@@ -32,12 +35,17 @@ SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_passwo
 # SQLALCHEMY_DATABASE_URL = 'mysql+pymysql://root:12345@localhost:3307/test'
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
 Base = declarative_base()
 
-
+# Describe functions before writing code
+# /**
+# 	 * @description connect database
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {user_id}
+# 	 * @return data ()
+# 	 */
 def get_db():
     db = SessionLocal()
     try:

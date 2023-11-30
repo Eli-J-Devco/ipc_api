@@ -24,6 +24,14 @@ from libMySQL import *
 
 # absDirname=os.path.dirname(os.path.abspath(__file__))
 
+# Describe functions before writing code
+# /**
+# 	 * @description init all driver
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 
 def init_driver():
     try:
@@ -135,6 +143,14 @@ def init_driver():
                 
     except Exception as e:
         print('Error init driver: ',e)
+# Describe functions before writing code
+# /**
+# 	 * @description init create log file
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 def init_logfile():
         absDirname=path
         # load file sql from mybatis
@@ -156,17 +172,36 @@ def init_logfile():
             
             id = item["id"]
             name = item["name"]
-            pid = f'Log|{id}|{name}'
+            type_protocol= item["type_protocol"]
+            pid = f'Log|{id}|{name}|{type_protocol}'
             if sys.platform == 'win32':
                 subprocess.Popen(
                         f'pm2 start {absDirname}/create_logfile/create_data_log.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description enable permission folder config network ubuntu ipc
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 def enable_permission_ipc():
     from subprocess import PIPE, run
 
     # cmd = "echo 123654789 | sudo nano /etc/network/interfaces"
     cmd = "echo 123654789 | sudo chmod -R 777 /etc/netplan"
     out = run(cmd, shell=True, stdout=PIPE)
-
+# Describe functions before writing code
+# /**
+# 	 * @description delete all app in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def delete_all_app_pm2():
+    os.system(f'pm2 delete all')
+delete_all_app_pm2()
 init_driver()
 init_logfile()
 

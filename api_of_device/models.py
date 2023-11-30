@@ -133,6 +133,7 @@ class Site_information(Base):
     location = Column(String(255), nullable=True)
     description = Column(String(255), nullable=True)
     administrative_contact = Column(String(255), nullable=True)
+
 class Upload_channel(Base):
     __tablename__ = "upload_channel"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -149,6 +150,7 @@ class Upload_channel(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
+
 class Test(Base):
     __tablename__ = "test"
     id = Column(Integer, primary_key=True, nullable=False)
