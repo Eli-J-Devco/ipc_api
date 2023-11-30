@@ -124,7 +124,7 @@ async def update_upload_channel(updated_communication: list[schemas.UploadChanne
                     # delete program log run pm2
                     else:
                         result=stop_program_pm2(f'Log|{str(channel.id)}|')
-                        # print(f'result: {result}')              
+                           
                     if result == 100:
                         update_data = channel.dict()
                         upload_channel_query.filter(models.Upload_channel.id == channel.id).update(
