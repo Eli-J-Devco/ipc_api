@@ -149,3 +149,7 @@ class Upload_channel(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
+class Test(Base):
+    __tablename__ = "test"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)

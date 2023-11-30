@@ -20,6 +20,7 @@ source venv/Scripts/activate
 pip install -r requirements.txt
 <!-- FastAPI -->
 https://fastapi.tiangolo.com/
+https://www.gormanalysis.com/blog/building-a-simple-crud-application-with-fastapi/
 <!-- Run a Server Manually - Uvicorn -->
 uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->

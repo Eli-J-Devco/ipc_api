@@ -15,12 +15,19 @@ from subprocess import Popen, run
 import mybatis_mapper2sql
 import pandas as pd
 
+from libcom import path_directory_relative
+
 # sys.path.insert(1, "./")
+path=path_directory_relative("ipc_api") # name of project
+sys.path.append(path)
 from libMySQL import *
 
-absDirname=os.path.dirname(os.path.abspath(__file__))
+# absDirname=os.path.dirname(os.path.abspath(__file__))
+
+
 def init_driver():
     try:
+        absDirname=path
         # load file sql from mybatis
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
             xml= absDirname + '/mybatis/device_list.xml')
@@ -57,12 +64,16 @@ def init_driver():
                 print(f'pid: {pid}')
                 if sys.platform == 'win32':
                     # use run with window
+                    # subprocess.Popen(
+                        # f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
                     subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
                     # use run with ubuntu/linux
+                    # subprocess.Popen(
+                        # f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
                     subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             # join the same group ModbusRTU
             if item["connect_type"] == "RS485":
                 result_rs485_group.append(item)
@@ -110,21 +121,45 @@ def init_driver():
                     
                         if sys.platform == 'win32':
                             # use run with window
+                            # subprocess.Popen(
+                                # f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}" "{absDirname}" --restart-delay=10000', shell=True).communicate()
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}" "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
+                            # subprocess.Popen(
+                                # f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                         
                 
     except Exception as e:
         print('Error init driver: ',e)
 def init_logfile():
-    while True:
-        time.sleep(5)
-        print("Initializing log")
+        absDirname=path
+        # load file sql from mybatis
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+            xml= absDirname + '/mybatis/settup.xml')
+
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True)
         
+        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
+            pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
+        query_all = statement[1]["select_upload_channel"]
+        results = MySQL_Select(query_all, ())
+        # print(f'results: {results}')
+        for item in results:
+            
+            id = item["id"]
+            name = item["name"]
+            pid = f'Log|{id}|{name}'
+            if sys.platform == 'win32':
+                subprocess.Popen(
+                        f'pm2 start {absDirname}/create_logfile/create_data_log.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 def enable_permission_ipc():
     from subprocess import PIPE, run
 
@@ -133,4 +168,5 @@ def enable_permission_ipc():
     out = run(cmd, shell=True, stdout=PIPE)
 
 init_driver()
+init_logfile()
 

@@ -30,4 +30,7 @@
         WHERE device_list.status=1 and device_list.id_communication =%s;
        
       </select>
+      <select id="select_upload_channel">
+        SELECT * FROM upload_channel Where  upload_channel.status=1;
+      </select>
   </mapper>

@@ -21,6 +21,7 @@ from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
+from utils import restart_program_pm2
 
 from config import Config
 
@@ -53,7 +54,7 @@ def get_rs485(id: int, db: Session = Depends(get_db), ):
                             detail=f"User with id: {id} does not exist")
 
     return communication
-@router.post('/config', response_model=schemas.ConfigRS485Base)
+@router.post('/config', response_model=schemas.RS485ConfigBase)
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), ):
     communication_rs485 = db.query(models.Config_information).filter(models.Config_information.id_type == 4).filter(models.Config_information.status == 1).all()
@@ -92,7 +93,7 @@ def get_scan_serial():
    
     return {"serial_list":result}
    
-@router.post("/update/{id}", response_model=schemas.CommunicationOut)
+@router.post("/update/{id}", response_model=schemas.RS485State)
 async def update_rs485(id: int,  updated_communication: schemas.CommunicationCreate,db: Session = Depends(get_db)):
     try:
         communication_query = db.query(models.Communication).filter(models.Communication.id == id)
@@ -100,56 +101,29 @@ async def update_rs485(id: int,  updated_communication: schemas.CommunicationCre
         if communication_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"RS485 with id: {id} does not exist")
-        # communication_list=communication_query.first().__dict__
-        # print(f'communication_list :{communication_list}')              
-            
+                      
         async def execute_func():
             try:       
-                shellscript = subprocess.Popen(["pm2", "jlist"],
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
-                
-                out, err = shellscript.communicate()
-                result = json.loads(out)             
-                print("----- pm2 list ----- ")
-                app_detect=0
-                for item in result:
-                    name = item['name']
-                    namespace = item['pm2_env']['namespace']
-                    mode = item['pm2_env']['exec_mode']
-                    pid = item['pid']
-                    uptime = item['pm2_env']['pm_uptime']
-                    status = item['pm2_env']['status']
-                    cpu = item['monit']['cpu']
-                    mem = item['monit']['memory'] / 1000000
-                    # print(f'namespace: {namespace}')
-                    # print(f'mode: {mode}')
-                    # print(f'pid: {pid}')
-                    # print(f'uptime: {uptime}')
-                    # print(f'status: {status}')
-                    # print(f'cpu: {cpu}')
-                    # print(f'mem: {mem}')
-                    print(f'name: {name}')
-                    app_name=f'Dev|{str(id)}|'
-                    
-                    if name.find(app_name)==0:
-                        print(f'Find channel RS485: {name}')
-                        os.system(f'pm2 restart "{name}"')
-                        app_detect=1
-                if app_detect==1:
-                    return 100
-                else:
-                    return 200
+                result=restart_program_pm2(f'Dev|{str(id)}|')
+                return result
             except Exception as err:
                 print('Error restart pm2 : ',err)
-                return 200
+                return 300
         async with timeout(5) as cm:
-            response=  await execute_func() 
+            response=  await execute_func()
+            # print(response)
             if response==100:
                 communication_query.update(updated_communication.dict(), synchronize_session=False)
                 db.commit()
-                return communication_query.first()
+                return {"status": "success","code": str(response)}
             elif response==200:
-                return communication_query.first()
+                communication_query.update(updated_communication.dict(), synchronize_session=False)
+                db.commit()
+                return {"status": "success","code": str(response)}
+            elif response==300:
+                communication_query.update(updated_communication.dict(), synchronize_session=False)
+                db.commit()
+                return {"status": "success","code": str(response)}
     
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")

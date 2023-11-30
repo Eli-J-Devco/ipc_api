@@ -223,19 +223,44 @@ def revert_to_automatic_ip():
     # resultList = list(communication_rs485.items())
     # baud=list(filter(lambda x: x.get('type', '')=='401', communication_rs485))
     # baud=communication_rs485.objects.filter(type==401)
-listpost =[
-   {
-      "post_id":"01",
-      "text":"abc",
-      "time": datetime.datetime(2021, 8, 5, 15, 53, 19),
-      "type":"normal",
-   },
-   {
-      "post_id":"02",
-      "text":"nothing",
-      "time":datetime.datetime(2021, 8, 5, 15, 53, 19),
-      "type":"normal",
-   }
-]
-result=list(filter(lambda x: x.get('text', '')=='abc', listpost))
-print(result)
+# listpost =[
+#    {
+#       "post_id":"01",
+#       "text":"abc",
+#       "time": datetime.datetime(2021, 8, 5, 15, 53, 19),
+#       "type":"normal",
+#    },
+#    {
+#       "post_id":"02",
+#       "text":"nothing",
+#       "time":datetime.datetime(2021, 8, 5, 15, 53, 19),
+#       "type":"normal",
+#    }
+# ]
+# result=list(filter(lambda x: x.get('text', '')=='abc', listpost))
+# print(result)
+import asyncio
+
+import mqttools
+
+
+async def subscriber():
+    client = mqttools.Client(host="127.0.0.1", 
+                                port=1883,
+                                username= "nextwave", 
+                                password=bytes("123654789", 'utf-8'))
+
+    await client.start()
+    await client.subscribe('IPC/#')
+
+    while True:
+        message = await client.messages.get()
+
+        if message is None:
+            print('Broker connection lost!')
+            break
+
+        print(f'Topic:   {message.topic}')
+        print(f'Message: {message.message}')
+
+asyncio.run(subscriber())

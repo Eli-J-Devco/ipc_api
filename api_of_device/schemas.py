@@ -44,11 +44,11 @@ class UserLogin(BaseModel):
     password: str
 # <- DeviceList ->
 class DeviceListBase(BaseModel):
-    id: int
-    name: str
-    rtu_bus_address: int
-    tcp_gateway_ip: str
-    tcp_gateway_port: int
+    id: Optional[int] = None
+    name: Optional[str] = None
+    rtu_bus_address: Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    tcp_gateway_port: Optional[int] = None
 class DeviceListOut(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
@@ -111,7 +111,7 @@ class RS485Timeout(BaseModel):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-class ConfigRS485Base(BaseModel):
+class RS485ConfigBase(BaseModel):
     baud:list[RS485BaudRate]
     parity:list[RS485Parity]
     stop_bits:list[RS485StopBits]
@@ -137,6 +137,11 @@ class CommunicationCreate(CommunicationBase):
     
     class Config:
         orm_mode = True 
+class RS485State(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    class Config:
+        orm_mode = True
 # <- Config_information ->
 class ConfigInformationBase(BaseModel):
     # id : int
@@ -200,6 +205,9 @@ class SiteInformOut(SiteInformBase):
         orm_mode = True
 class SiteInformCreate(SiteInformBase):
     class Config:
+        orm_mode = True
+class SiteInformUpdate(SiteInformBase):
+    class Config:
         orm_mode = True 
 # <- upload_channel ->
 class type_protocol(BaseModel):
@@ -226,15 +234,13 @@ class UploadChannelBase(BaseModel):
     id_type_logging_interval: Optional[int] = None
     enable: Optional[bool] = None
     allow_remote_configuration: Optional[bool] = None
-    status: Optional[bool] = None
-    # 
-    type_protocol: type_protocol
-    # type_logging_interval: type_logging_interval
     class Config:
         orm_mode = True 
 class UploadChannelOut(UploadChannelBase):
     id: Optional[int] = None
-   
+    type_protocol: type_protocol
+    type_logging_interval: type_logging_interval
+    status: Optional[bool] = None
     class Config:
         orm_mode = True
 class AllUploadChannelOut(BaseModel):
@@ -246,6 +252,24 @@ class AllUploadChannelOut(BaseModel):
 class UploadChannelCreate(UploadChannelBase):
     class Config:
         orm_mode = True 
+class UploadChannelConfig(BaseModel):
+    device_list: list[DeviceListBase]
+    type_protocol:list[type_protocol]
+    type_logging_interval:list[type_logging_interval]
+    class Config:
+        orm_mode = True
+# 
+class UploadChannelUpdate(UploadChannelBase):
+    # del UploadChannelBase.status 
+    # id: int
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True 
+class UploadChannelState(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    class Config:
+        orm_mode = True
 # 
 class Token(BaseModel):
     access_token: str

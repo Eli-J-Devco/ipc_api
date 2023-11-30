@@ -3,7 +3,9 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import json
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -95,7 +97,85 @@ def create_file_config_network(ethernet_list,network_interface,pathfile):
           fileName.close()
   except Exception as err:
     print('Error create file config network',err)
-
+def restart_program_pm2(app_name):
+    try:
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        # print("----- pm2 list ----- ")
+        app_detect=0
+        for item in result:
+            name = item['name']
+            namespace = item['pm2_env']['namespace']
+            mode = item['pm2_env']['exec_mode']
+            pid = item['pid']
+            uptime = item['pm2_env']['pm_uptime']
+            status = item['pm2_env']['status']
+            cpu = item['monit']['cpu']
+            mem = item['monit']['memory'] / 1000000
+            # print(f'namespace: {namespace}')
+            # print(f'mode: {mode}')
+            # print(f'pid: {pid}')
+            # print(f'uptime: {uptime}')
+            # print(f'status: {status}')
+            # print(f'cpu: {cpu}')
+            # print(f'mem: {mem}')
+            # print(f'name: {name}')
+            # app_name=f'Dev|{str(id)}|'
+                    
+            if name.find(app_name)==0:
+                print(f'Find channel RS485: {name}')
+                os.system(f'pm2 restart "{name}"')
+                app_detect=1
+        print(f'app_detect: {app_detect}')
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error restart pm2 : ',err)
+        return 300
+def delete_program_pm2(app_name):
+    try:
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        # print("----- pm2 list ----- ")
+        app_detect=0
+        for item in result:
+            name = item['name']
+            namespace = item['pm2_env']['namespace']
+            mode = item['pm2_env']['exec_mode']
+            pid = item['pid']
+            uptime = item['pm2_env']['pm_uptime']
+            status = item['pm2_env']['status']
+            cpu = item['monit']['cpu']
+            mem = item['monit']['memory'] / 1000000
+            # print(f'namespace: {namespace}')
+            # print(f'mode: {mode}')
+            # print(f'pid: {pid}')
+            # print(f'uptime: {uptime}')
+            # print(f'status: {status}')
+            # print(f'cpu: {cpu}')
+            # print(f'mem: {mem}')
+            # print(f'name: {name}')
+            # app_name=f'Dev|{str(id)}|'
+                    
+            if name.find(app_name)==0:
+                # print(f'Find channel RS485: {name}')
+                os.system(f'pm2 delete "{name}"')
+                app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error restart pm2 : ',err)
+        return 300
 def hash(password: str):
     return pwd_context.hash(password)
 

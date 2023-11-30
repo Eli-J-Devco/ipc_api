@@ -37,7 +37,7 @@ MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
 # Subscribe -> IPC|device_id|device_name|control
-MQTT_TOPIC = Config.MQTT_TOPIC 
+MQTT_TOPIC = Config.MQTT_TOPIC+"/Dev/"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 query_device_rs485=""
@@ -249,6 +249,20 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
     # except:
         
         print(f"Error MQTT public: '{err}'")
+def path_directory_relative(project_name):
+    if project_name =="":
+      return -1
+    path_os=os.path.dirname(__file__)
+    # print("Path os:", path_os)
+    string_find=project_name
+    index_os = path_os.find(string_find)
+    if index_os <0:
+      return -1
+    result=path_os[0:int(index_os)+len(string_find)]
+    # print("Path directory relative:", result)
+    return result
+path=path_directory_relative("ipc_api") # name of project
+sys.path.append(path)
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -256,15 +270,16 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
 # 	 * @since 20-11-2023
 # 	 * @param {id_device, path (source run file python)}
 # 	 * @return data ()
-# 	 */     
+# 	 */ 
 async def device(ConfigPara):
     try:
+        # print(f'path: {path}')
         if len(ConfigPara)>=2 and type(ConfigPara) == list :
             pass
         else:
             return -1
         global query_device_rs485
-        pathSource=ConfigPara[2]
+        pathSource=path#ConfigPara[2]
         id_communication=ConfigPara[1]
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
@@ -293,18 +308,18 @@ async def device(ConfigPara):
         serialport_stopbits=int(results_device[0]["serialport_stopbits"])
         serialport_parity=results_device[0]["serialport_parity"][0]
         serialport_timeout=int(results_device[0]["serialport_timeout"])
-        print(f'serialport_group: {serialport_group}')
-        print(f'serialport_name: {serialport_name}')
-        print(f'serialport_baud: {serialport_baud}')
-        print(f'serialport_stopbits: {serialport_stopbits}')
-        print(f'serialport_parity: {serialport_parity}')
-        print(f'serialport_timeout: {serialport_timeout}')
+        # print(f'serialport_group: {serialport_group}')
+        # print(f'serialport_name: {serialport_name}')
+        # print(f'serialport_baud: {serialport_baud}')
+        # print(f'serialport_stopbits: {serialport_stopbits}')
+        # print(f'serialport_parity: {serialport_parity}')
+        # print(f'serialport_timeout: {serialport_timeout}')
         # 
         
-        print(f'----- results_device -----')
-        for item in results_device:
-            print(item)
-        print(f'----- +++++++++++++++++++++++++++++++++ -----')
+        # print(f'----- results_device -----')
+        # for item in results_device:
+        #     print(item)
+        # print(f'----- +++++++++++++++++++++++++++++++++ -----')
         
         # all_device_data_request=[
         #     {
@@ -347,8 +362,8 @@ async def device(ConfigPara):
         
             
        
-        for item in all_device_data_request:
-            pprint(item, sort_dicts=False)
+        # for item in all_device_data_request:
+        #     pprint(item, sort_dicts=False)
             
             
             
