@@ -158,3 +158,24 @@ async def update_rs485(id: int,  updated_communication: schemas.CommunicationCre
     
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
+# Describe functions before writing code
+# /**
+# 	 * @description update rs485 update_search_modbus_rtu
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {id,ProjectSearchModBusUpdate,db}
+# 	 * @return data (ProjectState)
+# 	 */
+@router.post('/update_search_modbus_rtu/', response_model=schemas.ProjectState)
+def update_option_rs485_search_modbus(id: int,updated_search_modbus: schemas.ProjectSearchModBusUpdate, db: Session = Depends(get_db) ):
+    # ----------------------
+    
+    project_query = db.query(models.Project_setup).filter(models.Project_setup.id == id)
+   
+
+    if not project_query.first():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Project with id: {id} does not exist")
+    project_query.update(updated_search_modbus.dict(), synchronize_session=False)
+    db.commit()
+    return {"status": "success","code": "200"}

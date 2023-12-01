@@ -116,3 +116,9 @@ async def openapi(username: str = Depends(get_current_username)):
 @app.get("/")
 def root():
     return {"message": "Hello "}
+@app.on_event("startup")
+async def startup():
+    print("startup ---------")
+@app.on_event("shutdown")
+async def shutdown():
+    print("shutdown ---------")

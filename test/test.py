@@ -243,24 +243,44 @@ import asyncio
 
 import mqttools
 
+# async def subscriber():
+#     client = mqttools.Client(host="127.0.0.1", 
+#                                 port=1883,
+#                                 username= "nextwave", 
+#                                 password=bytes("123654789", 'utf-8'))
 
-async def subscriber():
-    client = mqttools.Client(host="127.0.0.1", 
-                                port=1883,
-                                username= "nextwave", 
-                                password=bytes("123654789", 'utf-8'))
+#     await client.start()
+#     await client.subscribe('IPC/#')
 
-    await client.start()
-    await client.subscribe('IPC/#')
+#     while True:
+#         message = await client.messages.get()
 
-    while True:
-        message = await client.messages.get()
+#         if message is None:
+#             print('Broker connection lost!')
+#             break
 
-        if message is None:
-            print('Broker connection lost!')
-            break
+#         print(f'Topic:   {message.topic}')
+#         print(f'Message: {message.message}')
 
-        print(f'Topic:   {message.topic}')
-        print(f'Message: {message.message}')
+# asyncio.run(subscriber())
+class Card(object):
 
-asyncio.run(subscriber())
+    def __init__(self, rank, suit):
+        self.rank = rank
+        self.suit = suit
+
+    def __eq__(self, other):
+        return self.rank == other.rank and self.suit == other.suit
+
+    def __lt__(self, other):
+        return self.rank < other.rank
+
+# hand = [Card(10, 'H'), Card(2, 'h'), Card(12, 'h'), Card(13, 'h'), Card(14, 'h')]
+# hand_order = [c.rank for c in hand]  # [10, 2, 12, 13, 14]
+data=[{"id":1,"value":1},{"id":4,"value":4},{"id":2,"value":2}]
+# hand_sorted = sorted(data)
+# hand_sorted_order = [c.id for c in hand_sorted]  # [2, 10, 12, 13, 14]
+# print(hand_sorted_order)
+# result=sorted(data, key=lambda o: o['id'])
+# print(result)
+{'rowcount': 0, '_soft_closed': True}

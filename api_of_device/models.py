@@ -13,6 +13,29 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
 # 
+class device_type(Base):
+    __tablename__ = "device_type"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+# 
+class device_group(Base):
+    __tablename__ = "device_group"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    template= relationship('template_library', foreign_keys=[id_template])
+# 
+class template_library(Base):
+    __tablename__ = "template_library"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    
+# 
 class Project_setup(Base):
     __tablename__ = "project_setup"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -61,9 +84,10 @@ class Project_setup(Base):
     modhopper_rf_config = Column(Integer, nullable=True)
     modhopper_rf_channel = Column(Integer, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
+    enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=True)
     logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
     first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
-
+    enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
 # 
 class User(Base):
     __tablename__ = "user"
@@ -85,6 +109,7 @@ class Device_list(Base):
     __tablename__ = "device_list"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
+    device_virtual= Column(Boolean, nullable=True, default=True)
     id_project_setup = Column(Integer, ForeignKey(
         "project_setup.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_device_type = Column(Integer, ForeignKey(
@@ -178,14 +203,6 @@ class Ethernet(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_ethernet  = relationship('Config_information', foreign_keys=[id_type_ethernet])
 # 
-# class Site_information(Base):
-#     __tablename__ = "project_setup"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     location = Column(String(255), nullable=True)
-#     description = Column(String(255), nullable=True)
-#     administrative_contact = Column(String(255), nullable=True)
-
 class Upload_channel(Base):
     __tablename__ = "upload_channel"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -202,6 +219,7 @@ class Upload_channel(Base):
     status = Column(Boolean, nullable=False, default=True)
     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
+# 
 class Page(Base):
     __tablename__ = "page"
     id = Column(Integer, primary_key=True, nullable=False)

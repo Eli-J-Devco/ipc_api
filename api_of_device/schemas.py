@@ -11,37 +11,11 @@ from pydantic.types import conint
 
 
 # from sqlalchemy import 
-# <- User ->
-class UserBase(BaseModel):
-    email: EmailStr
-    password: str
-    fullname: str
-    phone: str
-    id_language: int
-    # last_login: datetime
-    # date_joined: datetime
-    # status: bool = True
-    # is_active: bool = False
-class UserOut(BaseModel):
-    id: int
-    email: EmailStr
-    fullname: str
-    phone: str
-    id_language: int
-    last_login: datetime
-    date_joined: datetime
-
-    status: bool = True
-    is_active: bool = False
-
-    class Config:
-        orm_mode = True
-class UserCreate(UserBase):
-    pass
-class UserLogin(BaseModel):
-    email: EmailStr
-    password: str
-
+# <- driver_list ->
+class DriverListBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    
 # <- DeviceList ->
 class DeviceListBase(BaseModel):
     id: Optional[int] = None
@@ -52,12 +26,57 @@ class DeviceListBase(BaseModel):
 class DeviceListOut(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+    device_virtual: Optional[bool] = None
     rtu_bus_address: Optional[int] = None
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None
+    id_project_setup: Optional[int] = None
+    id_device_type: Optional[int] = None
+    id_communication: Optional[int] = None
+    id_device_group: Optional[int] = None
+    enable : Optional[bool] = None
+    point : Optional[int] = None
+    pv : Optional[int] = None
+    model : Optional[int] = None
+    function : Optional[int] = None
+    point_p : Optional[str] = None
+    value_p : Optional[float] = None
+    send_p : Optional[bool] = None
+    point_q : Optional[str] = None
+    value_q : Optional[float] = None
+    send_q : Optional[bool] = None
+    point_pf : Optional[str] = None
+    value_pf : Optional[float] = None
+    send_pf : Optional[bool] = None
+    max : Optional[float] = None
+    allow_error : Optional[float] = None
+    enable_poweroff : Optional[bool] = None
+    inverter_shutdown : Optional[datetime] = None
+                               
+    status : Optional[bool] = None
 
     class Config:
         orm_mode = True  
+class DeviceState(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    class Config:
+        orm_mode = True
+class DeviceCreate(BaseModel):
+    name: Optional[str] = None
+    device_virtual: Optional[bool] = False
+    id_communication: Optional[int] = None # Modbus device connected
+    driver_list_name:Optional[str] = None # table driver_list
+    id: Optional[int] = None # Device number
+    rtu_bus_address: Optional[int] = None
+    tcp_gateway_port: Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    id_device_type: Optional[int] = None
+    id_device_group: Optional[int] = None
+    
+    class Config:
+        orm_mode = True
+
 # <- Communication ->
 class CommunicationBase(BaseModel):
     name: Optional[str] = None
@@ -134,7 +153,8 @@ class CommunicationOut(CommunicationBase):
     class Config():
         orm_mode = True
 class CommunicationCreate(CommunicationBase):
-    
+    id: int
+    driver_list: DriverListBase
     class Config:
         orm_mode = True 
 class RS485State(BaseModel):
@@ -142,6 +162,40 @@ class RS485State(BaseModel):
     code: Optional[str] = None
     class Config:
         orm_mode = True
+
+# <- device_type ->
+class DeviceTypeBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    class Config:
+        orm_mode = True
+# <- template_library ->
+class TemplateBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    class Config:
+        orm_mode = True
+# <- device_group ->
+class DeviceGroupBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    id_template: Optional[int] = None
+    template: TemplateBase
+    class Config:
+        orm_mode = True
+
+# <- DeviceConfig ->
+class DeviceConfigOut(BaseModel):
+    device_list:list[DeviceListBase]
+    device_type:list[DeviceTypeBase]
+    device_group:list[DeviceGroupBase]
+    communication:list[CommunicationCreate]
+    class Config:
+        orm_mode = True
+
 # <- Config_information ->
 class ConfigInformationBase(BaseModel):
     # id : int
@@ -343,12 +397,50 @@ class ProjectPageLoginUpdate(BaseModel):
     id_first_page_on_login: Optional[int] = None
     class Config:
         orm_mode = True
+class ProjectSearchModBusUpdate(BaseModel):
+    # enable_search_modbus_rtu_device: Optional[int] = None
+    enable_search_modbus_rtu_device: bool = Field(..., alias='search_modbus_rtu_device')
+    class Config:
+        orm_mode = True
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
 class ProjectState(BaseModel):
     status: Optional[str] = None
     code: Optional[str] = None
     class Config:
         orm_mode = True
+# <- User ->
+class UserBase(BaseModel):
+    email: EmailStr
+    password: str
+    fullname: str
+    phone: str
+    id_language: int
+    # last_login: datetime
+    # date_joined: datetime
+    # status: bool = True
+    # is_active: bool = False
+class UserOut(BaseModel):
+    id: int
+    email: EmailStr
+    fullname: str
+    phone: str
+    id_language: int
+    last_login: datetime
+    date_joined: datetime
 
+    status: bool = True
+    is_active: bool = False
+
+    class Config:
+        orm_mode = True
+class UserCreate(UserBase):
+    pass
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+# <-  ->
 class Token(BaseModel):
     access_token: str
     token_type: str
