@@ -27,6 +27,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 cd api_of_device
 uvicorn main:app --reload
 http://127.0.0.1:8000/docs#/
+
 <!-- Nodejs -->
 sudo apt install nodejs npm
 sudo apt install curl

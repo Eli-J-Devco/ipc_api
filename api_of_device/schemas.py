@@ -452,7 +452,88 @@ class UserStateOut(BaseModel):
     desc: Optional[str] = None
     class Config:
         orm_mode = True
-# <-  ->
+# <- device_point_list ->
+class TypeUnitsBase(BaseModel):
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str] = Field(..., nullable=True,alias='Units')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class DataTypeBase(BaseModel):
+
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str] = Field(...,alias='Data Type')
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class TypeByteOrderBase(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Byte Order')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointListBase(BaseModel):
+    id : Optional[int] = None
+    id_pointkey : Optional[int] = None
+    # --------------------------------------------------
+    id_template : Optional[int] = None
+    class Config:
+        orm_mode = True
+class DevicePointListBase(BaseModel):
+    id : Optional[int] = None
+    id_pointkey : Optional[int] = None
+    # --------------------------------------------------
+    id_template : Optional[int] = None
+    id_device_group : Optional[int] = None
+    id_device_list : Optional[int] = None
+    id_point_list : Optional[int] = None
+    # -------------------------------------------------- 
+    name : Optional[str] = None
+    nameedit : Optional[bool] = None
+    id_type_units : Optional[int] = None
+    unitsedit : Optional[bool] = None
+    equaltion : Optional[bool] = None
+    config : Optional[int] = None
+    register : Optional[int] = None
+    id_type_datatype : Optional[int] = None
+    id_type_byteorder : Optional[int] = None
+    slope : Optional[float] = None
+    slopeenabled : Optional[int] = None
+    offset : Optional[float] = None
+    offsetenabled : Optional[bool] = None
+    multreg : Optional[int] = None
+    multregenabled : Optional[bool] = None
+    userscaleenabled : Optional[bool] = None
+    invalidvalue : Optional[int] = None
+    invalidvalueenabled : Optional[bool] = None
+    extendednumpoints : Optional[int] = None
+    extendedregblocks : Optional[int] = None
+    status : Optional[bool] = None
+    # 
+    template_library : TemplateBase
+    device_group  : DeviceGroupBase
+    device_list  : DeviceListBase
+    point_list  : PointListBase
+    
+    type_units  : Optional[TypeUnitsBase] = None
+    type_datatype  : Optional[DataTypeBase] = None 
+    type_byteorder  : Optional[TypeByteOrderBase] = None 
+    class Config:
+        orm_mode = True
+        from_attributes = True
+class DevicePointListOut(BaseModel):
+    point_list: list[DevicePointListBase]
+    class Config:
+        orm_mode = True
+# <-  -> 
+# <-  -> 
+# <-  -> 
+# <-  -> 
+# <-  -> 
 class Token(BaseModel):
     access_token: str
     token_type: str

@@ -18,27 +18,28 @@ class Language_list(Base):
     name = Column(String(255), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
 # 
-class device_type(Base):
+class Device_type(Base):
     __tablename__ = "device_type"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
-
 # 
-class device_group(Base):
+class Template_library(Base):
+    __tablename__ = "template_library"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+# 
+class Device_group(Base):
     __tablename__ = "device_group"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
     id_template = Column(Integer, ForeignKey(
         "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    template= relationship('template_library', foreign_keys=[id_template])
+    template= relationship('Template_library', foreign_keys=[id_template])
 # 
-class template_library(Base):
-    __tablename__ = "template_library"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=True)
-    status = Column(Boolean, nullable=False, default=True)
+
     
 # 
 class Project_setup(Base):
@@ -231,7 +232,96 @@ class Page(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
+# 
+class Point_list(Base):
+    __tablename__ = "point_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_pointkey = Column(Integer, nullable=False)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    nameedit = Column(Boolean, nullable=False, default=True)
+    id_type_units = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    unitsedit = Column(Boolean, nullable=False, default=True)
+    equation = Column(Boolean, nullable=False, default=True)
+    config = Column(Integer, nullable=False)
+    register = Column(Integer, nullable=False)
+    id_type_datatype = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_type_byteorder = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    slope = Column(DOUBLE, nullable=False)
+    slopeenabled = Column(Boolean, nullable=False, default=True)
+    offset = Column(DOUBLE, nullable=False)
+    offsetenabled = Column(Boolean, nullable=False, default=True)
+    multreg = Column(Integer, nullable=False)
+    multregenabled = Column(Boolean, nullable=True, default=True)
+    userscaleenabled = Column(Boolean, nullable=False, default=True)
+    invalidvalue = Column(Integer, nullable=False)
+    invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    extendednumpoints = Column(Integer, nullable=True)
+    extendedregblocks = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    # 
+    template_library  = relationship('Template_library', foreign_keys=[id_template])
+    type_units  = relationship('Config_information', foreign_keys=[id_type_units])
+    type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
+    type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    
+# 
+class Device_point_list(Base):
+    __tablename__ = "device_point_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_pointkey = Column(Integer, nullable=False)
+    # --------------------------------------------------
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_group = Column(Integer, ForeignKey(
+        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_list = Column(Integer, ForeignKey(
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_point_list = Column(Integer, ForeignKey(
+        "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # # -------------------------------------------------- 
+    name = Column(String(255), nullable=False)
+    nameedit = Column(Boolean, nullable=False, default=True)
+    id_type_units = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    unitsedit = Column(Boolean, nullable=False, default=True)
+    equation = Column(Boolean, nullable=False, default=True)
+    config = Column(Integer, nullable=False)
+    register = Column(Integer, nullable=False)
+    id_type_datatype = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_type_byteorder = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    slope = Column(DOUBLE, nullable=False)
+    slopeenabled = Column(Boolean, nullable=False, default=True)
+    offset = Column(DOUBLE, nullable=False)
+    offsetenabled = Column(Boolean, nullable=False, default=True)
+    multreg = Column(Integer, nullable=False)
+    multregenabled = Column(Boolean, nullable=True, default=True)
+    userscaleenabled = Column(Boolean, nullable=False, default=True)
+    invalidvalue = Column(Integer, nullable=False)
+    invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    extendednumpoints = Column(Integer, nullable=True)
+    extendedregblocks = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    # 
+    template_library  = relationship('Template_library', foreign_keys=[id_template])
+    device_group  = relationship('Device_group', foreign_keys=[id_device_group])
+    device_list  = relationship('Device_list', foreign_keys=[id_device_list])
+    point_list  = relationship('Point_list', foreign_keys=[id_point_list])
+    
+    type_units  = relationship('Config_information', foreign_keys=[id_type_units])
+    type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
+    type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    # 
+# 
 class Test(Base):
     __tablename__ = "test"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
+
+     

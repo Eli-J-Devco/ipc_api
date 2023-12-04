@@ -357,3 +357,24 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
     
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
+    
+# Describe functions before writing code
+# /**
+# 	 * @description get point list
+# 	 * @author vnguyen
+# 	 * @since 04-12-2023
+# 	 * @param {id,db}
+# 	 * @return data (DevicePointListOut)
+# 	 */
+@router.get('/point_list/', response_model=schemas.DevicePointListOut)
+def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
+    
+    # ----------------------
+    device_point_list_query = db.query(models.Device_point_list).filter(
+        models.Device_point_list.id_device_list == id).all()
+    # 
+    if not device_point_list_query:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Device with id: {id} does not exist")
+
+    return {"point_list":device_point_list_query}
