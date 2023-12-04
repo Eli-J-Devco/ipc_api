@@ -250,6 +250,83 @@ def stop_program_pm2(app_name):
         return 300
 # Describe functions before writing code
 # /**
+# 	 * @description stop app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data (status)
+# 	 */
+def create_program_pm2(filename,pid,id):
+    if sys.platform == 'win32':
+        # use run with window      
+        subprocess.Popen(
+        f'pm2 start {filename} -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+    else:               
+        subprocess.Popen(
+        f'pm2 start {filename} --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description init app in pm2
+# 	 * @author vnguyen
+# 	 * @since 03-12-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data (status)
+# 	 */
+def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
+    try:
+ # Initialize the device RS485 RTU
+        if len(result_rs485_group)>0:
+                result_rs485_list = [x for i, x in enumerate(result_rs485_group) if x['serialport_group'] not in {y['serialport_group'] for y in result_rs485_group[:i]}]
+                data=[]
+                for rs485_item in result_rs485_list:
+                    item=[]
+                    for device_item in result_rs485_group:
+                            if rs485_item["serialport_group"]==device_item["serialport_group"]:
+                                    item.append({
+                                            'id_communication':device_item['id_communication'],            
+                                            'id':device_item['id'],
+                                            'name':device_item['name'],
+                                           
+                                            'connect_type':device_item['connect_type'],                            
+                                            'serialport_group':rs485_item['serialport_group'],
+                                            'serialport_name':rs485_item['serialport_name'],
+                                            'serialport_baud':int(rs485_item['serialport_baud']),
+                                            'serialport_stopbits':int(rs485_item['serialport_stopbits']),
+                                            # Get the first character of the first string
+                                            'serialport_parity':rs485_item['serialport_parity'][0],
+                                            # ----- End -----
+                                            'serialport_timeout':int(rs485_item['serialport_timeout']),
+                                            'serialport_debug_level':rs485_item['serialport_debug_level']
+                                        })
+                    data.append(item)
+                
+                for item in data:                                                 
+                    # name of pid pm2=Dev|id_communication|connect_type|serialport_name
+                    id=item[0]["id_communication"]
+                    id_communication=item[0]["id_communication"]
+                    serialport_group=item[0]["serialport_group"]
+                    serialport_name=item[0]["serialport_name"]
+                    connect_type=item[0]["connect_type"]
+                    pid = f'Dev|{id_communication}|{connect_type}|{serialport_group}'
+                    
+                    print(f'pid: {pid}') 
+                    if id_communication !=-1:
+                    
+                        if sys.platform == 'win32':
+                            # use run with window
+                          
+                            subprocess.Popen(
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
+                        else:
+                            # use run with ubuntu/linux
+                           
+                            subprocess.Popen(
+                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+            
+    except Exception as e:
+        print('Error init driver: ',e)
+# Describe functions before writing code
+# /**
 # 	 * @description hash password
 # 	 * @author vnguyen
 # 	 * @since 30-11-2023

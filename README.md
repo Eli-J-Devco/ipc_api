@@ -24,7 +24,9 @@ https://www.gormanalysis.com/blog/building-a-simple-crud-application-with-fastap
 <!-- Run a Server Manually - Uvicorn -->
 uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->
+cd api_of_device
 uvicorn main:app --reload
+http://127.0.0.1:8000/docs#/
 <!-- Nodejs -->
 sudo apt install nodejs npm
 sudo apt install curl
@@ -293,3 +295,9 @@ network:
 sudo netplan apply
 <!-- Permission denied Ubuntu -->
 sudo chmod -R 777 /path/to/file
+
+<!-- Visual Studio Code extensions stopped -->
+Open the command palette (Ctrl + Shift + P)
+Run Disable All Installed Extensions
+Then run Enable All Extensions.
+Restart Visual Studio Code

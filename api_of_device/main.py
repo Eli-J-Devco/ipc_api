@@ -26,11 +26,18 @@ API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(  title="FastAPI",
-    version="0.1.0",
+app = FastAPI(
+    title="FastAPI",
+    description="IPC SCADA",
+    version="2023.10.0",
+    contact={
+        "name":"vnuyen",
+        "email":"vnguyen@nwemon.com"
+        },
     docs_url=None,
     redoc_url=None,
-    openapi_url = None,)
+    openapi_url = None,
+    )
 
 origins = ["*"]
 security = HTTPBasic()
@@ -104,7 +111,12 @@ async def get_redoc_documentation(username: str = Depends(get_current_username))
 
 @app.get("/openapi.json", include_in_schema=False)
 async def openapi(username: str = Depends(get_current_username)):
-    return get_openapi(title=app.title, version=app.version, routes=app.routes)
+    return get_openapi( 
+        title=app.title, 
+        version=app.version, 
+        contact=app.contact, 
+        description=app.description,
+        routes=app.routes)
 # Describe functions before writing code
 # /**
 # 	 * @description root

@@ -537,7 +537,7 @@ async def device(ConfigPara):
                         await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
-                    print(f'Loi thiet bi')
+                    # print(f'Loi thiet bi')
                 
                     status_device="OFFLINE"
                     print(f"Modbus error from {slave_ip}: {e}")

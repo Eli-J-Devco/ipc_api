@@ -72,14 +72,12 @@ def init_driver():
                 print(f'pid: {pid}')
                 if sys.platform == 'win32':
                     # use run with window
-                    # subprocess.Popen(
-                        # f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                  
                     subprocess.Popen(
                         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
                     # use run with ubuntu/linux
-                    # subprocess.Popen(
-                        # f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                 
                     subprocess.Popen(
                         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             # join the same group ModbusRTU
@@ -111,11 +109,7 @@ def init_driver():
                                         })
                     data.append(item)
                 
-                for item in data:
-                    
-                    
-                    # print(item)
-                    
+                for item in data:                                                 
                     # name of pid pm2=Dev|id_communication|connect_type|serialport_name
                     id=item[0]["id_communication"]
                     id_communication=item[0]["id_communication"]
@@ -129,14 +123,12 @@ def init_driver():
                     
                         if sys.platform == 'win32':
                             # use run with window
-                            # subprocess.Popen(
-                                # f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}" "{absDirname}" --restart-delay=10000', shell=True).communicate()
+                          
                             subprocess.Popen(
                                 f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
-                            # subprocess.Popen(
-                                # f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id} "{absDirname}"--restart-delay=10000', shell=True).communicate()
+                           
                             subprocess.Popen(
                                 f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                         

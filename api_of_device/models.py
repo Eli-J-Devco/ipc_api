@@ -12,6 +12,11 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
+class Language_list(Base):
+    __tablename__ = "language_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
 # 
 class device_type(Base):
     __tablename__ = "device_type"
