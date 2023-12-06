@@ -529,6 +529,7 @@ async def monitoring_device(host, port,topic, username, password
                 device_id=str(item['ID'])
                 device_name=str(item['NAME'])
                 data_mqtt={
+                "ID_DEVICE":device_id,
                 "STATUS_DEVICE":item['STATUS_DEVICE'],
                 "MSG_DEVICE":item['MSG_DEVICE'],
                 "STATUS_REGISTER":item['STATUS_REGISTER'],

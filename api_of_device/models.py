@@ -12,6 +12,35 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 
+# 
+class Driver_list(Base):
+    __tablename__ = "driver_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+
+# 
+class Communication(Base):
+    __tablename__ = "communication"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=False)
+    id_driver_list = Column(Integer, ForeignKey(
+        "driver_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_baud_rates = Column(Integer, nullable=True)
+    id_type_parity = Column(Integer, ForeignKey(
+        "type_parity.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_stopbits = Column(Integer, ForeignKey(
+        "type_stopbits.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_timeout = Column(Integer, ForeignKey(
+        "type_timeout.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_debug_level = Column(Integer, ForeignKey(
+        "type_debug_level.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    note1 = Column(String(255), nullable=True)
+    note2 = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    driver_list  = relationship('Driver_list', foreign_keys=[id_driver_list])
+
 class Language_list(Base):
     __tablename__ = "language_list"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -147,6 +176,9 @@ class Device_list(Base):
     inverter_shutdown = Column(TIMESTAMP(timezone=True),
                                nullable=True)
     status = Column(Boolean, nullable=True, default=True)
+    # 
+    communication  = relationship('Communication', foreign_keys=[id_communication])   
+# 
 # 
 class Config_information(Base):
     __tablename__ = "config_information"
@@ -161,33 +193,7 @@ class Config_information(Base):
         "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
 # 
-class Driver_list(Base):
-    __tablename__ = "driver_list"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=False)
-    status = Column(Boolean, nullable=False, default=True)
 
-# 
-class Communication(Base):
-    __tablename__ = "communication"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=True)
-    namekey = Column(String(255), nullable=False)
-    id_driver_list = Column(Integer, ForeignKey(
-        "driver_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    id_type_baud_rates = Column(Integer, nullable=True)
-    id_type_parity = Column(Integer, ForeignKey(
-        "type_parity.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    id_type_stopbits = Column(Integer, ForeignKey(
-        "type_stopbits.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    id_type_timeout = Column(Integer, ForeignKey(
-        "type_timeout.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    id_type_debug_level = Column(Integer, ForeignKey(
-        "type_debug_level.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    note1 = Column(String(255), nullable=True)
-    note2 = Column(String(255), nullable=True)
-    status = Column(Boolean, nullable=False, default=True)
-    driver_list  = relationship('Driver_list', foreign_keys=[id_driver_list])
 # 
 
 class Ethernet(Base):
@@ -318,6 +324,43 @@ class Device_point_list(Base):
     type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
     type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
     # 
+# 
+class Register_block(Base):
+    __tablename__ = "register_block"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    addr = Column(Integer, nullable=False)
+    count = Column(Integer, nullable=False)
+    id_type_function = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+    template_library  = relationship('Template_library', foreign_keys=[id_template])
+    type_function  = relationship('Config_information', foreign_keys=[id_type_function])
+class Device_register_block(Base):
+    __tablename__ = "device_register_block"
+    id = Column(Integer, primary_key=True, nullable=False)
+    # --------------------------------------------------
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_group = Column(Integer, ForeignKey(
+        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_list = Column(Integer, ForeignKey(
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_register_block = Column(Integer, ForeignKey(
+        "register_block.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # --------------------------------------------------
+    addr = Column(Integer, nullable=False)
+    count = Column(Integer, nullable=False)
+    id_type_function = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+    template_library  = relationship('Template_library', foreign_keys=[id_template])
+    device_group  = relationship('Device_group', foreign_keys=[id_device_group])
+    device_list  = relationship('Device_list', foreign_keys=[id_device_list])
+    register_block  = relationship('Register_block', foreign_keys=[id_register_block])
+    # --------------------------------------------------
+    type_function  = relationship('Config_information', foreign_keys=[id_type_function])   
 # 
 class Test(Base):
     __tablename__ = "test"

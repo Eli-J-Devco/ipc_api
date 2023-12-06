@@ -327,6 +327,41 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
         print('Error init driver: ',e)
 # Describe functions before writing code
 # /**
+# 	 * @description find app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 06-12-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data (status)
+# 	 */
+def find_program_pm2(app_name):
+    try:
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        # print("----- pm2 list ----- ")
+        app_detect=0
+        for item in result:
+            name = item['name']
+            # namespace = item['pm2_env']['namespace']
+            # mode = item['pm2_env']['exec_mode']
+            # pid = item['pid']
+            # uptime = item['pm2_env']['pm_uptime']
+            # status = item['pm2_env']['status']
+            # cpu = item['monit']['cpu']
+            # mem = item['monit']['memory'] / 1000000   
+            if name.find(app_name)==0:
+                app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error find pm2 : ',err)
+        return 300
+# Describe functions before writing code
+# /**
 # 	 * @description hash password
 # 	 * @author vnguyen
 # 	 * @since 30-11-2023
