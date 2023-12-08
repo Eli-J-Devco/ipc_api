@@ -34,7 +34,7 @@ database_username = Config.DATABASE_USERNAME
 SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_password}@{database_hostname}:{database_port}/{database_name}'
 # SQLALCHEMY_DATABASE_URL = 'mysql+pymysql://root:12345@localhost:3307/test'
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL,   isolation_level="READ UNCOMMITTED")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -50,6 +50,8 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except Exception:
+            db.rollback()
     finally:
         db.close()
 

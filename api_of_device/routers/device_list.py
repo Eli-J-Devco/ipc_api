@@ -211,127 +211,160 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                                                     enable_poweroff=enable_poweroff,
                                                     **create_device.dict())
                     
+                
                     db.add(new_device)
-                    db.commit()
-                    db.refresh(new_device)
-                    # insert success new device
-                    if not new_device:
-                        return 200    
+                    db.flush()
+                    print(new_device.__dict__)
+
+                    
                     # read file mybatis query sql
-                    id=create_device.id
                     mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+'/mybatis/device.xml')
                     statement = mybatis_mapper2sql.get_statement(
                     mapper, result_type='list', reindent=True, strip_comments=True)
-                        
+                            
                     sql_query=statement[0]["create_device"]
                     sql_register_block=statement[1]["insert_device_register_block"]
                     sql_point_list=statement[2]["insert_device_point_list"]
                     sql_select_device=statement[4]["select_all_device"]
-                
-                    sql = sql_query.replace("table_name", f'dev_{str(id).zfill(3)}')
+                    id=new_device.id
+                    id_communication=new_device.id_communication
                     # create table new device
-                    result_create_table = db.execute(text(sql))
-                    print(result_create_table.__dict__)
-                    if 'rowcount' in result_create_table.__dict__.keys():             
-                        communication_query = db.query(models.Communication).filter(models.Communication.id == create_device.id_communication).first()
-                        print(communication_query.__dict__)
-                        if not communication_query:
-                            return 200                   
-                        if not communication_query.driver_list:
-                            return 200 
-                       
-                        driver_list=communication_query.driver_list
-                        id_communication=create_device.id_communication
+                    name_device=f'dev_{str(id).zfill(5)}'
+                    sql = sql_query.replace("table_name",name_device )
+                    try:
+                        #      
+                        result_create_table = db.execute(text(sql))
+                        print(result_create_table.__dict__)
+                    except exc.SQLAlchemyError as err:
+                        # delete device in table device_list
+                        print(err.args[0])
+                        db.rollback()
+                        db.query(models.Device_list).filter_by(id=id).delete()
+                        db.commit()
+                        return 300
+                    finally:
+                        pass
+                    if not id :
+                        db.rollback()
+                        db.query(models.Device_list).filter_by(id=id).delete()
+                        db.commit()
+                        return 300        
+                    communication_query = db.query(models.Communication).filter(models.Communication.id == id_communication).first()
+                    try:                    
+                        if communication_query:
+                            pass        
+                        if communication_query.driver_list:
+                            pass
+                    except Exception as err:
+                        print(err)
+                        db.query(models.Device_list).filter_by(id=id).delete()
+                        db.execute(text(f'DROP TABLE {name_device}'))
+                        return 300
+                    finally:
+                        pass              
+                    driver_list=communication_query.driver_list
+                        
                         # check TCP/RS485
-                        if driver_list.name=="RS485":
-                            
-                            # insert device_register_block
-                            result_register_block = db.execute(text(sql_register_block), params={'id': id})
-                            db.commit()
-                            print(f'result_register_block: {result_register_block.__dict__}')
-                            if not 'rowcount' in result_register_block.__dict__.keys():
-                              return 200
-                            # insert device_point_list
-                            result_point_list = db.execute(text(sql_point_list), params={'id': id})
-                            db.commit()
-                            print(f'result_point_list: {result_point_list.__dict__}')
-                            if not 'rowcount' in result_point_list.__dict__.keys():
-                              return 200
-                            result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
-                            if result_find_app_pm2==100:
-                                result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')
-                                # delete success app pm2
-                                if result_delete_app_pm2!=100:
-                                    return 200                          
-                                # check list device and Exclusions device new
-                                device_list_query = db.query(
-                                    models.Device_list).filter(models.Device_list.id_communication ==
-                                                                id_communication).filter(
-                                    models.Device_list.status == 1).order_by(
-                                                                models.Device_list.id.asc()).all()
-                                # check device same group rs485 com port   
-                                item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                                            id_communication]
-                                # find device in group rs485
-                                if item_rs485:
-                                    # check group rs485 same com port
-                                    result_device_group_rs485 = db.execute(
-                                                                                text(sql_select_device), 
-                                                                                params={'id_communication': 
-                                                                                create_device.id_communication}).all()
-                                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
-                                    if results_device_group_dict:
-                                        # init restart pm2 app same rs485
-                                        create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                        return 100
-                                    else:
-                                        return 200  
-                            else:
-                                print('---------- create group RS485 same com port when list device empty ----------')
-                                # check group rs485 same com port 
+                    if driver_list.name=="RS485":
+                        print('RS485 -------------------------------------------')
+                        # insert device_register_block
+                        result_register_block = db.execute(text(sql_register_block), params={'id': id})
+                        # insert device_point_list
+                        result_point_list = db.execute(text(sql_point_list), params={'id': id})
+                        print(f'result_register_block: {result_register_block.__dict__}')                                                       
+                        print(f'result_point_list: {result_point_list.__dict__}')
+                       
+                          
+                        if result_register_block.rowcount == 0 or result_point_list.rowcount==0:
+                            db.query(models.Device_list).filter_by(id=id).delete()
+                            db.execute(text(f'DROP TABLE {name_device}'))                          
+                            return 300
+                        db.commit()                          
+                        result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')                     
+                        
+                        if result_find_app_pm2==100:
+                            result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')
+                            # delete success app pm2
+                            if result_delete_app_pm2!=100:
+                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.execute(text(f'DROP TABLE {name_device}'))
+                                return 200                          
+                            # check list device and Exclusions device new
+                            device_list_query = db.query(
+                                models.Device_list).filter(models.Device_list.id_communication ==
+                                                            id_communication).filter(
+                                models.Device_list.status == 1).order_by(
+                                                            models.Device_list.id.asc()).all()
+                            # check device same group rs485 com port   
+                            item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                                        id_communication]
+                            # find device in group rs485
+                            if not item_rs485:
+                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.execute(text(f'DROP TABLE {name_device}'))
+                                return 200 
+                            if item_rs485:
+                                # check group rs485 same com port
                                 result_device_group_rs485 = db.execute(
                                                                             text(sql_select_device), 
                                                                             params={'id_communication': 
                                                                             create_device.id_communication}).all()
-                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
-                                if results_device_group_dict:
-                                    # init restart pm2 app same rs485
-                                    create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                    return 100
-                                else:
-                                    return 200   
-                           
- 
-                                                                                      
-                        elif driver_list.name=="Modbus/TCP":
-                            print(driver_list.name)
-                            # insert device_register_block
+                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                                if not results_device_group_dict:
+                                    db.query(models.Device_list).filter_by(id=id).delete()
+                                    db.execute(text(f'DROP TABLE {name_device}'))
+                                    return 300                                              
+                                # init restart pm2 app same rs485
+                                create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                                return 100                                                              
+                        if result_find_app_pm2!=100:
+                            print('---------- create group RS485 same com port when list device empty ----------')
+                            # check group rs485 same com port 
+                            result_device_group_rs485 = db.execute(
+                                                                        text(sql_select_device), 
+                                                                        params={'id_communication': 
+                                                                        id_communication}).all()
+                            results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
+                            if not results_device_group_dict:
+                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.execute(text(f'DROP TABLE {name_device}'))
+                                return 200
+                            # init restart pm2 app same rs485
+                            create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                            return 100                                                                                                                            
+                    elif driver_list.name=="Modbus/TCP":
+                        print('Modbus/TCP -------------------------------------------')                       
+                        try:
+                            # insert device_register_block                                
                             result_register_block = db.execute(text(sql_register_block), params={'id': id})
-                            db.commit()
                             print(f'result_register_block: {result_register_block.__dict__}')
-                            if not 'rowcount' in result_register_block.__dict__.keys():
-                              return 200
                             # insert device_point_list
-                            result_point_list = db.execute(text(sql_point_list), params={'id': id})
-                            db.commit()
+                            result_point_list = db.execute(text(sql_point_list), params={'id': id})                        
                             print(f'result_point_list: {result_point_list.__dict__}')
-                            if not 'rowcount' in result_point_list.__dict__.keys():
-                              return 200
+                            if result_register_block.rowcount != 0 or result_point_list.rowcount!=0:
+                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.execute(text(f'DROP TABLE {name_device}'))                                                                 
+                                return 300 
+                            db.commit()
                             # init start pm2 new app
-                            
-                            id = create_device.id
-                            name = create_device.name
+                            name = new_device.name
                             connect_type=driver_list.name
                             pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
                             create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
                             return 100
-                        
-                        else:
-                            return 200
-                         
-
-                    
+                                                                
+                        except exc.SQLAlchemyError as err:
+                            # delete device in table device_list
+                            print(err.args[0])
+                            db.rollback()
+                            return 300
+                        finally:
+                                pass                                             
+                    else:
+                        return 200                  
             except Exception as err:
+                
+                db.rollback()
                 print('Error create table : ',err)
                 return 300
         async with timeout(5) as cm:
@@ -412,18 +445,18 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
             db.commit()
             print(f'device_list: {result_delete_device_list}')
             # delete data in table device_point_list -----
-            result_delete_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
-            db.commit()
-            print(f'point_list: {result_delete_device_point_list}')
+            # result_delete_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
+            # db.commit()
+            # print(f'point_list: {result_delete_device_point_list}')
             # delete data in table device_register_block -----
-            result_delete_device_register_block =db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
-            db.commit()
-            print(f'register_block: {result_delete_device_register_block}')
+            # result_delete_device_register_block =db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
+            # db.commit()
+            # print(f'register_block: {result_delete_device_register_block}')
             # drop table of device
-            table_delete=f'dev_{str(id).zfill(3)}'
-            result_delete_table= db.execute(text(f'DROP TABLE {table_delete};'))
-            print(f'{result_delete_table.__dict__}')
-            db.commit()
+            # table_delete=f'dev_{str(id).zfill(3)}'
+            # result_delete_table= db.execute(text(f'DROP TABLE {table_delete};'))
+            # print(f'{result_delete_table.__dict__}')
+            # db.commit()
             # delete app running in pm2
             result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
             print(f'result_pm2: {result_pm2}')
@@ -449,18 +482,18 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
             db.commit()
             print(f'device_list: {result_delete_device_list}')
             # delete data in table device_point_list -----
-            result_delete_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
-            db.commit()
-            print(f'point_list: {result_delete_device_point_list}')
+            # result_delete_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
+            # db.commit()
+            # print(f'point_list: {result_delete_device_point_list}')
             # delete data in table device_register_block -----
-            result_delete_device_register_block =db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
-            db.commit()
-            print(f'register_block: {result_delete_device_register_block}')
+            # result_delete_device_register_block =db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
+            # db.commit()
+            # print(f'register_block: {result_delete_device_register_block}')
             # drop table of device
-            table_delete=f'dev_{str(id).zfill(3)}'
-            result_delete_table= db.execute(text(f'DROP TABLE {table_delete};'))
-            print(f'{result_delete_table.__dict__}')
-            db.commit()
+            # table_delete=f'dev_{str(id).zfill(3)}'
+            # result_delete_table= db.execute(text(f'DROP TABLE {table_delete};'))
+            # print(f'{result_delete_table.__dict__}')
+            # db.commit()
             # 
             result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
             if result_find_app_pm2==100:
@@ -504,6 +537,30 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
 # 	 * @description update device
 # 	 * @author vnguyen
 # 	 * @since 06-12-2023
-# 	 * @param {id,db}
+# 	 * @param {DeviceUpdateBase,db}
 # 	 * @return data (DeviceState)
 # 	 */
+@router.post("/update/", response_model=schemas.DeviceState)
+async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Session = Depends(get_db)):
+    try:
+        # name --> allow change
+        # id_project_setup --> allow change
+        # device_virtual --> lock
+        # id_device_type --> allow change
+        # id_communication --> lock
+        # id_device_group if change it
+            # - delete all in table device_point_list
+            # - delete all in table device_register_block
+            # - init parameter in table device_point_list
+            # - init parameter in table device_register_block
+        # rtu_bus_address --> allow change
+        # tcp_gateway_ip --> allow change
+        # tcp_gateway_port --> allow change
+        
+        # --> init app in pm2
+        
+        
+        
+        pass
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=408, detail="Request timeout")

@@ -36,3 +36,4 @@ async-timeout
 WMI
 pyroute2
 pyuac
+passlib

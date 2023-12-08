@@ -7,6 +7,7 @@ import secrets
 import sys
 
 import models
+import uvicorn
 from database import engine
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -134,3 +135,8 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
+  
+
+if __name__ == '__main__':
+    # uvicorn.run(app, port=8080, host='0.0.0.0')
+    uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=True, workers=2)

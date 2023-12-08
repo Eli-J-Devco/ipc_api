@@ -25,6 +25,7 @@ https://www.gormanalysis.com/blog/building-a-simple-crud-application-with-fastap
 uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->
 cd api_of_device
+python main.py
 uvicorn main:app --reload
 http://127.0.0.1:8000/docs#/
 
@@ -68,6 +69,10 @@ SHOW VARIABLES LIKE 'validate_password%';
 SET GLOBAL validate_password.length = 4;
 SET GLOBAL validate_password.policy=LOW;
 SET GLOBAL validate_password.policy=LOW;
+<!-- Commit MySQL -->
+SELECT @@autocommit;
+SET autocommit=0;
+COMMIT;
 <!-- MQTT -->
 https://www.vultr.com/docs/install-mosquitto-mqtt-broker-on-ubuntu-20-04-server/
 https://www.instructables.com/How-to-Use-MQTT-With-the-Raspberry-Pi-and-ESP8266/

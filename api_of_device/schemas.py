@@ -82,7 +82,20 @@ class DeviceCreate(BaseModel):
         # populate_by_name = True
         # from_attributes = True
         orm_mode = True
-   
+class DeviceUpdateBase(BaseModel):
+    id: Optional[int] = None # Device number
+    name: Optional[str] = None
+    
+    rtu_bus_address: Optional[int] = None
+    tcp_gateway_port: Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    id_device_type: Optional[int] = None
+    id_device_group: Optional[int] = None
+    class Config:
+        # allow_population_by_field_name = True
+        # populate_by_name = True
+        # from_attributes = True
+        orm_mode = True
 # <- Communication ->
 class CommunicationBase(BaseModel):
     name: Optional[str] = None

@@ -1,7 +1,11 @@
 import datetime
+import os
+import pathlib
 import time
+from pathlib import Path, PosixPath, WindowsPath
 
 import pandas as pd
+from anyio import sleep
 
 result_rs485_group = [   {'id':4, 'name': 'MFM383A-1', 'connect_type': 'RS485', 'device_type': 'Production Meter', 'serialport_name': 'RS485 Port 1'}, 
               {'id':5, 'name': 'MFM383A-2', 'connect_type': 'RS485', 'device_type': 'Production Meter', 'serialport_name': 'RS485 Port 1'}, 
@@ -284,3 +288,41 @@ data=[{"id":1,"value":1},{"id":4,"value":4},{"id":2,"value":2}]
 # result=sorted(data, key=lambda o: o['id'])
 # print(result)
 {'rowcount': 0, '_soft_closed': True}
+
+# pathfile = 'D:\\NEXTWAVE\\project\\ipc_api\\test\\11\\11'
+# new_Line=["3333"]
+# directory = "netplan"
+  
+# # Parent Directory path 
+# parent_dir = pathfile
+  
+# # Path 
+# path = os.path.join(parent_dir, directory) 
+  
+# # Create the directory 
+# try: 
+#     os.makedirs(path, exist_ok = True) 
+#     print("Directory '%s' created successfully" % directory) 
+# except OSError as error: 
+#     print("Directory '%s' can not be created" % directory) 
+# my_dictionary = {
+#   "id_001": 1,
+#   "id_002": 2
+# }
+# print("Before:", my_dictionary)
+# my_dictionary["id_003"] = 3
+# print("After:", my_dictionary)
+
+from datetime import datetime
+from typing import List, Optional
+
+from pydantic import BaseModel, EmailStr, Field
+from pydantic.types import conint
+
+
+class DeviceListOut(BaseModel):
+    id: Optional[int] = None
+    
+    name: Optional[str] = None
+    # device_virtual: Optional[bool] = None
+print(DeviceListOut(id=556))
