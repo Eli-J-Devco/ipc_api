@@ -160,7 +160,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     point_value = decoder.decode_16bit_int()
                     
                 else:
-                    point_list=point_object(point_list_item['id_pointkey'], 
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
@@ -168,7 +170,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                    point_list=point_object(point_list_item['id_pointkey'], 
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             func_check_float(point_value), 
@@ -201,7 +205,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 result, byteorder=Endian.Big, wordorder=Endian.Big)
                     point_value = decoder.decode_32bit_float()
                 else:
-                    point_list=point_object(point_list_item['id_pointkey'], 
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
@@ -209,7 +215,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                    point_list=point_object(point_list_item['id_pointkey'], 
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             round(point_value,2), 
@@ -477,7 +485,7 @@ async def device(ConfigPara):
                                         MySQL_Update(sql)
                                     await asyncio.sleep(1)
                                     inv_shutdown_enable=0
-                          
+                        
                         # 
                         # print("---------- read data from Device ----------")
                        
@@ -590,7 +598,7 @@ async def monitoring_device(host, port,topic, username, password
             if device_name !="":
                 func_mqtt_public(   host,
                                     port,
-                                    topic+"|"+device_id+"|"+device_name,
+                                    topic+""+device_id+"|"+device_name,
                                     username,
                                     password,
                                     data_mqtt)
