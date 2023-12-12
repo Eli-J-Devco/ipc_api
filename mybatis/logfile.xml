@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Test">
+  <select id="QUERY_TIME_LOG">
+    SELECT 
+    upload_channel.id AS id_device,
+    config_information1.description AS type_protocol ,
+    config_information2.name AS time_log_interval 
+FROM 
+    upload_channel
+INNER JOIN 
+    config_information AS config_information1 ON upload_channel.id_type_protocol = config_information1.id
+INNER JOIN 
+    config_information AS config_information2 ON upload_channel.id_type_logging_interval = config_information2.id
+WHERE 
+    upload_channel.id = %s AND upload_channel.status = 1;
+  </select>
+
+  <select id="QUERY_ALL_DEVICES">
+    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
+  </select>
+
+  <select id="QUERY_INSERT_SYNCDATA">
+  INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
+  </select>
+</mapper>
