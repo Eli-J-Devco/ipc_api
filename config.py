@@ -46,6 +46,7 @@ class AppConfig:
     API_DOCS_PASSWORD : str
     PATH_FILE_NETWORK_INTERFACE: str
     FOLDER_PATH_LOG : str
+    HEAD_FILE_LOG : str
     def __init__(self, env):
         for field in self.__annotations__:
             if not field.isupper():
