@@ -16,4 +16,5 @@
     },
     "prettier.enable": false,
   "editor.formatOnSave": false,
+  "editor.inlineSuggest.showToolbar": "onHover",
 }

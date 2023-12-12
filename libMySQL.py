@@ -40,7 +40,23 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
 
 
 
+async def MySQL_Selectv1(query):
+    db = create_server_connection(
+        DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
+    cursor = db.cursor(dictionary=True)
+    try:
+        cursor.execute(query)
+        result = cursor.fetchall()
+        print(result)
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+        
 def MySQL_Select(query,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
@@ -69,6 +85,64 @@ def MySQL_Insert(query):
     result = None
     try:
         cursor.execute(query)
+        db.commit()
+        result = cursor.rowcount
+        print(result, "Record inserted successfully into Laptop table")
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+    finally:
+        # closing database connection.
+        if db.is_connected():
+            # db.close()
+            print("connection is closed")
+            
+def MySQL_Insertv1(query,val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
+    cursor = db.cursor(dictionary=True)
+    # cursor = db.cursor()
+    result = None
+    try:
+        cursor.execute(query,val)
+        db.commit()
+        result = cursor.rowcount
+        print(result, "Record inserted successfully into Laptop table")
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+    finally:
+        # closing database connection.
+        if db.is_connected():
+            # db.close()
+            print("connection is closed")
+            
+def MySQL_Insertv2(table_name,lenval,val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
+    cursor = db.cursor(dictionary=True)
+    # cursor = db.cursor()
+    result = None
+    try:
+         # Tạo danh sách các cột
+        columns = ['time', 'id_device']
+        for i in range(len(lenval)):
+            columns.append(f'pt{i}')
+
+        # Tạo câu truy vấn
+        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+        # cursor.execute(query,(val,))
+        cursor.execute(query, val)
         db.commit()
         result = cursor.rowcount
         print(result, "Record inserted successfully into Laptop table")
