@@ -121,32 +121,12 @@ def restart_program_pm2(app_name):
                 
         out, err = shellscript.communicate()
         result = json.loads(out)             
-        # print("----- pm2 list ----- ")
         app_detect=0
         for item in result:
-            name = item['name']
-            namespace = item['pm2_env']['namespace']
-            mode = item['pm2_env']['exec_mode']
-            pid = item['pid']
-            uptime = item['pm2_env']['pm_uptime']
-            status = item['pm2_env']['status']
-            cpu = item['monit']['cpu']
-            mem = item['monit']['memory'] / 1000000
-            # print(f'namespace: {namespace}')
-            # print(f'mode: {mode}')
-            # print(f'pid: {pid}')
-            # print(f'uptime: {uptime}')
-            # print(f'status: {status}')
-            # print(f'cpu: {cpu}')
-            # print(f'mem: {mem}')
-            # print(f'name: {name}')
-            # app_name=f'Dev|{str(id)}|'
-                    
+            name = item['name']                   
             if name.find(app_name)==0:
-                print(f'Find channel RS485: {name}')
                 os.system(f'pm2 restart "{name}"')
                 app_detect=1
-        print(f'app_detect: {app_detect}')
         if app_detect==1:
             return 100
         else:

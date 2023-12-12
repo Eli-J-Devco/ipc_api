@@ -11,9 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 # load_dotenv(dotenv_path=Path(".env"))
-# print("111111111111111")
-# database_hostname = os.getenv('DATABASE_HOSTNAME')
-# print(database_hostname)
+
 
 
 class AppConfigError(Exception):

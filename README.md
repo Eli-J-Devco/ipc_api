@@ -28,7 +28,10 @@ cd api_of_device
 python main.py
 uvicorn main:app --reload
 http://127.0.0.1:8000/docs#/
-
+<!-- Fast API JWT  -->
+https://www.freecodecamp.org/news/how-to-add-jwt-authentication-in-fastapi/
+import secrets
+SECRET_KEY=secrets.token_hex()
 <!-- Nodejs -->
 sudo apt install nodejs npm
 sudo apt install curl
