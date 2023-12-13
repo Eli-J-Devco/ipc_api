@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import mybatis_mapper2sql
+
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -360,3 +362,13 @@ def hash(password: str):
 # 	 */
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+def get_mybatis(file_name):
+    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
+    statement = mybatis_mapper2sql.get_statement(
+                mapper, result_type='list', reindent=True, strip_comments=True)
+    result={}
+    for item,value in enumerate(statement):
+      for key in value.keys():
+        result[key]=value[key]   
+
+    return result  

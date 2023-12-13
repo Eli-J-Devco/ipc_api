@@ -16,6 +16,8 @@ import mqttools
 import mybatis_mapper2sql
 import paho.mqtt.publish as publish
 
+sys.stdout.reconfigure(encoding='utf-8')
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config import *
 from libMySQL import *
 
@@ -234,7 +236,7 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
                         source_file = date_folder_path + "\\" + file_name
                         with open(file_path, 'w') as file:
                             formatted_time2 = "'" + time_file + "'"
-                            file.write(f'{formatted_time2},0,0,0,{','.join(data_to_write)}')
+                            file.write(f'{formatted_time2},0,0,0,{",".join(data_to_write)}')
                            # code pud data MQTT ----------------------------------------------------------------- 
                             statusfile = "Success"
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
@@ -269,8 +271,8 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
                             # Write file creation data into the sync_data table -------------- 
                             time_insert = get_utc()
                             values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
-                                      f'{formatted_time2},0,0,0,{','.join(data_to_write)}', id_device_fr_sys,modbus_device, date_folder_path, 
-                                      source_file, type_file, current_time, f'{formatted_time2},0,0,0,{','.join(data_to_write)}', id_device_fr_sys)
+                                      f'{formatted_time2},0,0,0,{",".join(data_to_write)}', id_device_fr_sys,modbus_device, date_folder_path, 
+                                      source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_to_write)}', id_device_fr_sys)
                             MySQL_Insertv1(QUERY_INSERT_SYNCDATA,values)
                             # ----------------------------------------------------------------
                     except Exception as e:

@@ -24,7 +24,7 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
-                   delete_program_pm2, find_program_pm2, path,
+                   delete_program_pm2, find_program_pm2, get_mybatis, path,
                    restart_program_pm2)
 
 # path=path_directory_relative("ipc_api") # name of project
@@ -750,10 +750,11 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
 @router.post("/update/", response_model=schemas.DeviceState)
 async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Session = Depends(get_db)):
     try:
+        # need restart pm2
         # name --> allow change
         # id_project_setup --> allow change
         # device_virtual --> lock
-        # id_device_type --> allow change
+        # id_device_type --> lock
         # id_communication --> lock
         # id_device_group if change it
             # - delete all in table device_point_list
@@ -765,9 +766,152 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
         # tcp_gateway_port --> allow change
         
         # --> init app in pm2
+        def init_pm2_dev_tcp(id,name,id_communication,connect_type):
+            # Find app pm2
+            result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|{connect_type}|{id}|')
+            if result_find_app_pm2==100:
+                # delete success app pm2
+                result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|{connect_type}|{id}|')
+                if result_delete_app_pm2!=100:
+                    return 200
+                else:
+                    # init start pm2 app
+                    pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
+                    create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
+                    return 100
+            else:
+                # init start pm2 app
+                pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
+                create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
+                return 100
+        def init_pm2_dev_rs485(id_communication,sql_select_device):
+            result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
+            if result_find_app_pm2==100:
+                result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')  
+                if result_delete_app_pm2!=100:
+                    return 300
+                # check list device and Exclusions device new
+                device_list_query = db.query(
+                        models.Device_list).filter(models.Device_list.id_communication ==
+                                                    id_communication).filter(
+                        models.Device_list.status == 1).order_by(
+                                                    models.Device_list.id.asc()).all()
+                # check device same group rs485 com port   
+                item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                                id_communication]
+                # # find device in group rs485
+                # if not item_rs485:
+                #     reset_data_new(new_device_list) 
+                if item_rs485:
+                    # check group rs485 same com port
+                    result_device_group_rs485 = db.execute(
+                                                            text(sql_select_device), 
+                                                            params={'id_communication': 
+                                                            id_communication}).all()
+                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                    # if not results_device_group_dict:
+                    #     reset_data_new(new_device_list)                                             
+                    # init restart pm2 app same rs485
+                    create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                    # restart pm2 app log
+                    restart_program_pm2(f'Log')
+                    return 100
+            elif result_find_app_pm2!=100: 
+                print('---------- create group RS485 same com port when list device empty ----------')
+                # check group rs485 same com port 
+                result_device_group_rs485 = db.execute(
+                                                            text(sql_select_device), 
+                                                            params={'id_communication': 
+                                                            id_communication}).all()
+                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
+                # if not results_device_group_dict:
+                #     reset_data_new(new_device_list)
+                # init restart pm2 app same rs485
+                create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                # restart pm2 app log
+                restart_program_pm2(f'Log')
+                return 100     
+            else:
+                return 300
         
+        async def execute_func():
+            try:
+                id=update_device.id
+                id_device_group=update_device.id_device_group
+                name = update_device.name
+                # id_communication
+                device_list_query = db.query(models.Device_list).filter(models.Device_list.id == id)
+                result_device_list = device_list_query.first()
+                
+                if not result_device_list:
+                    return 300               
+                id_communication=result_device_list.id_communication
+                connect_type=result_device_list.communication.driver_list.name
+                # 
+                result_mybatis=get_mybatis('/mybatis/device.xml')
+                sql_register_block=result_mybatis["insert_device_register_block"]
+                sql_point_list=result_mybatis["insert_device_point_list"]
+                sql_select_device=result_mybatis["select_all_device"]
+                # check changed id_device_group, If it changed Re-initialize --> device_point_list and device_register_block
+                result_check_id_device_group=db.query(models.Device_list).filter(models.Device_list.id 
+                                                                                == id).filter(models.Device_list.id_device_group 
+                                                                                == id_device_group).first()
+                if not result_check_id_device_group: #Re-initialize
+                    try:
+                        print(f'Re-initialize --> id: {id}| id_device_group: {id_device_group}|')
+                        result_del_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
+                        result_del_device_register_block=db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
+                        db.flush()
+                        update_data=update_device.dict()
+                        device_list_query.filter(models.Device_list.id == id).update(update_data, synchronize_session=False)
+                        result_register_block = db.execute(text(sql_register_block), params={'id': id})
+                        result_point_list = db.execute(text(sql_point_list), params={'id': id})
+                        db.flush()                          
+                        if (result_del_device_point_list and 
+                            result_del_device_register_block 
+                            and result_register_block.rowcount > 0 
+                            and  result_point_list.rowcount>0):
+                            print(f'Delete all point and register block of Device')
+                            db.commit()
+                            # app pm2
+                            if connect_type=="Modbus/TCP":
+                                init_pm2_dev_tcp(id,name,id_communication,connect_type)
+                                restart_program_pm2(f'Log')
+                            elif connect_type=="RS485":
+                                init_pm2_dev_rs485(id_communication,sql_select_device)
+                            else:
+                                return 300   
+                                
+                    except Exception as err:
+                        print(err)
+                        db.rollback()
+
+                else: # keep
+                    print(f'Update --> id: {id}| id_device_group: {id_device_group}|')
+                    update_data=update_device.dict()
+                    device_list_query.filter(models.Device_list.id == id).update(update_data, synchronize_session=False)
+                    db.commit()
+                    if connect_type=="Modbus/TCP":
+                        init_pm2_dev_tcp(id,name,id_communication,connect_type)
+                        restart_program_pm2(f'Log')
+                    elif connect_type=="RS485":
+                        init_pm2_dev_rs485(id_communication,sql_select_device)
+                    else:
+                        return 300 
+
+            except Exception as err: 
+                print('Error update device : ',err)
+                return 300
+        async with timeout(5) as cm:
+            response=  await execute_func() 
+            if response==100:# ok
+                return {"status": "success","code": str(response)}
+            elif response==200: # alarm
+                return {"status": "alert","code": str(response)}
+            elif response==300: # error
+                return {"status": "error","code": str(response)}
+            else:
+                return {"status": "error","code": "400"}
         
-        
-        pass
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
