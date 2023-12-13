@@ -743,7 +743,7 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
 # /**
 # 	 * @description update device
 # 	 * @author vnguyen
-# 	 * @since 06-12-2023
+# 	 * @since 13-12-2023
 # 	 * @param {DeviceUpdateBase,db}
 # 	 * @return data (DeviceState)
 # 	 */
@@ -765,6 +765,11 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
         # tcp_gateway_ip --> allow change
         # tcp_gateway_port --> allow change
         
+        # chon group khac
+            # delete all device_point_list
+        # edit point/register block
+            # template_library
+            # delete all device_point_list
         # --> init app in pm2
         def init_pm2_dev_tcp(id,name,id_communication,connect_type):
             # Find app pm2
@@ -915,3 +920,25 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
         
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
+# Describe functions before writing code
+# /**
+# 	 * @description get point list
+# 	 * @author vnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {id,db}
+# 	 * @return data (DevicePointListOut)
+# 	 */
+@router.post('/template_library/', response_model=schemas.DevicePointListOut)
+def get_template_library(id: int, db: Session = Depends(get_db) ):
+    
+    # ----------------------
+    device_point_list_query = db.query(models.Device_point_list).filter(
+        models.Device_point_list.id_device_list == id).all()
+    # 
+    if not device_point_list_query:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Device with id: {id} does not exist")
+
+    return {"point_list":device_point_list_query,
+            "register_block":[]
+            }

@@ -362,6 +362,14 @@ def hash(password: str):
 # 	 */
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+# Describe functions before writing code
+# /**
+# 	 * @description get_mybatis
+# 	 * @author vnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {file_name}
+# 	 * @return data (query)
+# 	 */
 def get_mybatis(file_name):
     mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
     statement = mybatis_mapper2sql.get_statement(
