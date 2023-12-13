@@ -226,6 +226,10 @@ class TemplateBase(BaseModel):
     status: Optional[bool] = None
     class Config:
         orm_mode = True
+class Point_RegisterBase(BaseModel):
+    
+    class Config:
+        orm_mode = True
 # <- device_group ->
 class DeviceGroupBase(BaseModel):
     id: Optional[int] = None
