@@ -40,7 +40,7 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
 
 
 
-async def MySQL_Selectv1(query):
+async def MySQL_Select_v1(query):
     db = create_server_connection(
         DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
@@ -101,7 +101,7 @@ def MySQL_Insert(query):
             # db.close()
             print("connection is closed")
             
-def MySQL_Insertv1(query,val):
+def MySQL_Insert_v1(query,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
@@ -126,7 +126,7 @@ def MySQL_Insertv1(query,val):
             # db.close()
             print("connection is closed")
             
-def MySQL_Insertv2(table_name,lenval,val):
+def MySQL_Insert_v2(table_name,len_val,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
@@ -134,14 +134,13 @@ def MySQL_Insertv2(table_name,lenval,val):
     # cursor = db.cursor()
     result = None
     try:
-        # Tạo danh sách các cột
+        # Create a list of columns
         columns = ['time', 'id_device','id_upload_channel']
-        for i in range(len(lenval)):
+        for i in range(len(len_val)):
             columns.append(f'pt{i}')
 
-        # Tạo câu truy vấn
+        # Create a query
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-        # cursor.execute(query,(val,))
         cursor.execute(query, val)
         db.commit()
         result = cursor.rowcount
