@@ -7,6 +7,7 @@
 	  
         CREATE TABLE `table_name` (
         `time` datetime NOT NULL,
+		`id_upload_channel` INT(11) NOT NULL,
         `id_device` int(11) NOT NULL,
         `error` int(11) DEFAULT NULL,
         `low_alarm` int(11) DEFAULT NULL,
@@ -75,9 +76,11 @@
         `pt60` double DEFAULT NULL,
         `pt61` double DEFAULT NULL,
         `pt62` double DEFAULT NULL,
-        PRIMARY KEY (`time`,`id_device`),
+        PRIMARY KEY (`time`,`id_device`,`id_upload_channel`),
         KEY `fk_table_name` (`id_device`),
-        CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+		KEY `fk_table_name_upload_channel` (`id_upload_channel`),
+        CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+		CONSTRAINT `fk_table_name_upload_channel` FOREIGN KEY (`id_upload_channel`) REFERENCES `upload_channel` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
       </select>
       <select id="insert_device_register_block"> 

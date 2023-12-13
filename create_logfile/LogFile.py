@@ -18,10 +18,11 @@ import paho.mqtt.publish as publish
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 from config import *
 from libMySQL import *
 
-# ----------------------> Use passing parameters to file
+# add code MrVu ----------------------> Use passing parameters to file
 arr = sys.argv
 print(f'arr: {arr}')
 # ------------------------------------
@@ -29,7 +30,7 @@ result_list = []
 status_device = ""     
 msg_device = ""
 status_register = ""
-statusfile = "Success"
+status_file = "Success"
 
 # Variables 
 MQTT_BROKER = Config.MQTT_BROKER
@@ -46,17 +47,19 @@ DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 
 FOLDER_PATH = Config.FOLDER_PATH_LOG
+HEAD_FILE_LOG = Config.HEAD_FILE_LOG
 
 # find path directory relative
+
 def path_directory_relative(project_name):
     if project_name =="":
-      return -1
+        return -1
     path_os=os.path.dirname(__file__)
     print("Path os:", path_os)
     string_find=project_name
     index_os = path_os.find(string_find)
     if index_os <0:
-      return -1
+        return -1
     result=path_os[0:int(index_os)+len(string_find)]
     print("Path directory relative:", result)
     return result
@@ -68,11 +71,10 @@ print(path)
 def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
-      
         publish.single(topic, payload, hostname=host,
-                       retain=False, port=port,
-                       auth = {'username':f'{username}', 
-                               'password':f'{password}'})
+                    retain=False, port=port,
+                    auth = {'username':f'{username}', 
+                            'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
         #             retain=False, port=Port)
     # except Error as err:
@@ -87,15 +89,13 @@ def func_check_data_mybatis(data,item,object_name):
     try:
         
         if data[item].get(object_name):
-           return data[item].get(object_name)
+            return data[item].get(object_name)
         else:
             return ""
         
     except Exception as err:
-      print('Error not find object mybatis')
-      return ""
-  
-
+        print('Error not find object mybatis')
+    return 
 
 def get_utc():
     now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -106,15 +106,17 @@ def get_utc():
 # 	 * @author bnguyen
 # 	 * @since 05-12-2023
 # 	 * @param {host, port, topic, username, password}
-# 	 * @return {result_list}
+# 	 * @return result_list 
 # 	 */ 
-async def mqtt_subscribe_controls(host, port, topic, username, password):
+async def get_data_from_MQTT(host, port, topic, username, password):
     global status_device    
     global msg_device 
     global status_register
     global result_list
-    global statusfile
+    global status_file
     result_values_dict = {}
+    result_value = []
+    result_point_id = []
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         await client.start()
@@ -127,7 +129,7 @@ async def mqtt_subscribe_controls(host, port, topic, username, password):
             # cut string get device id value from sud mqtt
             cut_topic1 = message.topic[8:]
             device_id = cut_topic1.split("|")[0]
-            if statusfile == "Success" :
+            if status_file == "Success" :
                 result_value = []
                 result_point_id = []
             else :
@@ -153,15 +155,8 @@ async def mqtt_subscribe_controls(host, port, topic, username, password):
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
-# Describe functions before writing code
-# /**
-# 	 * @description create folder ,file ,pud data mqtt , sync data to database
-# 	 * @author bnguyen
-# 	 * @since 12-12-2023
-# 	 * @param {base_path,id_device,host, port, topic, username, password}
-# 	 * @return {} 
-# 	 */ 
-async def create_folder_sync_data_in_database(base_path,id_device,host, port, topic, username, password):
+
+async def sync_file(base_path,id_device,head_file,host, port, topic, username, password):
     
     # code + func_check_data_mybatis + path_directory_relative => Get query from file logfile.xml according to path
     pathSource=path#ConfigPara[2]
@@ -173,7 +168,8 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
     id_device_fr_sys = id_device[1]
     QUERY_TIME_LOG = func_check_data_mybatis(statement,0,"QUERY_TIME_LOG")
     QUERY_ALL_DEVICES = func_check_data_mybatis(statement,1,"QUERY_ALL_DEVICES")
-    QUERY_INSERT_SYNCDATA= func_check_data_mybatis(statement,2,"QUERY_INSERT_SYNCDATA")
+    QUERY_INSERT_SYNC_DATA= func_check_data_mybatis(statement,2,"QUERY_INSERT_SYNC_DATA")
+    QUERY_SELECT_COUNT_POINT_LIST= func_check_data_mybatis(statement,3,"QUERY_SELECT_COUNT_POINT_LIST")
     
     if QUERY_TIME_LOG != -1 and QUERY_ALL_DEVICES  != -1:
         pass
@@ -181,37 +177,44 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
         print("Error not found data in file mybatis")
         return -1
     
-    result_all = await MySQL_Selectv1(QUERY_ALL_DEVICES)
-    information_uploadtable = MySQL_Select(QUERY_TIME_LOG, (id_device_fr_sys,))
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    information_upload_table = MySQL_Select(QUERY_TIME_LOG,(id_device_fr_sys,))
+    array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(id_device_fr_sys,))
+    count = array_count_point[0]['COUNT(*)']
     #---------------------------------------------------------------------------------------------------------------
     while True:
+        
+        current_time = get_utc()
+        current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+        year,month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second
         global status_device    
         global msg_device 
         global status_register
         global result_list
-        global statusfile
+        global status_file
         global type_file
-    
-        current_time = get_utc()
-        current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-        year , month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second
+        data_to_write =""
+        data_in_file = ""
+        time_online = current_time
+        point_id = ""
+
         #-----------------------------------------------------
-        for item in information_uploadtable:
+        for item in information_upload_table:
             time = item["time_log_interval"]
             position = time.rfind("minute")
             number = time[:position]
             int_number = int(number)
             
-        for item in information_uploadtable:
+        for item in information_upload_table:
             type_file = item["type_protocol"]
         
         # File creation time 
-            if minute % int_number == 0 and second == 0:
+            if minute % int_number == 0 and second % 10 == 0:
                 for item in result_all:
                     sql_id = item["id"]
                     sql_id_str = str(sql_id)
                     device_name = item["name"]
-                    modbus_device = item ["rtu_bus_address"]
+                    modbus_device = item["rtu_bus_address"]
                     
                     DictID = [item for item in result_list if item["id"] == sql_id]
                     
@@ -220,7 +223,7 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
                         data_to_write = data
                         
                     for item in DictID:
-                        timeonline = item["time"]
+                        time_online = item["time"]
                         
                     for item in DictID:
                         point_id = item["point_id"]
@@ -231,29 +234,36 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
                         time_file = get_utc()
                         time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
                         formatted_time1 = time_file_datetime.strftime("%Y%m%d_%H%M%S").replace(":", "_")
-                        file_name = f'mb{sql_id:03d}_{formatted_time1}.{type_file}'
+                        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
                         file_path = os.path.join(date_folder_path, file_name)
                         source_file = date_folder_path + "\\" + file_name
+                        
+                        if not data_to_write:
+                            data_in_file = ["" for i in range(count)]
+                        else:
+                            data_in_file = [str(val) for val in data_to_write]
+
                         with open(file_path, 'w') as file:
                             formatted_time2 = "'" + time_file + "'"
-                            file.write(f'{formatted_time2},0,0,0,{",".join(data_to_write)}')
-                           # code pud data MQTT ----------------------------------------------------------------- 
-                            statusfile = "Success"
+                            file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
+                            
+                            # code pud data MQTT ----------------------------------------------------------------- 
+                            status_file = "Success"
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                            ts_online = datetime.datetime.strptime(timeonline, "%Y-%m-%d %H:%M:%S").timestamp()
+                            ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
                             if ts_timestamp - ts_online < 10 :
-                                statusdevice = "DATA NEW"
+                                status_device = "DATA NEW"
                             else :
-                                statusdevice = "DATA OLD"
+                                status_device = "DATA OLD"
                                 pass
                             data_mqtt={
                             "ID_DEVICE":sql_id_str,
-                            "STATUS_DATA":statusdevice,
-                            "STATUS_CHANNEL":statusfile,
+                            "STATUS_DATA":status_device,
+                            "STATUS_CHANNEL":status_file,
                             "FILE_NAME":file_name,
                             "Timestamp" :current_time,
-                            "TimeOnline" :timeonline,
-                            "DATA_LOG":[data_to_write]
+                            "TimeOnline" :time_online,
+                            "DATA_LOG":[data_in_file]
                             }
                             
                             func_mqtt_public(host,
@@ -265,38 +275,41 @@ async def create_folder_sync_data_in_database(base_path,id_device,host, port, to
                             #----------------------------------------------------------------- 
                             # Write data to corresponding devices in the database-------------
                             time_insert_dev = get_utc()
-                            value_insert = (time_insert_dev, sql_id) + tuple(data_to_write)
-                            MySQL_Insertv2 (f'dev_{sql_id:05d}', point_id ,value_insert)       
+                            value_insert = (time_insert_dev, sql_id , id_device_fr_sys) + tuple(data_to_write) 
+                            MySQL_Insert_v2(f'dev_{sql_id:05d}', point_id ,value_insert)       
                             #-----------------------------------------------------------------
                             # Write file creation data into the sync_data table -------------- 
                             time_insert = get_utc()
                             values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
-                                      f'{formatted_time2},0,0,0,{",".join(data_to_write)}', id_device_fr_sys,modbus_device, date_folder_path, 
-                                      source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_to_write)}', id_device_fr_sys)
-                            MySQL_Insertv1(QUERY_INSERT_SYNCDATA,values)
+                                    f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys,modbus_device, date_folder_path, 
+                                    source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
+                            MySQL_Insert_v1(QUERY_INSERT_SYNC_DATA,values)
                             # ----------------------------------------------------------------
                     except Exception as e:
-                        statusfile = "Fault"
+                        status_file = "Fault"
                         print(f"Error during file creation is : {e}")
             await asyncio.sleep(1)
     
 async def main():
     tasks = []
-    tasks.append(asyncio.create_task(create_folder_sync_data_in_database(FOLDER_PATH,arr,
-                                                             MQTT_BROKER,
-                                                             MQTT_PORT,
-                                                             MQTT_TOPIC_PUB,
-                                                             MQTT_USERNAME,
-                                                             MQTT_PASSWORD)))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
-                                                             MQTT_PORT,
-                                                             MQTT_TOPIC_SUB,
-                                                             MQTT_USERNAME,
-                                                             MQTT_PASSWORD
-                                                             )))
+    tasks.append(asyncio.create_task(sync_file(FOLDER_PATH,
+                                                    arr,
+                                                    HEAD_FILE_LOG,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_PUB,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD)))
+    tasks.append(asyncio.create_task(get_data_from_MQTT(MQTT_BROKER,
+                                                            MQTT_PORT,
+                                                            MQTT_TOPIC_SUB,
+                                                            MQTT_USERNAME,
+                                                            MQTT_PASSWORD
+                                                            )))
     await asyncio.gather(*tasks, return_exceptions=False)
     #-------------------------------------
     
 if __name__ == "__main__":
     asyncio.run(main())
+
 

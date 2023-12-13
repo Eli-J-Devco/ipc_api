@@ -21,8 +21,13 @@ WHERE
     SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
   </select>
 
-  <select id="QUERY_INSERT_SYNCDATA">
+  <select id="QUERY_INSERT_SYNC_DATA">
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
   </select>
+
+  <select id="QUERY_SELECT_COUNT_POINT_LIST">
+  SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
+  </select>
+
 </mapper>
