@@ -112,7 +112,7 @@ def MySQL_Insertv1(query,val):
         cursor.execute(query,val)
         db.commit()
         result = cursor.rowcount
-        print(result, "Record inserted successfully into Laptop table")
+        # print("Sync data successfully---> ")
         cursor.close()
         db.close()
         return result
@@ -134,8 +134,8 @@ def MySQL_Insertv2(table_name,lenval,val):
     # cursor = db.cursor()
     result = None
     try:
-         # Tạo danh sách các cột
-        columns = ['time', 'id_device']
+        # Tạo danh sách các cột
+        columns = ['time', 'id_device','id_upload_channel']
         for i in range(len(lenval)):
             columns.append(f'pt{i}')
 
@@ -145,7 +145,7 @@ def MySQL_Insertv2(table_name,lenval,val):
         cursor.execute(query, val)
         db.commit()
         result = cursor.rowcount
-        print(result, "Record inserted successfully into Laptop table")
+        # print("Successfully inserted data into the database table---> ")
         cursor.close()
         db.close()
         return result

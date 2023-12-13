@@ -116,6 +116,8 @@ async def subscribedata_from_MQTT(host, port, topic, username, password):
     global result_list
     global statusfile
     result_values_dict = {}
+    result_value = []
+    result_point_id = []
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         await client.start()
@@ -168,6 +170,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
     QUERY_TIME_LOG = func_check_data_mybatis(statement,0,"QUERY_TIME_LOG")
     QUERY_ALL_DEVICES = func_check_data_mybatis(statement,1,"QUERY_ALL_DEVICES")
     QUERY_INSERT_SYNCDATA= func_check_data_mybatis(statement,2,"QUERY_INSERT_SYNCDATA")
+    QUERY_SELECT_COUNT_POINTLIST= func_check_data_mybatis(statement,3,"QUERY_SELECT_COUNT_POINTLIST")
     
     if QUERY_TIME_LOG != -1 and QUERY_ALL_DEVICES  != -1:
         pass
@@ -179,6 +182,10 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
     information_uploadtable = MySQL_Select(QUERY_TIME_LOG,(id_device_fr_sys,))
     #---------------------------------------------------------------------------------------------------------------
     while True:
+        
+        current_time = get_utc()
+        current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+        year,month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second
         global status_device    
         global msg_device 
         global status_register
@@ -186,11 +193,10 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
         global statusfile
         global type_file
         data_to_write =""
-        timeonline =""
-    
-        current_time = get_utc()
-        current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-        year , month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second
+        data_infile = ""
+        timeonline = current_time
+        point_id = ""
+
         #-----------------------------------------------------
         for item in information_uploadtable:
             time = item["time_log_interval"]
@@ -230,9 +236,19 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                         file_name = f'{head_file}{sql_id:03d}_{formatted_time1}.txt'
                         file_path = os.path.join(date_folder_path, file_name)
                         source_file = date_folder_path + "\\" + file_name
+                        
+                        array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINTLIST,(id_device_fr_sys,))
+                        count = array_count_point[0]['COUNT(*)']
+
+                        if not data_to_write:
+                            data_infile = ["" for i in range(count)]
+                        else:
+                            data_infile = [str(val) for val in data_to_write]
+
                         with open(file_path, 'w') as file:
                             formatted_time2 = "'" + time_file + "'"
-                            file.write(f'{formatted_time2},0,0,0,{','.join(data_to_write)}')
+                            file.write(f'{formatted_time2},0,0,0,{",".join(data_infile)}')
+                            
                             # code pud data MQTT ----------------------------------------------------------------- 
                             statusfile = "Success"
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
@@ -249,7 +265,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                             "FILE_NAME":file_name,
                             "Timestamp" :current_time,
                             "TimeOnline" :timeonline,
-                            "DATA_LOG":[data_to_write]
+                            "DATA_LOG":[data_infile]
                             }
                             
                             func_mqtt_public(host,
@@ -261,17 +277,16 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                             #----------------------------------------------------------------- 
                             # Write data to corresponding devices in the database-------------
                             time_insert_dev = get_utc()
-                            value_insert = (time_insert_dev, sql_id) + tuple(data_to_write)
+                            value_insert = (time_insert_dev, sql_id , id_device_fr_sys) + tuple(data_to_write) 
                             MySQL_Insertv2 (f'dev_{sql_id:05d}', point_id ,value_insert)       
                             #-----------------------------------------------------------------
                             # Write file creation data into the sync_data table -------------- 
                             time_insert = get_utc()
                             values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
-                                    f'{formatted_time2},0,0,0,{','.join(data_to_write)}', id_device_fr_sys,modbus_device, date_folder_path, 
-                                    source_file, type_file, current_time, f'{formatted_time2},0,0,0,{','.join(data_to_write)}', id_device_fr_sys)
+                                    f'{formatted_time2},0,0,0,{','.join(data_infile)}', id_device_fr_sys,modbus_device, date_folder_path, 
+                                    source_file, type_file, current_time, f'{formatted_time2},0,0,0,{','.join(data_infile)}', id_device_fr_sys)
                             MySQL_Insertv1(QUERY_INSERT_SYNCDATA,values)
                             # ----------------------------------------------------------------
-                            print("---------------------------------", sql_id)
                     except Exception as e:
                         statusfile = "Fault"
                         print(f"Error during file creation is : {e}")
@@ -298,4 +313,5 @@ async def main():
     
 if __name__ == "__main__":
     asyncio.run(main())
+
 
