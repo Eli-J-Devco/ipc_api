@@ -22,15 +22,15 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from config import *
 from libMySQL import *
 
-# add code MrVu ----------------------> Use passing parameters to file
+# Use passing parameters to file
 arr = sys.argv
-print(f'arr: {arr}')
+# print(f'arr: {arr}')
 # ------------------------------------
-result_list = []
-status_device = ""     
-msg_device = ""
-status_register = ""
-status_file = "Success"
+result_list =[]
+status_device =""     
+msg_device =""
+status_register =""
+status_file ="Success"
 
 # Variables 
 MQTT_BROKER = Config.MQTT_BROKER
@@ -49,8 +49,14 @@ DATABASE_NAME = Config.DATABASE_NAME
 FOLDER_PATH = Config.FOLDER_PATH_LOG
 HEAD_FILE_LOG = Config.HEAD_FILE_LOG
 
-# find path directory relative
-
+#----------------------------------------
+# /**
+# 	 * @description find path directory relative
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {project_name}
+# 	 * @return result
+# 	 */
 def path_directory_relative(project_name):
     if project_name =="":
         return -1
@@ -65,10 +71,45 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
-
-print(path)
-
-def func_mqtt_public(host, port,topic, username, password, data_send):
+#----------------------------------------
+# /**
+# 	 * @description check query in mybatis
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {data,item,object_name}
+# 	 * @return {}
+# 	 */
+def func_check_data_mybatis(data,item,object_name):
+    try:
+        
+        if data[item].get(object_name):
+            return data[item].get(object_name)
+        else:
+            return ""
+        
+    except Exception as err:
+        print('Error not find object mybatis')
+    return 
+#----------------------------------------
+# /**
+# 	 * @description take time 
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {}
+# 	 * @return datetime
+# 	 */
+def get_utc():
+    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return now
+# ----- MQTT -----
+# /**
+# 	 * @description public data MQTT
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {host, port,topic, username, password, data_send}
+# 	 * @return data ()
+# 	 */
+def push_data_to_mqtt(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
         publish.single(topic, payload, hostname=host,
@@ -84,23 +125,7 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
         
         print(f"Error MQTT public: '{err}'")
         pass
-    
-def func_check_data_mybatis(data,item,object_name):
-    try:
-        
-        if data[item].get(object_name):
-            return data[item].get(object_name)
-        else:
-            return ""
-        
-    except Exception as err:
-        print('Error not find object mybatis')
-    return 
-
-def get_utc():
-    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    return now
-# Describe functions before writing code
+#--------------------------------------------------------------------
 # /**
 # 	 * @description subscribe data from MQTT
 # 	 * @author bnguyen
@@ -155,8 +180,17 @@ async def get_data_from_MQTT(host, port, topic, username, password):
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
-
-async def sync_file(base_path,id_device,head_file,host, port, topic, username, password):
+#--------------------------------------------------------------------
+# /**
+# 	 * @description 
+#       - create and write data in file  
+#       - sync data file with database 
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {host, port, topic, username, password}
+# 	 * @return result_list 
+# 	 */ 
+async def create_and_write_data_to_file(base_path,id_device,head_file,host, port, topic, username, password):
     
     # code + func_check_data_mybatis + path_directory_relative => Get query from file logfile.xml according to path
     pathSource=path#ConfigPara[2]
@@ -183,7 +217,6 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
     count = array_count_point[0]['COUNT(*)']
     #---------------------------------------------------------------------------------------------------------------
     while True:
-        
         current_time = get_utc()
         current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
         year,month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second
@@ -197,7 +230,6 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
         data_in_file = ""
         time_online = current_time
         point_id = ""
-
         #-----------------------------------------------------
         for item in information_upload_table:
             time = item["time_log_interval"]
@@ -233,7 +265,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                         os.makedirs(date_folder_path, exist_ok=True)
                         time_file = get_utc()
                         time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-                        formatted_time1 = time_file_datetime.strftime("%Y%m%d_%H%M%S").replace(":", "_")
+                        formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
                         file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
                         file_path = os.path.join(date_folder_path, file_name)
                         source_file = date_folder_path + "\\" + file_name
@@ -252,9 +284,9 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
                             ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
                             if ts_timestamp - ts_online < 10 :
-                                status_device = "DATA NEW"
+                                status_device ="NEW"
                             else :
-                                status_device = "DATA OLD"
+                                status_device ="OLD"
                                 pass
                             data_mqtt={
                             "ID_DEVICE":sql_id_str,
@@ -266,7 +298,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                             "DATA_LOG":[data_in_file]
                             }
                             
-                            func_mqtt_public(host,
+                            push_data_to_mqtt(host,
                                     port,
                                     topic + f"/{type_file}/"+sql_id_str+"|"+device_name,
                                     username,
@@ -292,7 +324,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
     
 async def main():
     tasks = []
-    tasks.append(asyncio.create_task(sync_file(FOLDER_PATH,
+    tasks.append(asyncio.create_task(create_and_write_data_to_file(FOLDER_PATH,
                                                     arr,
                                                     HEAD_FILE_LOG,
                                                     MQTT_BROKER,
