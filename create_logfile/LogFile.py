@@ -180,6 +180,8 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
     
     result_all = await MySQL_Selectv1(QUERY_ALL_DEVICES)
     information_uploadtable = MySQL_Select(QUERY_TIME_LOG,(id_device_fr_sys,))
+    array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINTLIST,(id_device_fr_sys,))
+    count = array_count_point[0]['COUNT(*)']
     #---------------------------------------------------------------------------------------------------------------
     while True:
         
@@ -233,13 +235,10 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                         time_file = get_utc()
                         time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
                         formatted_time1 = time_file_datetime.strftime("%Y%m%d_%H%M%S").replace(":", "_")
-                        file_name = f'{head_file}{sql_id:03d}_{formatted_time1}.txt'
+                        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
                         file_path = os.path.join(date_folder_path, file_name)
                         source_file = date_folder_path + "\\" + file_name
                         
-                        array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINTLIST,(id_device_fr_sys,))
-                        count = array_count_point[0]['COUNT(*)']
-
                         if not data_to_write:
                             data_infile = ["" for i in range(count)]
                         else:
@@ -278,7 +277,7 @@ async def sync_file(base_path,id_device,head_file,host, port, topic, username, p
                             # Write data to corresponding devices in the database-------------
                             time_insert_dev = get_utc()
                             value_insert = (time_insert_dev, sql_id , id_device_fr_sys) + tuple(data_to_write) 
-                            MySQL_Insertv2 (f'dev_{sql_id:05d}', point_id ,value_insert)       
+                            MySQL_Insertv2(f'dev_{sql_id:05d}', point_id ,value_insert)       
                             #-----------------------------------------------------------------
                             # Write file creation data into the sync_data table -------------- 
                             time_insert = get_utc()
