@@ -5,6 +5,7 @@
 # *********************************************************/
 import requests
 from jose import jwt
+
 # access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE2OTcxMjk3NTd9.TgD8dqoSGaLnJb6GX7-H6fGu3vAkqv-BQM2vuDua27E"
 access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozNCwiZXhwIjoxNjk3NTQwMjQ4fQ.CBCTpBRLFhQ9iKwd6rAXVuq9vdiol5H3fGWcw51YZ8E'
 secret_key = "09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7"
@@ -97,15 +98,18 @@ def test_update_post():
         'Authorization': 'Bearer ' + str(access_token)
     }
 
-    print(payload)
+    # print(payload)
     data = {
         "title": "vu",
         "content": "vu",
         "published": 1,
+        "id":333
         # "owner_id": 2,
     }
+    # response = requests.post(
+    #     'http://127.0.0.1:8000/device_list/delete/', headers=headersAuth, json=data, verify=True)
     response = requests.post(
-        'http://127.0.0.1:8000/users/update/', headers=headersAuth, json=data, verify=True)
+        'http://127.0.0.1:8000/device_list/delete/?id=1', json=data, verify=True)
     j = response.json()
     print(j)
 
@@ -113,5 +117,6 @@ def test_update_post():
 # test_create_user()
 # test_login_user()
 # test_create_posts()
-test_get_one_post()
+# test_get_one_post()
 # decode_token()
+test_update_post()

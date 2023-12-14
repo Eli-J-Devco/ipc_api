@@ -290,39 +290,39 @@ class Device_point_list(Base):
     id_point_list = Column(Integer, ForeignKey(
         "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     # # -------------------------------------------------- 
-    name = Column(String(255), nullable=False)
-    nameedit = Column(Boolean, nullable=False, default=True)
-    id_type_units = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    unitsedit = Column(Boolean, nullable=False, default=True)
-    equation = Column(Boolean, nullable=False, default=True)
-    config = Column(Integer, nullable=False)
-    register = Column(Integer, nullable=False)
-    id_type_datatype = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    id_type_byteorder = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    slope = Column(DOUBLE, nullable=False)
-    slopeenabled = Column(Boolean, nullable=False, default=True)
-    offset = Column(DOUBLE, nullable=False)
-    offsetenabled = Column(Boolean, nullable=False, default=True)
-    multreg = Column(Integer, nullable=False)
-    multregenabled = Column(Boolean, nullable=True, default=True)
-    userscaleenabled = Column(Boolean, nullable=False, default=True)
-    invalidvalue = Column(Integer, nullable=False)
-    invalidvalueenabled = Column(Boolean, nullable=False, default=True)
-    extendednumpoints = Column(Integer, nullable=True)
-    extendedregblocks = Column(Integer, nullable=True)
-    status = Column(Boolean, nullable=False, default=True)
-    # 
+    # name = Column(String(255), nullable=False)
+    # nameedit = Column(Boolean, nullable=False, default=True)
+    # id_type_units = Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    # unitsedit = Column(Boolean, nullable=False, default=True)
+    # equation = Column(Boolean, nullable=False, default=True)
+    # config = Column(Integer, nullable=False)
+    # register = Column(Integer, nullable=False)
+    # id_type_datatype = Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # id_type_byteorder = Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # slope = Column(DOUBLE, nullable=False)
+    # slopeenabled = Column(Boolean, nullable=False, default=True)
+    # offset = Column(DOUBLE, nullable=False)
+    # offsetenabled = Column(Boolean, nullable=False, default=True)
+    # multreg = Column(Integer, nullable=False)
+    # multregenabled = Column(Boolean, nullable=True, default=True)
+    # userscaleenabled = Column(Boolean, nullable=False, default=True)
+    # invalidvalue = Column(Integer, nullable=False)
+    # invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    # extendednumpoints = Column(Integer, nullable=True)
+    # extendedregblocks = Column(Integer, nullable=True)
+    # status = Column(Boolean, nullable=False, default=True)
+    # # 
     template_library  = relationship('Template_library', foreign_keys=[id_template])
     device_group  = relationship('Device_group', foreign_keys=[id_device_group])
     device_list  = relationship('Device_list', foreign_keys=[id_device_list])
     point_list  = relationship('Point_list', foreign_keys=[id_point_list])
     
-    type_units  = relationship('Config_information', foreign_keys=[id_type_units])
-    type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
-    type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    # type_units  = relationship('Config_information', foreign_keys=[id_type_units])
+    # type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
+    # type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
     # 
 # 
 class Register_block(Base):
@@ -350,17 +350,17 @@ class Device_register_block(Base):
     id_register_block = Column(Integer, ForeignKey(
         "register_block.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     # --------------------------------------------------
-    addr = Column(Integer, nullable=False)
-    count = Column(Integer, nullable=False)
-    id_type_function = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    status = Column(Boolean, nullable=False, default=True)
+    # addr = Column(Integer, nullable=False)
+    # count = Column(Integer, nullable=False)
+    # id_type_function = Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # status = Column(Boolean, nullable=False, default=True)
     template_library  = relationship('Template_library', foreign_keys=[id_template])
     device_group  = relationship('Device_group', foreign_keys=[id_device_group])
     device_list  = relationship('Device_list', foreign_keys=[id_device_list])
     register_block  = relationship('Register_block', foreign_keys=[id_register_block])
     # --------------------------------------------------
-    type_function  = relationship('Config_information', foreign_keys=[id_type_function])   
+    # type_function  = relationship('Config_information', foreign_keys=[id_type_function])   
 # 
 class Test(Base):
     __tablename__ = "test"

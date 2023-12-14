@@ -101,11 +101,11 @@ def get_all_device( db: Session = Depends(get_db), ):
 def get_device_config( db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
-    device_type_query = db.query(models.device_type)
+    device_type_query = db.query(models.Device_type)
     if not device_type_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device type does not exist")
-    device_group_query = db.query(models.device_group)
+    device_group_query = db.query(models.Device_group)
     if not device_group_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device group does not exist")
@@ -186,14 +186,14 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
 
                     
                     # read file mybatis query sql
-                    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+'/mybatis/device.xml')
-                    statement = mybatis_mapper2sql.get_statement(
-                    mapper, result_type='list', reindent=True, strip_comments=True)
-                            
-                    sql_query=statement[0]["create_device"]
-                    sql_register_block=statement[1]["insert_device_register_block"]
-                    sql_point_list=statement[2]["insert_device_point_list"]
-                    sql_select_device=statement[4]["select_all_device"]
+    
+                    result_mybatis=get_mybatis('/mybatis/device.xml')
+                    
+                    sql_query=result_mybatis["create_device"]
+                    sql_register_block=result_mybatis["insert_device_register_block"]
+                    sql_point_list=result_mybatis["insert_device_point_list"]
+                    sql_select_device=result_mybatis["select_all_device"]
+                    
                     id=new_device.id
                     id_communication=new_device.id_communication
                     # create table new device
@@ -628,7 +628,7 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
 # 	 * @param {id,db}
 # 	 * @return data (DevicePointListOut)
 # 	 */
-@router.get('/point_list/', response_model=schemas.DevicePointListOut)
+@router.get('/point_list/', response_model=list[schemas.DevicePointListOut])
 def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
     
     # ----------------------
@@ -639,7 +639,10 @@ def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device with id: {id} does not exist")
 
-    return {"point_list":device_point_list_query}
+    # return {"point_list":device_point_list_query}
+    return device_point_list_query
+
+
 # Describe functions before writing code
 # /**
 # 	 * @description delete device
@@ -649,8 +652,14 @@ def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
 # 	 * @return data (DeviceState)
 # 	 */
 @router.post("/delete/", response_model=schemas.DeviceState)
-async def delete_device(id: int,db: Session = Depends(get_db)):
+async def delete_device(
+                        # id: int,
+                       
+                        delete_device: schemas.DeviceDelete,
+                        db: Session = Depends(get_db)):
     try:
+        print('------------------------------')
+        print(delete_device)
         device_list_query = db.query(models.Device_list).filter(
         models.Device_list.id == id).filter(
         models.Device_list.status == 1).first()
@@ -674,9 +683,7 @@ async def delete_device(id: int,db: Session = Depends(get_db)):
             print('delete device TCP ------')
             # delete device TCP ------
             
-            connect_type=result_driver.name
-            id=id
-        
+            connect_type=result_driver.name   
             # delete data in table device_list -----
             result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
             db.commit()

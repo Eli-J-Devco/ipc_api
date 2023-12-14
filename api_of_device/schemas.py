@@ -112,6 +112,10 @@ class MultipleDeviceCreate(BaseModel):
                 
         #     }
         # }
+class DeviceDelete(BaseModel):
+    id: Optional[int] =  Field(description="API endpoint to mock")
+    class Config:
+        orm_mode = True
 class DeviceUpdateBase(BaseModel):
     id: Optional[int] = None # Device number
     name: Optional[str] = None
@@ -126,6 +130,8 @@ class DeviceUpdateBase(BaseModel):
         # populate_by_name = True
         # from_attributes = True
         orm_mode = True
+        
+
 # <- Communication ->
 class CommunicationBase(BaseModel):
     name: Optional[str] = None
@@ -528,17 +534,7 @@ class PointListBase(BaseModel):
     id_pointkey : Optional[int] = None
     # --------------------------------------------------
     id_template : Optional[int] = None
-    class Config:
-        orm_mode = True
-class DevicePointListBase(BaseModel):
-    id : Optional[int] = None
-    id_pointkey : Optional[int] = None
-    # --------------------------------------------------
-    id_template : Optional[int] = None
-    id_device_group : Optional[int] = None
-    id_device_list : Optional[int] = None
-    id_point_list : Optional[int] = None
-    # -------------------------------------------------- 
+    # 
     name : Optional[str] = None
     nameedit : Optional[bool] = None
     id_type_units : Optional[int] = None
@@ -561,19 +557,57 @@ class DevicePointListBase(BaseModel):
     extendedregblocks : Optional[int] = None
     status : Optional[bool] = None
     # 
+    type_units  : Optional[TypeUnitsBase] = None
+    type_datatype  : Optional[DataTypeBase] = None 
+    type_byteorder  : Optional[TypeByteOrderBase] = None 
+    # 
+    class Config:
+        orm_mode = True
+class DevicePointListBase(BaseModel):
+    id : Optional[int] = None
+    id_pointkey : Optional[int] = None
+    # --------------------------------------------------
+    id_template : Optional[int] = None
+    id_device_group : Optional[int] = None
+    id_device_list : Optional[int] = None
+    id_point_list : Optional[int] = None
+    # -------------------------------------------------- 
+    # name : Optional[str] = None
+    # nameedit : Optional[bool] = None
+    # id_type_units : Optional[int] = None
+    # unitsedit : Optional[bool] = None
+    # equaltion : Optional[bool] = None
+    # config : Optional[int] = None
+    # register : Optional[int] = None
+    # id_type_datatype : Optional[int] = None
+    # id_type_byteorder : Optional[int] = None
+    # slope : Optional[float] = None
+    # slopeenabled : Optional[int] = None
+    # offset : Optional[float] = None
+    # offsetenabled : Optional[bool] = None
+    # multreg : Optional[int] = None
+    # multregenabled : Optional[bool] = None
+    # userscaleenabled : Optional[bool] = None
+    # invalidvalue : Optional[int] = None
+    # invalidvalueenabled : Optional[bool] = None
+    # extendednumpoints : Optional[int] = None
+    # extendedregblocks : Optional[int] = None
+    # status : Optional[bool] = None
+    # 
     template_library : TemplateBase
     device_group  : DeviceGroupBase
     device_list  : DeviceListBase
     point_list  : PointListBase
     
-    type_units  : Optional[TypeUnitsBase] = None
-    type_datatype  : Optional[DataTypeBase] = None 
-    type_byteorder  : Optional[TypeByteOrderBase] = None 
+    # type_units  : Optional[TypeUnitsBase] = None
+    # type_datatype  : Optional[DataTypeBase] = None 
+    # type_byteorder  : Optional[TypeByteOrderBase] = None 
     class Config:
         orm_mode = True
         from_attributes = True
-class DevicePointListOut(BaseModel):
-    point_list: list[DevicePointListBase]
+class DevicePointListOut(DevicePointListBase):
+    # point_list: list[DevicePointListBase]
+    
     class Config:
         orm_mode = True
 # <-  -> 
