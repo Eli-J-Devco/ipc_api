@@ -9,6 +9,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import mybatis_mapper2sql
+
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -121,32 +123,12 @@ def restart_program_pm2(app_name):
                 
         out, err = shellscript.communicate()
         result = json.loads(out)             
-        # print("----- pm2 list ----- ")
         app_detect=0
         for item in result:
-            name = item['name']
-            namespace = item['pm2_env']['namespace']
-            mode = item['pm2_env']['exec_mode']
-            pid = item['pid']
-            uptime = item['pm2_env']['pm_uptime']
-            status = item['pm2_env']['status']
-            cpu = item['monit']['cpu']
-            mem = item['monit']['memory'] / 1000000
-            # print(f'namespace: {namespace}')
-            # print(f'mode: {mode}')
-            # print(f'pid: {pid}')
-            # print(f'uptime: {uptime}')
-            # print(f'status: {status}')
-            # print(f'cpu: {cpu}')
-            # print(f'mem: {mem}')
-            # print(f'name: {name}')
-            # app_name=f'Dev|{str(id)}|'
-                    
+            name = item['name']                   
             if name.find(app_name)==0:
-                print(f'Find channel RS485: {name}')
                 os.system(f'pm2 restart "{name}"')
                 app_detect=1
-        print(f'app_detect: {app_detect}')
         if app_detect==1:
             return 100
         else:
@@ -380,3 +362,21 @@ def hash(password: str):
 # 	 */
 def verify(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+# Describe functions before writing code
+# /**
+# 	 * @description get_mybatis
+# 	 * @author vnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {file_name}
+# 	 * @return data (query)
+# 	 */
+def get_mybatis(file_name):
+    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
+    statement = mybatis_mapper2sql.get_statement(
+                mapper, result_type='list', reindent=True, strip_comments=True)
+    result={}
+    for item,value in enumerate(statement):
+      for key in value.keys():
+        result[key]=value[key]   
+
+    return result  

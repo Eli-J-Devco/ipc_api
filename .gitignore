@@ -5,5 +5,7 @@
 /__pycache__
 /api_of_device/__pycache__
 /api_of_device/routers/__pycache__
-.env
 vscode-extensions.list
+.env1
+.env2
+.env

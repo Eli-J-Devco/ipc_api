@@ -6,6 +6,7 @@
 from datetime import datetime
 from typing import List, Optional
 
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, EmailStr, Field
 from pydantic.types import conint
 
@@ -64,15 +65,15 @@ class DeviceState(BaseModel):
     class Config:
         orm_mode = True
 class DeviceCreate(BaseModel):
-    id: Optional[int] = None # Device number
+    # id: Optional[int] = None # Device number
     name: Optional[str] = None
     device_virtual: Optional[bool] = False
     # Modbus device connected
-    id_communication: Optional[int] = Field(..., title="The price must be greater than zero") 
+    id_communication: Optional[int] = Field(...,) 
     # driver_list_name:Optional[str] = None # table driver_list
     
     rtu_bus_address: Optional[int] = None
-    tcp_gateway_port: Optional[int] = None
+    tcp_gateway_port: Optional[int] = Field(...,examples=[502])
     tcp_gateway_ip: Optional[str] = None
     id_device_type: Optional[int] = None
     id_device_group: Optional[int] = None
@@ -82,6 +83,35 @@ class DeviceCreate(BaseModel):
         # populate_by_name = True
         # from_attributes = True
         orm_mode = True
+class MultipleDeviceCreate(BaseModel):
+    # id: Optional[int] = None # Device number
+    name: Optional[str]  = Field(...,description="") 
+    device_virtual: Optional[bool] =  Field(...,examples=[False],description="") 
+    # Modbus device connected
+    id_communication: Optional[int] = Field(...,description="") 
+    rtu_bus_address: Optional[int] = Field(...,) 
+    tcp_gateway_port: Optional[int] = Field(...,examples=[502]) 
+    tcp_gateway_ip: Optional[str] = Field(...,) 
+    id_device_type: Optional[int] = Field(...,) 
+    id_device_group: Optional[int] = Field(...,) 
+    in_addcount: Optional[int] = Field(...,) 
+    in_addmode: Optional[int] = Field()
+    # 
+    # in_addmode: Optional[int] = Field(Query(
+    #     description="When adding, increment",
+    # ))
+    class Config:
+        orm_mode = True
+        # allow_population_by_field_name = True
+        # populate_by_name = True
+        # from_attributes = True
+        # json_schema_extra
+        # schema_extra  = {
+        #     "example": {
+        #         "name": "Mike",
+                
+        #     }
+        # }
 class DeviceUpdateBase(BaseModel):
     id: Optional[int] = None # Device number
     name: Optional[str] = None
@@ -194,6 +224,10 @@ class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
+    class Config:
+        orm_mode = True
+class Point_RegisterBase(BaseModel):
+    
     class Config:
         orm_mode = True
 # <- device_group ->
