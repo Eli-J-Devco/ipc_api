@@ -25,9 +25,25 @@ WHERE
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
   </select>
-
+  
   <select id="QUERY_SELECT_COUNT_POINT_LIST">
   SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
   </select>
 
+  </select>
+  
+  <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
+  CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
+SELECT 
+    `device_point_list`.`dev_00001` AS id_device,
+    `point_list`.`name` 
+FROM 
+    `device_point_list`
+INNER JOIN 
+    `point_list`  ON `device_point_list`.`id` = `point_list`.`id`;
+
+SELECT COUNT(*) FROM temp_table WHERE id_device = %s;
+
+  </select>
 </mapper>
+
