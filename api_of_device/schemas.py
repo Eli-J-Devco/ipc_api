@@ -113,7 +113,8 @@ class MultipleDeviceCreate(BaseModel):
         #     }
         # }
 class DeviceDelete(BaseModel):
-    id: Optional[int] =  Field(description="API endpoint to mock")
+    id: Optional[int] =  Field(...)
+    mode:Optional[int] =  Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
     class Config:
         orm_mode = True
 class DeviceUpdateBase(BaseModel):

@@ -11,7 +11,8 @@ import uvicorn
 from database import engine
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
+                                  get_swagger_ui_oauth2_redirect_html)
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from routers import (auth, device_list, ethernet, project, rs485,
@@ -77,6 +78,9 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
             headers={"WWW-Authenticate": "Basic"},
         )
     return credentials.username
+# @app.get(app.swagger_ui_oauth2_redirect_url, include_in_schema=False)
+# async def swagger_ui_redirect():
+#     return get_swagger_ui_oauth2_redirect_html()
 
 # Describe functions before writing code
 # /**
@@ -88,7 +92,12 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 # 	 */
 @app.get("/docs", include_in_schema=False)
 async def get_swagger_documentation(username: str = Depends(get_current_username)):
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
+    return get_swagger_ui_html(openapi_url="/openapi.json",
+                                title="docs",
+                                # oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
+                                swagger_js_url="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui-bundle.js",
+                                swagger_css_url="https://unpkg.com/swagger-ui-dist@5.9.0/swagger-ui.css",
+                               )
 # Describe functions before writing code
 # /**
 # 	 * @description api redoc
@@ -100,7 +109,13 @@ async def get_swagger_documentation(username: str = Depends(get_current_username
 
 @app.get("/redoc", include_in_schema=False)
 async def get_redoc_documentation(username: str = Depends(get_current_username)):
-    return get_redoc_html(openapi_url="/openapi.json", title="docs")
+    return get_redoc_html(openapi_url="/openapi.json", 
+                          title="docs",
+                          redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+                        redoc_favicon_url="https://fastapi.tiangolo.com/img/favicon.png",
+                        with_google_fonts=True
+                          )
+    # return get_swagger_ui_html(openapi_url="/openapi.json", title="docs")
 # Describe functions before writing code
 # /**
 # 	 * @description openapi.json

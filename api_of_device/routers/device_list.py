@@ -449,14 +449,15 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
                         new_device_list.append(new_device)
                 db.add_all(new_device_list)
                 db.flush()           
-                mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+'/mybatis/device.xml')
-                statement = mybatis_mapper2sql.get_statement(
-                mapper, result_type='list', reindent=True, strip_comments=True)
+            
                 # create table new device            
-                sql_query=statement[0]["create_device"]
-                sql_register_block=statement[1]["insert_device_register_block"]
-                sql_point_list=statement[2]["insert_device_point_list"]
-                sql_select_device=statement[4]["select_all_device"]
+                result_mybatis=get_mybatis('/mybatis/device.xml')
+                sql_query=result_mybatis["create_device"]
+                sql_register_block=result_mybatis["insert_device_register_block"]
+                sql_point_list=result_mybatis["insert_device_point_list"]
+                sql_select_device=result_mybatis["select_all_device"]
+                
+                
                 # 
                 for idd,item in enumerate(new_device_list):
                         try:
@@ -653,18 +654,22 @@ def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
 # 	 */
 @router.post("/delete/", response_model=schemas.DeviceState)
 async def delete_device(
-                        # id: int,
-                       
                         delete_device: schemas.DeviceDelete,
                         db: Session = Depends(get_db)):
     try:
-        print('------------------------------')
-        print(delete_device)
+        
+        if not delete_device.mode in [1,2] :
+            return {"status": "error","code": str(300)}
+        id=delete_device.id
         device_list_query = db.query(models.Device_list).filter(
         models.Device_list.id == id).filter(
-        models.Device_list.status == 1).first()
-        result=device_list_query
+        models.Device_list.status == 1)
+        
+        result=device_list_query.first()
+        if not result:
+            return {"status": "error","code": str(300)}
         result_communication=None
+        mode=delete_device.mode
         try:
             result_communication=result.communication # accessing a non-existing attribute communication
         except AttributeError as e:
@@ -681,33 +686,41 @@ async def delete_device(
         id_communication=result.id_communication
         if result_driver.name == "Modbus/TCP":
             print('delete device TCP ------')
-            # delete device TCP ------
-            
-            connect_type=result_driver.name   
-            # delete data in table device_list -----
-            result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
-            db.commit()
-            print(f'device_list: {result_delete_device_list}')
-            # delete app running in pm2
-            result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
-            print(f'result_pm2: {result_pm2}')
-            restart_program_pm2(f'Log')
-            return {"status": "success","code": str(100)}
+            # Deactivate/delete device TCP ------
+            connect_type=result_driver.name
+            if mode ==1:
+                # Deactivate device in table device_list -----
+                device_list_query.filter(models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
+                db.commit()
+                # delete app running in pm2
+                result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
+                print(f'result_pm2: {result_pm2}')
+                restart_program_pm2(f'Log')
+                return {"status": "success","code": str(100)}
+            if mode ==2:
+                # Delete data device in table device_list -----
+                result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
+                db.commit()
+                result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
+                print(f'result_pm2: {result_pm2}')
+                restart_program_pm2(f'Log')
+                return {"status": "success","code": str(100)}
             
         elif result_driver.name == "RS485":
-            mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+'/mybatis/device.xml')
-            statement = mybatis_mapper2sql.get_statement(
-                    mapper, result_type='list', reindent=True, strip_comments=True)
-                        
-            sql_query=statement[0]["create_device"]
-            sql_register_block=statement[1]["insert_device_register_block"]
-            sql_point_list=statement[2]["insert_device_point_list"]
-            sql_select_device=statement[4]["select_all_device"]
-            # delete data in table device_list -----
-            result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
-            db.commit()
-            print(f'device_list: {result_delete_device_list}')
-            # 
+            result_mybatis=get_mybatis('/mybatis/device.xml')
+            sql_query=result_mybatis["create_device"]
+            sql_register_block=result_mybatis["insert_device_register_block"]
+            sql_point_list=result_mybatis["insert_device_point_list"]
+            sql_select_device=result_mybatis["select_all_device"]
+            
+            if mode ==1:
+                # Deactivate device in table device_list -----
+                device_list_query.filter(models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
+                db.commit()
+            if mode ==2:   
+                # Delete data device in table device_list -----
+                result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
+                db.commit()
             result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
             if result_find_app_pm2==100:
                 result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')
@@ -937,15 +950,18 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
 # 	 */
 @router.post('/template_library/', response_model=schemas.DevicePointListOut)
 def get_template_library(id: int, db: Session = Depends(get_db) ):
-    
+    device_group_query = db.query(models.Device_group).filter(
+        models.Device_group.id == id).first()
+    print(device_group_query.template.point_list.__dict__)
     # ----------------------
-    device_point_list_query = db.query(models.Device_point_list).filter(
-        models.Device_point_list.id_device_list == id).all()
-    # 
-    if not device_point_list_query:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Device with id: {id} does not exist")
+    # device_point_list_query = db.query(models.Device_point_list).filter(
+    #     models.Device_point_list.id_device_list == id).all()
+    # # 
+    # if not device_point_list_query:
+    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+    #                         detail=f"Device with id: {id} does not exist")
 
-    return {"point_list":device_point_list_query,
+    return {
+            "point_list":[],
             "register_block":[]
             }
