@@ -135,7 +135,7 @@ def MySQL_Insert_v2(table_name,len_val,val):
     result = None
     try:
         # Create a list of columns
-        columns = ['time', 'id_device','id_upload_channel']
+        columns = ['time', 'id_device']
         for i in range(len(len_val)):
             columns.append(f'pt{i}')
 

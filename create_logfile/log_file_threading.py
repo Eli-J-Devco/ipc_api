@@ -71,6 +71,25 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+# Describe functions before writing code
+# /**
+# 	 * @description get_mybatis
+# 	 * @author vnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {file_name}
+# 	 * @return data (query)
+# 	 */
+def get_mybatis(file_name):
+    print(path+file_name)
+    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
+    statement = mybatis_mapper2sql.get_statement(
+                mapper, result_type='list', reindent=True, strip_comments=True)
+    result={}
+    for item,value in enumerate(statement):
+        for key in value.keys():
+            result[key]=value[key]   
+
+    return result  
 #----------------------------------------
 # /**
 # 	 * @description check query in mybatis
@@ -192,27 +211,23 @@ async def get_data_from_MQTT(host, port, topic, username, password):
 # 	 */ 
 async def create_and_write_data_to_file(base_path,id_device,head_file,host, port, topic, username, password):
     
-    # code + func_check_data_mybatis + path_directory_relative => Get query from file logfile.xml according to path
-    pathSource=path#ConfigPara[2]
-    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-    xml=pathSource + '/mybatis/logfile.xml')
-    statement = mybatis_mapper2sql.get_statement(
-    mapper, result_type='list', reindent=True, strip_comments=True) 
-    
     id_device_fr_sys = id_device[1]
-    QUERY_TIME_LOG = func_check_data_mybatis(statement,0,"QUERY_TIME_LOG")
-    QUERY_ALL_DEVICES = func_check_data_mybatis(statement,1,"QUERY_ALL_DEVICES")
-    QUERY_INSERT_SYNC_DATA= func_check_data_mybatis(statement,2,"QUERY_INSERT_SYNC_DATA")
-    QUERY_SELECT_COUNT_POINT_LIST= func_check_data_mybatis(statement,3,"QUERY_SELECT_COUNT_POINT_LIST")
+    result_mybatis=get_mybatis('/mybatis/logfile.xml')
+    QUERY_TIME_SYNC_DATA=result_mybatis["QUERY_TIME_SYNC_DATA"]
+    QUERY_ALL_DEVICES=result_mybatis["QUERY_ALL_DEVICES"]
+    QUERY_INSERT_SYNC_DATA=result_mybatis["QUERY_INSERT_SYNC_DATA"]
+    QUERY_SELECT_COUNT_POINT_LIST=result_mybatis["QUERY_SELECT_COUNT_POINT_LIST"]
+    QUERY_TIME_CREATE_FILE=result_mybatis["QUERY_TIME_CREATE_FILE"]
     
-    if QUERY_TIME_LOG != -1 and QUERY_ALL_DEVICES  != -1:
+    if QUERY_TIME_SYNC_DATA != -1 and QUERY_ALL_DEVICES  != -1 and QUERY_INSERT_SYNC_DATA  != -1 and QUERY_SELECT_COUNT_POINT_LIST  != -1 and QUERY_TIME_CREATE_FILE  != -1 :
         pass
     else:           
         print("Error not found data in file mybatis")
         return -1
     
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    information_upload_table = MySQL_Select(QUERY_TIME_LOG,(id_device_fr_sys,))
+    time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(id_device_fr_sys,))
     count = array_count_point[0]['COUNT(*)']
     #---------------------------------------------------------------------------------------------------------------
@@ -230,14 +245,15 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
         data_in_file = ""
         time_online = current_time
         point_id = ""
+        
         #-----------------------------------------------------
-        for item in information_upload_table:
+        for item in time_create_file_insert_data_table_dev:
             time = item["time_log_interval"]
             position = time.rfind("minute")
             number = time[:position]
             int_number = int(number)
             
-        for item in information_upload_table:
+        for item in time_sync_data:
             type_file = item["type_protocol"]
         
         # File creation time 
@@ -279,6 +295,14 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
                             formatted_time2 = "'" + time_file + "'"
                             file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
                             
+                            # Write file creation data into the sync_data table -------------- 
+                            time_insert = get_utc()
+                            values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
+                                    f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys,modbus_device, date_folder_path, 
+                                    source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
+                            MySQL_Insert_v1(QUERY_INSERT_SYNC_DATA,values)
+                            print(f"sync data vào database thành công theo chu kì {int_number} phút 10s ")
+                            
                             # code pud data MQTT ----------------------------------------------------------------- 
                             status_file = "Success"
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
@@ -304,19 +328,7 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
                                     username,
                                     password,
                                     data_mqtt)
-                            #----------------------------------------------------------------- 
-                            # Write data to corresponding devices in the database-------------
-                            time_insert_dev = get_utc()
-                            value_insert = (time_insert_dev, sql_id , id_device_fr_sys) + tuple(data_to_write) 
-                            MySQL_Insert_v2(f'dev_{sql_id:05d}', point_id ,value_insert)       
                             #-----------------------------------------------------------------
-                            # Write file creation data into the sync_data table -------------- 
-                            time_insert = get_utc()
-                            values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
-                                    f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys,modbus_device, date_folder_path, 
-                                    source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
-                            MySQL_Insert_v1(QUERY_INSERT_SYNC_DATA,values)
-                            # ----------------------------------------------------------------
                     except Exception as e:
                         status_file = "Fault"
                         print(f"Error during file creation is : {e}")
@@ -343,5 +355,3 @@ async def main():
     
 if __name__ == "__main__":
     asyncio.run(main())
-
-

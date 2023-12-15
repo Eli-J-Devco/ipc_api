@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="Test">
-  <select id="QUERY_TIME_LOG">
+  <select id="QUERY_TIME_SYNC_DATA">
     SELECT 
     upload_channel.id AS id_device,
     config_information1.description AS type_protocol ,
@@ -30,7 +30,7 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice
   SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
   </select>
 
-  </select>
+
   
   <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
   CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
@@ -45,5 +45,15 @@ INNER JOIN
 SELECT COUNT(*) FROM temp_table WHERE id_device = %s;
 
   </select>
+
+  <select id="QUERY_TIME_CREATE_FILE">
+      SELECT 
+    config_information.name AS time_log_interval 
+FROM 
+    project_setup
+INNER JOIN 
+    config_information ON project_setup.id_logging_interval = config_information.id
+  </select>
+
 </mapper>
 
