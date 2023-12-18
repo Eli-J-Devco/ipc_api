@@ -209,7 +209,7 @@ async def get_data_from_MQTT(host, port, topic, username, password):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def create_and_write_data_to_file(base_path,id_device,head_file,host, port, topic, username, password):
+async def create_and_write_data_to_file(sql_id,base_path,id_device,head_file,host, port, topic, username, password):
     
     id_device_fr_sys = id_device[1]
     result_mybatis=get_mybatis('/mybatis/logfile.xml')
@@ -244,8 +244,6 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
         data_to_write =""
         data_in_file = ""
         time_online = current_time
-        point_id = ""
-        
         #-----------------------------------------------------
         for item in time_create_file_insert_data_table_dev:
             time = item["time_log_interval"]
@@ -258,11 +256,9 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
         
         # File creation time 
             if minute % int_number == 0 and second % 10 == 0:
-                for item in result_all:
-                    sql_id = item["id"]
                     sql_id_str = str(sql_id)
-                    device_name = item["name"]
-                    modbus_device = item["rtu_bus_address"]
+                    device_name = [item['name'] for item in result_all if item['id'] == sql_id][0]
+                    modbus_device = [item['rtu_bus_address'] for item in result_all if item['id'] == sql_id][0]
                     
                     DictID = [item for item in result_list if item["id"] == sql_id]
                     
@@ -272,9 +268,6 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
                         
                     for item in DictID:
                         time_online = item["time"]
-                        
-                    for item in DictID:
-                        point_id = item["point_id"]
                         
                     date_folder_path = os.path.join(base_path, f"{id_device_fr_sys}\\{type_file}\\{sql_id}\\{year}\\{month}\\{day}")
                     try:
@@ -295,14 +288,12 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
                             formatted_time2 = "'" + time_file + "'"
                             file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
                             
-                            # Write file creation data into the sync_data table -------------- 
+                            # code write data in table sync data ------------------------------------------------------------------
                             time_insert = get_utc()
                             values = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert, 
                                     f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys,modbus_device, date_folder_path, 
                                     source_file, type_file, current_time, f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
                             MySQL_Insert_v1(QUERY_INSERT_SYNC_DATA,values)
-                            print(f"sync data vào database thành công theo chu kì {int_number} phút 10s ")
-                            
                             # code pud data MQTT ----------------------------------------------------------------- 
                             status_file = "Success"
                             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
@@ -324,34 +315,43 @@ async def create_and_write_data_to_file(base_path,id_device,head_file,host, port
                             
                             push_data_to_mqtt(host,
                                     port,
-                                    topic + f"/{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
+                                    topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
                                     username,
                                     password,
                                     data_mqtt)
-                            #-----------------------------------------------------------------
+                            #----------------------------------------------------------------- 
                     except Exception as e:
                         status_file = "Fault"
                         print(f"Error during file creation is : {e}")
             await asyncio.sleep(1)
     
 async def main():
+    result_mybatis = get_mybatis('/mybatis/logfile.xml')
+    QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
+
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    print("----------------------------", result_all)
     tasks = []
-    tasks.append(asyncio.create_task(create_and_write_data_to_file(FOLDER_PATH,
-                                                    arr,
-                                                    HEAD_FILE_LOG,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_PUB,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD)))
-    tasks.append(asyncio.create_task(get_data_from_MQTT(MQTT_BROKER,
-                                                            MQTT_PORT,
-                                                            MQTT_TOPIC_SUB,
-                                                            MQTT_USERNAME,
-                                                            MQTT_PASSWORD
-                                                            )))
+    for item in result_all:
+        sql_id = item["id"]
+        print(sql_id)
+        tasks.append(asyncio.create_task(create_and_write_data_to_file(sql_id,
+                                                                        FOLDER_PATH,
+                                                                        arr,
+                                                                        HEAD_FILE_LOG,
+                                                                        MQTT_BROKER,
+                                                                        MQTT_PORT,
+                                                                        MQTT_TOPIC_PUB,
+                                                                        MQTT_USERNAME,
+                                                                        MQTT_PASSWORD)))
+        tasks.append(asyncio.create_task(get_data_from_MQTT(MQTT_BROKER,
+                                                                MQTT_PORT,
+                                                                MQTT_TOPIC_SUB,
+                                                                MQTT_USERNAME,
+                                                                MQTT_PASSWORD)))
+
+    # Move the gather outside the loop to wait for all tasks to complete
     await asyncio.gather(*tasks, return_exceptions=False)
-    #-------------------------------------
-    
+
 if __name__ == "__main__":
     asyncio.run(main())

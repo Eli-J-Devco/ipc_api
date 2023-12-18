@@ -249,7 +249,7 @@ async def update_data_for_device_in_database():
                         sql_id = item["id"]
 
                         DictID = next((item for item in result_list if item["id"] == sql_id), None)
-                        
+                        # DictID = [item for item in result_list if item["id"] == sql_id][0]
                         if DictID:
                             data_to_write = DictID["data"]
                             point_id = DictID["point_id"]
