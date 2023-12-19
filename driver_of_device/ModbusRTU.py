@@ -539,6 +539,7 @@ async def monitoring_device(host, port,topic, username, password
                 data_mqtt={
                 "ID_DEVICE":device_id,
                 "STATUS_DEVICE":item['STATUS_DEVICE'],
+                "TIME_STAMP":getUTC(),
                 "MSG_DEVICE":item['MSG_DEVICE'],
                 "STATUS_REGISTER":item['STATUS_REGISTER'],
                 "POINT_LIST":item['POINT_LIST'],
