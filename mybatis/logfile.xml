@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="Test">
-  <select id="QUERY_TIME_LOG">
+  <select id="QUERY_TIME_SYNC_DATA">
     SELECT 
     upload_channel.id AS id_device,
     config_information1.description AS type_protocol ,
@@ -25,9 +25,35 @@ WHERE
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
   </select>
-
+  
   <select id="QUERY_SELECT_COUNT_POINT_LIST">
   SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
   </select>
 
+
+  
+  <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
+  CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
+SELECT 
+    `device_point_list`.`dev_00001` AS id_device,
+    `point_list`.`name` 
+FROM 
+    `device_point_list`
+INNER JOIN 
+    `point_list`  ON `device_point_list`.`id` = `point_list`.`id`;
+
+SELECT COUNT(*) FROM temp_table WHERE id_device = %s;
+
+  </select>
+
+  <select id="QUERY_TIME_CREATE_FILE">
+      SELECT 
+    config_information.name AS time_log_interval 
+FROM 
+    project_setup
+INNER JOIN 
+    config_information ON project_setup.id_logging_interval = config_information.id
+  </select>
+
 </mapper>
+
