@@ -380,3 +380,27 @@ def get_mybatis(file_name):
         result[key]=value[key]   
 
     return result  
+# Describe functions before writing code
+# /**
+# 	 * @description get_mybatis
+# 	 * @author vnguyen
+# 	 * @since 22-12-2023
+# 	 * @param {auth}
+# 	 * @return data (or_auth)
+# 	 */
+def convert_binary_auth(auth):
+    try:
+        result_auth=""
+        for i,item in enumerate(auth):
+            if i < len(auth)-1:
+                result_auth=result_auth + str(item)+"|"
+            else:
+                result_auth=result_auth + str(item)
+        if not result_auth:
+            return 0
+        else:
+            return int(bin(eval(result_auth)),2)
+    except Exception as err:
+        print('Convert_binary_auth: '+err)
+        return 0
+        

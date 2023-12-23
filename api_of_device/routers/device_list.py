@@ -117,7 +117,7 @@ def get_device_config( db: Session = Depends(get_db), ):
     result_device_group=[]
     for item in device_group_query.all():
         new_item=item.__dict__
-        new_item["template"]=item.template.__dict__
+        new_item["templates_library"]=item.templates_library.__dict__
         result_device_group.append(new_item) 
     result_device_list=[]
     for item in device_list_query.all():
@@ -627,9 +627,9 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
 # 	 * @author vnguyen
 # 	 * @since 04-12-2023
 # 	 * @param {id,db}
-# 	 * @return data (DevicePointListOut)
+# 	 * @return data (DevicePointListBase)
 # 	 */
-@router.get('/point_list/', response_model=list[schemas.DevicePointListOut])
+@router.get('/point_list/', response_model=list[schemas.DevicePointListBase])
 def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
     
     # ----------------------
@@ -946,22 +946,74 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
 # 	 * @author vnguyen
 # 	 * @since 13-12-2023
 # 	 * @param {id,db}
-# 	 * @return data (DevicePointListOut)
+# 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/template_library/', response_model=schemas.DevicePointListOut)
-def get_template_library(id: int, db: Session = Depends(get_db) ):
-    device_group_query = db.query(models.Device_group).filter(
+@router.post('/get_template_point/', response_model=schemas.PointOutBase)
+def get_template_point(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+    try:
+        device_group_query = db.query(models.Device_group).filter(
         models.Device_group.id == id).first()
-    print(device_group_query.template.point_list.__dict__)
-    # ----------------------
-    # device_point_list_query = db.query(models.Device_point_list).filter(
-    #     models.Device_point_list.id_device_list == id).all()
-    # # 
-    # if not device_point_list_query:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-    #                         detail=f"Device with id: {id} does not exist")
+        if not device_group_query:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Device with id: {id} does not exist")
+        print(device_group_query.__dict__)
+        config_point = db.query(models.Config_information).filter(models.Config_information.status 
+                                                                                   == 1).all()
+        data_type=[]
+        data_type = [item.__dict__ for item in config_point if item.id_type == 1]
+        byte_order=[]
+        byte_order = [item.__dict__ for item in config_point if item.id_type == 2]
+        point_unit=[]
+        point_unit = [item.__dict__ for item in config_point if item.id_type == 3]
+        # print(data_type)
+        return {
+           "device_group": device_group_query,
+        #    "data_type":data_type,
+        #    "byte_order":byte_order,
+        #    "point_unit":point_unit
+        }
+        # if hasattr(device_group_query, 'templates_library'):
+        #     print('Have templates_library')
+        #     print(getattr(device_group_query,"templates_library"))
+            # templates_library=device_group_query.templates_library
+            # if hasattr(templates_library, 'point_list'):
+            #     print('Have point_list')
+            #     print(getattr(templates_library,"point_list"))
+                
+            #     # point_list=templates_library.point_list
+            #     point_list =[item.__dict__ for item in templates_library.point_list]
+            
+    except Exception as err: 
+        print('Error : ',err)
 
-    return {
-            "point_list":[],
-            "register_block":[]
-            }
+# Describe functions before writing code
+# /**
+# 	 * @description edit point list
+# 	 * @author vnguyen
+# 	 * @since 18-12-2023
+# 	 * @param {id,db}
+# 	 * @return data (DeviceGroupOutBase)
+# 	 */
+@router.post('/update_template_point/', response_model=schemas.DeviceGroupOutBase)
+def update_template_point(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+    try:
+        pass
+    except Exception as err: 
+        print('Error : ',err)
+# Describe functions before writing code
+# /**
+# 	 * @description delete point list
+# 	 * @author vnguyen
+# 	 * @since 18-12-2023
+# 	 * @param {id,db}
+# 	 * @return data (DeviceGroupOutBase)
+# 	 */
+
+# Describe functions before writing code
+# /**
+# 	 * @description add point list
+# 	 * @author vnguyen
+# 	 * @since 18-12-2023
+# 	 * @param {id,db}
+# 	 * @return data (DeviceGroupOutBase)
+# 	 */

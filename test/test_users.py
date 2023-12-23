@@ -3,13 +3,16 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+from pprint import pprint
+
 import requests
 from jose import jwt
 
-# access_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE2OTcxMjk3NTd9.TgD8dqoSGaLnJb6GX7-H6fGu3vAkqv-BQM2vuDua27E"
-access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozNCwiZXhwIjoxNjk3NTQwMjQ4fQ.CBCTpBRLFhQ9iKwd6rAXVuq9vdiol5H3fGWcw51YZ8E'
-secret_key = "09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7"
 algorithm = "HS256"
+secret_key = "09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7"
+REFRESH_SECRET_KEY="4845118e9928805aea99b052f2ef7426c885325a109bed4171a84303b9594e8d"
+refresh_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozOCwiZXhwIjoxNzAzNzI5NTA5fQ.AlFV4ekWvI-zCQBOBzDddnqldW-HT1awuHOdUayV3dM'
+access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozOCwiZXhwIjoxNzAzMTI4MzA5fQ.Tb3-ZElJCf640A_RzjsY146xN8-32hTVLJW7N0k9zPY'
 
 
 def test_create_user():
@@ -34,7 +37,7 @@ def test_login_user():
     # defining the api-endpoint
     API_ENDPOINT = "http://127.0.0.1:8000/login"
     payload = {
-        'username': 'vnguyen@nwemon.com',
+        'username': 'nguyenvudtd@gmail.com',
         'password': '12345'
     }
     # sending post request and saving response as response object
@@ -43,7 +46,7 @@ def test_login_user():
 
     # extracting response text
     data = r.json()
-    print("The pastebin URL is:%s" % data)
+    pprint("The pastebin URL is:%s" % data, sort_dicts=False)
     # payload = jwt.decode(login_res.access_token,
     #                      settings.secret_key, algorithms=[settings.algorithm])
 
@@ -76,7 +79,7 @@ def test_get_one_post():
     payload = jwt.decode(access_token,
                          secret_key, algorithms=[algorithm])
     print(payload)
-    user_id = payload['user_id']
+    user_id = 38 #payload['user_id']
     # Test OK
     headersAuth = {
         # 'WWW-Authenticate': 'Bearer ' + str(access_token),
@@ -113,10 +116,26 @@ def test_update_post():
     j = response.json()
     print(j)
 
+def test_refresh_token():
+    # Test OK
+    # defining the api-endpoint
+    API_ENDPOINT = "http://127.0.0.1:8000/refresh_token/"
+    payload = {
+        'refresh_token': refresh_token
+    }
+    # sending post request and saving response as response object
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    response= requests.post(url=API_ENDPOINT, json=payload)
 
-# test_create_user()
-# test_login_user()
+    # extracting response text
+    data = response.json()
+    pprint("The pastebin URL is:%s" % data)
+    # payload = jwt.decode(login_res.access_token,
+    #   
+# # test_create_user()
+test_login_user()
 # test_create_posts()
 # test_get_one_post()
 # decode_token()
-test_update_post()
+# test_update_post()
+# test_refresh_token()

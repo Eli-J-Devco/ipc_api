@@ -26,7 +26,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->
 cd api_of_device
 python main.py
-uvicorn main:app --reload
+uvicorn main:app --reload 
 http://127.0.0.1:8000/docs#/
 <!-- Fast API JWT  -->
 https://www.freecodecamp.org/news/how-to-add-jwt-authentication-in-fastapi/

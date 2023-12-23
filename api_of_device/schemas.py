@@ -3,12 +3,16 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import uuid
 from datetime import datetime
+from hashlib import sha256
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import (BaseModel, EmailStr, Field, computed_field,
+                      root_validator, validator)
 from pydantic.types import conint
+from pydantic_computed import Computed, computed
 
 
 # from sqlalchemy import 
@@ -231,6 +235,7 @@ class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
+    
     class Config:
         orm_mode = True
 class Point_RegisterBase(BaseModel):
@@ -243,7 +248,7 @@ class DeviceGroupBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
     id_template: Optional[int] = None
-    template: TemplateBase
+    templates_library: TemplateBase
     class Config:
         orm_mode = True
 
@@ -311,7 +316,7 @@ class SiteInformBase(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None
-   
+
 class SiteInformOut(SiteInformBase):
     id: Optional[int] = None
    
@@ -471,12 +476,43 @@ class ProjectState(BaseModel):
     class Config:
         orm_mode = True
 # <- User ->
+class ScreenBase(BaseModel):
+    id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+    
+    class Config:
+        orm_mode = True
+        
+class RoleBase(BaseModel):
+    id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+    class Config:
+        orm_mode = True
+class RoleOut(RoleBase):
+    class Config:
+        orm_mode = True
+class RoleScreenBase(BaseModel):
+    id_role: Optional[int] = None
+    id_screen: Optional[int] = None
+    auths: Optional[int] = None
+    status: Optional[bool] = None
+    screen: Optional[ScreenBase] = None
+    role: Optional[RoleBase] = None
+    
+    
+    class Config:
+        orm_mode = True
+
 class UserBase(BaseModel):
     email: EmailStr
     password: str
     fullname: str
     phone: str
-    id_language: int
+    id_language: Optional[int] = Field(...,examples=[1])
     # last_login: datetime
     # date_joined: datetime
     # status: bool = True
@@ -495,8 +531,33 @@ class UserOut(BaseModel):
 
     class Config:
         orm_mode = True
+class UserLoginOut(BaseModel):
+    fullname: str
+    phone: str
+    id_language: int
+    # last_login: datetime
+    # date_joined: datetime
+
+    # status: bool = True
+    # is_active: bool = False
+    auth: Optional[int] = None
+
+    class Config:
+        orm_mode = True
 class UserCreate(UserBase):
     pass
+class UserRoleCreate(UserBase):
+    class Role(BaseModel):
+        id: Optional[int] = None
+        class Config:
+            orm_mode = True
+    role: list[Role]
+    class Config:
+        orm_mode = True
+class UserRoleOut(UserOut):
+    
+    class Config:
+        orm_mode = True
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -506,6 +567,18 @@ class UserStateOut(BaseModel):
     desc: Optional[str] = None
     class Config:
         orm_mode = True
+class UserRoleBase(BaseModel):
+    id_user: Optional[int] = None
+    id_role: Optional[int] = None
+    auths: Optional[int] = None
+    status: Optional[bool] = None
+    
+    user: Optional[UserOut] = None
+    role: Optional[RoleBase] = None
+    
+    class Config:
+        orm_mode = True
+
 # <- device_point_list ->
 class TypeUnitsBase(BaseModel):
     id: Optional[int] = Field(..., alias='id')
@@ -562,6 +635,12 @@ class PointListBase(BaseModel):
     type_datatype  : Optional[DataTypeBase] = None 
     type_byteorder  : Optional[TypeByteOrderBase] = None 
     # 
+    # templates_library : TemplateBase
+    # device_group  : DeviceGroupBase
+    # device_list  : DeviceListBase
+    # point_list  : PointListBase
+    
+  
     class Config:
         orm_mode = True
 class DevicePointListBase(BaseModel):
@@ -595,10 +674,10 @@ class DevicePointListBase(BaseModel):
     # extendedregblocks : Optional[int] = None
     # status : Optional[bool] = None
     # 
-    template_library : TemplateBase
-    device_group  : DeviceGroupBase
-    device_list  : DeviceListBase
-    point_list  : PointListBase
+    # template_library : TemplateBase
+    # device_group  : DeviceGroupBase
+    # device_list  : DeviceListBase
+    # point_list  : PointListBase
     
     # type_units  : Optional[TypeUnitsBase] = None
     # type_datatype  : Optional[DataTypeBase] = None 
@@ -606,19 +685,80 @@ class DevicePointListBase(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
-class DevicePointListOut(DevicePointListBase):
-    # point_list: list[DevicePointListBase]
-    
+class PointBase(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+# <-  -> 
+class TemplateOutBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    point_list : list[PointListBase]
     class Config:
         orm_mode = True
 # <-  -> 
+class PointDataType(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Data Type')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointByteOrder(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Byte Order')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointUnit(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Unit')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+# <-  -> 
+class DeviceGroupOutBase(BaseModel):
+    id: str 
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    # id_template: Optional[int] = None
+    # templates_library: TemplateOutBase
+    
+    class Config:
+        validate_assignment = True
+    # @validator("id", pre=True, always=True)
+    # def _encryption_id(cls, id: str):
+    #     id_hash=str(id)
+    #     return sha256(id_hash.encode('utf-8')).hexdigest()
+
+class PointOutBase(BaseModel):
+    device_group:DeviceGroupOutBase
+    # data_type:list[PointDataType]
+    # byte_order:list[PointByteOrder]
+    # point_unit:list[PointUnit]
+    class Config:
+        orm_mode = True
+# class AuthBase(UserOut):
+    
+#     class Config:
+#         orm_mode = True
 # <-  -> 
 # <-  -> 
 # <-  -> 
 # <-  -> 
 class Token(BaseModel):
+    
+    refresh_token: str
     access_token: str
     token_type: str
-
+    user: Optional[UserLoginOut] = None
+    screen: list[ScreenBase]
+    role:list[RoleBase]
 class TokenData(BaseModel):
     id: Optional[str] = None
+class TokenItem(BaseModel):
+    refresh_token: Optional[str] = None

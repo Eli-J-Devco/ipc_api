@@ -20,9 +20,10 @@ pandas
 uvicorn
 jwt
 python-jose
-pydantic-settings
 passlib
-pydantic
+pydantic==2.4.2
+pydantic-settings==2.1.0
+pydantic_core==2.10.1
 pydantic[email]
 python-multipart
 mysql-connector-python
@@ -37,3 +38,6 @@ WMI
 pyroute2
 pyuac
 passlib
+python-dotenv
+pydantic_computed
+schedule
