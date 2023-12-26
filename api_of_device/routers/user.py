@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import copy
 import datetime
 import json
 import random
@@ -35,7 +36,7 @@ router = APIRouter(
 # 	 * @author vnguyen
 # 	 * @since 30-11-2023
 # 	 * @param {UserCreate,db}
-# 	 * @return data (new_user)
+# 	 * @return data (UserStateOut)
 # 	 */
 @router.post("/create_user", status_code=status.HTTP_201_CREATED, response_model=schemas.UserStateOut)
 def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
@@ -88,6 +89,44 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
                 "code": "100",
                 "desc":""
             }
+        except exc.SQLAlchemyError as err:
+            db.rollback()
+            return {
+                "status": "error",
+                "code": "300",
+                "desc":""
+                }
+# Describe functions before writing code
+# /**
+# 	 * @description manager user
+# 	 * @author vnguyen
+# 	 * @since 26-12-2023
+# 	 * @param {UserCreate,db}
+# 	 * @return data (new_user)
+# 	 */
+@router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=list[schemas.UserRoleOut])
+def get_all_user( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+        try:
+            user_query = db.query(models.User).filter(models.User.status == 1)
+            result_user=user_query.all()
+            if not result_user:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                    detail=f"User empty")
+            user_list=[]
+            for item_user in result_user:
+                result_user_role = db.query(models.User_role_map).filter(
+                models.User_role_map.id_user == item_user.id).all()
+                role_list=[]
+                for item_role in result_user_role:
+                    role_list.append({
+                            "id": item_role.role.id,
+                            "name": item_role.role.name,
+                    })
+                user_list.append({
+                    **item_user.__dict__,
+                    "role":role_list
+                })
+            return user_list
         except exc.SQLAlchemyError as err:
             db.rollback()
             return {
@@ -175,6 +214,41 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
                 }
 # Describe functions before writing code
 # /**
+# 	 * @description delete user
+# 	 * @author vnguyen
+# 	 * @since 26-12-2023
+# 	 * @param {id}
+# 	 * @return data (RoleScreenState)
+# 	 */
+@router.post("/delete/user/", response_model=schemas.UserStateOut)
+def delete_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
+    
+
+    try:
+        user_query = db.query(models.User).filter(
+        models.User.id == id).filter(
+        models.User.status == 1)
+        result_role=user_query.first()
+        if not result_role:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"User with id: {id} does not exist")
+            
+        user_query.delete(synchronize_session=False)
+        db.commit()
+        return {
+                    "status": "success",
+                    "code": "100",
+                    "desc":""
+                }
+    except exc.SQLAlchemyError as err:
+        print(err)
+        return {
+                    "status": "error",
+                    "code": "300",
+                    "desc":""
+                    }
+# Describe functions before writing code
+# /**
 # 	 * @description get user
 # 	 * @author vnguyen
 # 	 * @since 30-11-2023
@@ -183,10 +257,27 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
 # 	 */
 @router.post('/only_user', response_model=schemas.UserRoleOut)
 # def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
-def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db)):
+def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     # print(f'id: {id}')
     # ----------------------
     user = db.query(models.User).filter(models.User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"User with id: {id} does not exist")
+    result_user_role = db.query(models.User_role_map).filter(
+        models.User_role_map.id_user == user.id).all()
+    role_list=[]
+    for item_role in result_user_role:
+         if hasattr(item_role, 'role'):
+             role_list.append({
+                    "id": item_role.role.id,
+                    "name": item_role.role.name,
+             })
+    
+   
+    result={**user.__dict__,"role":role_list}
+   
+    
     # ----- only one row -----
     # users=user.__dict__
     # print(f'{users}')
@@ -201,11 +292,9 @@ def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(ge
     #                         detail="Not authorized to perform requested action")
     
     # ----------------------
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} does not exist")
+    
 
-    return user
+    return result
 
 # Describe functions before writing code
 # /**
@@ -215,35 +304,87 @@ def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(ge
 # 	 * @param {id,UserCreate,db,current_user}
 # 	 * @return data (UserOut)
 # 	 */
-@router.post("/update/", response_model=schemas.UserOut)
+@router.post("/update_user/", response_model=schemas.UserStateOut)
 def update_user( updated_user: schemas.UserUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        id=updated_user.id
+        user_query = db.query(models.User).filter(models.User.id == id)
+        result_user=user_query.first()
+        
+        if not result_user:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                        detail=f"User with id: { updated_user.id} does not exist")
+        user_query.update(dict( fullname=updated_user.fullname,
+                                phone=updated_user.phone,
+                                id_language=updated_user.id_language), synchronize_session=False)
+        user_role_query= db.query(models.User_role_map).filter(models.User_role_map.id_user == id)
+        result_delete=user_role_query.delete(synchronize_session=False)
+        new_user_role_list=[]
+        for item in updated_user.role:
+            new_user_role=models.User_role_map( id_user=id,
+                                                id_role=item.id,     
+                                                )
+            new_user_role_list.append(new_user_role)
+        if new_user_role_list:
+            db.add_all(new_user_role_list)
+            db.flush()
+        # 
+        db.commit()
+        # db.refresh(new_user)
+        # cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",
+        #                (post.title, post.content, post.published, str(id)))
 
-    # cursor.execute("""UPDATE posts SET title = %s, content = %s, published = %s WHERE id = %s RETURNING *""",
-    #                (post.title, post.content, post.published, str(id)))
-
-    # updated_post = cursor.fetchone()
-    # conn.commit()
-    # current_user.id
-    print('update ------------------------')
-    id=current_user.id
-    # hashed_password = utils.hash(updated_user.password)
-    user_query = db.query(models.User).filter(models.User.id == id)
-
-    user = user_query.first()
-
-    if user == None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"user with id: {id} does not exist")
-
-
-    user_query.update(dict( fullname=updated_user.fullname,
-                            phone=updated_user.phone,
-                            id_language=updated_user.id_language), synchronize_session=False)
-
-    db.commit()
-
-    return user_query.first()
-
+        # updated_post = cursor.fetchone()
+        # conn.commit()
+        # current_user.id
+        # print('update ------------------------')
+        # id=current_user.id
+        return {
+                        "status": "success",
+                        "code": "100",
+                        "desc":"",
+                        
+                    }
+    except exc.SQLAlchemyError as err:
+            db.rollback()
+            return {
+                "status": "error",
+                "code": "300",
+                "desc":""
+                }
+# Describe functions before writing code
+# /**
+# 	 * @description active user
+# 	 * @author vnguyen
+# 	 * @since 26-12-2023
+# 	 * @param {db}
+# 	 * @return data (RoleOut)
+# 	 */
+@router.post("/active_user/", response_model=schemas.UserStateOut)
+def active_user( updated_user: schemas.UserActive, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        id=updated_user.id
+        user_query = db.query(models.User).filter(models.User.id == id)
+        result_user=user_query.first()
+        
+        if not result_user:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                        detail=f"User with id: { updated_user.id} does not exist")
+        user_query.update(dict(is_active=updated_user.active), synchronize_session=False)
+        db.commit()
+        return {
+                        "status": "success",
+                        "code": "100",
+                        "desc":"",
+                        
+                    }
+    except exc.SQLAlchemyError as err:
+            db.rollback()
+            return {
+                "status": "error",
+                "code": "300",
+                "desc":""
+                }
 # Describe functions before writing code
 # /**
 # 	 * @description create role
@@ -325,19 +466,19 @@ def delete_role(id: Optional[int] = Body(embed=True), db: Session = Depends(get_
 # 	 * @return data (RoleScreenState)
 # 	 */
 @router.post("/update/role/", response_model=schemas.RoleScreenState)
-def update_role(create_role: schemas.RoleUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+def update_role(update_role: schemas.RoleUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     
 
     try:
         role_query = db.query(models.Role).filter(
-        models.Role.id == create_role.id).filter(
+        models.Role.id == update_role.id).filter(
         models.Role.status == 1)
         result_role=role_query.first()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role with id: {id} does not exist")
             
-        role_query.update(create_role.dict(),synchronize_session=False)
+        role_query.update(update_role.dict(),synchronize_session=False)
         db.commit()
         return {
                     "status": "success",
@@ -422,3 +563,24 @@ def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Dep
                     "code": "300",
                     "desc":""
                     }
+        
+# Describe functions before writing code
+# /**
+# 	 * @description get all role
+# 	 * @author vnguyen
+# 	 * @since 26-12-2023
+# 	 * @param {db}
+# 	 * @return data (RoleOut)
+# 	 */
+@router.post('/all_role', response_model=list[schemas.RoleOut])
+def get_all_role( db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
+    # print(f'id: {id}')
+    # ----------------------
+    result_role = db.query(models.Role).filter(models.Role.status == 1).all()
+    if not result_role:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Role empty")
+   
+
+    return result_role
+

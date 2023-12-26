@@ -550,8 +550,8 @@ class UserOut(BaseModel):
     fullname: str
     phone: str
     id_language: int
-    last_login: datetime
-    date_joined: datetime
+    # last_login: datetime
+    # date_joined: datetime
 
     status: bool = True
     is_active: bool = False
@@ -572,13 +572,17 @@ class UserLoginOut(BaseModel):
     class Config:
         orm_mode = True
 class UserUpdate(BaseModel):
-    
-    # id:Optional[int] = None
+    class Role(BaseModel):
+        id: Optional[int] = None
+        class Config:
+            orm_mode = True
+    id:Optional[int] = None
     email: EmailStr
     fullname: Optional[str] = None
     phone: Optional[str] = None
     id_language: Optional[int] = None
     
+    role: list[Role]
     class Config:
         orm_mode = True
 class UserChangePassword(BaseModel):
@@ -600,29 +604,23 @@ class UserRoleCreate(UserBase):
     class Config:
         orm_mode = True
 class UserRoleOut(UserOut):
-    
+    role: list[RoleOut]
     class Config:
         orm_mode = True
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+class UserActive(BaseModel):
+    id: Optional[int] = None
+    active: Optional[bool] = None
+    
 class UserStateOut(BaseModel):
     status: Optional[str] = None
     code: Optional[str] = None
     desc: Optional[str] = None
     class Config:
         orm_mode = True
-# class UserRoleBase(BaseModel):
-#     id_user: Optional[int] = None
-#     id_role: Optional[int] = None
-#     auths: Optional[int] = None
-#     status: Optional[bool] = None
-    
-#     user: Optional[UserOut] = None
-#     role: Optional[RoleBase] = None
-    
-#     class Config:
-#         orm_mode = True
+
 
 # <- device_point_list ->
 class TypeUnitsBase(BaseModel):

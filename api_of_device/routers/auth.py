@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import datetime
 import sys
 from pprint import pprint
 
@@ -41,19 +42,25 @@ from utils import convert_binary_auth
 @router.post('/login/', response_model=schemas.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
     pprint(user_credentials.username)
-    user = db.query(models.User).filter(
-        models.User.email == user_credentials.username).first()
+    user_query = db.query(models.User).filter(
+        models.User.email == user_credentials.username)
+    result_user=user_query.first()
 
-    if not user:
+    if not result_user:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=f"Invalid Credentials")
-
-    if not utils.verify(user_credentials.password, user.password):
+    now = datetime.datetime.now(
+            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    user_query.update(dict( 
+                            last_login=now,    
+                           ), synchronize_session=False)
+    db.commit()
+    if not utils.verify(user_credentials.password, result_user.password):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail=f"Invalid Credentials")
     
     result_user_role = db.query(models.User_role_map).filter(
-        models.User_role_map.id_user == user.id).all()
+        models.User_role_map.id_user == result_user.id).all()
     
     # print(f'result_role: {result_user_role.role.__dict__}')
     if not result_user_role:
@@ -95,23 +102,23 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     # get all screen
     result_screen= db.query(models.Screen).all()
     if not result_screen:
-       raise HTTPException(status_code=404, detail="Screen list empty")
-    result_user=schemas.UserLoginOut(
-        fullname=user.fullname,
-        phone=user.phone,
-        id_language=user.id_language,
+        raise HTTPException(status_code=404, detail="Screen list empty")
+    result_user_out=schemas.UserLoginOut(
+        fullname=result_user.fullname,
+        phone=result_user.phone,
+        id_language=result_user.id_language,
         auth=result_auth
     )
     # refresh a token
-    refresh_token= oauth2.create_refresh_token(data={"user_id": user.id})
+    refresh_token= oauth2.create_refresh_token(data={"user_id": result_user.id})
     # create a token
-    access_token = oauth2.create_access_token(data={"user_id": user.id})
+    access_token = oauth2.create_access_token(data={"user_id": result_user.id})
     # return token
     
     return {"refresh_token": refresh_token,
             "access_token": access_token, 
             "token_type": "bearer",
-            "user":result_user,
+            "user":result_user_out,
             "screen":result_screen,
             "role":role_list
             }
