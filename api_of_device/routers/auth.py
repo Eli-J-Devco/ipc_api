@@ -59,23 +59,34 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     if not result_user_role:
        raise HTTPException(status_code=404, detail="Role map not found")
     auth_list=[]
-   
+    # [{'id': 1, 'name': 'Admin', 'description': None, 'status': True, 
+    #   'screen': [{'id_role': 1, 'id_screen': 1, 'screen': 'Overview'}, {'id_role': 1, 'id_screen': 2, 'screen': 'Login'}, {'id_role': 1, 'id_screen': 3, 'screen': 'Quick Start'}]}, 
+    #  {'id': 2, 'name': 'Manager', 'description': None, 'status': True, 
+    #   'screen': [{'id_role': 2, 'id_screen': 1, 'screen': 'Overview'}]}]
     role_list=[]
     for item in result_user_role:
+
+        new_role_screen=[]
+        if hasattr(item.role, 'role_map'):
+            for item_role_screen in item.role.role_map:
+                if hasattr(item_role_screen, 'screen'):
+                    new_item_role_screen={
+                        "id":item_role_screen.screen.id,
+                        "name":item_role_screen.screen.name,
+                        "description":item_role_screen.screen.description,
+                        "status":item_role_screen.screen.status,
+                        "auth":item_role_screen.auths
+                    }
+                    new_role_screen.append(new_item_role_screen)
         new_item={
             "id": item.role.id,
             "name": item.role.name,
             "description": item.role.description,
             "status": item.role.status,
-        }
-        new_role_screen=[]
-        for item_role_screen in item.role.role_map:
-            
+            "screen":new_role_screen
+            }
         role_list.append(new_item)
     for item_role in result_user_role:
-        # print(f'result_user: {item.__dict__}')
-        # print(f'result_role: {item.role.__dict__}')
-        # print(f'result_role_map: {item.role.role_map[0].__dict__}')
         if hasattr(item_role.role, 'role_map'):
             for item_role_screen in item_role.role.role_map:
                 if hasattr(item_role_screen, 'auths'):

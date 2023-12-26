@@ -18,6 +18,10 @@ python -m venv venv
 source venv/Scripts/activate
 <!-- install all package python -->
 pip install -r requirements.txt
+pydantic==2.5.3
+pydantic-settings==2.1.0
+pydantic_core==2.14.1
+pydantic[email]
 <!-- FastAPI -->
 https://fastapi.tiangolo.com/
 https://www.gormanalysis.com/blog/building-a-simple-crud-application-with-fastapi/

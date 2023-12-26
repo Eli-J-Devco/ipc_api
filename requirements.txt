@@ -12,19 +12,15 @@ sqlalchemy
 eventlet
 flask_cors
 cryptography
-bcrypt
+bcrypt==3.2.0
 flask-bcrypt
 psutil
 redis
 pandas
 uvicorn
 jwt
-python-jose
+python-jose==3.3.0
 passlib
-pydantic==2.4.2
-pydantic-settings==2.1.0
-pydantic_core==2.10.1
-pydantic[email]
 python-multipart
 mysql-connector-python
 mybatis-mapper2sql
@@ -41,3 +37,5 @@ passlib
 python-dotenv
 pydantic_computed
 schedule
+python-dotenv
+APScheduler

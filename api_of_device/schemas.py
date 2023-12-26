@@ -477,36 +477,63 @@ class ProjectState(BaseModel):
         orm_mode = True
 # <- User ->
 class ScreenBase(BaseModel):
-    id: Optional[int] = None 
+    # id: Optional[int] = None 
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[bool] = None
     
     class Config:
         orm_mode = True
-        
-class RoleBase(BaseModel):
+class ScreenOut(ScreenBase):
     id: Optional[int] = None 
     name: Optional[str] = None
     description: Optional[str] = None
     status: Optional[bool] = None
+    auth: Optional[int] = None 
+    class Config:
+        orm_mode = True 
+        
+class RoleBase(BaseModel):
+    # id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    # status: Optional[bool] = None
     class Config:
         orm_mode = True
 class RoleOut(RoleBase):
+    id: Optional[int] = None
     class Config:
         orm_mode = True
-class RoleScreenBase(BaseModel):
-    id_role: Optional[int] = None
-    id_screen: Optional[int] = None
-    auths: Optional[int] = None
-    status: Optional[bool] = None
-    screen: Optional[ScreenBase] = None
-    role: Optional[RoleBase] = None
-    
-    
+class RoleCreate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
     class Config:
         orm_mode = True
-
+class RoleUpdate(RoleBase):
+    id: Optional[int] = None 
+    class Config:
+        orm_mode = True
+class RoleScreenUpdate(BaseModel):
+    class RoleScreen(BaseModel):
+        id_screen:Optional[int] = None
+        auth:Optional[int] = None
+    id_role:Optional[int] = None
+    role_screen:list[RoleScreen]=None
+    class Config:
+        orm_mode = True
+class RoleScreenOut(BaseModel):
+    id_role:Optional[int] = None
+    id_screen:Optional[int] = None
+    auth:Optional[int] = None
+    name_screen: Optional[str] = None
+    class Config:
+        orm_mode = True
+class RoleScreenState(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    class Config:
+        orm_mode = True
 class UserBase(BaseModel):
     email: EmailStr
     password: str
@@ -544,8 +571,26 @@ class UserLoginOut(BaseModel):
 
     class Config:
         orm_mode = True
-class UserCreate(UserBase):
-    pass
+class UserUpdate(BaseModel):
+    
+    # id:Optional[int] = None
+    email: EmailStr
+    fullname: Optional[str] = None
+    phone: Optional[str] = None
+    id_language: Optional[int] = None
+    
+    class Config:
+        orm_mode = True
+class UserChangePassword(BaseModel):
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
+    class Config:
+        orm_mode = True
+class UserResetPassword(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    password: Optional[str] = None
 class UserRoleCreate(UserBase):
     class Role(BaseModel):
         id: Optional[int] = None
@@ -567,17 +612,17 @@ class UserStateOut(BaseModel):
     desc: Optional[str] = None
     class Config:
         orm_mode = True
-class UserRoleBase(BaseModel):
-    id_user: Optional[int] = None
-    id_role: Optional[int] = None
-    auths: Optional[int] = None
-    status: Optional[bool] = None
+# class UserRoleBase(BaseModel):
+#     id_user: Optional[int] = None
+#     id_role: Optional[int] = None
+#     auths: Optional[int] = None
+#     status: Optional[bool] = None
     
-    user: Optional[UserOut] = None
-    role: Optional[RoleBase] = None
+#     user: Optional[UserOut] = None
+#     role: Optional[RoleBase] = None
     
-    class Config:
-        orm_mode = True
+#     class Config:
+#         orm_mode = True
 
 # <- device_point_list ->
 class TypeUnitsBase(BaseModel):
@@ -742,22 +787,22 @@ class PointOutBase(BaseModel):
     # point_unit:list[PointUnit]
     class Config:
         orm_mode = True
-# class AuthBase(UserOut):
-    
-#     class Config:
-#         orm_mode = True
+
 # <-  -> 
 # <-  -> 
 # <-  -> 
 # <-  -> 
 class Token(BaseModel):
-    
+    class TokenRole(RoleOut):
+        screen: Optional[list[ScreenOut]]= None
+        class Config:
+            orm_mode = True
     refresh_token: str
     access_token: str
     token_type: str
     user: Optional[UserLoginOut] = None
     screen: list[ScreenBase]
-    role:list[RoleBase]
+    role:list[TokenRole]
 class TokenData(BaseModel):
     id: Optional[str] = None
 class TokenItem(BaseModel):
