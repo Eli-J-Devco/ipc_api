@@ -65,21 +65,36 @@ from config import *
 # print(token)
 # print(f.decrypt(token))
 
-salt = os.urandom(16)
-kdf = PBKDF2HMAC(
-    algorithm=hashes.SHA256(),
-    length=32,
-    salt=salt,
-    iterations=390000,
-)
-message = b"1"
-password = b"@qua$weet@NW"
-# key= base64.urlsafe_b64encode(kdf.derive(password))
-key =b'yYGx967p94hCCUaeJnImSkNjYjXPgQ3yHCl3Qf3pFUc='
-f = Fernet(key)
-# --------------------
-print(f'key: {key.decode()}')
-encMessage = f.encrypt(message)
-print(f'{encMessage.decode()}')
-decMessage = f.decrypt(encMessage)
-print(decMessage.decode('utf-8'))
+# salt = os.urandom(16)
+# kdf = PBKDF2HMAC(
+#     algorithm=hashes.SHA256(),
+#     length=32,
+#     salt=salt,
+#     iterations=390000,
+# )
+# message = b"1"
+# password = b"@qua$weet@NW"
+# # key= base64.urlsafe_b64encode(kdf.derive(password))
+# key =b'yYGx967p94hCCUaeJnImSkNjYjXPgQ3yHCl3Qf3pFUc='
+# f = Fernet(key)
+# # --------------------
+# print(f'key: {key.decode()}')
+# encMessage = f.encrypt(message)
+# print(f'{encMessage.decode()}')
+# decMessage = f.decrypt(encMessage)
+# print(decMessage.decode('utf-8'))
+
+stmt = 'SELECT * FROM :id_role'
+data={"id_role":1,"b":2}
+def pybatis(query= str,data={}):
+  
+  if not type(data) is dict:
+    return -1
+  if not type(query) is str:
+    return -1
+  new_string=""
+  for key, value in data.items():
+    if str(f':{key}') in query:
+      new_string = query.replace(str(f':{key}'), str(value))
+  return new_string
+print(pybatis(stmt,data))

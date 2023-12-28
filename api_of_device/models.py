@@ -136,7 +136,7 @@ class Template_library(Base):
     
     device_group = relationship("Device_group", back_populates='templates_library')
     point_list= relationship("Point_list", back_populates='template_library')
-    
+    register_list= relationship("Register_block", back_populates='template_library')
 # 
 # 
 class Point_list(Base):
@@ -150,8 +150,12 @@ class Point_list(Base):
     id_type_units = Column(Integer, ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     unitsedit = Column(Boolean, nullable=False, default=True)
-    equation = Column(Boolean, nullable=False, default=True)
-    config = Column(Integer, nullable=False)
+    
+    equation = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    config = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    
     register = Column(Integer, nullable=False)
     id_type_datatype = Column(Integer, ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
@@ -174,9 +178,11 @@ class Point_list(Base):
     type_units  = relationship('Config_information', foreign_keys=[id_type_units])
     type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
     type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    type_point= relationship('Config_information', foreign_keys=[equation])
+    type_class= relationship('Config_information', foreign_keys=[config])
     # 
     template_library=relationship("Template_library", back_populates='point_list')
-# 
+    # 
 
 class Device_group(Base):
     __tablename__ = "device_group"
@@ -342,7 +348,7 @@ class Device_point_list(Base):
     # id_type_units = Column(Integer, ForeignKey(
     #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     # unitsedit = Column(Boolean, nullable=False, default=True)
-    # equation = Column(Boolean, nullable=False, default=True)
+    # equation = Column(Integer, nullable=False, default=True)
     # config = Column(Integer, nullable=False)
     # register = Column(Integer, nullable=False)
     # id_type_datatype = Column(Integer, ForeignKey(
@@ -382,8 +388,9 @@ class Register_block(Base):
     id_type_function = Column(Integer, ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
-    template_library  = relationship('Template_library', foreign_keys=[id_template])
+    # template_library  = relationship('Template_library', foreign_keys=[id_template])
     type_function  = relationship('Config_information', foreign_keys=[id_type_function])
+    template_library=relationship("Template_library", back_populates='register_list')
 class Device_register_block(Base):
     __tablename__ = "device_register_block"
     id = Column(Integer, primary_key=True, nullable=False)

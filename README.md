@@ -314,3 +314,9 @@ Open the command palette (Ctrl + Shift + P)
 Run Disable All Installed Extensions
 Then run Enable All Extensions.
 Restart Visual Studio Code
+
+<!-- update database -->
+28122023 config_type
+28122023 config_information
+28122023 point_list
+28122023 register_block

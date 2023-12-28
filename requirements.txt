@@ -39,3 +39,4 @@ pydantic_computed
 schedule
 python-dotenv
 APScheduler
+psycopg2

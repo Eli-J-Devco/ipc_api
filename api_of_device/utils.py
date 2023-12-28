@@ -403,4 +403,22 @@ def convert_binary_auth(auth):
     except Exception as err:
         print('Convert_binary_auth: '+err)
         return 0
-        
+# Describe functions before writing code
+# /**
+# 	 * @description convert :parameter to parameter
+# 	 * @author vnguyen
+# 	 * @since 27-12-2023
+# 	 * @param {query,data}
+# 	 * @return data (query)
+# 	 */
+def pybatis(query= str,params={}):
+  
+  if not type(params) is dict:
+    return -1
+  if not type(query) is str:
+    return -1
+  new_string=""
+  for key, value in params.items():
+    if str(f':{key}') in query:
+      new_string = query.replace(str(f':{key}'), str(value))
+  return new_string

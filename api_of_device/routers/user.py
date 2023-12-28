@@ -14,13 +14,16 @@ import models
 import oauth2
 # from model import auth_user
 import schemas
-import utils
 from database import get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException,
                      Response, status)
-from sqlalchemy import exc, func, insert, select
+from psycopg2 import sql
+# from sqlalchemy.sql import text
+from sqlalchemy import String, bindparam, exc, func, insert, select, text
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
+from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
+                   delete_program_pm2, find_program_pm2, get_mybatis, hash,
+                   path, pybatis, restart_program_pm2, verify)
 
 router = APIRouter(
     prefix="/users",
@@ -48,7 +51,7 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
             "desc":"User already created"
         }
     else:
-        hashed_password = utils.hash(user.password)
+        hashed_password = hash(user.password)
         user.password = hashed_password
         now = datetime.datetime.now(
             datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -153,10 +156,10 @@ def change_password(user_credentials: schemas.UserChangePassword, db: Session = 
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"user with id: { current_user.id} does not exist")
-            if not utils.verify(user_credentials.old_password, result_user.password):
+            if not verify(user_credentials.old_password, result_user.password):
                 raise HTTPException(
                         status_code=status.HTTP_403_FORBIDDEN, detail=f"Invalid Credentials")
-            hashed_password = utils.hash(user_credentials.new_password)
+            hashed_password = hash(user_credentials.new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
             db.commit()
             # db.refresh(new_user)
@@ -196,7 +199,7 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
             # generating random strings
             new_password = ''.join(random.choices(string.ascii_letters, k=10))
             
-            hashed_password = utils.hash(new_password)
+            hashed_password = hash(new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
             db.commit()
             return {
@@ -357,8 +360,8 @@ def update_user( updated_user: schemas.UserUpdate, db: Session = Depends(get_db)
 # 	 * @description active user
 # 	 * @author vnguyen
 # 	 * @since 26-12-2023
-# 	 * @param {db}
-# 	 * @return data (RoleOut)
+# 	 * @param {UserActive,db}
+# 	 * @return data (UserStateOut)
 # 	 */
 @router.post("/active_user/", response_model=schemas.UserStateOut)
 def active_user( updated_user: schemas.UserActive, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
@@ -408,14 +411,33 @@ def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), 
                                 detail=f"Role create error")
         db.query(models.Device_list)
         id=new_role.id
-        stmt = text("INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,0 FROM `screen`")
-        result_insert =db.execute(stmt,{"id_role": id})
+        
+        stmt = "INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,:auths FROM `screen`"
+        result_insert =db.execute(text(stmt),{"id_role": id,"auths":0})
+        # ---------------------------------------------------------------------------
+        # result_mybatis=get_mybatis('/mybatis/device.xml')
+                    
+        # sql_insert_role_screen=result_mybatis["insert_role_screen"]
+        # sql_insert_role_screen1=result_mybatis["create_new_table"]
+        # sql_insert_role_screen2=result_mybatis["insert_data_fruits"]
+        
+        # stmt=sql_insert_role_screen2
+        # print(f'stmt: {stmt}')
+        # result_insert =db.execute(text(pybatis(stmt,{"table_name": u'fruits'})),[
+        #                                 {"name": "sandy", "category": "Sandy Cheeks","price":11},
+        #                                 {"name": "patrick", "category": "Patrick Star","price":12}
+        #                              ])
+
+        # result_insert =db.execute(text(pybatis(stmt,{"table_name": u'fruits'})))#,{"id_role": u'fruits'}
         # print(result_insert.__dict__)
+        # for row in result_insert:
+        #     print(row)
+        # ---------------------------------------------------------------------------
         db.commit()
 
         return new_role
     except Exception as err:
-        print(err)
+        print(f'err: {err}')
         return      {
                     "status": "error",
                     "code": "300",

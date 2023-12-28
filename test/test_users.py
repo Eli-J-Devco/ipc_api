@@ -9,10 +9,10 @@ import requests
 from jose import jwt
 
 algorithm = "HS256"
-secret_key = "09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7"
+secret_key = "25a6f201f7f43132035d95e1b0125ec3f937ec284bd93e6f4ad17078b75b3cdf"
 REFRESH_SECRET_KEY="4845118e9928805aea99b052f2ef7426c885325a109bed4171a84303b9594e8d"
-refresh_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozOCwiZXhwIjoxNzAzNzI5NTA5fQ.AlFV4ekWvI-zCQBOBzDddnqldW-HT1awuHOdUayV3dM'
-access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozOCwiZXhwIjoxNzAzMTI4MzA5fQ.Tb3-ZElJCf640A_RzjsY146xN8-32hTVLJW7N0k9zPY'
+refresh_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1MCwiZXhwIjoxNzA0MTU3MzU4fQ.LfyftmDb6Grjc5iy9BySb9QPiMciJGViIGTODR4eAEk'
+access_token = '22eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1MCwiZXhwIjoxNzAzNTU2MTU4fQ.OnFBmwF6u7TRvOTAGhGXVJJRT9Hlui8-AV_ST7LplFY'
 
 
 def test_create_user():
@@ -76,10 +76,10 @@ def test_create_posts():
 
 
 def test_get_one_post():
-    payload = jwt.decode(access_token,
-                         secret_key, algorithms=[algorithm])
-    print(payload)
-    user_id = 38 #payload['user_id']
+    # payload = jwt.decode(access_token,
+    #                      secret_key, algorithms=[algorithm])
+    # print(payload)
+    user_id = 50 #payload['user_id']
     # Test OK
     headersAuth = {
         # 'WWW-Authenticate': 'Bearer ' + str(access_token),
@@ -103,16 +103,18 @@ def test_update_post():
 
     # print(payload)
     data = {
-        "title": "vu",
-        "content": "vu",
-        "published": 1,
-        "id":333
+        "email": "nguyenvudtd@gmail.com",
+        "password": "123456",
+        "fullname": "vnguyen",
+        "phone": "",
+        "id_language": 1,
+        "id":50
         # "owner_id": 2,
     }
     # response = requests.post(
     #     'http://127.0.0.1:8000/device_list/delete/', headers=headersAuth, json=data, verify=True)
     response = requests.post(
-        'http://127.0.0.1:8000/device_list/delete/?id=1', json=data, verify=True)
+        'http://127.0.0.1:8000/users/update/?id=50', headers=headersAuth,json=data, verify=True)
     j = response.json()
     print(j)
 
@@ -133,9 +135,10 @@ def test_refresh_token():
     # payload = jwt.decode(login_res.access_token,
     #   
 # # test_create_user()
-test_login_user()
+# test_login_user()
 # test_create_posts()
 # test_get_one_post()
 # decode_token()
 # test_update_post()
 # test_refresh_token()
+test_update_post()

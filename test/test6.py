@@ -1,9 +1,8 @@
-# id=1
-# id_hash=str(id)
-# print(hashlib.sha256(id_hash.encode('utf-8')).hexdigest())
+
 import asyncio
 import base64
 import hashlib
+import json
 import os
 import sys
 import time
@@ -46,78 +45,68 @@ def path_directory_relative(project_name):
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 
-# def task(id):
-#    print("Executing the script...")
-#    time_insert_dev = get_utc()
-#    print(time_insert_dev)
-#    value_insert = (time_insert_dev, id ) 
-#    MySQL_Insert_v2(f'dev_0000{str(id)}', 1 ,value_insert) 
+def task(id):
+   print("Executing the script...")
+   time_insert_dev = get_utc()
+   print(time_insert_dev)
+  #  value_insert = (time_insert_dev, id ) 
+  #  MySQL_Insert_v2(f'dev_0000{str(id)}', 1 ,value_insert) 
 
+import atexit
 # # schedule.every(10).seconds.do(task, id=2)
 # # schedule.every(10).seconds.do(task, id=3)
 # # schedule.every(10).seconds.do(task, id=4)
 # # schedule.every().minute.at(":05").do(task, id=2)
 # # schedule.every(5).seconds.until("00:47").do(task, id=2)
-# schedule.every(5).minute.at(":00").do(task, id=2)
-
+# schedule.every(1).minute.at(":00").do(task, id=2)
+# schedule.every(5).to(5).minutes.do(task, id=2) 
 # while True:
 #    schedule.run_pending()
 # #    time.sleep(1)
+import datetime
+import os
+import time
+from datetime import datetime
+from time import sleep
+
+import mqttools
+import paho.mqtt.publish as publish
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.background import (BackgroundScheduler,
+                                               BlockingScheduler)
+from apscheduler.triggers.cron import CronTrigger
 
 
-from operator import *
-
-
-def decimalToBinary(n): 
-    return bin(n).replace("0b", "")
-array_dec=[1,2,4,8,16]
-array_bin=[]
-# for item in array_dec:
-#   print(item)
-#   # array_bin.append(int(item,2))
-# print(array_bin)
-item1=bin(8)
-item2=bin(1023)
-print(item1)
-print(item2)
-# sum = bin(int(item1, 2) + int(item2, 2))
-# print(sum[2:])
-# print(int(sum[2:], 2))
-# inputA = int('00100011',2)  # define binary number
-# inputB = int('00101101',2)
-# print(inputA)
-# print(inputB)
-# print(int(bin(1023 | 1023 |8),2))
-# z = 45 & 20
-# print(z)
-# data=[item1,item2]
-# print(sum(data))
-# def or_array(array):
-#   result = 0
-#   for i in range(len(array)):
-#     result = result | array[i]
-#   return result
-data=[1,2,4,8,16]
-result=""
-for i,item in enumerate(data):
-  if i < len(data)-1:
-    result=result + str(item)+"|"
-  else:
-    result=result + str(item)
-print(result)
-
-  
-print(int(bin(eval(result)),2))
-
-# print(bin(add(int(item1,2),int(item2,2))))
-# print(item1)
-# print(item2)
-# print(item1+item2)
-# x = bin(1023)[2:]
-# y = bin(1023)[2:]
-# print(x)
-# print(y)
-# z=bin(add(int(x, 2)+int(y, 2)))
-# print(z)
-
-
+async def bar1():
+    MQTT_BROKER = "127.0.0.1"
+    MQTT_PORT = 1883
+    MQTT_TOPIC = "IPC"
+    MQTT_USERNAME = "nextwave"
+    MQTT_PASSWORD = "123654789"
+    client = mqttools.Client(host=MQTT_BROKER, 
+                                port=MQTT_PORT,
+                                username= MQTT_USERNAME, 
+                                password=bytes(MQTT_PASSWORD, 'utf-8'))
+    await client.start()
+    await client.subscribe(MQTT_TOPIC)
+    while True:
+        message = await client.messages.get()
+        print('bar1: ----------------------------------------------------')
+        print(f'{datetime.now()} Bar1')
+        if message is None:
+                print('Broker connection lost!')
+                break
+        print(f'Topic:   {message.topic}')
+        result=json.loads(message.message.decode())
+        print(f'Message: {result}')
+        
+        # await asyncio.sleep(5)
+async def main():
+    tasks = []
+    tasks.append(asyncio.create_task(bar1()))
+    await asyncio.gather(*tasks, return_exceptions=False)
+if __name__ == "__main__":
+    # loop = asyncio.get_event_loop()
+    # loop.create_task(main())
+    # loop.run_forever()
+    asyncio.run(main())
