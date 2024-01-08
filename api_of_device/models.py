@@ -196,6 +196,9 @@ class Device_group(Base):
     # template= relationship('Template_library', foreign_keys=[id_template])
 
     templates_library = relationship("Template_library", back_populates="device_group")
+    # 
+    device_list= relationship("Device_list", back_populates="device_group")
+    
 # -----------------------------------------------------
 class Screen(Base):
     __tablename__ = "screen"
@@ -316,13 +319,16 @@ class Device_list(Base):
     inverter_shutdown = Column(TIMESTAMP(timezone=True),
                                nullable=True)
     status = Column(Boolean, nullable=True, default=True)
+    
     # 
     communication  = relationship('Communication', foreign_keys=[id_communication]) 
     point_p_list = relationship('Point_list', foreign_keys=[point_p])
     point_q_list  = relationship('Point_list', foreign_keys=[point_q])
     point_pf_list  = relationship('Point_list', foreign_keys=[point_pf])
+    # 
+    # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
+    device_group= relationship("Device_group", back_populates="device_list")
 
-    
 # 
 class Ethernet(Base):
     __tablename__ = "ethernet"

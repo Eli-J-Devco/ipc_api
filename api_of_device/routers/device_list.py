@@ -22,10 +22,11 @@ from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
 from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
                    delete_program_pm2, find_program_pm2, get_mybatis, path,
-                   restart_program_pm2)
+                   restart_pm2_change_template, restart_program_pm2,
+                   restart_program_pm2_many)
 
 # path=path_directory_relative("ipc_api") # name of project
 # sys.path.append(path)
@@ -1060,6 +1061,7 @@ def edit_template_each_point(info_point: schemas.PointUpdateBase,db: Session = D
                                detail=f"Config Device modbus or virtual with value: {info_point.equation} does not exist")
         equation=mode_modbus_equation.value
         print(f'equation: {equation}')
+        id_template=info_point.id_template
         update_point=dict()
         match equation:
             # Mode Modbus register
@@ -1077,20 +1079,13 @@ def edit_template_each_point(info_point: schemas.PointUpdateBase,db: Session = D
                 pass
         print(f'update_point: {update_point}')
         point_query.update(update_point)
+        restart_pm2_change_template(id_template,db)
         db.commit()  
         return result_point
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
-# Describe functions before writing code
-# /**
-# 	 * @description delete point list
-# 	 * @author vnguyen
-# 	 * @since 28-12-2023
-# 	 * @param {id,db}
-# 	 * @return data (DeviceGroupOutBase)
-# 	 */
 
 # Describe functions before writing code
 # /**
@@ -1118,6 +1113,7 @@ def change_number_template_point(change_number_point: schemas.PointChangeNumberB
                     result=point_query.filter(
                                 models.Point_list.id == item.id).delete(synchronize_session=False)
                     db.flush()
+                    restart_pm2_change_template(id_template,db)
                     db.commit()
                 point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
                 result_point=point_query.all()
@@ -1207,16 +1203,48 @@ def change_number_template_point(change_number_point: schemas.PointChangeNumberB
                                                                             id_point_list=item_point.id))
                     if insert_device_point_list:
                         db.add_all(insert_device_point_list)
+                restart_pm2_change_template(id_template,db)
                 db.commit()
                 point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
                 result_point=point_query.all()
-                print(result_point)
+                # print(result_point)
                 return result_point
-               
         else:
-            pass
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Not have data")
         
     except Exception as err:
         print(f'Error: {err}')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
+# Describe functions before writing code
+# /**
+# 	 * @description delete point list
+# 	 * @author vnguyen
+# 	 * @since 08-01-2023
+# 	 * @param {id,db}
+# 	 * @return data (DeviceGroupOutBase)
+# 	 */
+@router.post('/delete_point_list/', response_model=list[schemas.PointBase])
+def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session = Depends(get_db) ):
+    try:
+        id_template=point_list.id_template
+        point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template).\
+                                                filter(models.Point_list.status == 1)
+        result_point=point_query.all()
+        if not result_point:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Not have data")
+        
+        for item in point_list.id_point:
+            point_query.filter(
+                                models.Point_list.id == item).delete(synchronize_session=False)
+        
+        db.flush()
+        restart_pm2_change_template(id_template,db)
+        db.commit()
+        return point_query.all()
+    except Exception as err:
+        print(f'Error: {err}')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Can't delete data")

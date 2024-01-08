@@ -767,7 +767,13 @@ class PointInfoTemplateBase(BaseModel):
 class PointChangeNumberBase(BaseModel):
     id_template: Optional[int]=None
     number_point: Optional[int]=Field(None, ge=1)
+class PointDeleteTemplateBase(BaseModel):
+    id_template: Optional[int]=None
+    id_point:Optional[list[int]]=None
     
+    class Config:
+        orm_mode = True
+        from_attributes = True
 class PointTemplateOutBase(PointOutBase):
     type_units_list: Optional[list[TypeUnitsBase]] = None
     type_datatype_list: Optional[list[DataTypeBase]] = None
