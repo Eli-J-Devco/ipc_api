@@ -168,7 +168,7 @@ def init_logfile():
             pid = f'Log|{id}|{name}|{type_protocol}'
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/create_logfile/log_file_threading.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description enable permission folder config network ubuntu ipc

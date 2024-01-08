@@ -43,12 +43,11 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
 async def MySQL_Select_v1(query):
     db = create_server_connection(
         DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-
     cursor = db.cursor(dictionary=True)
     try:
         cursor.execute(query)
         result = cursor.fetchall()
-        print(result)
+        # print(result)
         cursor.close()
         db.close()
         return result
@@ -60,7 +59,6 @@ async def MySQL_Select_v1(query):
 def MySQL_Select(query,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -79,7 +77,6 @@ def MySQL_Select(query,val):
 def MySQL_Insert(query):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -104,7 +101,6 @@ def MySQL_Insert(query):
 def MySQL_Insert_v1(query,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-
     cursor = db.cursor(dictionary=True)
     # cursor = db.cursor()
     result = None
@@ -129,9 +125,8 @@ def MySQL_Insert_v1(query,val):
 def MySQL_Insert_v2(table_name,len_val,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-
-    cursor = db.cursor(dictionary=True)
-    # cursor = db.cursor()
+    # cursor = db.cursor(dictionary=True)
+    cursor = db.cursor()
     result = None
     try:
         # Create a list of columns
@@ -158,7 +153,58 @@ def MySQL_Insert_v2(table_name,len_val,val):
             # db.close()
             print("connection is closed")
 
+def MySQL_Insert_v3(data):
+    db = create_server_connection(DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+    cursor = db.cursor(dictionary=True)
+    result = None
+    try:
+        for key, value in data.items():
+            sql = value[0]
+            val = value[1]
+            cursor.execute(sql, val)
+            print("Data inserted successfully")
+        
+        db.commit()
+        result = cursor.rowcount
+        # print("Sync data successfully---> ")
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+    finally:
+        # closing database connection.
+        if db.is_connected():
+            print("connection is closed")
+def MySQL_Insert_v4(query,val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
+    cursor = db.cursor(dictionary=True)
+    # cursor = db.cursor()
+    result = None
+    try:
+        cursor.executemany(query,val)
+        db.commit()
+        result = cursor.rowcount
+        print("Sync data successfully---> ")
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+        
+    finally:
+        # closing database connection.
+        if db.is_connected():
+            # db.close()
+            print("connection is closed")
+            
+            
 def MySQL_Update(query):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)

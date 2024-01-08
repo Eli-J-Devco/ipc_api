@@ -17,20 +17,23 @@ WHERE
     upload_channel.id = %s AND upload_channel.status = 1;
   </select>
 
-  <select id="QUERY_ALL_DEVICES">
-    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
-  </select>
-
   <select id="QUERY_INSERT_SYNC_DATA">
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
   </select>
-  
+
+    <select id="QUERY_INSERT_SYNC_DATA_EXECUTEMANY">
+  INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
+  </select>
+
   <select id="QUERY_SELECT_COUNT_POINT_LIST">
   SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
   </select>
 
-
+  <select id="QUERY_ALL_DEVICES">
+    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
+  </select>
   
   <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
   CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
@@ -53,6 +56,14 @@ FROM
     project_setup
 INNER JOIN 
     config_information ON project_setup.id_logging_interval = config_information.id
+  </select>
+
+  <select id="QUERY_SYNC_SERVER">
+    SELECT * FROM sync_data
+    WHERE 
+    id_upload_channel = %s AND synced = 0 
+    ORDER BY id ASC, id_device ASC
+    LIMIT 1;
   </select>
 
 </mapper>
