@@ -1,4 +1,5 @@
 import requests
+import uvicorn
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -9,7 +10,6 @@ async def receive_data(data: dict):  # Thay đổi kiểu dữ liệu thành dic
     return {"status": "success", "message": "Data received successfully"}
 
 if __name__ == "__main__":
-    import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
     
 # câu lênh chạy file sever : uvicorn Sever:app --reload

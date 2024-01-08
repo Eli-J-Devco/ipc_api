@@ -71,6 +71,14 @@ async def bar2():
         # print('bar2: ----------------------------------------------------')
         data +=1
         await asyncio.sleep(5)
+# Describe Get data from Database
+# /**
+# 	 * @description get_Data
+# 	 * @author bnguyen
+# 	 * @since 8-1-2023
+# 	 * @param {}
+# 	 * @return data_sent_server
+# 	 */
 async def get_Data():
     global id_upload_chanel
     global QUERY_SYNC_SERVER
@@ -97,7 +105,14 @@ async def get_Data():
         data = data_sync_dict['data']
                 
     data_sent_server = {"id": id, "id_device": id_device, "modbusdevice": modbusdevice, "data": data}
-    
+# Describe Sent data to server
+# /**
+# 	 * @description send_data_to_server
+# 	 * @author bnguyen
+# 	 * @since 8-1-2023
+# 	 * @param {}
+# 	 * @return response.status_code
+# 	 */
 def send_data_to_server(URL_SERVER_SYNC):
     global status
     global data_sent_server
