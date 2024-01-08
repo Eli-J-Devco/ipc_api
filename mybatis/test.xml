@@ -3,7 +3,22 @@
 <mapper namespace="Test">
     
     <select id="testParameters">
-       SELECT * FROM Orders;
+       INSERT INTO
+			fruits
+			(
+			name,
+			category,
+			price
+			)
+			VALUES
+			
+			<foreach collection="fruits" item="fruit" separator=",">
+            (
+            #{fruit.name},
+            #{fruit.category},
+            ${fruit.price}
+            )
+			</foreach>
     </select>
     <select id="testInclude">
        SELECT * FROM Customers;

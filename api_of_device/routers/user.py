@@ -14,13 +14,15 @@ import models
 import oauth2
 # from model import auth_user
 import schemas
-from database import get_db
+from database import engine, get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException,
                      Response, status)
 from psycopg2 import sql
 # from sqlalchemy.sql import text
-from sqlalchemy import String, bindparam, exc, func, insert, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy import (Integer, MetaData, String, Table, and_, bindparam, exc,
+                        func, insert, join, literal_column, select, text,
+                        union, union_all)
+from sqlalchemy.orm import Session, aliased
 from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
                    delete_program_pm2, find_program_pm2, get_mybatis, hash,
                    path, pybatis, restart_program_pm2, verify)
@@ -406,7 +408,7 @@ def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), 
         db.add(new_role)
         db.flush()
         print(new_role.__dict__)
-        if not hasattr(new_role, 'id'):
+        if not hasattr(new_role, 'name'):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role create error")
         db.query(models.Device_list)
@@ -414,6 +416,13 @@ def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), 
         
         stmt = "INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,:auths FROM `screen`"
         result_insert =db.execute(text(stmt),{"id_role": id,"auths":0})
+        db.commit()
+        return {
+                        "status": "success",
+                        "code": "100",
+                        "desc":"",
+                        
+                    }
         # ---------------------------------------------------------------------------
         # result_mybatis=get_mybatis('/mybatis/device.xml')
                     
@@ -423,20 +432,100 @@ def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), 
         
         # stmt=sql_insert_role_screen2
         # print(f'stmt: {stmt}')
-        # result_insert =db.execute(text(pybatis(stmt,{"table_name": u'fruits'})),[
+        # print('--------------------')
+        # # result_insert =db.execute(text(pybatis(stmt,{"table_name": u'fruits'})),[
+        # #                                 {"name": "sandy", "category": "Sandy Cheeks","price":11},
+        # #                                 {"name": "patrick", "category": "Patrick Star","price":12}
+        # #                              ])
+        # result_insert =db.execute(text(sql_insert_role_screen2),[
         #                                 {"name": "sandy", "category": "Sandy Cheeks","price":11},
         #                                 {"name": "patrick", "category": "Patrick Star","price":12}
         #                              ])
+
 
         # result_insert =db.execute(text(pybatis(stmt,{"table_name": u'fruits'})))#,{"id_role": u'fruits'}
         # print(result_insert.__dict__)
         # for row in result_insert:
         #     print(row)
         # ---------------------------------------------------------------------------
-        db.commit()
+        # point_query = db.query(models.Test).filter(models.Test.id == 1)
+        # result=point_query.first()
+        # print(result.__dict__)
+        # db.commit()
 
-        return new_role
-    except Exception as err:
+
+        # #
+        # create new table
+        # db.execute(models.TableCreator("inv0111"))
+
+        # return new_role
+        # user_query = db.query(models.User_role_map).\
+        # filter(models.User_role_map.id_user == 49).first()
+        
+        # print(f'user_query: {user_query.user.__dict__}')
+        # join_Device_list_Device_group = models.Device_group.join( models.Device_list, models.Device_group.c.Id == models.Device_list.c.id_device_group)
+        # stmt = select(models.Device_list,  models.Device_group).\
+        #     select_from(join_Device_list_Device_group).\
+        #     where(models.Device_list.c.Id == 2)
+        # stmt = select(models.Device_list).where(models.Device_list.id == 2)
+        
+        # j = models.Device_group.join(models.Device_list,  models.Device_group.c.Id == models.Device_list.c.id_device_group)
+        # u1 = aliased( models.Device_group, name="u1")
+        
+        
+        # stmt = select(models.Device_list.id,models.Device_list.name).\
+        #                                                             join_from(models.Device_list,models.Device_group).\
+        #                                                             join_from(models.Device_group,models.Template_library).\
+        #                                                             join_from(models.Template_library,models.Register_block).\
+        #                                                             where(models.Device_list.id == 2)
+        # stmt = select(models.Device_list.id).\
+        #                                                             join(models.Device_group).\
+        #                                                             join(models.Template_library).\
+        #                                                             join(models.Register_block).\
+        #                                                             where(models.Device_list.id == 2)
+        # eval('')
+        # stmt = select(  models.Device_list.id.label("id_device_list"), \
+        #                 models.Template_library.id.label("id_template"),\
+        #                 models.Device_list.id_device_group,\
+        #                 models.Register_block.id.label("id_register_block")).\
+        #                 join_from(models.Device_list,models.Device_group).\
+        #                 join_from(models.Device_group,models.Template_library).\
+        #                 join_from(models.Template_library,models.Register_block).\
+        #                 where(models.Device_list.id == 6)
+        # # eval(fun())
+        
+        # insert_stmt = insert(models.Device_register_block).from_select(["id_device_list",
+        # "id_template",
+        # "id_device_group",
+        # "id_register_block"],stmt)
+        
+        # query1 = select(models.Device_list).where(models.Device_list.id == 2)
+        # query2 = select(models.Device_list).where(models.Device_list.id == 3)
+        # query3 = select(models.Device_list).where(models.Device_list.id == 4)
+        # all_queries = [query1, query2, query3]
+        # query = union(*all_queries)
+        
+        
+        # print(query)
+        
+        
+        # result=db.execute(query).all()
+        # print(result)
+        # result=db.execute(insert_stmt)
+        # print(insert_stmt)
+        
+        # db.commit()
+        # print(result)
+        # for item in result:
+        #     print(f'{item}')
+        # print(f'item: {item.id} {item.name}')
+        # table = Table('device_list', models.Base.metadata, autoload=True,
+        #                autoload_with=engine)
+        # query = table.select()    
+        # print(query)    
+        # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        #                        detail=f"Role create error")
+    except exc.SQLAlchemyError as err:
         print(f'err: {err}')
         return      {
                     "status": "error",
@@ -544,7 +633,7 @@ def update_role_screen(update_role_screen: schemas.RoleScreenUpdate, db: Session
                 }
     except Exception as err:
         print(err)
-        return      {
+        return  {
                     "status": "error",
                     "code": "300",
                     "desc":""

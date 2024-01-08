@@ -44,20 +44,25 @@ class DeviceListOut(BaseModel):
     pv : Optional[int] = None
     model : Optional[int] = None
     function : Optional[int] = None
-    point_p : Optional[str] = None
+    
+    point_p : Optional[int] = None #id
+    
     value_p : Optional[float] = None
     send_p : Optional[bool] = None
-    point_q : Optional[str] = None
+    
+    point_q : Optional[int] = None #id
+    
     value_q : Optional[float] = None
     send_q : Optional[bool] = None
-    point_pf : Optional[str] = None
+    
+    point_pf : Optional[int] = None #id
+    
     value_pf : Optional[float] = None
     send_pf : Optional[bool] = None
     max : Optional[float] = None
     allow_error : Optional[float] = None
     enable_poweroff : Optional[bool] = None
     inverter_shutdown : Optional[datetime] = None
-                               
     status : Optional[bool] = None
 
     class Config:
@@ -664,7 +669,7 @@ class TypeClassBase(BaseModel):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-class PointListBase(BaseModel):
+class PointBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[int] = None
     # --------------------------------------------------
@@ -691,6 +696,11 @@ class PointListBase(BaseModel):
     extendednumpoints : Optional[int] = None
     extendedregblocks : Optional[int] = None
     status : Optional[bool] = None
+    function : Optional[str] = None
+    constants : Optional[float] = None
+    class Config:
+        orm_mode = True
+class PointOutBase(PointBase):
     # 
     type_units  : Optional[TypeUnitsBase] = None
     type_datatype  : Optional[DataTypeBase] = None 
@@ -698,14 +708,17 @@ class PointListBase(BaseModel):
     
     type_point  : Optional[TypePointBase] = None 
     type_class  : Optional[TypeClassBase] = None 
-    # 
-    # templates_library : TemplateBase
-    # device_group  : DeviceGroupBase
-    # device_list  : DeviceListBase
-    # point_list  : PointListBase
-    
     class Config:
         orm_mode = True
+class PointUpdateBase(PointBase):
+    # id : Optional[int] = None
+    equation : Optional[int] = Field(...,examples=[1] ,nullable=False)
+    # id_pointkey : Optional[int] = None
+    # id_template : Optional[int] = None
+    class Config:
+        orm_mode = True
+        # fields = {'id_pointkey': {'exclude': True}}
+
 class DevicePointListBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[int] = None
@@ -750,8 +763,12 @@ class DevicePointListBase(BaseModel):
         from_attributes = True
 class PointInfoTemplateBase(BaseModel):
     id_point: Optional[int]=None
+    # id_template: Optional[int]=None
+class PointChangeNumberBase(BaseModel):
     id_template: Optional[int]=None
-class PointTemplateOutBase(PointListBase):
+    number_point: Optional[int]=Field(None, ge=1)
+    
+class PointTemplateOutBase(PointOutBase):
     type_units_list: Optional[list[TypeUnitsBase]] = None
     type_datatype_list: Optional[list[DataTypeBase]] = None
     type_byteorder_list: Optional[list[TypeByteOrderBase]] = None
@@ -785,7 +802,7 @@ class TemplateOutBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
-    point_list : list[PointListBase]
+    point_list : list[PointOutBase]
     class Config:
         orm_mode = True
 # <-  -> 
@@ -831,13 +848,21 @@ class TemplateGroupDeviceOutBase(BaseModel):
     data_type:list[PointDataType]=None
     byte_order:list[PointByteOrder]=None
     point_unit:list[PointUnit]=None
-    point_list : list[PointListBase]=None
+    point_list : list[PointOutBase]=None
     register_list : list[RegisterListBase]=None
     
     class Config:
         orm_mode = True
 
 # <-  -> 
+class DeviceListOfPointListOut(DeviceListOut):
+    point_p_list:Optional[PointBase] = None
+    point_q_list:Optional[PointBase] = None
+    point_pf_list:Optional[PointBase] = None
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
 # <-  -> 
 # <-  -> 
 # <-  -> 

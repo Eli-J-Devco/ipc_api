@@ -47,12 +47,12 @@ router = APIRouter(
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/', response_model=schemas.DeviceListOut)
+@router.get('/', response_model=schemas.DeviceListOfPointListOut)
 def get_only_device(id: int, db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
     Device_list = db.query(models.Device_list).filter(models.Device_list.id == id).first()
-    Device_list=Device_list.__dict__
+    # Device_list=Device_list.__dict__
     # print(f'device_list :{Device_list}')
     # ----------------------
     # result = db.execute(
@@ -75,7 +75,7 @@ def get_only_device(id: int, db: Session = Depends(get_db), ):
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/all/', response_model=list[schemas.DeviceListOut])
+@router.get('/all/', response_model=list[schemas.DeviceListOfPointListOut])
 def get_all_device( db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
@@ -992,18 +992,18 @@ def get_template_group_device(id: Optional[int] = Body(embed=True), db: Session 
 
 # Describe functions before writing code
 # /**
-# 	 * @description edit point
+# 	 * @description get each point
 # 	 * @author vnguyenS
 # 	 * @since 18-12-2023
-# 	 * @param {id,db}
-# 	 * @return data (DeviceGroupOutBase)
+# 	 * @param {info_point,db}
+# 	 * @return data (PointTemplateOutBase)
 # 	 */
 @router.post('/get_template_each_point/', response_model=schemas.PointTemplateOutBase)
 def get_template_each_point(info_point: schemas.PointInfoTemplateBase,db: Session = Depends(get_db) ):
     try:
         point_query = db.query(models.Point_list).filter(
-        models.Point_list.id == info_point.id_point).filter(
-        models.Point_list.id_template == info_point.id_template)
+        models.Point_list.id == info_point.id_point)
+        
         result_point=point_query.first()
         if not result_point:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -1031,12 +1031,55 @@ def get_template_each_point(info_point: schemas.PointInfoTemplateBase,db: Sessio
                                             type_point_list=type_point,
                                             type_class_list=type_class,
                                             )
-        # return {
-        #             "status": "success",
-        #             "code": "100",
-        #             "desc":""
-        #         }
     except Exception as err: 
+        print('Error : ',err)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Not have data")
+# Describe functions before writing code
+# /**
+# 	 * @description edit each point
+# 	 * @author vnguyenS
+# 	 * @since 29-12-2023
+# 	 * @param {info_point,db}
+# 	 * @return data (PointOutBase)
+# 	 */
+@router.post('/edit_template_each_point/', response_model=schemas.PointOutBase)
+def edit_template_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(get_db) ):
+    try:
+        point_query = db.query(models.Point_list).filter(
+        models.Point_list.id == info_point.id).filter(
+        models.Point_list.id_template == info_point.id_template)
+        result_point=point_query.first()
+        if not result_point:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                               detail=f"Point with id: {id} does not exist")
+        mode_modbus_equation=db.query(models.Config_information).filter(
+        models.Config_information.id == info_point.equation).first()
+        if not hasattr(mode_modbus_equation, 'value'):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                               detail=f"Config Device modbus or virtual with value: {info_point.equation} does not exist")
+        equation=mode_modbus_equation.value
+        print(f'equation: {equation}')
+        update_point=dict()
+        match equation:
+            # Mode Modbus register
+            case 1:
+                update_point= dict(**info_point.dict())
+            # Mode Equation
+            case 2:
+                update_point=dict(  equation=info_point.equation,
+                                    name=info_point.name,
+                                    nameedit=info_point.nameedit,
+                                    id_type_units=info_point.id_type_units,
+                                    unitsedit=info_point.unitsedit,
+                                  )              
+            case _:
+                pass
+        print(f'update_point: {update_point}')
+        point_query.update(update_point)
+        db.commit()  
+        return result_point
+    except exc.SQLAlchemyError as err:
         print('Error : ',err)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
@@ -1053,14 +1096,127 @@ def get_template_each_point(info_point: schemas.PointInfoTemplateBase,db: Sessio
 # /**
 # 	 * @description change number point
 # 	 * @author vnguyen
-# 	 * @since 28-12-2023
-# 	 * @param {id,db}
-# 	 * @return data (DeviceGroupOutBase)
+# 	 * @since 08-01-2024
+# 	 * @param {PointChangeNumberBase,db}
+# 	 * @return data (PointBase)
 # 	 */
-@router.post('/change_number_template_point/', response_model=schemas.DeviceGroupOutBase)
-def change_number_template_point(number_point: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+@router.post('/change_number_template_point/', response_model=list[schemas.PointBase])
+def change_number_template_point(change_number_point: schemas.PointChangeNumberBase, db: Session = Depends(get_db) ):
     try:
+        number_point=change_number_point.number_point
+        id_template=change_number_point.id_template
+        point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
+        result_point=point_query.all()
+        if result_point and len(result_point)>0 :
+            count_point=len(result_point)
+            if number_point<count_point:
+                print(f'----- Delete point -----')
+                # delete
+                array_delete=result_point[number_point:count_point]
+                for item in array_delete:
+                    print(f'Delete Id: {item.id}')
+                    result=point_query.filter(
+                                models.Point_list.id == item.id).delete(synchronize_session=False)
+                    db.flush()
+                    db.commit()
+                point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
+                result_point=point_query.all()
+                return result_point
+            elif number_point==count_point:
+                print(f'----- Keep point -----')
+                # no do
+                point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
+                result_point=point_query.all()
+                return result_point
+            else:
+                print(f'----- Insert point -----')
+                config_info_query = db.query(models.Config_information).filter(models.Config_information.status == 1)
+                result_config_info=config_info_query.all()
+                
+                name=""
+                nameedit=False
+                id_type_units=[item.__dict__ for item in result_config_info if item.namekey == "(No units)" and item.id_type==3][0]['id']
+                unitsedit=False
+                id_equation=[item.__dict__ for item in result_config_info if item.namekey == "Modbus register" and item.id_type==15][0]['id']
+                id_config=[item.__dict__ for item in result_config_info if item.namekey == "Input" and item.id_type==15][0]['id']
+                register=0
+                id_type_datatype=[item.__dict__ for item in result_config_info if item.namekey == "Short" and item.id_type==1][0]['id']
+                id_type_byteorder=[item.__dict__ for item in result_config_info if item.namekey == "normal" and item.id_type==2][0]['id']
+                slope=1
+                slopeenabled=False
+                offset=0
+                offsetenabled=False
+                multreg=0
+                multregenabled=False
+                userscaleenabled=False
+                invalidvalue=65535
+                invalidvalueenabled=False
+                extendednumpoints=0
+                extendedregblocks=0
+                constants=0
+                function=""
+                # add
+                number_point_add=number_point-count_point
+                new_point_list=[]
+                
+                for item in range(number_point_add):
+                    new_point = models.Point_list(
+                                id_template=id_template,
+                                name=name,
+                                nameedit=nameedit,
+                                id_type_units=id_type_units,
+                                unitsedit=unitsedit,
+                                equation=id_equation,
+                                config=id_config,
+                                register=register,
+                                id_type_datatype=id_type_datatype,
+                                id_type_byteorder = id_type_byteorder,
+                                slope =slope,
+                                slopeenabled = slopeenabled,
+                                offset = offset,
+                                offsetenabled = offsetenabled,
+                                multreg = multreg,
+                                multregenabled =multregenabled ,
+                                userscaleenabled = userscaleenabled,
+                                invalidvalue = invalidvalue,
+                                invalidvalueenabled = invalidvalueenabled,
+                                extendednumpoints = extendednumpoints,
+                                extendedregblocks =extendedregblocks ,
+                                status = 1,
+                                function=function ,
+                                constants=constants
+                                )
+                    new_point_list.append(new_point)
+                
+                db.add_all(new_point_list)
+                db.flush()
+                device_point_list_query = db.query(models.Device_point_list).filter(models.Device_point_list.id_template == id_template)
+                result_device_point_list=device_point_list_query.all()
+                
+                if result_device_point_list:
+                    # check number device
+                    device_list=list(set([item.id_device_list for item in result_device_point_list]))
+                    insert_device_point_list=[]
+                    for item_point in new_point_list:
+                        for item_device in device_list:
+                            id_device_group=[item.__dict__ for item in result_device_point_list 
+                                            if item.id_device_list == item_device][0]['id_device_group']
+                            insert_device_point_list.append(models.Device_point_list(id_template=id_template,
+                                                                            id_device_group=id_device_group,
+                                                                            id_device_list=item_device,
+                                                                            id_point_list=item_point.id))
+                    if insert_device_point_list:
+                        db.add_all(insert_device_point_list)
+                db.commit()
+                point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
+                result_point=point_query.all()
+                print(result_point)
+                return result_point
+               
+        else:
+            pass
         
-        pass
-    except Exception as err: 
-        print('Error : ',err)
+    except Exception as err:
+        print(f'Error: {err}')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Not have data")

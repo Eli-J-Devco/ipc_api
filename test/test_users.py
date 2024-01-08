@@ -135,10 +135,10 @@ def test_refresh_token():
     # payload = jwt.decode(login_res.access_token,
     #   
 # # test_create_user()
-# test_login_user()
+test_login_user()
 # test_create_posts()
 # test_get_one_post()
 # decode_token()
 # test_update_post()
 # test_refresh_token()
-test_update_post()
+# test_update_post()

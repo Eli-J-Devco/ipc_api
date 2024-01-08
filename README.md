@@ -30,6 +30,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->
 cd api_of_device
 python main.py
+python api_of_device/main.py
 uvicorn main:app --reload 
 http://127.0.0.1:8000/docs#/
 <!-- Fast API JWT  -->
@@ -320,3 +321,4 @@ Restart Visual Studio Code
 28122023 config_information
 28122023 point_list
 28122023 register_block
+29122023 point_list add column ->  function, value
