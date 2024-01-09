@@ -515,7 +515,7 @@ def restart_pm2_change_template(id_template:int,db:Session):
                         for item in device_list_rs485:
                             result_pm2=restart_program_pm2(pid)
                             print(f'pm2: {result_pm2}')
-                        # result_pm2=restart_program_pm2_many(device_list_rs485)
+                        
         # Restart PM2 log file
         upload_channel_query = db.query(models.Upload_channel).\
                                                 filter(models.Upload_channel.status == 1)                         

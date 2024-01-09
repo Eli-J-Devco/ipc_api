@@ -804,6 +804,13 @@ class RegisterListBase(BaseModel):
     class Config:
         orm_mode = True
 # <-  -> 
+class TemplateBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    
+    class Config:
+        orm_mode = True
 class TemplateOutBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
@@ -835,10 +842,16 @@ class PointUnit(BaseModel):
         from_attributes = True
 
 # <-  -> 
-class DeviceGroupOutBase(BaseModel):
-    id: Optional[int] = None 
+class DeviceGroupCreateBase(BaseModel):
     name: Optional[str] = None
-    status: Optional[bool] = None
+    # status: Optional[bool] = None
+    id_template: Optional[int] = None
+    class Config:
+        orm_mode = True
+class DeviceGroupBase(DeviceGroupCreateBase):
+    id: Optional[int] = None 
+    # name: Optional[str] = None
+    # status: Optional[bool] = None
     # id_template: Optional[int] = None
     # templates_library: TemplateOutBase
     
@@ -848,9 +861,23 @@ class DeviceGroupOutBase(BaseModel):
     # def _encryption_id(cls, id: str):
     #     id_hash=str(id)
     #     return sha256(id_hash.encode('utf-8')).hexdigest()
-
+class DeviceGroupStateBase(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    class Config:
+        orm_mode = True
+class DeviceGroupOutBase(BaseModel):
+    id: Optional[int] = None 
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    id_template: Optional[int] = None
+    # templates_library: TemplateOutBase
+    template_list:Optional[list[TemplateBase]] = None 
+    class Config:
+        orm_mode = True
 class TemplateGroupDeviceOutBase(BaseModel):
-    device_group:DeviceGroupOutBase=None
+    device_group:DeviceGroupBase=None
     data_type:list[PointDataType]=None
     byte_order:list[PointByteOrder]=None
     point_unit:list[PointUnit]=None

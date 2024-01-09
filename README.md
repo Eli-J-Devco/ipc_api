@@ -322,3 +322,5 @@ Restart Visual Studio Code
 28122023 point_list
 28122023 register_block
 29122023 point_list add column ->  function, value
+09012023 sync_data add column -> number_of_time_retry
+09012023 device_group -> name set unique

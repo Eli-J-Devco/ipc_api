@@ -15,8 +15,8 @@ from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
                                   get_swagger_ui_oauth2_redirect_html)
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from routers import (auth, device_list, ethernet, project, rs485,
-                     site_information, upload_channel, user)
+from routers import (auth, device_group, device_list, ethernet, project, rs485,
+                     site_information, template, upload_channel, user)
 from utils import path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project
@@ -52,7 +52,10 @@ app.add_middleware(
 )
 app.include_router(user.router)
 app.include_router(auth.router)
+app.include_router(template.router)
+app.include_router(device_group.router)
 app.include_router(device_list.router)
+
 app.include_router(ethernet.router)
 app.include_router(rs485.router)
 app.include_router(site_information.router)
