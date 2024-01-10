@@ -40,8 +40,8 @@ router = APIRouter(
 # 	 * @param {db}
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/get_device_group/', response_model=list[schemas.DeviceGroupOutBase])
-def get_device_group( db: Session = Depends(get_db) ):
+@router.post('/get_all/', response_model=list[schemas.DeviceGroupOutBase])
+def get_all_group( db: Session = Depends(get_db) ):
     try:
         
         device_group_query = db.query(models.Device_group).filter(
@@ -65,8 +65,8 @@ def get_device_group( db: Session = Depends(get_db) ):
 # 	 * @param {db}
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/get_each_group_device/', response_model=schemas.DeviceGroupOutBase)
-def get_each_device_group(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+@router.post('/get_each/', response_model=schemas.DeviceGroupOutBase)
+def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
     try:
         
         device_group_query = db.query(models.Device_group).filter(
@@ -104,8 +104,8 @@ def get_each_device_group(id_device_group: Optional[int] = Body(embed=True), db:
 # 	 * @param {device_group,db}
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/edit_each_device_group/', response_model=schemas.DeviceGroupOutBase)
-def edit_each_device_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
+@router.post('/edit_each/', response_model=schemas.DeviceGroupOutBase)
+def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
     try:
         id=device_group.id
         device_group_query = db.query(models.Device_group).filter(
@@ -134,8 +134,8 @@ def edit_each_device_group(device_group: schemas.DeviceGroupBase,db: Session = D
 # 	 * @param {device_group,db}
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/create_device_group/', response_model=schemas.DeviceGroupOutBase)
-def create_device_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depends(get_db) ):
+@router.post('/create/', response_model=schemas.DeviceGroupOutBase)
+def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depends(get_db) ):
     try:
         name=device_group.name
         device_group_query = db.query(models.Device_group).filter(
@@ -162,8 +162,8 @@ def create_device_group(device_group: schemas.DeviceGroupCreateBase,db: Session 
 # 	 * @param {device_group,db}
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
-@router.post('/delete_device_group/', response_model=schemas.DeviceGroupStateBase)
-def delete_device_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
+@router.post('/delete_group/', response_model=schemas.DeviceGroupStateBase)
+def delete_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
     try:
         id=device_group.id
         device_group_query = db.query(models.Device_group).filter(models.Device_group.id == id)

@@ -34,7 +34,7 @@ def path_directory_relative(project_name):
     string_find=project_name
     index_os = path_os.find(string_find)
     if index_os <0:
-      return -1
+        return -1
     result=path_os[0:int(index_os)+len(string_find)]
     # print("Path directory relative:", result)
     return result
@@ -479,18 +479,19 @@ def pybatis(query= str,params={}):
 def restart_pm2_change_template(id_template:int,db:Session):
     try:
         
-    # db.commit()
         # --------------------------------------
         # Restart PM2 read device
         template_query = db.query(models.Template_library).filter(models.Template_library.id == id_template).\
                                                 filter(models.Template_library.status == 1)                                       
         result_template=template_query.first()
+        device_list=[]
         if result_template:
             if result_template.device_group:
                 if hasattr(result_template.device_group[0], 'device_list'):
-                    # result_device_list=result_template.device_group[0].device_list
                     result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
                     device_list_rs485=[]
+                    device_list_tcp=[]
+                    device_list=result_device_list
                     for item in result_device_list:
                         print(f'{item.id_communication}|{item.id}|{item.name} {item.communication.driver_list.name}')
                         id_communication=item.id_communication
@@ -501,8 +502,7 @@ def restart_pm2_change_template(id_template:int,db:Session):
                         match connect_type:
                             case "Modbus/TCP":
                                 pid=f'Dev|{id_communication}|{connect_type}|{id_device}'
-                                result_pm2=restart_program_pm2(pid)
-                                print(f'pm2: {result_pm2}')
+                                device_list_tcp.append(pid)
                             case "RS485":
                                 pid=f'Dev|{id_communication}|{connect_type}|{channel_type}'
                                 device_list_rs485.append(pid)
@@ -511,19 +511,24 @@ def restart_pm2_change_template(id_template:int,db:Session):
                     #
                     if device_list_rs485:
                         device_list_rs485=list(set(device_list_rs485))
-                        print(device_list_rs485)
+                        print(f'device_list_rs485: {device_list_rs485}')
                         for item in device_list_rs485:
                             result_pm2=restart_program_pm2(pid)
                             print(f'pm2: {result_pm2}')
+                    if device_list_tcp:
+                        print(f'device_list_tcp: {device_list_tcp}')
+                        result_pm2=restart_program_pm2_many(device_list_tcp)
                         
         # Restart PM2 log file
-        upload_channel_query = db.query(models.Upload_channel).\
-                                                filter(models.Upload_channel.status == 1)                         
-        result_upload_channel=upload_channel_query.all()
-        if result_upload_channel:
-            pid_upload_channel_list=(lambda channel : [f'Log|{item.id}' for item in channel]) (result_upload_channel)
-            result_pm2=restart_program_pm2_many(pid_upload_channel_list)
-            # --------------------------------------
+        if device_list:
+            upload_channel_query = db.query(models.Upload_channel).\
+                                                    filter(models.Upload_channel.status == 1)                         
+            result_upload_channel=upload_channel_query.all()
+            if result_upload_channel:
+                pid_upload_channel_list=(lambda channel : [f'Log|{item.id}' for item in channel]) (result_upload_channel)
+                print(f'pid_upload_channel_list: {pid_upload_channel_list}')
+                result_pm2=restart_program_pm2_many(pid_upload_channel_list)
+                # --------------------------------------
         
     except Exception as err:
         print(f'Error: {err}')

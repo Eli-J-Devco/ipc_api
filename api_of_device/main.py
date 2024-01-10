@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 import secrets
 import sys
 
@@ -21,7 +22,17 @@ from utils import path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+
+
+from logging_setup import LoggerSetup
+
 from config import Config
+
+# setup root logger
+logger_setup = LoggerSetup()
+
+# get logger for module
+LOGGER = logging.getLogger(__name__)
 
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
@@ -150,10 +161,11 @@ def root():
 @app.on_event("startup")
 async def startup():
     print("startup ---------")
+    LOGGER.info("--- Start up App ---")
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
-  
+
 
 if __name__ == '__main__':
     # uvicorn.run(app, port=8080, host='0.0.0.0')

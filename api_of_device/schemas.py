@@ -728,36 +728,6 @@ class DevicePointListBase(BaseModel):
     id_device_list : Optional[int] = None
     id_point_list : Optional[int] = None
     # -------------------------------------------------- 
-    # name : Optional[str] = None
-    # nameedit : Optional[bool] = None
-    # id_type_units : Optional[int] = None
-    # unitsedit : Optional[bool] = None
-    # equation : Optional[int] = None
-    # config : Optional[int] = None
-    # register : Optional[int] = None
-    # id_type_datatype : Optional[int] = None
-    # id_type_byteorder : Optional[int] = None
-    # slope : Optional[float] = None
-    # slopeenabled : Optional[int] = None
-    # offset : Optional[float] = None
-    # offsetenabled : Optional[bool] = None
-    # multreg : Optional[int] = None
-    # multregenabled : Optional[bool] = None
-    # userscaleenabled : Optional[bool] = None
-    # invalidvalue : Optional[int] = None
-    # invalidvalueenabled : Optional[bool] = None
-    # extendednumpoints : Optional[int] = None
-    # extendedregblocks : Optional[int] = None
-    # status : Optional[bool] = None
-    # 
-    # template_library : TemplateBase
-    # device_group  : DeviceGroupBase
-    # device_list  : DeviceListBase
-    # point_list  : PointListBase
-    
-    # type_units  : Optional[TypeUnitsBase] = None
-    # type_datatype  : Optional[DataTypeBase] = None 
-    # type_byteorder  : Optional[TypeByteOrderBase] = None 
     class Config:
         orm_mode = True
         from_attributes = True
@@ -792,32 +762,56 @@ class TypeFunctionBase(BaseModel):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-class RegisterListBase(BaseModel):
-    id : Optional[int] = None
+class RegisterBase(BaseModel):
     # --------------------------------------------------
     id_template : Optional[int] = None
     addr : Optional[int] = None
     count : Optional[int] = None
     id_type_function : Optional[int] = None
     status : Optional[bool] = None
+    class Config:
+        orm_mode = True
+class RegisterCreateBase(RegisterBase):
+    pass
+    class Config:
+        orm_mode = True
+class RegisterOutBase(RegisterBase):
+    id : Optional[int] = None
+    class Config:
+        orm_mode = True
+
+class RegisterConfigOutBase(BaseModel):
+    
+    register_list: Optional[list[RegisterOutBase]] = None
+    type_function:Optional[list[TypeFunctionBase]] = None 
+    class Config:
+        orm_mode = True
+class RegisterListBase(RegisterBase):
+    id : Optional[int] = None
+    # --------------------------------------------------
     type_function: Optional[TypeFunctionBase] = None 
     class Config:
         orm_mode = True
+
 # <-  -> 
-class TemplateBase(BaseModel):
-    id: Optional[int] = None
+
+class TemplateCreateBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
     
     class Config:
         orm_mode = True
-class TemplateOutBase(BaseModel):
+class TemplateOutBase(TemplateCreateBase):
     id: Optional[int] = None
-    name: Optional[str] = None
-    status: Optional[bool] = None
-    point_list : list[PointOutBase]
+    # name: Optional[str] = None
+    # status: Optional[bool] = None
+    # point_list : list[PointOutBase]
     class Config:
         orm_mode = True
+class TemplateUpdateBase(TemplateCreateBase):
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True        
 # <-  -> 
 class PointDataType(BaseModel):
     id: int = Field(..., alias='id')
@@ -896,7 +890,16 @@ class DeviceListOfPointListOut(DeviceListOut):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-# <-  -> 
+# <-  ->
+class TemplateListBase(BaseModel):
+    data_type:list[PointDataType]=None
+    byte_order:list[PointByteOrder]=None
+    point_unit:list[PointUnit]=None
+    point_list : list[PointOutBase]=None
+    register_list : list[RegisterListBase]=None
+    
+    class Config:
+        orm_mode = True
 # <-  -> 
 # <-  -> 
 class Token(BaseModel):
