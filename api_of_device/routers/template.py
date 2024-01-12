@@ -7,6 +7,7 @@ import asyncio
 import datetime
 import ipaddress
 import json
+import logging
 from pprint import pprint
 from typing import Annotated, Optional, Union
 
@@ -19,6 +20,7 @@ from async_timeout import timeout
 from database import get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
                      Response, status)
+from logging_setup import LoggerSetup
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
@@ -28,6 +30,10 @@ from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
                    restart_pm2_change_template, restart_program_pm2,
                    restart_program_pm2_many)
 
+# setup root logger
+logger_setup = LoggerSetup()
+# get logger for module
+LOGGER = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/template",
     tags=['Template']
@@ -59,6 +65,7 @@ def create_template(template: schemas.TemplateCreateBase,db: Session = Depends(g
         return new_template
     except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -94,6 +101,7 @@ def edit_each_template(template: schemas.TemplateUpdateBase,db: Session = Depend
         return result_template
     except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -116,6 +124,7 @@ def get_list( db: Session = Depends(get_db) ):
         return result_template
     except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -163,6 +172,7 @@ def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session
         }
     except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -211,8 +221,9 @@ def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Sess
             "point_list":point_list,
             "register_list":register_list
         }
-    except Exception as err: 
+    except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 
@@ -257,8 +268,9 @@ def get_each_point(info_point: schemas.PointInfoTemplateBase,db: Session = Depen
                                             type_point_list=type_point,
                                             type_class_list=type_class,
                                             )
-    except Exception as err: 
+    except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -307,8 +319,9 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
         restart_pm2_change_template(id_template,db)
         db.commit()  
         return result_point
-    except exc.SQLAlchemyError as err:
+    except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 
@@ -438,8 +451,9 @@ def change_number_point(change_number_point: schemas.PointChangeNumberBase, db: 
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
         
-    except Exception as err:
+    except (exc.SQLAlchemyError,Exception) as err:
         print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -469,8 +483,9 @@ def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session =
         restart_pm2_change_template(id_template,db)
         db.commit()
         return point_query.all()
-    except Exception as err:
+    except (exc.SQLAlchemyError,Exception) as err:
         print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Can't delete data")
 # Describe functions before writing code
@@ -497,8 +512,9 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
             "register_list":result_register,
             "type_function":type_function
         }
-    except Exception as err: 
+    except (exc.SQLAlchemyError,Exception) as err: 
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -525,8 +541,9 @@ def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depe
         register_query.update(info_register.dict())   
         db.commit()
         return result_register
-    except exc.SQLAlchemyError as err:
+    except (exc.SQLAlchemyError,Exception) as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -554,6 +571,7 @@ def edit_all_register(register_list: list[schemas.RegisterOutBase],db: Session =
         
     except (exc.SQLAlchemyError,Exception) as err:
         print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -583,5 +601,6 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         return register_query.all()
     except (exc.SQLAlchemyError,Exception) as err:
         print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Can't delete data")

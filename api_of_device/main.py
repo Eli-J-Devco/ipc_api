@@ -162,9 +162,12 @@ def root():
 async def startup():
     print("startup ---------")
     LOGGER.info("--- Start up App ---")
+    
+    
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
+    LOGGER.info("--- Shutdown App ---")
 
 
 if __name__ == '__main__':
