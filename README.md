@@ -325,3 +325,10 @@ Restart Visual Studio Code
 09012023 sync_data add column -> number_of_time_retry
 09012024 device_group -> name set unique
 10012024 config_information -> add row "not used"
+12012024 template_library -> name set unique
+15012024 config_type -> add row id 16
+15012024 config_information -> add row id 270 -272
+15012024 device_list -> all On Update and On Delete set = Set null
+15012024 device_group -> On Update and On Delete set = Set null
+
+

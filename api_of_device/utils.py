@@ -4,6 +4,7 @@
 # *
 # *********************************************************/
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -40,10 +41,15 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+from logging_setup import LoggerSetup
 from passlib.context import CryptContext
 
 from config import Config
 
+# setup root logger
+logger_setup = LoggerSetup()
+# get logger for module
+LOGGER = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Describe functions before writing code
 # /**
@@ -472,7 +478,7 @@ def pybatis(query= str,params={}):
 # /**
 # 	 * @description restart_pm2_change_template
 # 	 * @author vnguyen
-# 	 * @since 08-01-2023
+# 	 * @since 08-01-2024
 # 	 * @param {id_template,db}
 # 	 * @return data ()
 # 	 */
@@ -529,6 +535,66 @@ def restart_pm2_change_template(id_template:int,db:Session):
                 print(f'pid_upload_channel_list: {pid_upload_channel_list}')
                 result_pm2=restart_program_pm2_many(pid_upload_channel_list)
                 # --------------------------------------
-        
+    except Exception as err:
+        print(f'Error: {err}')
+# Describe functions before writing code
+# /**
+# 	 * @description restart_pm2_delete_template
+# 	 * @author vnguyen
+# 	 * @since 15-01-2024
+# 	 * @param {id_template,db}
+# 	 * @return data ()
+# 	 */
+def restart_pm2_update_template(template,db:Session):
+    try:
+                
+        # --------------------------------------
+        # Restart PM2 read device
+        result_template=template
+        device_list=[]
+        if result_template:
+            if result_template.device_group:
+                if hasattr(result_template.device_group[0], 'device_list'):
+                    result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
+                    device_list_rs485=[]
+                    device_list_tcp=[]
+                    device_list=result_device_list
+                    for item in result_device_list:
+                        print(f'{item.id_communication}|{item.id}|{item.name} {item.communication.driver_list.name}')
+                        id_communication=item.id_communication
+                        connect_type=item.communication.driver_list.name
+                        channel_type=item.communication.namekey
+                        id_device=item.id
+                        
+                        match connect_type:
+                            case "Modbus/TCP":
+                                pid=f'Dev|{id_communication}|{connect_type}|{id_device}'
+                                device_list_tcp.append(pid)
+                            case "RS485":
+                                pid=f'Dev|{id_communication}|{connect_type}|{channel_type}'
+                                device_list_rs485.append(pid)
+                            case _:
+                                continue
+                    #
+                    if device_list_rs485:
+                        device_list_rs485=list(set(device_list_rs485))
+                        print(f'device_list_rs485: {device_list_rs485}')
+                        for item in device_list_rs485:
+                            result_pm2=restart_program_pm2(pid)
+                            print(f'pm2: {result_pm2}')
+                    if device_list_tcp:
+                        print(f'device_list_tcp: {device_list_tcp}')
+                        result_pm2=restart_program_pm2_many(device_list_tcp)
+                        
+        # Restart PM2 log file
+        if device_list:
+            upload_channel_query = db.query(models.Upload_channel).\
+                                                    filter(models.Upload_channel.status == 1)                         
+            result_upload_channel=upload_channel_query.all()
+            if result_upload_channel:
+                pid_upload_channel_list=(lambda channel : [f'Log|{item.id}' for item in channel]) (result_upload_channel)
+                print(f'pid_upload_channel_list: {pid_upload_channel_list}')
+                result_pm2=restart_program_pm2_many(pid_upload_channel_list)
+                # --------------------------------------
     except Exception as err:
         print(f'Error: {err}')

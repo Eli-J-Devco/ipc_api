@@ -15,30 +15,43 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
                                   get_swagger_ui_oauth2_redirect_html)
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from routers import (auth, device_group, device_list, ethernet, project, rs485,
                      site_information, template, upload_channel, user)
-from utils import path_directory_relative
+from starlette import status
+from starlette.exceptions import ExceptionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
+from utils import LOGGER, path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 
 
-from logging_setup import LoggerSetup
+# from logging_setup import LoggerSetup
+
+import logging
 
 from config import Config
 
+LOGGER = logging.getLogger(__name__)
 # setup root logger
-logger_setup = LoggerSetup()
+# logger_setup = LoggerSetup()
 
 # get logger for module
-LOGGER = logging.getLogger(__name__)
+# LOGGER = logging.getLogger(__name__)
 
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 
 models.Base.metadata.create_all(bind=engine)
-
+class PartnerAvailabilityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        raise CustomException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, 'Partner services is unavailable.'
+        )
+        return await call_next(request)
 app = FastAPI(
     title="FastAPI",
     description="IPC SCADA",
@@ -73,6 +86,17 @@ app.include_router(site_information.router)
 app.include_router(upload_channel.router)
 app.include_router(project.router)
 # 
+
+class CustomException(Exception):
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request: Request, exc: CustomException):
+    return JSONResponse(
+        status_code=exc.code,
+        content={"message": f"Exception Occurred! Reason -> {exc.message}"},
+    )
 # Describe functions before writing code
 # /**
 # 	 * @description get current username
@@ -162,12 +186,12 @@ def root():
 async def startup():
     print("startup ---------")
     LOGGER.info("--- Start up App ---")
-    
+
     
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
-    LOGGER.info("--- Shutdown App ---")
+    LOGGER.error("--- Shutdown App ---")
 
 
 if __name__ == '__main__':

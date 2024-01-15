@@ -243,6 +243,7 @@ class TemplateBase(BaseModel):
     
     class Config:
         orm_mode = True
+
 class Point_RegisterBase(BaseModel):
     
     class Config:
@@ -798,7 +799,7 @@ class RegisterListBase(RegisterBase):
 class TemplateCreateBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
-    
+    id_template_type:Optional[int] = None
     class Config:
         orm_mode = True
 class TemplateOutBase(TemplateCreateBase):
@@ -812,6 +813,27 @@ class TemplateUpdateBase(TemplateCreateBase):
     id: Optional[int] = None
     class Config:
         orm_mode = True        
+class TemplateTypeBase(BaseModel):
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str] = Field(..., alias='types')
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True        
+class TemplateDelete(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
 # <-  -> 
 class PointDataType(BaseModel):
     id: int = Field(..., alias='id')

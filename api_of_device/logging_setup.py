@@ -33,31 +33,24 @@ class LoggerSetup:
         formatter = logging.Formatter(LOG_FORMAT)
 
         # configure console handler
-        console= logging.StreamHandler()
-        console.setFormatter(formatter)
-        console.setLevel("DEBUG")
-        self.logger.addHandler(console)
+        # console= logging.StreamHandler()
+        # console.setFormatter(formatter)
+        # console.setLevel("DEBUG")
+        # self.logger.addHandler(console)
         # configure TimeRotatingFileHandler
         path_file_info = f"{path}/api_of_device/logs/file_info.log"
         path_file_error = f"{path}/api_of_device/logs/file_error.log"
-        # print(f'path_file_info: {path_file_info}')
         # logHandler  = handlers.TimedRotatingFileHandler(filename=log_file_normal, when="midnight", backupCount=5)
-        # logHandler  = handlers.TimedRotatingFileHandler(filename=log_file_normal,  when="midnight", backupCount=5)
-        
-        # errorLogHandler = RotatingFilehandler(filename=log_file_error, maxBytes=2000, backupCount=10)
-        # errorLogHandler.setLevel("ERROR")
-        # errorLogHandler.setFormatter(formatter)
-        # self.logger.addHandler(errorLogHandler)
-        
+
         #  5MB
         logHandlerInfo = logging.handlers.RotatingFileHandler(filename=path_file_info, maxBytes=50*1024*1024, 
-                                backupCount=10, encoding=None, delay=0)
+                                backupCount=0, encoding=None, delay=0)
         logHandlerInfo.setLevel(logging.INFO)
         logHandlerInfo.setFormatter(formatter)
         logHandlerInfo.addFilter(LevelFilter(logging.INFO))
         # 5MB
         logHandlerError = logging.handlers.RotatingFileHandler(filename=path_file_error, maxBytes=50*1024*1024, 
-                                backupCount=10, encoding=None, delay=0)
+                                backupCount=0)
         logHandlerError.setLevel(logging.ERROR)
         logHandlerError.setFormatter(formatter)
         logHandlerError.addFilter(LevelFilter(logging.ERROR))

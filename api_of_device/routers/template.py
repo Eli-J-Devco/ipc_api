@@ -8,6 +8,7 @@ import datetime
 import ipaddress
 import json
 import logging
+# import logging
 from pprint import pprint
 from typing import Annotated, Optional, Union
 
@@ -20,20 +21,24 @@ from async_timeout import timeout
 from database import get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
                      Response, status)
+from fastapi.responses import JSONResponse
 from logging_setup import LoggerSetup
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
-from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
-                   delete_program_pm2, find_program_pm2, get_mybatis, path,
-                   restart_pm2_change_template, restart_program_pm2,
+from utils import (LOGGER, create_device_group_rs485_run_pm2,
+                   create_program_pm2, delete_program_pm2, find_program_pm2,
+                   get_mybatis, path, restart_pm2_change_template,
+                   restart_pm2_update_template, restart_program_pm2,
                    restart_program_pm2_many)
 
-# setup root logger
-logger_setup = LoggerSetup()
-# get logger for module
 LOGGER = logging.getLogger(__name__)
+# # setup root logger
+# logger_setup = LoggerSetup()
+# # get logger for module
+# LOGGER = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/template",
     tags=['Template']
@@ -41,9 +46,9 @@ router = APIRouter(
 
 # Describe functions before writing code
 # /**
-# 	 * @description create template
+# 	 * @description create template modbus
 # 	 * @author vnguyen
-# 	 * @since 10-01-2024
+# 	 * @since 15-01-2024
 # 	 * @param {template,db}
 # 	 * @return data (TemplateOutBase)
 # 	 */
@@ -54,28 +59,144 @@ def create_template(template: schemas.TemplateCreateBase,db: Session = Depends(g
         template_query = db.query(models.Template_library).filter(
         models.Template_library.name == name).first()
         if template_query:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template name already exists")
+            return  JSONResponse(content={"detail": "Template name already exists"}, status_code=status.HTTP_404_NOT_FOUND)
         
         new_template = models.Template_library(**template.dict())
         db.add(new_template)
+        db.flush()
+        
+        id_template=new_template.id
+        id_template_type=new_template.id_template_type
+        config_info = db.query(models.Config_information).filter(models.Config_information.status 
+                                                                                == 1).all()
+        type_function=[]
+        type_function = [item.__dict__ for item in config_info if item.id_type == 5 and item.namekey == "Read Holding Registers" ]
+        
+        point_unit=[]
+        point_unit = [item.__dict__ for item in config_info if item.id_type == 3 and item.namekey =="(No units)"]
+        type_point=[]
+        type_point = [item.__dict__ for item in config_info if item.id_type == 15 and item.namekey == "Modbus register"]   # equation
+        type_class=[]
+        type_class = [item.__dict__ for item in config_info if item.id_type == 15 and item.namekey == "Input"]   # config
+        data_type=[]
+        data_type = [item.__dict__ for item in config_info if item.id_type == 1 and item.namekey =="Short"]
+        byte_order=[]
+        byte_order = [item.__dict__ for item in config_info if item.id_type == 2 and item.namekey =="normal"]
+        template_type=[]
+        template_type=[item.__dict__ for item in config_info if item.id_type == 16 and item.id==id_template_type]
+        
+        
+        # Register
+        if type_function and  template_type:
+            if template_type[0]["namekey"]=="Modbus":
+                new_register = models.Register_block(id_template=id_template,addr=0,count=10,id_type_function=type_function[0]["id"], status=False)
+                db.add(new_register)
+            else:
+                pass
+        # Point
+        if point_unit and type_point and type_class and data_type and byte_order:
+            new_point=models.Point_list(
+                                id_template=id_template,
+                                name="",
+                                nameedit=False,
+                                id_type_units=point_unit[0]["id"],
+                                unitsedit=False,
+                                equation=type_point[0]["id"],
+                                config=type_class[0]["id"],
+                                register=0,
+                                id_type_datatype=data_type[0]["id"],
+                                id_type_byteorder = byte_order[0]["id"],
+                                slope =1,
+                                slopeenabled = False,
+                                offset = 0,
+                                offsetenabled = False,
+                                multreg = 0,
+                                multregenabled =False ,
+                                userscaleenabled = False,
+                                invalidvalue = 65535,
+                                invalidvalueenabled = False,
+                                # extendednumpoints = extendednumpoints,
+                                # extendedregblocks =extendedregblocks ,
+                                status = False,
+                                # function=function ,
+                                # constants=constants
+            )
+            db.add(new_point)
+        
         db.commit()
         db.refresh(new_template)
         
         return new_template
-    except (exc.SQLAlchemyError,Exception) as err:
-        print('Error : ',err)
+    except (Exception) as err:
+        print('Error : ',err.__class__)
+        
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+        #                     detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description delete template
 # 	 * @author vnguyen
-# 	 * @since 10-01-2024
+# 	 * @since 15-01-2024
 # 	 * @param {,db}
-# 	 * @return data ()
+# 	 * @return data (TemplateDelete)
 # 	 */
+@router.post('/delete/', response_model=schemas.TemplateDelete)
+def delete_template(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+    try:
+        
+        template_query = db.query(models.Template_library).filter(models.Template_library.id == id_template)
+        result_template=template_query.first()
+        if not result_template:
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
+                                content=f"Template with id: {id_template} does not exist")
+        
+        # 
+        # template_save_query = db.query(models.Template_library).filter(models.Template_library.id == id_template).\
+        #                                         filter(models.Template_library.status == 1)                                       
+        # result_template_save=template_save_query.first()
+        
+        
+        # 
+        # print(result_template_save.device_group[0])
+        result=template_query.filter(
+                                models.Template_library.id == id_template).delete(synchronize_session=False)
+        # print(result_template_save.device_group[0])
+        # restart_pm2_update_template(result_template_save,db)
+        # db.commit()
+        return {
+                "status": "success",
+                "code": "100",
+                "desc":""
+            }
+    except (Exception) as err:
+        print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Describe functions before writing code
+# /**
+# 	 * @description get template type
+# 	 * @author vnguyen
+# 	 * @since 15-01-2024
+# 	 * @param {,db}
+# 	 * @return data (TemplateTypeBase)
+# 	 */
+@router.post('/get_type/', response_model=list[schemas.TemplateTypeBase])
+def get_type( db: Session = Depends(get_db) ):
+    try:
+        template_type_query = db.query(models.Config_information).\
+            filter(models.Config_information.status== 1).\
+            filter(models.Config_information.id_type== 16).\
+                all()                                                   
+        if not template_type_query:
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Template type empty")
+        return template_type_query
+    except (Exception) as err:
+        print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description edit template
@@ -92,18 +213,17 @@ def edit_each_template(template: schemas.TemplateUpdateBase,db: Session = Depend
         models.Template_library.id == id)
         result_template=template_query.first()
         if not result_template:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template with id: {id} does not exist")
         
         template_query.update(template.dict())
         restart_pm2_change_template(id,db)
         db.commit()
         return result_template
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get template list
@@ -118,15 +238,13 @@ def get_list( db: Session = Depends(get_db) ):
         template_query = db.query(models.Template_library)
         result_template=template_query.all()
         if not result_template:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template list empty")
-
         return result_template
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get each template
@@ -141,7 +259,7 @@ def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session
         template_query = db.query(models.Template_library).filter(
         models.Template_library.id == id_template).first()
         if not template_query:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template with id: {id} does not exist")
         # print(device_group_query.__dict__)
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
@@ -170,11 +288,10 @@ def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session
             "point_list":point_list,
             "register_list":register_list
         }
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get template group device
@@ -190,7 +307,7 @@ def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Sess
         device_group_query = db.query(models.Device_group).filter(
         models.Device_group.id == id).first()
         if not device_group_query:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Device with id: {id} does not exist")
         # print(device_group_query.__dict__)
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
@@ -221,11 +338,10 @@ def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Sess
             "point_list":point_list,
             "register_list":register_list
         }
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Describe functions before writing code
 # /**
@@ -243,7 +359,7 @@ def get_each_point(info_point: schemas.PointInfoTemplateBase,db: Session = Depen
         
         result_point=point_query.first()
         if not result_point:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                detail=f"Point with id: {id} does not exist")
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
@@ -268,11 +384,10 @@ def get_each_point(info_point: schemas.PointInfoTemplateBase,db: Session = Depen
                                             type_point_list=type_point,
                                             type_class_list=type_class,
                                             )
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description edit each point
@@ -289,7 +404,7 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
         models.Point_list.id_template == info_point.id_template)
         result_point=point_query.first()
         if not result_point:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                detail=f"Point with id: {id} does not exist")
         mode_modbus_equation=db.query(models.Config_information).filter(
         models.Config_information.id == info_point.equation).first()
@@ -319,11 +434,10 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
         restart_pm2_change_template(id_template,db)
         db.commit()  
         return result_point
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Describe functions before writing code
 # /**
@@ -451,11 +565,10 @@ def change_number_point(change_number_point: schemas.PointChangeNumberBase, db: 
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
         
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description delete point list
@@ -472,7 +585,7 @@ def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session =
                                                 filter(models.Point_list.status == 1)
         result_point=point_query.all()
         if not result_point:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Not have data")
         
         for item in point_list.id_point:
@@ -483,11 +596,10 @@ def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session =
         restart_pm2_change_template(id_template,db)
         db.commit()
         return point_query.all()
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Can't delete data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get register list
@@ -502,7 +614,7 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
         register_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
         result_register=register_query.all()
         if not result_register:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template with id: {id_template} does not exist")
         config_register = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
@@ -512,11 +624,10 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
             "register_list":result_register,
             "type_function":type_function
         }
-    except (exc.SQLAlchemyError,Exception) as err: 
+    except (Exception) as err: 
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description edit each register
@@ -535,17 +646,16 @@ def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depe
         result_register=register_query.first()
         print(result_register.__dict__)
         if not result_register:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Register with id: {id} does not exist")
         restart_pm2_change_template(id_template,db)
         register_query.update(info_register.dict())   
         db.commit()
         return result_register
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print('Error : ',err)
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description edit all register
@@ -569,11 +679,10 @@ def edit_all_register(register_list: list[schemas.RegisterOutBase],db: Session =
         restart_pm2_change_template(id_template,db)
         return register_query
         
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Not have data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description delete register
@@ -589,7 +698,7 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         register_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
         result_register=register_query.all()
         if not result_register:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template with id: {id_template} does not exist")
         
         for item in register_list:
@@ -599,8 +708,7 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         restart_pm2_change_template(id_template,db)
         db.commit()
         return register_query.all()
-    except (exc.SQLAlchemyError,Exception) as err:
+    except (Exception) as err:
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Can't delete data")
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
