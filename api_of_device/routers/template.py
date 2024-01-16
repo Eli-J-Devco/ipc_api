@@ -151,20 +151,14 @@ def delete_template(id_template: Optional[int] = Body(embed=True), db: Session =
         if not result_template:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 content=f"Template with id: {id_template} does not exist")
-        
-        # 
-        # template_save_query = db.query(models.Template_library).filter(models.Template_library.id == id_template).\
-        #                                         filter(models.Template_library.status == 1)                                       
-        # result_template_save=template_save_query.first()
-        
-        
-        # 
-        # print(result_template_save.device_group[0])
+        result_device_list=[]
+        if result_template.device_group:
+            if hasattr(result_template.device_group[0], 'device_list'):
+                result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
         result=template_query.filter(
                                 models.Template_library.id == id_template).delete(synchronize_session=False)
-        # print(result_template_save.device_group[0])
-        # restart_pm2_update_template(result_template_save,db)
-        # db.commit()
+        restart_pm2_update_template(result_device_list,db)
+        db.commit()
         return {
                 "status": "success",
                 "code": "100",
@@ -182,7 +176,7 @@ def delete_template(id_template: Optional[int] = Body(embed=True), db: Session =
 # 	 * @param {,db}
 # 	 * @return data (TemplateTypeBase)
 # 	 */
-@router.post('/get_type/', response_model=list[schemas.TemplateTypeBase])
+@router.post('/get_template_type/', response_model=list[schemas.TemplateTypeBase])
 def get_type( db: Session = Depends(get_db) ):
     try:
         template_type_query = db.query(models.Config_information).\
