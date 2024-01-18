@@ -706,3 +706,28 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Describe functions before writing code
+# /**
+# 	 * @description export template file
+# 	 * @author vnguyen
+# 	 * @since 16-01-2024
+# 	 * @param {id,db}
+# 	 * @return data (RegisterOutBase)
+# 	 */
+@router.post('/export_file/', response_model=list[schemas.RegisterOutBase])
+def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+    try:
+        
+        template_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
+        result_template=template_query.all()
+        if not result_template:
+            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Template with id: {id_template} does not exist")
+        
+        
+        # db.commit()
+        # return register_query.all()
+    except (Exception) as err:
+        print(f'Error: {err}')
+        LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

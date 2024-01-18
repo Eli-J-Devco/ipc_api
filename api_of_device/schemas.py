@@ -12,7 +12,8 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import (BaseModel, EmailStr, Field, computed_field,
                       root_validator, validator)
 from pydantic.types import conint
-from pydantic_computed import Computed, computed
+
+# from pydantic_computed import Computed, computed
 
 
 # from sqlalchemy import 

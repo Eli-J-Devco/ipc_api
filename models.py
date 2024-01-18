@@ -3,13 +3,35 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-# from sqlalchemy.dialect.mysql import BOOLEAN
-from database import Base, engine
-from sqlalchemy import (DOUBLE, Boolean, Column, ForeignKey, Integer, String,
-                        Text)
-from sqlalchemy.orm import mapped_column, relationship
+import os
+import sys
+from datetime import datetime
+
+from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime,
+                        ForeignKey, Integer, String, Text, create_engine)
+from sqlalchemy.orm import (declarative_base, mapped_column, relationship,
+                            sessionmaker)
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
+
+from config import Config
+from libcom import path_directory_relative
+
+path=path_directory_relative("ipc_api") # name of project
+sys.path.append(path)
+# 
+database_hostname =Config.DATABASE_HOSTNAME
+database_port = Config.DATABASE_PORT
+database_password =Config.DATABASE_PASSWORD
+database_name =Config.DATABASE_NAME
+database_username =Config.DATABASE_USERNAME
+
+SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_password}@{database_hostname}:{database_port}/{database_name}'
+
+# connection_string="sqlite:///"+os.path.join(BASE_DIR,'site.db')
+Base=declarative_base()
+engine=create_engine(SQLALCHEMY_DATABASE_URL,echo=False)
+Session=sessionmaker()
 
 
 # 
@@ -127,7 +149,10 @@ class Project_setup(Base):
     logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
     first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
-
+    number_limit_alarm= Column(Integer, nullable=True)
+    time_limit_alarm= Column(Integer, nullable=True)
+    
+    
 class Template_library(Base):
     __tablename__ = "template_library"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -455,6 +480,64 @@ class Device_register_block(Base):
     # --------------------------------------------------
     # type_function  = relationship('Config_information', foreign_keys=[id_type_function])   
 # 
+class Error_comparison(Base):
+    __tablename__ = "error_comparison"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(50), nullable=True)
+    description = Column(Text, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+
+class Error_level(Base):
+    __tablename__ = "error_level"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+
+class Error_type(Base):
+    __tablename__ = "error_type"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+
+class Alarm(Base):
+    __tablename__ = "alarm"
+    id = Column(BigInteger, primary_key=True, nullable=False)
+    id_device = Column(Integer, ForeignKey(
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_error = Column(Integer, ForeignKey(
+        "error.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    enable = Column(Boolean, nullable=False, default=True)
+    opened =  Column(Boolean, nullable=False, default=False)
+    closed = Column(Boolean, nullable=False, default=False)
+    status = Column(Boolean, nullable=False, default=True)
+
+
+class Error(Base):
+    __tablename__ = "error"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    id_device_group = Column(Integer, ForeignKey(
+        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_error_level = Column(Integer, ForeignKey(
+        "error_level.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_error_type = Column(Integer, ForeignKey(
+        "error_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    error_code = Column(String(255), nullable=False)
+    message = Column(String(255), nullable=False)
+    comparison = Column(String(255), nullable=True)
+    point = Column(String(255), nullable=False)
+    id_error_comparison = Column(Integer, ForeignKey(
+        "error_comparison.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    value = Column(DOUBLE, nullable=False, default=True)
+    enable = Column(Boolean, nullable=False, default=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+# 
 def create_table(table_name):
     class DynamicTable(Base):
         __tablename__ = table_name
@@ -538,3 +621,6 @@ def create_table_device(table_name):
         pt62 = Column(DOUBLE, nullable=True)
         device = relationship("Device_list")
     DynamicTable.__table__.create(engine)
+    
+    
+
