@@ -3,6 +3,8 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import time
+
 import mysql.connector
 import pandas as pd
 from mysql.connector import Error
@@ -43,37 +45,44 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
 async def MySQL_Select_v1(query):
     db = create_server_connection(
         DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-    cursor = db.cursor(dictionary=True)
-    try:
-        cursor.execute(query)
-        result = cursor.fetchall()
-        # print(result)
-        cursor.close()
-        db.close()
-        return result
-    except Exception as err:
-        cursor.close()
-        db.close()
-        print(f"Error: '{err}'")
+    if db :
+        cursor = db.cursor(dictionary=True)
+        try:
+            cursor.execute(query)
+            result = cursor.fetchall()
+            # print(result)
+            cursor.close()
+            db.close()
+            return result
+        except Exception as err:
+            cursor.close()
+            db.close()
+            print(f"Error: '{err}'")
+    else :
+        while True :
+            time.sleep(1)
+
         
 def MySQL_Select(query,val):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-    cursor = db.cursor(dictionary=True)
-    # cursor = db.cursor()
-    result = None
-    try:
-        cursor.execute(query,val)
-        result = cursor.fetchall()
-        cursor.close()
-        db.close()
-        return result
-    except Exception as err:
-        cursor.close()
-        db.close()
-        print(f"Error: '{err}'")
-
-
+    if db :
+        cursor = db.cursor(dictionary=True)
+        # cursor = db.cursor()
+        result = None
+        try:
+            cursor.execute(query,val)
+            result = cursor.fetchall()
+            cursor.close()
+            db.close()
+            return result
+        except Exception as err:
+            cursor.close()
+            db.close()
+            print(f"Error: '{err}'")
+    else :
+        while True :
+            time.sleep(1)
 def MySQL_Insert(query):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
@@ -217,7 +226,28 @@ def MySQL_Update(query):
         result = cursor.fetchall()
         db.commit()
         result = cursor.rowcount
-        print("Record Updated successfully ")
+        #print("Record Updated successfully ")
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+        
+def MySQL_Update_V1(query,val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+
+    cursor = db.cursor(dictionary=True)
+    # cursor = db.cursor()
+    result = None
+    try:
+        cursor.execute(query,val)
+        result = cursor.fetchall()
+        db.commit()
+        result = cursor.rowcount
+        # print("Record Updated successfully ")
         cursor.close()
         db.close()
         return result

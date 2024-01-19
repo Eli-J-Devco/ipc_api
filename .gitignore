@@ -10,3 +10,4 @@ vscode-extensions.list
 .env2
 .env
 information_DB.md
+node_modules

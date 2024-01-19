@@ -310,7 +310,7 @@ async def main():
     
     await asyncio.gather(*tasks, return_exceptions=False)
     #-------------------------------------
-    
+    await asyncio.sleep(0.05)
 if __name__ == "__main__":
     asyncio.run(main())
 

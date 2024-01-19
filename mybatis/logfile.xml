@@ -17,24 +17,19 @@ WHERE
     upload_channel.id = %s AND upload_channel.status = 1;
   </select>
 
+  <select id="QUERY_ALL_DEVICES">
+    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
+  </select>
+
   <select id="QUERY_INSERT_SYNC_DATA">
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice = %s , ensuredir = %s, source = %s, filename = %s, createtime = %s, DATA = %s, id_upload_channel = %s 
   </select>
-
-    <select id="QUERY_INSERT_SYNC_DATA_EXECUTEMANY">
-  INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
-VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
-  </select>
-
+  
   <select id="QUERY_SELECT_COUNT_POINT_LIST">
   SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
   </select>
 
-  <select id="QUERY_ALL_DEVICES">
-    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
-  </select>
-  
   <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
   CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
 SELECT 
@@ -57,14 +52,67 @@ FROM
 INNER JOIN 
     config_information ON project_setup.id_logging_interval = config_information.id
   </select>
+   <select id="QUERY_UPDATE_ERR_DATABASE">
+    UPDATE sync_data
+    SET 
+    error= 1
+    WHERE 
+    id = %s AND id_upload_channel = %s AND id_device = %s;
+  </select>
+   
+  <select id="QUERY_TIME_RETRY">
+SELECT 
+    config_information.value AS time_log_data_server 
+FROM 
+    project_setup
+INNER JOIN 
+    config_information ON project_setup.id_time_wait_before_retry = config_information.id
+  </select>
 
-  <select id="QUERY_SYNC_SERVER">
+  <select id="QUERY_UPDATE_NUMBERRETRY">
+    UPDATE sync_data
+    SET 
+    number_of_time_retry = %s
+    WHERE 
+    id = %s AND id_upload_channel = %s AND id_device = %s;
+  </select>
+  <select id="QUERY_GETDATA_SERVER">
+SELECT 
+    config_information.value AS time_log_data_server 
+FROM 
+    project_setup
+INNER JOIN 
+    config_information ON project_setup.id_scheduled_upload_time = config_information.id
+  </select>
+   <select id="QUERY_UPDATE_DATABASE">
+    UPDATE sync_data
+    SET 
+    synced = 1, updatetime = %s
+    WHERE 
+    id = %s AND id_upload_channel = %s AND id_device = %s;
+  </select>
+ <select id="QUERY_SYNC_SERVER">
     SELECT * FROM sync_data
     WHERE 
-    id_upload_channel = %s AND synced = 0 
+    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
     ORDER BY id ASC, id_device ASC
     LIMIT 1;
   </select>
-
+ <select id="QUERY_NUMER_FILE">
+    SELECT COUNT(*) AS remaining_files
+FROM `sync_data`
+WHERE synced = 0 AND error IS NULL;
+  </select>
+ <select id="QUERY_SYNC_MULTIFILE_SERVER">
+    SELECT * FROM sync_data
+    WHERE 
+    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
+    ORDER BY id ASC, id_device ASC
+    LIMIT 10;
+</select>
+ <select id="QUERY_SYNC_ERROR_MQTT">
+SELECT error
+FROM sync_data
+WHERE id_upload_channel = %s AND filename = %s;
+</select>
 </mapper>
-

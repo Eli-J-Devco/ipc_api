@@ -46,6 +46,7 @@ class AppConfig:
     FOLDER_PATH_LOG : str
     HEAD_FILE_LOG : str
     URL_SERVER_SYNC : str
+    URL_SERVER_SYNC_FILE :str
     def __init__(self, env):
         for field in self.__annotations__:
             if not field.isupper():
