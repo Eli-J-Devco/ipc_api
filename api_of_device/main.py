@@ -7,9 +7,13 @@ import logging
 import secrets
 import sys
 
-import models
+from utils import LOGGER, path_directory_relative
+
+path=path_directory_relative("ipc_api") # name of project
+sys.path.append(path)
+import logging
+
 import uvicorn
-from database import engine
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
@@ -23,17 +27,14 @@ from starlette import status
 from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
-from utils import LOGGER, path_directory_relative
 
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
-
+import models
+from config import Config
+from database import engine
 
 # from logging_setup import LoggerSetup
 
-import logging
 
-from config import Config
 
 LOGGER = logging.getLogger(__name__)
 # setup root logger

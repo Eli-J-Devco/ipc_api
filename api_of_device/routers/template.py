@@ -12,17 +12,14 @@ import logging
 from pprint import pprint
 from typing import Annotated, Optional, Union
 
-import models
 import mybatis_mapper2sql
 import oauth2
 import schemas
 import utils
 from async_timeout import timeout
-from database import get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
                      Response, status)
 from fastapi.responses import JSONResponse
-from logging_setup import LoggerSetup
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -33,6 +30,9 @@ from utils import (LOGGER, create_device_group_rs485_run_pm2,
                    get_mybatis, path, restart_pm2_change_template,
                    restart_pm2_update_template, restart_program_pm2,
                    restart_program_pm2_many)
+
+import models
+from database import get_db
 
 LOGGER = logging.getLogger(__name__)
 # # setup root logger
@@ -182,7 +182,8 @@ def get_type( db: Session = Depends(get_db) ):
         template_type_query = db.query(models.Config_information).\
             filter(models.Config_information.status== 1).\
             filter(models.Config_information.id_type== 16).\
-                all()                                                   
+                all() 
+        print(template_type_query)                                                
         if not template_type_query:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Template type empty")

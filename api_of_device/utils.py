@@ -10,7 +10,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import models
 import mybatis_mapper2sql
 # from database import get_db
 # from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
@@ -41,15 +40,18 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
-from logging_setup import LoggerSetup
+# from logging_setup import LoggerSetup
 from passlib.context import CryptContext
 
+import models
 from config import Config
+# logging
+from logger_manager import LoggerSetup
 
 # setup root logger
-logger_setup = LoggerSetup()
-# get logger for module
+logger_setup = LoggerSetup(path,"API")
 LOGGER = logging.getLogger(__name__)
+# -----------------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Describe functions before writing code
 # /**

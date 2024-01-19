@@ -823,9 +823,9 @@ class TemplateTypeBase(BaseModel):
         populate_by_name = True
         from_attributes = True
 
-    id: Optional[int] = None
-    class Config:
-        orm_mode = True        
+    # id: Optional[int] = None
+    # class Config:
+    #     orm_mode = True        
 class TemplateDelete(BaseModel):
     status: Optional[str] = None
     code: Optional[str] = None

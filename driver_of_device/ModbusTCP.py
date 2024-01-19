@@ -132,7 +132,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
     except Exception as err:
         print(f'Error select_function {err}')
         return []
-   
+
 # Describe functions before writing code
 # /**
 # 	 * @description convert data of register to point list
@@ -294,8 +294,6 @@ def write_modbus_tcp(client, unit, datatype,register, value):
                 "code":"",
                 "value":2
             }
-      
-      
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
     if slopeenabled==1:
@@ -404,12 +402,12 @@ async def device(ConfigPara):
         query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
         query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
         if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
-          pass
+            pass
         else:           
             print("Error not found data in file mybatis")
             return -1
         # 
-   
+        
         results_device = MySQL_Select(query_only_device, (id_device,))
         
         # 
@@ -488,7 +486,7 @@ async def device(ConfigPara):
                         
                         # 
                         # print("---------- read data from Device ----------")
-                       
+
                         msg_device=""
                         # 
                         Data = []

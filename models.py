@@ -14,25 +14,27 @@ from sqlalchemy.orm import (declarative_base, mapped_column, relationship,
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
-from config import Config
-from libcom import path_directory_relative
+from database import Base, engine
 
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
-# 
-database_hostname =Config.DATABASE_HOSTNAME
-database_port = Config.DATABASE_PORT
-database_password =Config.DATABASE_PASSWORD
-database_name =Config.DATABASE_NAME
-database_username =Config.DATABASE_USERNAME
+# from config import Config
+# from libcom import path_directory_relative
 
-SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_password}@{database_hostname}:{database_port}/{database_name}'
+# path=path_directory_relative("ipc_api") # name of project
+# sys.path.append(path)
+# # 
+# database_hostname =Config.DATABASE_HOSTNAME
+# database_port = Config.DATABASE_PORT
+# database_password =Config.DATABASE_PASSWORD
+# database_name =Config.DATABASE_NAME
+# database_username =Config.DATABASE_USERNAME
 
-# connection_string="sqlite:///"+os.path.join(BASE_DIR,'site.db')
-Base=declarative_base()
-engine=create_engine(SQLALCHEMY_DATABASE_URL,echo=False)
-Session=sessionmaker()
+# SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_password}@{database_hostname}:{database_port}/{database_name}'
 
+# # connection_string="sqlite:///"+os.path.join(BASE_DIR,'site.db')
+
+# engine=create_engine(SQLALCHEMY_DATABASE_URL,echo=False)
+# Session=sessionmaker()
+# Base=declarative_base()
 
 # 
 class Page(Base):
@@ -151,7 +153,7 @@ class Project_setup(Base):
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
     number_limit_alarm= Column(Integer, nullable=True)
     time_limit_alarm= Column(Integer, nullable=True)
-    
+    mode_control = Column(Integer, nullable=False,default=0)
     
 class Template_library(Base):
     __tablename__ = "template_library"
@@ -536,6 +538,8 @@ class Error(Base):
     value = Column(DOUBLE, nullable=False, default=True)
     enable = Column(Boolean, nullable=False, default=True)
     status = Column(Boolean, nullable=False, default=True)
+    time_limit_alarm  = Column(Integer, nullable=False, default=5)
+    number_limit_alarm  = Column(Integer, nullable=False, default=5)
 
 # 
 def create_table(table_name):
