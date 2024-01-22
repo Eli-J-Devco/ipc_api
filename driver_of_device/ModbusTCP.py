@@ -32,6 +32,7 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import mqttools
 
 from config import *
@@ -368,6 +369,12 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+
+from database import get_db
+from models import Alarm, Device_list, Error, Project_setup, Screen
+
+db=get_db()
+
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -544,7 +551,7 @@ async def device(ConfigPara):
                         # 
                 except (ConnectionException, ModbusException) as e:
                     # print(f'Loi thiet bi')
-                
+
                     status_device="OFFLINE"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"

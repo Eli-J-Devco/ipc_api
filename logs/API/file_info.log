@@ -1,62 +1,8 @@
-2024-01-19 14:19:20,316 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:19:52,908 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:21:57,284 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:26:32,138 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:26:59,804 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:28:30,579 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:30:06,812 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:30:06,812 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:30:22,888 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:31:26,387 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:32:03,110 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:33:35,277 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:34:02,944 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:35:06,034 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:39:19,601 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:50:45,168 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:53:15,853 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:56:37,166 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 14:59:45,266 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:15:31,792 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:16:27,401 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:17:22,812 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:17:37,108 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:22:30,284 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 15:37:11,567 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:07:54,136 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:25:16,607 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:38:45,588 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:39:29,074 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:40:53,363 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:41:24,887 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:41:35,615 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:41:40,080 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:41:54,510 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:42:01,580 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:44:50,562 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:44:59,610 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:48:27,015 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:49:58,732 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:50:05,862 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:50:28,370 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:54:53,038 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:55:13,688 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:55:49,611 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:56:02,482 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:56:37,506 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:56:56,341 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:57:27,631 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 16:57:53,662 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:01:53,708 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:03:48,288 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:04:51,369 - routers.auth - INFO - --- Login: nguyenvudtd@gmail.com ---
-2024-01-19 17:08:07,191 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:10:23,233 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:14:41,468 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:15:03,312 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:15:29,023 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:16:53,483 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:17:04,563 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:17:09,917 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:17:19,865 - __mp_main__ - INFO - --- Start up App ---
-2024-01-19 17:17:28,894 - __mp_main__ - INFO - --- Start up App ---
+2024-01-22 17:11:25,185 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=191 - INFO - --- Start up App ---
+2024-01-22 17:11:58,828 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=191 - INFO - --- Start up App ---
+2024-01-22 17:12:45,976 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---
+2024-01-22 17:13:25,094 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---
+2024-01-22 17:16:58,813 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---
+2024-01-22 17:18:30,147 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---
+2024-01-22 17:20:31,991 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---
+2024-01-22 17:20:41,914 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=startup() - line=192 - INFO - --- Start up App ---

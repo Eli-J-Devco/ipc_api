@@ -33,10 +33,13 @@ from config import Config
 from database import engine
 
 # from logging_setup import LoggerSetup
+# from logger_manager import setup_logger
+
+# setup root logger
+# LOGGER = setup_logger(module_name='API')
 
 
-
-LOGGER = logging.getLogger(__name__)
+# LOGGER = logging.getLogger(__name__)
 # setup root logger
 # logger_setup = LoggerSetup()
 

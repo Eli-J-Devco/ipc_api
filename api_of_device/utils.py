@@ -46,11 +46,11 @@ from passlib.context import CryptContext
 import models
 from config import Config
 # logging
-from logger_manager import LoggerSetup
+from logger_manager import setup_logger
 
 # setup root logger
-logger_setup = LoggerSetup(path,"API")
-LOGGER = logging.getLogger(__name__)
+LOGGER = setup_logger(module_name='API')
+
 # -----------------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Describe functions before writing code

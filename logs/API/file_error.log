@@ -58,3 +58,51 @@
 2024-01-19 17:17:08,376 - __mp_main__ - ERROR - --- Shutdown App ---
 2024-01-19 17:17:18,311 - __mp_main__ - ERROR - --- Shutdown App ---
 2024-01-19 17:17:27,410 - __mp_main__ - ERROR - --- Shutdown App ---
+2024-01-22 14:05:47,035 - __mp_main__ - ERROR - --- Shutdown App ---
+2024-01-22 14:06:56,266 - __mp_main__ - ERROR - --- Shutdown App ---
+2024-01-22 15:24:33,732 - __mp_main__ - ERROR - --- Shutdown App ---
+2024-01-22 15:27:10,234 - __mp_main__ - ERROR - --- Shutdown App ---
+2024-01-22 15:31:10,908 - API - ERROR - --- Shutdown App ---
+2024-01-22 15:33:37,685 - API - ERROR - --- Shutdown App ---
+2024-01-22 15:36:09,077 - API - ERROR - --- Shutdown App ---
+2024-01-22 15:37:41,365 - API - ERROR - --- Shutdown App ---
+2024-01-22 15:38:34,402 - API - ERROR - --- Shutdown App ---
+2024-01-22 16:06:22,934 - logger_manager - ERROR - --- Shutdown App ---
+2024-01-22 16:14:50,859 - logger_manager - ERROR - --- Shutdown App ---
+2024-01-22 16:16:04,271 - API -D:\NEXTWAVE\project\ipc_api\api_of_device\utils.py - <module> - 52 - ERROR - --- Shutdown App ---
+2024-01-22 16:17:05,421 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\utils.py - <module> - 52 - ERROR - --- Shutdown App ---
+2024-01-22 16:17:37,859 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - <module> - 38 - ERROR - --- Shutdown App ---
+2024-01-22 16:18:29,789 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - <module> - 38 - ERROR - --- Shutdown App ---
+2024-01-22 16:26:01,983 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:32:39,333 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:32:59,329 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - 127 - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:35:52,159 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - 127 - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:35:59,434 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:38:01,893 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:46:37,277 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:49:13,759 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - 127 - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:49:35,605 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:49:42,746 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:51:40,160 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:51:48,238 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:52:30,869 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 16:54:53,312 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 17:01:23,578 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - "None - --- Shutdown App ---
+2024-01-22 17:01:42,824 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - "None - --- Shutdown App ---
+2024-01-22 17:03:53,449 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=<module> - line=38 - ERROR - shutdown() - --- Shutdown App ---
+2024-01-22 17:03:57,005 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown()- line=38 - ERROR - --- Shutdown App ---
+2024-01-22 17:05:08,616 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 17:05:42,444 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=197 - line=38 - ERROR - --- Shutdown App ---
+2024-01-22 17:07:55,930 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:08:17,712 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:10:00,208 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:10:29,165 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:11:11,749 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - main.py - main - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:11:23,572 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:11:57,165 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:12:44,381 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=197 - ERROR - --- Shutdown App ---
+2024-01-22 17:13:23,484 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=198 - ERROR - --- Shutdown App ---
+2024-01-22 17:16:57,205 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=198 - ERROR - --- Shutdown App ---
+2024-01-22 17:18:28,534 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=198 - ERROR - --- Shutdown App ---
+2024-01-22 17:20:30,388 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=198 - ERROR - --- Shutdown App ---
+2024-01-22 17:20:40,332 - API - D:\NEXTWAVE\project\ipc_api\api_of_device\main.py - func_name=shutdown() - line=198 - ERROR - --- Shutdown App ---
