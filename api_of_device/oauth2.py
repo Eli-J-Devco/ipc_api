@@ -26,8 +26,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 
 #
 SECRET_KEY = Config.SECRET_KEY
+REFRESH_SECRET_KEY = Config.SECRET_KEY
 ALGORITHM = Config.ALGORITHM
 ACCESS_TOKEN_EXPIRE_MINUTES = Config.ACCESS_TOKEN_EXPIRE_MINUTES
+REFRESH_TOKEN_EXPIRE_MINUTES= Config.REFRESH_TOKEN_EXPIRE_MINUTES
 
 # Describe functions before writing code
 # /**
@@ -38,9 +40,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = Config.ACCESS_TOKEN_EXPIRE_MINUTES
 # 	 * @return data (encoded_jwt)
 # 	 */
 def create_access_token(data: dict):
+   
     to_encode = data.copy()
-
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    expire = datetime.utcnow() + timedelta(minutes=eval(ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
@@ -58,6 +61,7 @@ def create_access_token(data: dict):
 def verify_access_token(token: str, credentials_exception):
 
     try:
+        print('---------- verify_access_token ----------')
         print(f'SECRET_KEY:  {SECRET_KEY}')
         print(f'token:  {token}')
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -66,9 +70,9 @@ def verify_access_token(token: str, credentials_exception):
         print(f'id:  {id}')
         if id is None:
             raise credentials_exception
-        print(f'if :  {id}')
+        # print(f'if :  {id}')
         token_data = schemas.TokenData(id=str(id))
-        print(f'token_data:  {token_data}')
+        # print(f'token_data:  {token_data}')
     except JWTError:
         raise credentials_exception
 
@@ -83,13 +87,27 @@ def verify_access_token(token: str, credentials_exception):
 # 	 * @return data (user)
 # 	 */
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
-    print("++++++++++++++++++++++++++++++++++++++++")
-    # print(f'token:  {token}')
+
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
 
     token = verify_access_token(token, credentials_exception)
     print(f'token get_current_user:  {token}')
+    print(f'token id:  {token.id}')
     user = db.query(models.User).filter(models.User.id == token.id).first()
 
     return user
+# Describe functions before writing code
+# /**
+# 	 * @description create refresh token
+# 	 * @author vnguyen
+# 	 * @since 17-12-2023
+# 	 * @param {user_id}
+# 	 * @return data (encoded_jwt)
+# 	 */
+def create_refresh_token(data: dict):
+    to_encode = data.copy()
+    expires_delta = datetime.utcnow() + timedelta(minutes=eval(REFRESH_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expires_delta})
+    encoded_jwt = jwt.encode(to_encode, REFRESH_SECRET_KEY, ALGORITHM)
+    return encoded_jwt

@@ -22,10 +22,11 @@ from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import text
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
 from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
                    delete_program_pm2, find_program_pm2, get_mybatis, path,
-                   restart_program_pm2)
+                   restart_pm2_change_template, restart_program_pm2,
+                   restart_program_pm2_many)
 
 # path=path_directory_relative("ipc_api") # name of project
 # sys.path.append(path)
@@ -47,12 +48,12 @@ router = APIRouter(
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/', response_model=schemas.DeviceListOut)
+@router.get('/', response_model=schemas.DeviceListOfPointListOut)
 def get_only_device(id: int, db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
     Device_list = db.query(models.Device_list).filter(models.Device_list.id == id).first()
-    Device_list=Device_list.__dict__
+    # Device_list=Device_list.__dict__
     # print(f'device_list :{Device_list}')
     # ----------------------
     # result = db.execute(
@@ -75,7 +76,7 @@ def get_only_device(id: int, db: Session = Depends(get_db), ):
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/all/', response_model=list[schemas.DeviceListOut])
+@router.get('/all/', response_model=list[schemas.DeviceListOfPointListOut])
 def get_all_device( db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
@@ -117,7 +118,7 @@ def get_device_config( db: Session = Depends(get_db), ):
     result_device_group=[]
     for item in device_group_query.all():
         new_item=item.__dict__
-        new_item["template"]=item.template.__dict__
+        new_item["templates_library"]=item.templates_library.__dict__
         result_device_group.append(new_item) 
     result_device_list=[]
     for item in device_list_query.all():
@@ -627,9 +628,9 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
 # 	 * @author vnguyen
 # 	 * @since 04-12-2023
 # 	 * @param {id,db}
-# 	 * @return data (DevicePointListOut)
+# 	 * @return data (DevicePointListBase)
 # 	 */
-@router.get('/point_list/', response_model=list[schemas.DevicePointListOut])
+@router.get('/point_list/', response_model=list[schemas.DevicePointListBase])
 def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
     
     # ----------------------
@@ -940,28 +941,4 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
         
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
-# Describe functions before writing code
-# /**
-# 	 * @description get point list
-# 	 * @author vnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {id,db}
-# 	 * @return data (DevicePointListOut)
-# 	 */
-@router.post('/template_library/', response_model=schemas.DevicePointListOut)
-def get_template_library(id: int, db: Session = Depends(get_db) ):
-    device_group_query = db.query(models.Device_group).filter(
-        models.Device_group.id == id).first()
-    print(device_group_query.template.point_list.__dict__)
-    # ----------------------
-    # device_point_list_query = db.query(models.Device_point_list).filter(
-    #     models.Device_point_list.id_device_list == id).all()
-    # # 
-    # if not device_point_list_query:
-    #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-    #                         detail=f"Device with id: {id} does not exist")
 
-    return {
-            "point_list":[],
-            "register_block":[]
-            }

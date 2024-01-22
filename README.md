@@ -18,6 +18,10 @@ python -m venv venv
 source venv/Scripts/activate
 <!-- install all package python -->
 pip install -r requirements.txt
+pydantic==2.5.3
+pydantic-settings==2.1.0
+pydantic_core==2.14.1
+pydantic[email]
 <!-- FastAPI -->
 https://fastapi.tiangolo.com/
 https://www.gormanalysis.com/blog/building-a-simple-crud-application-with-fastapi/
@@ -26,7 +30,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 <!-- Run a Server Manually - Uvicorn and auto reload -->
 cd api_of_device
 python main.py
-uvicorn main:app --reload
+python api_of_device/main.py
+uvicorn main:app --reload 
 http://127.0.0.1:8000/docs#/
 <!-- Fast API JWT  -->
 https://www.freecodecamp.org/news/how-to-add-jwt-authentication-in-fastapi/
@@ -310,3 +315,21 @@ Open the command palette (Ctrl + Shift + P)
 Run Disable All Installed Extensions
 Then run Enable All Extensions.
 Restart Visual Studio Code
+Ctrl + Shift +UP
+Ctrl + Shift +LO
+<!-- update database -->
+28122023 config_type
+28122023 config_information
+28122023 point_list
+28122023 register_block
+29122023 point_list add column ->  function, value
+09012023 sync_data add column -> number_of_time_retry
+09012024 device_group -> name set unique
+10012024 config_information -> add row "not used"
+12012024 template_library -> name set unique
+15012024 config_type -> add row id 16
+15012024 config_information -> add row id 270 -272
+15012024 device_list -> all On Update and On Delete set = Set null
+15012024 device_group -> On Update and On Delete set = Set null
+
+
