@@ -1,0 +1,20 @@
+<queries>
+
+    <query name="insert_users">
+    
+        <![CDATA[
+
+            INSERT INTO users (name, email, status) VALUES
+            
+            <foreach item="item" collection="params" 
+                    open="(" separator="),(" close=")">
+            
+                #{item.name}, #{item.email}, #{item.status}
+            
+            </foreach>
+        
+        ]]>
+        
+    </query>
+
+</queries>

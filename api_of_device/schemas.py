@@ -3,12 +3,17 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import uuid
 from datetime import datetime
+from hashlib import sha256
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import (BaseModel, EmailStr, Field, computed_field,
+                      root_validator, validator)
 from pydantic.types import conint
+
+# from pydantic_computed import Computed, computed
 
 
 # from sqlalchemy import 
@@ -40,20 +45,25 @@ class DeviceListOut(BaseModel):
     pv : Optional[int] = None
     model : Optional[int] = None
     function : Optional[int] = None
-    point_p : Optional[str] = None
+    
+    point_p : Optional[int] = None #id
+    
     value_p : Optional[float] = None
     send_p : Optional[bool] = None
-    point_q : Optional[str] = None
+    
+    point_q : Optional[int] = None #id
+    
     value_q : Optional[float] = None
     send_q : Optional[bool] = None
-    point_pf : Optional[str] = None
+    
+    point_pf : Optional[int] = None #id
+    
     value_pf : Optional[float] = None
     send_pf : Optional[bool] = None
     max : Optional[float] = None
     allow_error : Optional[float] = None
     enable_poweroff : Optional[bool] = None
     inverter_shutdown : Optional[datetime] = None
-                               
     status : Optional[bool] = None
 
     class Config:
@@ -231,8 +241,10 @@ class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
+    
     class Config:
         orm_mode = True
+
 class Point_RegisterBase(BaseModel):
     
     class Config:
@@ -243,7 +255,7 @@ class DeviceGroupBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
     id_template: Optional[int] = None
-    template: TemplateBase
+    templates_library: TemplateBase
     class Config:
         orm_mode = True
 
@@ -311,7 +323,7 @@ class SiteInformBase(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None
-   
+
 class SiteInformOut(SiteInformBase):
     id: Optional[int] = None
    
@@ -471,12 +483,70 @@ class ProjectState(BaseModel):
     class Config:
         orm_mode = True
 # <- User ->
+class ScreenBase(BaseModel):
+    # id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+    
+    class Config:
+        orm_mode = True
+class ScreenOut(ScreenBase):
+    id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[bool] = None
+    auth: Optional[int] = None 
+    class Config:
+        orm_mode = True 
+        
+class RoleBase(BaseModel):
+    # id: Optional[int] = None 
+    name: Optional[str] = None
+    description: Optional[str] = None
+    # status: Optional[bool] = None
+    class Config:
+        orm_mode = True
+class RoleOut(RoleBase):
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True
+class RoleCreate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    class Config:
+        orm_mode = True
+class RoleUpdate(RoleBase):
+    id: Optional[int] = None 
+    class Config:
+        orm_mode = True
+class RoleScreenUpdate(BaseModel):
+    class RoleScreen(BaseModel):
+        id_screen:Optional[int] = None
+        auth:Optional[int] = None
+    id_role:Optional[int] = None
+    role_screen:list[RoleScreen]=None
+    class Config:
+        orm_mode = True
+class RoleScreenOut(BaseModel):
+    id_role:Optional[int] = None
+    id_screen:Optional[int] = None
+    auth:Optional[int] = None
+    name_screen: Optional[str] = None
+    class Config:
+        orm_mode = True
+class RoleScreenState(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    class Config:
+        orm_mode = True
 class UserBase(BaseModel):
     email: EmailStr
     password: str
     fullname: str
     phone: str
-    id_language: int
+    id_language: Optional[int] = Field(...,examples=[1])
     # last_login: datetime
     # date_joined: datetime
     # status: bool = True
@@ -487,28 +557,83 @@ class UserOut(BaseModel):
     fullname: str
     phone: str
     id_language: int
-    last_login: datetime
-    date_joined: datetime
+    # last_login: datetime
+    # date_joined: datetime
 
     status: bool = True
     is_active: bool = False
 
     class Config:
         orm_mode = True
-class UserCreate(UserBase):
-    pass
+class UserLoginOut(BaseModel):
+    fullname: str
+    phone: str
+    id_language: int
+    # last_login: datetime
+    # date_joined: datetime
+
+    # status: bool = True
+    # is_active: bool = False
+    auth: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+class UserUpdate(BaseModel):
+    class Role(BaseModel):
+        id: Optional[int] = None
+        class Config:
+            orm_mode = True
+    id:Optional[int] = None
+    email: EmailStr
+    fullname: Optional[str] = None
+    phone: Optional[str] = None
+    id_language: Optional[int] = None
+    
+    role: list[Role]
+    class Config:
+        orm_mode = True
+class UserChangePassword(BaseModel):
+    old_password: Optional[str] = None
+    new_password: Optional[str] = None
+    class Config:
+        orm_mode = True
+class UserResetPassword(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    password: Optional[str] = None
+class UserRoleCreate(UserBase):
+    class Role(BaseModel):
+        id: Optional[int] = None
+        class Config:
+            orm_mode = True
+    role: list[Role]
+    class Config:
+        orm_mode = True
+class UserRoleOut(UserOut):
+    role: list[RoleOut]
+    class Config:
+        orm_mode = True
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+class UserActive(BaseModel):
+    id: Optional[int] = None
+    active: Optional[bool] = None
+    
 class UserStateOut(BaseModel):
     status: Optional[str] = None
     code: Optional[str] = None
     desc: Optional[str] = None
     class Config:
         orm_mode = True
+
+
 # <- device_point_list ->
+
+
 class TypeUnitsBase(BaseModel):
-    id: Optional[int] = Field(..., alias='id')
+    id: Optional[int] = Field(..., nullable=True, alias='id')
     namekey: Optional[str] = Field(..., nullable=True,alias='Units')
     class Config:
         allow_population_by_field_name = True
@@ -524,13 +649,29 @@ class DataTypeBase(BaseModel):
         populate_by_name = True
         from_attributes = True
 class TypeByteOrderBase(BaseModel):
-    id: int = Field(..., alias='id')
-    namekey: str = Field(...,alias='Byte Order')
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str]  = Field(...,alias='Byte Order')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-class PointListBase(BaseModel):
+class TypePointBase(BaseModel):
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str] = Field(...,alias='Type Point')
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class TypeClassBase(BaseModel):
+    id:  Optional[int] = Field(..., alias='id')
+    namekey:  Optional[str] = Field(...,alias='TypeClass')
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[int] = None
     # --------------------------------------------------
@@ -540,7 +681,7 @@ class PointListBase(BaseModel):
     nameedit : Optional[bool] = None
     id_type_units : Optional[int] = None
     unitsedit : Optional[bool] = None
-    equaltion : Optional[bool] = None
+    equation : Optional[int] = None
     config : Optional[int] = None
     register : Optional[int] = None
     id_type_datatype : Optional[int] = None
@@ -557,13 +698,29 @@ class PointListBase(BaseModel):
     extendednumpoints : Optional[int] = None
     extendedregblocks : Optional[int] = None
     status : Optional[bool] = None
+    function : Optional[str] = None
+    constants : Optional[float] = None
+    class Config:
+        orm_mode = True
+class PointOutBase(PointBase):
     # 
     type_units  : Optional[TypeUnitsBase] = None
     type_datatype  : Optional[DataTypeBase] = None 
-    type_byteorder  : Optional[TypeByteOrderBase] = None 
-    # 
+    type_byteorder  : Optional[TypeByteOrderBase] = None
+    
+    type_point  : Optional[TypePointBase] = None 
+    type_class  : Optional[TypeClassBase] = None 
     class Config:
         orm_mode = True
+class PointUpdateBase(PointBase):
+    # id : Optional[int] = None
+    equation : Optional[int] = Field(...,examples=[1] ,nullable=False)
+    # id_pointkey : Optional[int] = None
+    # id_template : Optional[int] = None
+    class Config:
+        orm_mode = True
+        # fields = {'id_pointkey': {'exclude': True}}
+
 class DevicePointListBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[int] = None
@@ -573,52 +730,213 @@ class DevicePointListBase(BaseModel):
     id_device_list : Optional[int] = None
     id_point_list : Optional[int] = None
     # -------------------------------------------------- 
-    # name : Optional[str] = None
-    # nameedit : Optional[bool] = None
-    # id_type_units : Optional[int] = None
-    # unitsedit : Optional[bool] = None
-    # equaltion : Optional[bool] = None
-    # config : Optional[int] = None
-    # register : Optional[int] = None
-    # id_type_datatype : Optional[int] = None
-    # id_type_byteorder : Optional[int] = None
-    # slope : Optional[float] = None
-    # slopeenabled : Optional[int] = None
-    # offset : Optional[float] = None
-    # offsetenabled : Optional[bool] = None
-    # multreg : Optional[int] = None
-    # multregenabled : Optional[bool] = None
-    # userscaleenabled : Optional[bool] = None
-    # invalidvalue : Optional[int] = None
-    # invalidvalueenabled : Optional[bool] = None
-    # extendednumpoints : Optional[int] = None
-    # extendedregblocks : Optional[int] = None
-    # status : Optional[bool] = None
-    # 
-    template_library : TemplateBase
-    device_group  : DeviceGroupBase
-    device_list  : DeviceListBase
-    point_list  : PointListBase
-    
-    # type_units  : Optional[TypeUnitsBase] = None
-    # type_datatype  : Optional[DataTypeBase] = None 
-    # type_byteorder  : Optional[TypeByteOrderBase] = None 
     class Config:
         orm_mode = True
         from_attributes = True
-class DevicePointListOut(DevicePointListBase):
-    # point_list: list[DevicePointListBase]
+class PointInfoTemplateBase(BaseModel):
+    id_point: Optional[int]=None
+    # id_template: Optional[int]=None
+class PointChangeNumberBase(BaseModel):
+    id_template: Optional[int]=None
+    number_point: Optional[int]=Field(None, ge=1)
+class PointDeleteTemplateBase(BaseModel):
+    id_template: Optional[int]=None
+    id_point:Optional[list[int]]=None
+    
+    class Config:
+        orm_mode = True
+        from_attributes = True
+class PointTemplateOutBase(PointOutBase):
+    type_units_list: Optional[list[TypeUnitsBase]] = None
+    type_datatype_list: Optional[list[DataTypeBase]] = None
+    type_byteorder_list: Optional[list[TypeByteOrderBase]] = None
+    
+    type_point_list: Optional[list[TypePointBase]] = None
+    type_class_list: Optional[list[TypeClassBase]] = None
+    class Config:
+        orm_mode = True
+
+# <- register_list -> 
+class TypeFunctionBase(BaseModel):
+    id: Optional[int] = Field(..., nullable=True, alias='id')
+    namekey: Optional[str] = Field(..., nullable=True,alias='Function')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class RegisterBase(BaseModel):
+    # --------------------------------------------------
+    id_template : Optional[int] = None
+    addr : Optional[int] = None
+    count : Optional[int] = None
+    id_type_function : Optional[int] = None
+    status : Optional[bool] = None
+    class Config:
+        orm_mode = True
+class RegisterCreateBase(RegisterBase):
+    pass
+    class Config:
+        orm_mode = True
+class RegisterOutBase(RegisterBase):
+    id : Optional[int] = None
+    class Config:
+        orm_mode = True
+
+class RegisterConfigOutBase(BaseModel):
+    
+    register_list: Optional[list[RegisterOutBase]] = None
+    type_function:Optional[list[TypeFunctionBase]] = None 
+    class Config:
+        orm_mode = True
+class RegisterListBase(RegisterBase):
+    id : Optional[int] = None
+    # --------------------------------------------------
+    type_function: Optional[TypeFunctionBase] = None 
+    class Config:
+        orm_mode = True
+
+# <-  -> 
+
+class TemplateCreateBase(BaseModel):
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    id_template_type:Optional[int] = None
+    class Config:
+        orm_mode = True
+class TemplateOutBase(TemplateCreateBase):
+    id: Optional[int] = None
+    # name: Optional[str] = None
+    # status: Optional[bool] = None
+    # point_list : list[PointOutBase]
+    class Config:
+        orm_mode = True
+class TemplateUpdateBase(TemplateCreateBase):
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True        
+class TemplateTypeBase(BaseModel):
+    id: Optional[int] = Field(..., alias='id')
+    namekey: Optional[str] = Field(..., alias='types')
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+
+    # id: Optional[int] = None
+    # class Config:
+    #     orm_mode = True        
+class TemplateDelete(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+# <-  -> 
+class PointDataType(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Data Type')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointByteOrder(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Byte Order')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+class PointUnit(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(...,alias='Unit')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+
+# <-  -> 
+class DeviceGroupCreateBase(BaseModel):
+    name: Optional[str] = None
+    # status: Optional[bool] = None
+    id_template: Optional[int] = None
+    class Config:
+        orm_mode = True
+class DeviceGroupBase(DeviceGroupCreateBase):
+    id: Optional[int] = None 
+    # name: Optional[str] = None
+    # status: Optional[bool] = None
+    # id_template: Optional[int] = None
+    # templates_library: TemplateOutBase
+    
+    class Config:
+        validate_assignment = True
+    # @validator("id", pre=True, always=True)
+    # def _encryption_id(cls, id: str):
+    #     id_hash=str(id)
+    #     return sha256(id_hash.encode('utf-8')).hexdigest()
+class DeviceGroupStateBase(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    class Config:
+        orm_mode = True
+class DeviceGroupOutBase(BaseModel):
+    id: Optional[int] = None 
+    name: Optional[str] = None
+    status: Optional[bool] = None
+    id_template: Optional[int] = None
+    # templates_library: TemplateOutBase
+    template_list:Optional[list[TemplateBase]] = None 
+    class Config:
+        orm_mode = True
+class TemplateGroupDeviceOutBase(BaseModel):
+    device_group:DeviceGroupBase=None
+    data_type:list[PointDataType]=None
+    byte_order:list[PointByteOrder]=None
+    point_unit:list[PointUnit]=None
+    point_list : list[PointOutBase]=None
+    register_list : list[RegisterListBase]=None
+    
+    class Config:
+        orm_mode = True
+
+# <-  -> 
+class DeviceListOfPointListOut(DeviceListOut):
+    point_p_list:Optional[PointBase] = None
+    point_q_list:Optional[PointBase] = None
+    point_pf_list:Optional[PointBase] = None
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+# <-  ->
+class TemplateListBase(BaseModel):
+    data_type:list[PointDataType]=None
+    byte_order:list[PointByteOrder]=None
+    point_unit:list[PointUnit]=None
+    point_list : list[PointOutBase]=None
+    register_list : list[RegisterListBase]=None
     
     class Config:
         orm_mode = True
 # <-  -> 
 # <-  -> 
-# <-  -> 
-# <-  -> 
-# <-  -> 
 class Token(BaseModel):
+    class TokenRole(RoleOut):
+        screen: Optional[list[ScreenOut]]= None
+        class Config:
+            orm_mode = True
+    refresh_token: str
     access_token: str
     token_type: str
-
+    user: Optional[UserLoginOut] = None
+    screen: list[ScreenBase]
+    role:list[TokenRole]
 class TokenData(BaseModel):
     id: Optional[str] = None
+class TokenItem(BaseModel):
+    refresh_token: Optional[str] = None

@@ -32,6 +32,7 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import mqttools
 
 from config import *
@@ -132,7 +133,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
     except Exception as err:
         print(f'Error select_function {err}')
         return []
-   
+
 # Describe functions before writing code
 # /**
 # 	 * @description convert data of register to point list
@@ -294,8 +295,6 @@ def write_modbus_tcp(client, unit, datatype,register, value):
                 "code":"",
                 "value":2
             }
-      
-      
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
     if slopeenabled==1:
@@ -370,6 +369,13 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+
+from database import get_db
+from libcom import func_mqtt_public_alarm
+from models import Alarm, Device_list, Error, Project_setup, Screen
+
+db=get_db()
+
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -404,12 +410,12 @@ async def device(ConfigPara):
         query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
         query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
         if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
-          pass
+            pass
         else:           
             print("Error not found data in file mybatis")
             return -1
         # 
-   
+        
         results_device = MySQL_Select(query_only_device, (id_device,))
         
         # 
@@ -488,7 +494,7 @@ async def device(ConfigPara):
                         
                         # 
                         # print("---------- read data from Device ----------")
-                       
+
                         msg_device=""
                         # 
                         Data = []
@@ -546,7 +552,7 @@ async def device(ConfigPara):
                         # 
                 except (ConnectionException, ModbusException) as e:
                     # print(f'Loi thiet bi')
-                
+
                     status_device="OFFLINE"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"
