@@ -117,4 +117,6 @@ class Settings(BaseSettings):
     FOLDER_PATH_LOG : str
     HEAD_FILE_LOG : str
     
-Config = Settings() 
+Config = Settings()
+
+# 
