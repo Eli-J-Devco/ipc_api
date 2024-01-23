@@ -1,5 +1,3 @@
-pydantic==2.5.3
-pydantic_core==2.14.6
 pyyaml
 requests
 pymodbus==2.5.3
@@ -14,15 +12,18 @@ sqlalchemy
 eventlet
 flask_cors
 cryptography
-bcrypt==3.2.0
+bcrypt
 flask-bcrypt
 psutil
 redis
 pandas
 uvicorn
 jwt
-python-jose==3.3.0
+python-jose
+pydantic-settings
 passlib
+pydantic
+pydantic[email]
 python-multipart
 mysql-connector-python
 mybatis-mapper2sql
@@ -36,10 +37,4 @@ WMI
 pyroute2
 pyuac
 passlib
-python-dotenv
-schedule
-python-dotenv
 APScheduler
-psycopg2
-pydantic-settings==2.1.0
-termcolor
