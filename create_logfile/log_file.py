@@ -34,6 +34,11 @@ status_register =""
 status_file ="Success"
 value_many = []
 value_dict = []
+data_mqtt = ""
+sql_id_str = ""
+device_name = ""
+flag_mqtt = False
+count_mqtt = 0
 
 QUERY_TIME_SYNC_DATA=""
 QUERY_ALL_DEVICES=""
@@ -319,7 +324,6 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
             "TimeOnline" :time_online,
             "DATA_LOG":[data_in_file]
             }
-            
             push_data_to_mqtt(host,
                     port,
                     topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
@@ -330,6 +334,56 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
     except Exception as e:
         status_file = "Fault"
         print(f"Error during file creation is : {e}")
+# Describe functions before writing code
+# /**
+# 	 * @description MQTT public status of device
+# 	 * @author vnguyen
+# 	 * @since 14-11-2023
+# 	 * @param {host, port,topic, username, password, device_name}
+# 	 * @return data ()
+# 	 */
+async def monitoring_device(sql_id,id_device,host, port,topic, username, password):
+    global flag_mqtt
+    global data_mqtt
+    global count_mqtt
+    result_all = []
+    
+    id_device_fr_sys = id_device[1]
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    sql_id_str = ""
+    device_name = ""
+    
+    if result_all and count_mqtt < len(result_all):
+        count_mqtt += 1 
+        # perform printing to mqtt the number of devices for the first time
+        for item in time_sync_data:
+            type_file = item["type_protocol"]
+            
+        try:
+            data_mqtt1={
+                "ID_DEVICE":"loading",
+                "STATUS_DATA":"loading",
+                "STATUS_CHANNEL":"loading",
+                "FILE_NAME":"loading",
+                "Timestamp" :"loading",
+                "TimeOnline" :"loading",
+                "DATA_LOG":"loading",
+                }
+            # File creation time 
+            sql_id_str = str(sql_id)
+            device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
+            push_data_to_mqtt(host,
+                    port,
+                    topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
+                    username,
+                    password,
+                    data_mqtt1)
+        except Exception as err:
+            print('Error monitoring_device : ',err)
+    else :
+        pass
+        
 #--------------------------------------------------------------------
 # /**
 # 	 * @description Insert data to Database
@@ -341,7 +395,6 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
 async def Insert_Sync():
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global value_many
-    print(value_many)
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
     # File creation time 
     if len(value_many) == len(result_all):
@@ -381,7 +434,6 @@ async def main():
     position = time_interval.rfind("minute")
     number = time_interval[:position]
     int_number = int(number)
-    
     #-------------------------------------------------------
     scheduler = AsyncIOScheduler()
     for item in result_all:
@@ -395,6 +447,13 @@ async def main():
                                                                             MQTT_TOPIC_PUB,
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
+        scheduler.add_job(monitoring_device, 'cron',  second = f'*/10' , args=[ sql_id,
+                                                                                arr,
+                                                                                MQTT_BROKER,
+                                                                                MQTT_PORT,
+                                                                                MQTT_TOPIC_PUB,
+                                                                                MQTT_USERNAME,
+                                                                                MQTT_PASSWORD])
     scheduler.add_job(Insert_Sync, 'cron',  minute = f'*/{int_number}')
     scheduler.start()
     #-------------------------------------------------------

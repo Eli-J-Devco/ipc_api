@@ -150,7 +150,7 @@ async def subMQTT(host, port, topic, username, password):
                 flag_sync_immediately = False
             
             if sync_immediately == 1 and flag_sync_immediately == False:
-                await sync_Server_Database(URL_SERVER_SYNC)
+                await sync_ServerURL_Database(URL_SERVER_SYNC)
             else :
                 pass
     except Exception as err:
@@ -505,7 +505,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def sync_Server_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
+async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     # Step 1 : Read data from database 
     current_time = get_utc()
     
@@ -1280,6 +1280,11 @@ async def main():
     try: 
         result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
         time_data_server = await MySQL_Select_v1(QUERY_GETDATA_SERVER)
+        id_device_fr_sys = id_upload_chanel[1]
+        time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+        for item in time_sync_data:
+            type_file = item["type_protocol"]
+            
     except Exception as e:
             print('An exception occurred',e)
     if not result_all or not time_data_server :
@@ -1291,31 +1296,31 @@ async def main():
         if time_sentdata and count <= 1 :
                 if 0 <= time_sentdata <= 24:
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'cron', hour = time_sentdata,  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 elif time_sentdata == 95 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'interval', hours = "12",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 elif time_sentdata == 96 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'interval', hours = "8",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 elif time_sentdata == 97 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'interval', minutes = f"{time_sentdata}",  args=[URL_SERVER_SYNC])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{time_sentdata}",  args=[URL_SERVER_SYNC])
                     scheduler.start()
                 elif time_sentdata == 98 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'interval', minutes = "15",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 elif time_sentdata == 99 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'interval', hours = "1",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 elif time_sentdata == 100 : # test cron 
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_Server_Database, 'cron', second = "*/10",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
                     scheduler.start()
                 
     scheduler = AsyncIOScheduler()
