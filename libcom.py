@@ -13,7 +13,7 @@ import paho.mqtt.publish as publish
 
 from logger_manager import setup_logger
 
-LOGGER = setup_logger(module_name='LIBCOM')
+# LOGGER = setup_logger(module_name='LIBCOM')
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -40,6 +40,7 @@ def path_directory_relative(project_name):
 # 	 * @return data ()
 # 	 */
 def func_mqtt_public_alarm(host, port,topic, username, password, data_send):
+    LOGGER = setup_logger(module_name='LIBCOM')
     try:
         payload = json.dumps(data_send)
         publish.single(topic, payload, hostname=host,

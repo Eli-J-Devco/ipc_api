@@ -16,3 +16,6 @@ logs/
 information_DB.md
 node_modules
 .env.development
+*.log
+*.log
+*.log

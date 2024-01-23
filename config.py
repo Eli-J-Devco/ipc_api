@@ -17,7 +17,7 @@ print(f'{VERSION = }')
 # load_dotenv(dotenv_path=Path(".env"))
 # load_dotenv(find_dotenv(".env"))
 # test="dev"
-if platform.system() == 'linux':
+if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
 else:
     load_dotenv(find_dotenv(".env.development"))
