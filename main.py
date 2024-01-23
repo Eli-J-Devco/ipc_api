@@ -166,9 +166,12 @@ def init_logfile():
             name = item["name"]
             type_protocol= item["type_protocol"]
             pid = f'Log|{id}|{name}|{type_protocol}'
+            # if sys.platform == 'win32':
+            #     subprocess.Popen(
+            #             f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
                 
 def init_syncfile():
         absDirname=path
@@ -223,5 +226,5 @@ def delete_all_app_pm2():
 delete_all_app_pm2()
 init_driver()
 init_logfile()
-init_syncfile()
+# init_syncfile()
 

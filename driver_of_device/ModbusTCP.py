@@ -371,6 +371,7 @@ path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 
 from database import get_db
+from libcom import func_mqtt_public_alarm
 from models import Alarm, Device_list, Error, Project_setup, Screen
 
 db=get_db()
