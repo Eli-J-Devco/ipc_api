@@ -115,4 +115,8 @@ SELECT error
 FROM sync_data
 WHERE id_upload_channel = %s AND filename = %s;
 </select>
+<select id="QUERY_INSERT_SYNC_DATA_EXECUTEMANY">
+  INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
+VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
+  </select>
 </mapper>
