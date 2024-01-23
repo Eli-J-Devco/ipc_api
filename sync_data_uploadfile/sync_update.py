@@ -27,7 +27,8 @@ DATABASE_USERNAME = Config.DATABASE_USERNAME
 DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 URL_SERVER_SYNC = Config.URL_SERVER_SYNC
-URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE
+URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE 
+FTP = ""
 
 # Variables 
 MQTT_BROKER = Config.MQTT_BROKER
@@ -549,7 +550,6 @@ async def sync_Server_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     filename = ""
     file_content =""
     data_file = ""
-    
     Time1 = ""
     Id_device1 = ""
     source1 = ""
@@ -1339,4 +1339,13 @@ if __name__ == "__main__":
     loop.run_forever()
     asyncio.run(main())
     
+
+# ==================> Tạo lại máy chủ ftp và điều chỉnh phương thức gửi tệp ftp
+
+# Điều chỉnh cấu trúc truy vấn để cập nhật nhiều thiết bị trong cơ sở dữ liệu
+
+# Xem xét kỹ lỗi mất server, mất kết nối internet…khi gửi file
+
+#  Chuyển đổi các kiểu truyền dữ liệu trong mã để sử dụng ctype
+
 
