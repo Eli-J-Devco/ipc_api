@@ -23,6 +23,5 @@ node_modules
 /build
 /dist
 main.spec
-*.json
-*.json
+package.json
 package-lock.json
