@@ -68,11 +68,10 @@ def init_driver():
                 name = item["name"]
                 connect_type=item["connect_type"]
                 pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-             
                 print(f'pid: {pid}')
                 if sys.platform == 'win32':
                     # use run with window
-                  
+
                     subprocess.Popen(
                         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
@@ -223,8 +222,28 @@ def enable_permission_ipc():
 # 	 */
 def delete_all_app_pm2():
     os.system(f'pm2 delete all')
+# Describe functions before writing code
+# /**
+# 	 * @description run API of web
+# 	 * @author vnguyen
+# 	 * @since 24-01-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_api_web():
+    absDirname=path
+    pid=f'API'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/api_of_device/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'pm2 start {absDirname}/api_of_device/main.py --interpreter python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
 init_driver()
-init_logfile()
+# init_logfile()
+init_api_web()
 # init_syncfile()
 
