@@ -241,6 +241,8 @@ uvicorn main:app --reload
 162 System time changed, caused logger to restart logging for intervals.
 163 System auto-restart
 164 Log entry corrupt
+<!--  Enter password sudo -->
+echo [password] | sudo ...
 <!--  wmi pyuac -->
 Fix IP of IPC
 https://github.com/snnkbb/python-ip-changer/blob/master/ipchanger.py

@@ -20,3 +20,9 @@ node_modules
 *.log
 *.log
 *.log
+/build
+/dist
+main.spec
+*.json
+*.json
+package-lock.json
