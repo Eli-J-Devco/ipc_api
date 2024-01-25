@@ -38,4 +38,5 @@ pyroute2
 pyuac
 passlib
 APScheduler
-pyinstaller 
+pyinstaller
+tkinter
