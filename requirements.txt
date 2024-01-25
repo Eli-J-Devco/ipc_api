@@ -39,4 +39,4 @@ pyuac
 passlib
 APScheduler
 pyinstaller
-tkinter
+tk
