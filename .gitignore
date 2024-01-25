@@ -13,6 +13,7 @@ vscode-extensions.list
 api_of_device/logs/fastapi-efk.log
 create_alarm/__pycache__
 /logs
+
 information_DB.md
 node_modules
 .env.development
