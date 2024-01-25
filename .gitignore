@@ -20,7 +20,6 @@ node_modules
 # .env.production
 /build
 /dist
-main.spec
 package.json
 package-lock.json
 api_of_device/__pycache__/schemas.cpython-311.pyc
