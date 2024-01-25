@@ -16,8 +16,8 @@ create_alarm/__pycache__
 
 information_DB.md
 node_modules
-.env.development
-.env.production
+# .env.development
+# .env.production
 /build
 /dist
 main.spec
