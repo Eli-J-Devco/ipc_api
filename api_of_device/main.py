@@ -200,5 +200,5 @@ async def shutdown():
 
 if __name__ == '__main__':
     # uvicorn.run(app, port=8080, host='0.0.0.0')
-    # uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=True, workers=2)
-    uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=False, workers=2)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=True, workers=2)
+    # uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=False, workers=2)

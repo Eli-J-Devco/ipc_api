@@ -38,4 +38,4 @@ pyroute2
 pyuac
 passlib
 APScheduler
-termcolor
+pyinstaller 

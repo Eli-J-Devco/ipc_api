@@ -542,33 +542,54 @@ class RoleScreenState(BaseModel):
     class Config:
         orm_mode = True
 class UserBase(BaseModel):
-    email: EmailStr
-    password: str
-    fullname: str
-    phone: str
-    id_language: Optional[int] = Field(...,examples=[1])
+    first_name:Optional[str] = None
+    last_name:Optional[str] = None
+    email: Optional[EmailStr] = None 
+    phone: Optional[str] = None
+    # id_language: Optional[int] = Field(...,examples=[1])
+    # 
+    email:Optional[str] = None
+    password:Optional[str] = None
+    # salt:Optional[str] = None
+    phone:Optional[str] = None
+    
+    # status:Optional[bool] = None
+    # fullname: str
+    # create_date:Optional[datetime] = None
+    # last_login:Optional[datetime] = None
+    
+    # create_by:Optional[str] = None
+    # updated_date:Optional[datetime] = None
+    # updated_by:Optional[str] = None
+    
+    
     # last_login: datetime
     # date_joined: datetime
     # status: bool = True
     # is_active: bool = False
 class UserOut(BaseModel):
     id: int
-    email: EmailStr
-    fullname: str
-    phone: str
-    id_language: int
+    first_name:Optional[str] = None
+    last_name:Optional[str] = None
+    email :Optional[EmailStr] = None 
+    
+    phone:Optional[str] = None
+    # fullname: str
+    # id_language: int
     # last_login: datetime
     # date_joined: datetime
 
     status: bool = True
-    is_active: bool = False
+    # is_active: bool = False
 
     class Config:
         orm_mode = True
 class UserLoginOut(BaseModel):
-    fullname: str
+    first_name:Optional[str] = None
+    last_name:Optional[str] = None
+    # fullname: str
     phone: str
-    id_language: int
+    # id_language: int
     # last_login: datetime
     # date_joined: datetime
 
@@ -585,9 +606,11 @@ class UserUpdate(BaseModel):
             orm_mode = True
     id:Optional[int] = None
     email: EmailStr
-    fullname: Optional[str] = None
+    # fullname: Optional[str] = None
+    first_name:Optional[str] = None
+    last_name:Optional[str] = None
     phone: Optional[str] = None
-    id_language: Optional[int] = None
+    # id_language: Optional[int] = None
     
     role: list[Role]
     class Config:
