@@ -93,6 +93,26 @@ mosquitto_sub -d -u nextwave -P 123654789  -t IPC
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
+sudo nano /etc/mosquitto/mosquitto.conf
+pid_file /run/mosquitto/mosquitto.pid
+#bind_address 0.0.0.0
+persistence true
+persistence_location /var/lib/mosquitto/
+
+log_dest file /var/log/mosquitto/mosquitto.log
+
+include_dir /etc/mosquitto/conf.d
+allow_anonymous false
+password_file /etc/mosquitto/pwfile
+listener 1883 0.0.0.0
+
+<!-- Mosquito Server Refuses Connections Ubuntu 18.04 -->
+sudo ufw status
+<!-- Open Port 1883 and start firewall -->
+sudo ufw allow 1883 
+sudo ufw enable
+<!-- Verify Mosquitto is not already running -->
+pgrep mosquitto
 <!-- MQTT window -->
 https://www.youtube.com/watch?v=72u6gIkeqUc
 https://cedalo.com/blog/how-to-install-mosquitto-mqtt-broker-on-windows/

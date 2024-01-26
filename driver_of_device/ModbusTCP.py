@@ -636,7 +636,7 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
         global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
         global device_id
         # Topic=f'topic+"@"+{str(device_id)}+"@control"'
-        Topic=f'IPC|{str(device_id)}|{str(device_name)}|control'
+        Topic=f'IPC/{str(device_id)}|{str(device_name)}|control'
         print(f'Topic: {Topic}')
         client = mqttools.Client(host=host, 
                                 port=port,
@@ -663,7 +663,7 @@ async def mqtt_subscribe_controls(host, port,topic, username, password):
                 if DEVICE_NAME==device_name and CODE==1 :
                     # print(f'query_device_control: {query_device_control}')
                     results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    # print(f'results_device_control: {results_device_control}')
+                    print(f'results_device_control: {results_device_control}')
                     
                     if type(results_device_control) == list and len(results_device_control)>=1:
                         data_control=[]

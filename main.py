@@ -172,7 +172,9 @@ def init_logfile():
             if sys.platform == 'win32':
                 subprocess.Popen(
                         f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
-                
+            else:
+                subprocess.Popen(
+                        f'pm2 start {absDirname}/create_logfile/log_file.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 def init_syncfile():
         absDirname=path
         # load file sql from mybatis
@@ -243,9 +245,9 @@ def init_api_web():
         subprocess.Popen(
             f'pm2 start {absDirname}/api_of_device/main.py --interpreter python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
-# init_driver()
-# init_logfile()
-init_api_web()
+init_driver()
+init_logfile()
+# init_api_web()
 # init_syncfile()
 # 
 
