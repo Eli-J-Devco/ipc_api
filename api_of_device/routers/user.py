@@ -15,7 +15,7 @@ import oauth2
 import schemas
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException,
                      Response, status)
-from psycopg2 import sql
+# from psycopg2 import sql
 # from sqlalchemy.sql import text
 from sqlalchemy import (Integer, MetaData, String, Table, and_, bindparam, exc,
                         func, insert, join, literal_column, select, text,
