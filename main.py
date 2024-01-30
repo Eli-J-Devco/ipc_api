@@ -246,8 +246,8 @@ def init_api_web():
             f'pm2 start {absDirname}/api_of_device/main.py --interpreter python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
 init_driver()
-init_logfile()
-# init_api_web()
+# init_logfile()
+init_api_web()
 # init_syncfile()
 # 
 

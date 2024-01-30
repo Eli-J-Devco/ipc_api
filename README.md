@@ -94,6 +94,7 @@ mosquitto_sub -d -u nextwave -P 123654789  -t IPC
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
 sudo nano /etc/mosquitto/mosquitto.conf
+
 pid_file /run/mosquitto/mosquitto.pid
 #bind_address 0.0.0.0
 persistence true
