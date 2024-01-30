@@ -116,7 +116,7 @@ class Settings(BaseSettings):
     PATH_FILE_NETWORK_INTERFACE: str
     FOLDER_PATH_LOG : str
     HEAD_FILE_LOG : str
-    
+    API_PORT : int
 Config = Settings()
 
 # 

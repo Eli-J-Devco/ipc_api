@@ -48,7 +48,7 @@ node --version
 https://pm2.keymetrics.io/docs/usage/quick-start/
 method1: sudo npm install pm2@latest
 method2: sudo npm install pm2 -g
-
+pm2 start /home/ipc/ipc_api/main.py --interpreter python3 -f  --name IPC|Main  --restart-delay=10000
 
 <!-- Notes to self: installing PM2 on Windows, as a service -->
 https://thomasswilliams.github.io/development/2020/04/07/installing-pm2-windows.html
