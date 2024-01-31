@@ -166,6 +166,7 @@ sudo dpkg -i teamviewer-host_armhf.deb
 wget https://download.teamviewer.com/download/linux/teamviewer-host_amd64.deb
 sudo dpkg -i teamviewer-host_amd64.deb
 <!-- TeamViewer Allow Remote Control without Confirmation in Linux -->
+https://linuxconfig.org/how-to-enable-disable-wayland-on-ubuntu-22-04-desktop
 sudo nano /etc/gdm3/custom.conf
 <!-- Ubuntu 20.04 shows a black screen when connecting through Teamviewer -->
 sudo apt-get install xserver-xorg-video-dummy
@@ -224,6 +225,26 @@ python3 driver_of_device/ModbusTCP.py 1 "/home/ipc/ipc_api"
 python3 /home/ipc/ipc_api/main.py
 cd api_of_device
 uvicorn main:app --reload
+<!--  -->
+sudo nano /etc/systemd/system/ipc.service
+sudo nano /etc/systemd/system/reboot_message.service
+ipc.service:
+[Unit]
+Description=Python Script Made By Me
+After=multi-user.target
+
+[Service]
+RestartSec=10
+Restart=always
+ExecStart=usr/bin/python3 /home/ipc/ipc_api/main.py
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reload
+sudo systemctl enable ipc.service
+sudo systemctl start ipc.service
+sudo systemctl status ipc.service
 <!--  -->
 1 Operation not permitted
 2 No such file or directory
