@@ -116,7 +116,12 @@ class Settings(BaseSettings):
     PATH_FILE_NETWORK_INTERFACE: str
     FOLDER_PATH_LOG : str
     HEAD_FILE_LOG : str
-    
+    URL_SERVER_SYNC : str
+    URL_SERVER_SYNC_FILE : str
+    FTPSERVER_HOSTNAME : str
+    FTPSERVER_PORT : int
+    FTPSERVER_USERNAME : str
+    FTPSERVER_PASSWORD : str
 Config = Settings()
 
 # 

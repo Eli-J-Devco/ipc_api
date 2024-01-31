@@ -16,3 +16,7 @@ logs/
 information_DB.md
 node_modules
 .env.development
+package-lock.json
+package.json
+requirements.txt
+vscode-extensions.list
