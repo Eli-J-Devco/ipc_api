@@ -214,6 +214,15 @@ class Point_list(Base):
     # 
     template_library=relationship("Template_library", back_populates='point_list')
     # 
+    alarmenabled= Column(Boolean, nullable=False, default=True)
+    alarmsetpoint= Column(String(255), nullable=True)
+    id_alarmcodeerror= Column(Integer, ForeignKey(
+        "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    id_alarmcondition= Column(Integer, ForeignKey(
+        "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    # 
+    
+    
 
 class Device_group(Base):
     __tablename__ = "device_group"
