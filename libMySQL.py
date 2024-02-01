@@ -257,7 +257,28 @@ def MySQL_Update_V1(query,val):
         db.close()
         print(f"Error: '{err}'")
 
+def MySQL_Update_v2(query, val):
+    db = create_server_connection(
+    DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
 
+    cursor = db.cursor(dictionary=True)
+    result = None
+    try:
+        cursor.executemany(query, val)
+        db.commit()
+        result = cursor.rowcount
+        # print("Data updated successfully",query ,val)
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err}'")
+    finally:
+        if db.is_connected():
+            print("Connection is closed")
+            
 def MySQL_Delete(query):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
