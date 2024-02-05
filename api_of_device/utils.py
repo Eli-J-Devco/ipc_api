@@ -45,6 +45,7 @@ from passlib.context import CryptContext
 
 import models
 from config import Config
+from libcom import cov_xml_sql
 # logging
 from logger_manager import setup_logger
 

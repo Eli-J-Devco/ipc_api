@@ -6,6 +6,7 @@
 import json
 import logging
 import os
+import subprocess
 import sys
 
 import mysql.connector
@@ -51,3 +52,21 @@ def func_mqtt_public_alarm(host, port,topic, username, password, data_send):
         # LOGGER.error(f'{err}')
         print(f"Error MQTT public: '{err}'")
         LOGGER.error(f"{err}")
+def cov_xml_sql(id_mybatis,param):
+
+    node_script_path="jspybridge.js"
+    # Run the Node.js script using subprocess
+    # print(f'id_mybatis: {id_mybatis}')
+    # print(f'param: {param}')
+    result = subprocess.run(['node', node_script_path, 
+                            'convert_mybatis',"mybatis/EnergyMapper.xml","mybatis",id_mybatis,str(param)], 
+                            capture_output=True, text=True)
+    # Check the result
+    if result.returncode == 0:
+        # print("Node.js script executed successfully.")
+        # print("Output:\n", result.stdout)
+        return result.stdout
+    else:
+        # print("Error executing Node.js script.")
+        # print("Error message:\n", result.stderr)
+        return ""
