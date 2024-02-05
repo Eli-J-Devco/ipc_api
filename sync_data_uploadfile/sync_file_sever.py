@@ -273,9 +273,9 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 data_mqtt={
                     "ID_DEVICE":device.id_device,
                     "FILE_NAME": device.file_name,
-                    "Timestamp": date_str,
-                    "Status_file_toserver": device.status,
-                    "number_time_retry":device.number_time_retry, 
+                    "TIME_STAMP": date_str,
+                    "STATUS_FILE_SERVER": device.status,
+                    "NUMBER_OF_RETRY":device.number_time_retry, 
                 }
                 
                 pushMQTT(host,
@@ -321,9 +321,9 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 data_mqtt={
                     "ID_DEVICE":devices[i].id_device,
                     "FILE_NAME": devices[i].file_name,
-                    "Timestamp": date_str,
-                    "Status_file_toserver": devices[i].status,
-                    "number_time_retry": devices[i].number_time_retry, 
+                    "TIME_STAMP": date_str,
+                    "STATUS_FILE_SERVER": devices[i].status,
+                    "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
                 }
                 
                 pushMQTT(host,

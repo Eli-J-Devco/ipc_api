@@ -336,8 +336,8 @@ async def monitoring_device(sql_id,id_device,host, port,topic, username, passwor
         data_mqtt={
             "ID_DEVICE":sql_id,
             "STATUS_CHANNEL":status,
-            "Timestamp" :current_time,
-            "Time_Log": time_interval ,
+            "TIME_STAMP" :current_time,
+            "TIME_LOG": time_interval ,
             "DATA_LOG":data,
             }
         

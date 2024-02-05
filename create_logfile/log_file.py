@@ -315,7 +315,7 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
                 value_many.append(data_insert)
                 
             # code pud data MQTT ----------------------------------------------------------------- 
-            status_file = "Fault"
+            status_file = "Success"
             ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
             ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
             if ts_timestamp - ts_online < 10 :
@@ -338,7 +338,6 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
                     username,
                     password,
                     data_mqtt)
-            flag_mqtt = True
             #----------------------------------------------------------------- 
     except Exception as e:
         status_file = "Fault"
@@ -384,16 +383,29 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
         time_online = DictID[0]["time"]
         data = DictID[0]["data"]    
     try:
-        data_mqtt={
-            "ID_DEVICE":sql_id,
-            "STATUS_DATA":status_device,
-            "STATUS_CHANNEL":status_file,
-            "FILE_NAME":file_name,
-            "Timestamp" :current_time,
-            "TimeOnline" :time_online,
-            "Time_Log": time_interval,
-            "DATA_LOG":data,
-            }
+        if formatted_time1 :
+            data_mqtt={
+                "ID_DEVICE":sql_id,
+                "STATUS_DATA":status_device,
+                "STATUS_CHANNEL":status_file,
+                "FILE_NAME":file_name,
+                "TIME_STAMP" :current_time,
+                "TIME_ONLINE" :time_online,
+                "TIME_LOG": time_interval,
+                "DATA_LOG":data,
+                }
+        else :
+            status_file = "Fault"
+            data_mqtt={
+                "ID_DEVICE":sql_id,
+                "STATUS_DATA":"loading",
+                "STATUS_CHANNEL":status_file,
+                "FILE_NAME":"None",
+                "TIME_STAMP" :current_time,
+                "TIME_ONLINE" :time_online,
+                "TIME_LOG": time_interval,
+                "DATA_LOG":data,
+                }
         # File creation time 
         sql_id_str = str(sql_id)
         device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
