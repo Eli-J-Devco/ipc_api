@@ -20,8 +20,11 @@ database_port = Config.DATABASE_PORT
 database_password =Config.DATABASE_PASSWORD
 database_name =Config.DATABASE_NAME
 database_username =Config.DATABASE_USERNAME
-
-
+print(f'database_hostname: {database_hostname}')
+print(f'database_port: {database_port}')
+print(f'database_password: {database_password}')
+print(f'database_name: {database_name}')
+print(f'database_username: {database_username}')
 SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_password}@{database_hostname}:{database_port}/{database_name}'
 # ?allowMultiQueries=true&charset=utf8mb4
 # SQLALCHEMY_DATABASE_URL = 'mysql+pymysql://root:12345@localhost:3307/test'

@@ -48,7 +48,7 @@ node --version
 https://pm2.keymetrics.io/docs/usage/quick-start/
 method1: sudo npm install pm2@latest
 method2: sudo npm install pm2 -g
-
+pm2 start /home/ipc/ipc_api/main.py --interpreter python3 -f  --name IPC|Main  --restart-delay=10000
 
 <!-- Notes to self: installing PM2 on Windows, as a service -->
 https://thomasswilliams.github.io/development/2020/04/07/installing-pm2-windows.html
@@ -93,6 +93,27 @@ mosquitto_sub -d -u nextwave -P 123654789  -t IPC
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
+sudo nano /etc/mosquitto/mosquitto.conf
+
+pid_file /run/mosquitto/mosquitto.pid
+#bind_address 0.0.0.0
+persistence true
+persistence_location /var/lib/mosquitto/
+
+log_dest file /var/log/mosquitto/mosquitto.log
+
+include_dir /etc/mosquitto/conf.d
+allow_anonymous false
+password_file /etc/mosquitto/pwfile
+listener 1883 0.0.0.0
+
+<!-- Mosquito Server Refuses Connections Ubuntu 18.04 -->
+sudo ufw status
+<!-- Open Port 1883 and start firewall -->
+sudo ufw allow 1883 
+sudo ufw enable
+<!-- Verify Mosquitto is not already running -->
+pgrep mosquitto
 <!-- MQTT window -->
 https://www.youtube.com/watch?v=72u6gIkeqUc
 https://cedalo.com/blog/how-to-install-mosquitto-mqtt-broker-on-windows/
@@ -145,6 +166,7 @@ sudo dpkg -i teamviewer-host_armhf.deb
 wget https://download.teamviewer.com/download/linux/teamviewer-host_amd64.deb
 sudo dpkg -i teamviewer-host_amd64.deb
 <!-- TeamViewer Allow Remote Control without Confirmation in Linux -->
+https://linuxconfig.org/how-to-enable-disable-wayland-on-ubuntu-22-04-desktop
 sudo nano /etc/gdm3/custom.conf
 <!-- Ubuntu 20.04 shows a black screen when connecting through Teamviewer -->
 sudo apt-get install xserver-xorg-video-dummy
@@ -204,6 +226,26 @@ python3 /home/ipc/ipc_api/main.py
 cd api_of_device
 uvicorn main:app --reload
 <!--  -->
+sudo nano /etc/systemd/system/ipc.service
+sudo nano /etc/systemd/system/reboot_message.service
+ipc.service:
+[Unit]
+Description=Python Script Made By Me
+After=multi-user.target
+
+[Service]
+RestartSec=10
+Restart=always
+ExecStart=usr/bin/python3 /home/ipc/ipc_api/main.py
+
+[Install]
+WantedBy=multi-user.target
+
+sudo systemctl daemon-reload
+sudo systemctl enable ipc.service
+sudo systemctl start ipc.service
+sudo systemctl status ipc.service
+<!--  -->
 1 Operation not permitted
 2 No such file or directory
 3 No such process
@@ -241,6 +283,8 @@ uvicorn main:app --reload
 162 System time changed, caused logger to restart logging for intervals.
 163 System auto-restart
 164 Log entry corrupt
+<!--  Enter password sudo -->
+echo [password] | sudo ...
 <!--  wmi pyuac -->
 Fix IP of IPC
 https://github.com/snnkbb/python-ip-changer/blob/master/ipchanger.py

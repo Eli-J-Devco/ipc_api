@@ -8,17 +8,18 @@ import logging
 import sys
 from pprint import pprint
 
-import database
-import models
 import oauth2
 import schemas
 import utils
-from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+import database
+import models
+from database import get_db
 
 sys.path.insert(1, "../")
 from config import Config
@@ -106,9 +107,11 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     if not result_screen:
         raise HTTPException(status_code=404, detail="Screen list empty")
     result_user_out=schemas.UserLoginOut(
-        fullname=result_user.fullname,
+        first_name=result_user.first_name,
+        last_name=result_user.last_name,
+        # fullname=result_user.fullname,
         phone=result_user.phone,
-        id_language=result_user.id_language,
+        # id_language=result_user.id_language,
         auth=result_auth
     )
     # refresh a token

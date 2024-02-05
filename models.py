@@ -214,6 +214,15 @@ class Point_list(Base):
     # 
     template_library=relationship("Template_library", back_populates='point_list')
     # 
+    alarmenabled= Column(Boolean, nullable=False, default=True)
+    alarmsetpoint= Column(String(255), nullable=True)
+    id_alarmcodeerror= Column(Integer, ForeignKey(
+        "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    id_alarmcondition= Column(Integer, ForeignKey(
+        "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    # 
+    
+    
 
 class Device_group(Base):
     __tablename__ = "device_group"
@@ -261,19 +270,36 @@ class Role_screen_map(Base):
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True, nullable=False)
-    fullname = Column(String(255), nullable=True)
+    first_name = Column(String(255), nullable=True)
+    last_name = Column(String(255), nullable=True)
+    # fullname = Column(String(255), nullable=True)
+    
     email = Column(String(100), nullable=False, unique=True)
     password = Column(String(255), nullable=False)
+    salt = Column(String(255), nullable=False)
     phone = Column(String(50), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    
+    create_date = Column(TIMESTAMP(timezone=True),
+                        nullable=True)
+    
     last_login = Column(TIMESTAMP(timezone=True),
                         nullable=True)
-    date_joined = Column(TIMESTAMP(timezone=True),
+    create_by = Column(String(200), nullable=False)
+    
+    updated_date = Column(TIMESTAMP(timezone=True),
                         nullable=True)
-    id_language = Column(Integer, ForeignKey(
-        "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    is_active = Column(Boolean, nullable=False, default=False)
-    status = Column(Boolean, nullable=False, default=True)
-    language  = relationship('Language_list', foreign_keys=[id_language])
+    updated_by = Column(String(200), nullable=False)
+    
+    # date_joined = Column(TIMESTAMP(timezone=True),
+                        # nullable=True)
+    # id_language = Column(Integer, ForeignKey(
+    #     "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # is_active = Column(Boolean, nullable=False, default=False)
+    
+    # language  = relationship('Language_list', foreign_keys=[id_language])
+    
+    
 # 
 class User_role_map(Base):
     __tablename__ = "user_role_map"
