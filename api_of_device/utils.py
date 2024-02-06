@@ -4,12 +4,18 @@
 # *
 # *********************************************************/
 import json
+import logging
 import os
 import subprocess
 import sys
 from pathlib import Path
 
 import mybatis_mapper2sql
+# from database import get_db
+# from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
+#                      Response, status)
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 # Describe functions before writing code
 # /**
@@ -28,16 +34,25 @@ def path_directory_relative(project_name):
     string_find=project_name
     index_os = path_os.find(string_find)
     if index_os <0:
-      return -1
+        return -1
     result=path_os[0:int(index_os)+len(string_find)]
     # print("Path directory relative:", result)
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+# from logging_setup import LoggerSetup
 from passlib.context import CryptContext
 
+import models
 from config import Config
+from libcom import cov_xml_sql
+# logging
+from logger_manager import setup_logger
 
+# setup root logger
+LOGGER = setup_logger(module_name='API')
+
+# -----------------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Describe functions before writing code
 # /**
@@ -129,6 +144,46 @@ def restart_program_pm2(app_name):
             if name.find(app_name)==0:
                 os.system(f'pm2 restart "{name}"')
                 app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error restart pm2 : ',err)
+        return 300
+# Describe functions before writing code
+# /**
+# 	 * @description restart many app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 08-01-2023
+# 	 * @param {list app_name of pm2}
+# 	 * @return data ()
+# 	 */
+def restart_program_pm2_many(app_name):
+    try:
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        app_detect=0
+        pid_list=[]
+        for item in result:
+            name = item['name']
+            for item_app in app_name:
+                if name.find(item_app)==0:
+                    pid= item['pm_id']
+                    pid_list.append(pid)
+        print(f'list {pid_list}')
+        cmd_pm2=f'pm2 restart '
+        join_pid=""
+        if pid_list:
+            for item in pid_list:
+                join_pid=join_pid+ " " +str(item)
+            cmd_pm2= cmd_pm2 +join_pid
+            print(f'cmd_pm2: {cmd_pm2}')
+            os.system(f'{cmd_pm2}')
+            app_detect=1
         if app_detect==1:
             return 100
         else:
@@ -380,3 +435,165 @@ def get_mybatis(file_name):
         result[key]=value[key]   
 
     return result  
+# Describe functions before writing code
+# /**
+# 	 * @description get_mybatis
+# 	 * @author vnguyen
+# 	 * @since 22-12-2023
+# 	 * @param {auth}
+# 	 * @return data (or_auth)
+# 	 */
+def convert_binary_auth(auth):
+    try:
+        result_auth=""
+        for i,item in enumerate(auth):
+            if i < len(auth)-1:
+                result_auth=result_auth + str(item)+"|"
+            else:
+                result_auth=result_auth + str(item)
+        if not result_auth:
+            return 0
+        else:
+            return int(bin(eval(result_auth)),2)
+    except Exception as err:
+        print('Convert_binary_auth: '+err)
+        return 0
+# Describe functions before writing code
+# /**
+# 	 * @description convert :parameter to parameter
+# 	 * @author vnguyen
+# 	 * @since 27-12-2023
+# 	 * @param {query,data}
+# 	 * @return data (query)
+# 	 */
+def pybatis(query= str,params={}):
+  
+  if not type(params) is dict:
+    return -1
+  if not type(query) is str:
+    return -1
+  new_string=""
+  for key, value in params.items():
+    if str(f':{key}') in query:
+      new_string = query.replace(str(f':{key}'), str(value))
+  return new_string
+# Describe functions before writing code
+# /**
+# 	 * @description restart_pm2_change_template
+# 	 * @author vnguyen
+# 	 * @since 08-01-2024
+# 	 * @param {id_template,db}
+# 	 * @return data ()
+# 	 */
+def restart_pm2_change_template(id_template:int,db:Session):
+    try:
+        
+        # --------------------------------------
+        # Restart PM2 read device
+        template_query = db.query(models.Template_library).filter(models.Template_library.id == id_template).\
+                                                filter(models.Template_library.status == 1)                                       
+        result_template=template_query.first()
+        device_list=[]
+        if result_template:
+            if result_template.device_group:
+                if hasattr(result_template.device_group[0], 'device_list'):
+                    result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
+                    device_list_rs485=[]
+                    device_list_tcp=[]
+                    device_list=result_device_list
+                    for item in result_device_list:
+                        print(f'{item.id_communication}|{item.id}|{item.name} {item.communication.driver_list.name}')
+                        id_communication=item.id_communication
+                        connect_type=item.communication.driver_list.name
+                        channel_type=item.communication.namekey
+                        id_device=item.id
+                        
+                        match connect_type:
+                            case "Modbus/TCP":
+                                pid=f'Dev|{id_communication}|{connect_type}|{id_device}'
+                                device_list_tcp.append(pid)
+                            case "RS485":
+                                pid=f'Dev|{id_communication}|{connect_type}|{channel_type}'
+                                device_list_rs485.append(pid)
+                            case _:
+                                continue
+                    #
+                    if device_list_rs485:
+                        device_list_rs485=list(set(device_list_rs485))
+                        print(f'device_list_rs485: {device_list_rs485}')
+                        for item in device_list_rs485:
+                            result_pm2=restart_program_pm2(pid)
+                            print(f'pm2: {result_pm2}')
+                    if device_list_tcp:
+                        print(f'device_list_tcp: {device_list_tcp}')
+                        result_pm2=restart_program_pm2_many(device_list_tcp)
+                        
+        # Restart PM2 log file
+        if device_list:
+            upload_channel_query = db.query(models.Upload_channel).\
+                                                    filter(models.Upload_channel.status == 1)                         
+            result_upload_channel=upload_channel_query.all()
+            if result_upload_channel:
+                pid_upload_channel_list=(lambda channel : [f'Log|{item.id}' for item in channel]) (result_upload_channel)
+                print(f'pid_upload_channel_list: {pid_upload_channel_list}')
+                result_pm2=restart_program_pm2_many(pid_upload_channel_list)
+                # --------------------------------------
+    except Exception as err:
+        print(f'Error: {err}')
+# Describe functions before writing code
+# /**
+# 	 * @description restart_pm2_delete_template
+# 	 * @author vnguyen
+# 	 * @since 15-01-2024
+# 	 * @param {id_template,db}
+# 	 * @return data ()
+# 	 */
+def restart_pm2_update_template(device_lists,db:Session):
+    try:
+                
+        # --------------------------------------
+        # Restart PM2 read device
+        result_device_list=device_lists
+        device_list=[]
+        device_list_rs485=[]
+        device_list_tcp=[]
+        device_list=result_device_list
+        for item in result_device_list:
+            print(f'{item.id_communication}|{item.id}|{item.name} {item.communication.driver_list.name}')
+            id_communication=item.id_communication
+            connect_type=item.communication.driver_list.name
+            channel_type=item.communication.namekey
+            id_device=item.id
+            
+            match connect_type:
+                case "Modbus/TCP":
+                    pid=f'Dev|{id_communication}|{connect_type}|{id_device}'
+                    device_list_tcp.append(pid)
+                case "RS485":
+                    pid=f'Dev|{id_communication}|{connect_type}|{channel_type}'
+                    device_list_rs485.append(pid)
+                case _:
+                    continue
+        #
+        if device_list_rs485:
+            device_list_rs485=list(set(device_list_rs485))
+            print(f'device_list_rs485: {device_list_rs485}')
+            for item in device_list_rs485:
+                result_pm2=restart_program_pm2(pid)
+                print(f'pm2: {result_pm2}')
+        if device_list_tcp:
+            print(f'device_list_tcp: {device_list_tcp}')
+            result_pm2=restart_program_pm2_many(device_list_tcp)
+                        
+        # Restart PM2 log file
+        if device_list:
+            upload_channel_query = db.query(models.Upload_channel).\
+                                                    filter(models.Upload_channel.status == 1)                         
+            result_upload_channel=upload_channel_query.all()
+            if result_upload_channel:
+                pid_upload_channel_list=(lambda channel : [f'Log|{item.id}' for item in channel]) (result_upload_channel)
+                print(f'pid_upload_channel_list: {pid_upload_channel_list}')
+                result_pm2=restart_program_pm2_many(pid_upload_channel_list)
+                # --------------------------------------
+    except Exception as err:
+        print(f'Error: {err}')

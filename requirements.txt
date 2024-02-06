@@ -37,3 +37,7 @@ WMI
 pyroute2
 pyuac
 passlib
+APScheduler
+pyinstaller
+tk
+psycopg2

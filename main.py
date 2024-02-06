@@ -14,6 +14,7 @@ from subprocess import Popen, run
 
 import mybatis_mapper2sql
 import pandas as pd
+from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
 from libcom import path_directory_relative
 
@@ -68,11 +69,10 @@ def init_driver():
                 name = item["name"]
                 connect_type=item["connect_type"]
                 pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-             
                 print(f'pid: {pid}')
                 if sys.platform == 'win32':
                     # use run with window
-                  
+
                     subprocess.Popen(
                         f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
@@ -166,9 +166,41 @@ def init_logfile():
             name = item["name"]
             type_protocol= item["type_protocol"]
             pid = f'Log|{id}|{name}|{type_protocol}'
+            # if sys.platform == 'win32':
+            #     subprocess.Popen(
+            #             f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/create_logfile/log_file_threading.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
+            else:
+                subprocess.Popen(
+                        f'pm2 start {absDirname}/create_logfile/log_file.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+def init_syncfile():
+        absDirname=path
+        # load file sql from mybatis
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+            xml= absDirname + '/mybatis/settup.xml')
+
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True)
+        
+        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
+            pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
+        query_all = statement[1]["select_upload_channel"]
+        results = MySQL_Select(query_all, ())
+        # print(f'results: {results}')
+        for item in results:
+            
+            id = item["id"]
+            name = item["name"]
+            type_protocol= item["type_protocol"]
+            pid = f'Log|{id}|{name}|{type_protocol}'
+            if sys.platform == 'win32':
+                subprocess.Popen(
+                        f'pm2 start {absDirname}/sync_data_uploadfile/client.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description enable permission folder config network ubuntu ipc
@@ -193,7 +225,29 @@ def enable_permission_ipc():
 # 	 */
 def delete_all_app_pm2():
     os.system(f'pm2 delete all')
+# Describe functions before writing code
+# /**
+# 	 * @description run API of web
+# 	 * @author vnguyen
+# 	 * @since 24-01-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_api_web():
+    absDirname=path
+    pid=f'API'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/api_of_device/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'pm2 start {absDirname}/api_of_device/main.py --interpreter python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
 init_driver()
 init_logfile()
+init_api_web()
+# init_syncfile()
+# 
 

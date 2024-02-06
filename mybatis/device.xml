@@ -3,7 +3,7 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
   <mapper namespace="Test">   
-      <select id="create_device">
+		<select id="create_device">
 	  
         CREATE TABLE `table_name` (
         `time` datetime NOT NULL,
@@ -80,7 +80,7 @@
         CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE SET NULL ON UPDATE SET NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
       </select>
-      <select id="insert_device_register_block"> 
+		<select id="insert_device_register_block"> 
         INSERT INTO `device_register_block`(
         id_device_list,
         id_template,
@@ -99,7 +99,7 @@
         INNER JOIN register_block ON template_library.id=register_block.id_template
         WHERE device_list.id= :id;
       </select>
-      <select id="insert_device_point_list">
+		<select id="insert_device_point_list">
         INSERT INTO `device_point_list`(id_pointkey,
         id_device_list,
         id_template,
@@ -119,11 +119,11 @@
         INNER JOIN point_list ON template_library.id=point_list.id_template
         WHERE device_list.id= :id;
       </select>  
-      <select id="somewhere">
+		<select id="somewhere">
         select * from device_list where
         id = :id
       </select> 
-      <select id="select_all_device">
+		<select id="select_all_device">
         SELECT device_list.id, device_list.name, 
         driver_list.name AS connect_type, 
         device_type.name AS device_type,
@@ -148,15 +148,15 @@
         
         WHERE device_list.status=1 AND device_list.id_communication=:id_communication ;
    
-        </select>
-        <select id="delete_only_device">
+      </select>
+		<select id="delete_only_device">
         DELETE FROM `device_point_list` WHERE id_device_list=:id_device;
         DELETE FROM `device_register_block` WHERE id_device_list=:id_device;
 		DELETE FROM `device_list` WHERE id=:id_device;
         DROP TABLE table_name;
 
-        </select>
-        <select id="insert_device_register_block_v0"> 
+		</select>
+		<select id="insert_device_register_block_v0"> 
         INSERT INTO `device_register_block`(
         id_device_list,
         id_template,
@@ -175,7 +175,7 @@
         INNER JOIN register_block ON template_library.id=register_block.id_template
         WHERE device_list.id= :id;
       </select>
-      <select id="insert_device_point_list_v0">
+		<select id="insert_device_point_list_v0">
         INSERT INTO `device_point_list`(id_pointkey,
         id_device_list,
         id_template,
@@ -202,7 +202,7 @@
         INNER JOIN point_list ON template_library.id=point_list.id_template
         WHERE device_list.id= :id;
       </select>  
-	    <select id="create_device_v0">
+		<select id="create_device_v0">
 	  
         CREATE TABLE `table_name` (
         `time` datetime NOT NULL,
@@ -281,5 +281,50 @@
         CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
 		CONSTRAINT `fk_table_name_upload_channel` FOREIGN KEY (`id_upload_channel`) REFERENCES `upload_channel` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-      </select>
+		</select>
+		<select id="insert_role_screen">
+			INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,0 FROM `screen`
+		</select>
+		<select id="create_new_table">
+		CREATE TABLE :table_name (
+		
+		name varchar(255),
+		category varchar(255),
+		price varchar(255)
+			);
+		</select>
+		<select id="insert_data_fruits">
+			INSERT INTO
+			fruits
+			(
+			name,
+			category,
+			price
+			)
+			VALUES
+			
+			<foreach collection="fruits" item="fruit" separator=",">
+            (
+            #{fruit.name},
+            #{fruit.category},
+            ${fruit.price}
+            )
+			</foreach>
+		</select>
+		<select id="insert_data_fruits11">
+			INSERT INTO
+			:table_name
+			(
+			name,
+			category,
+			price
+			)
+			VALUES
+			 (
+				:name,
+				:category,
+				:price
+             )
+		</select>
+		
   </mapper>

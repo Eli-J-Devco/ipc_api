@@ -11,10 +11,12 @@ import os
 import re
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 import mqttools
 import mybatis_mapper2sql
 import paho.mqtt.publish as publish
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -26,17 +28,24 @@ from libMySQL import *
 arr = sys.argv
 # print(f'arr: {arr}')
 # ------------------------------------
-result_list =[]
-status_device =""     
-msg_device =""
-status_register =""
-status_file ="Success"
+result_list = []
+status_device = ""     
+msg_device = ""
+status_register = ""
+status_file = "Success"
+status = "Waiting for the record to finish"
+time_interval = ""
 
+QUERY_TIME_CREATE_FILE = ""
+QUERY_ALL_DEVICES = ""
+QUERY_TIME_SYNC_DATA = ""
+result_all = []
+    
 # Variables 
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Dev/#"
-MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/Log" 
+MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogDeviceDatabase" 
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -80,16 +89,19 @@ sys.path.append(path)
 # 	 * @return data (query)
 # 	 */
 def get_mybatis(file_name):
-    print(path+file_name)
-    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
-    statement = mybatis_mapper2sql.get_statement(
-                mapper, result_type='list', reindent=True, strip_comments=True)
-    result={}
-    for item,value in enumerate(statement):
-        for key in value.keys():
-            result[key]=value[key]   
+    try:
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(xml=path+file_name)
+        statement = mybatis_mapper2sql.get_statement(
+                    mapper, result_type='list', reindent=True, strip_comments=True)
+        result={}
+        for item,value in enumerate(statement):
+            for key in value.keys():
+                result[key]=value[key]   
 
-    return result  
+        return result  
+    except Exception as e:
+        print('An exception occurred:',e)
+        return -1 
 #----------------------------------------
 # /**
 # 	 * @description check query in mybatis
@@ -107,7 +119,7 @@ def func_check_data_mybatis(data,item,object_name):
             return ""
         
     except Exception as err:
-        print('Error not find object mybatis')
+        print('Error not find object mybatis', err)
     return 
 #----------------------------------------
 # /**
@@ -118,8 +130,13 @@ def func_check_data_mybatis(data,item,object_name):
 # 	 * @return datetime
 # 	 */
 def get_utc():
-    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-    return now
+    now=None
+    try:
+        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        if now:
+            return now
+    except Exception as err:
+        return None
 # ----- MQTT -----
 # /**
 # 	 * @description public data MQTT
@@ -144,15 +161,16 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
         
         print(f"Error MQTT public: '{err}'")
         pass
-#--------------------------------------------------------------------
+# ----- MQTT -----
 # /**
-# 	 * @description subscribe data from MQTT
+# 	 * @description public data MQTT
 # 	 * @author bnguyen
-# 	 * @since 05-12-2023
-# 	 * @param {host, port, topic, username, password}
-# 	 * @return result_list 
-# 	 */ 
-async def get_data_from_MQTT(host, port, topic, username, password):
+# 	 * @since 13-12-2023
+# 	 * @param {host, port,topic, username, password, data_send}
+# 	 * @return data ()
+# 	 */
+
+async def Get_MQTT(host, port, topic, username, password):
     global status_device    
     global msg_device 
     global status_register
@@ -163,16 +181,21 @@ async def get_data_from_MQTT(host, port, topic, username, password):
     result_point_id = []
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client :
+            print("Error connect with MQTT")
+            return -1 
         await client.start()
         await client.subscribe(topic)
         while True:
             current_time = get_utc()
             message = await client.messages.get()
-            if message is None:
-                time.sleep(5)
+            if not message :
+                print("Not find message from MQTT")
+                return -1 
             # cut string get device id value from sud mqtt
             cut_topic1 = message.topic[8:]
             device_id = cut_topic1.split("|")[0]
+            
             if status_file == "Success" :
                 result_value = []
                 result_point_id = []
@@ -180,25 +203,36 @@ async def get_data_from_MQTT(host, port, topic, username, password):
                 result_value == result_values_dict
                 
             mqtt_result = json.loads(message.message.decode())
-            status_device = mqtt_result['STATUS_DEVICE']        
-            msg_device = mqtt_result['MSG_DEVICE']
-            status_register = mqtt_result['STATUS_REGISTER']
-            
-            for item in mqtt_result['POINT_LIST']:
-                value = str(item["Value"])
-                point_id = str(item["ItemID"])
-                            
-                result_value.append(value)
-                result_point_id.append(point_id)
-                            
-            result_values_dict[device_id] = result_value, result_point_id
-            result_list = [
-                {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
-                for device_id, (values, point_id) in result_values_dict.items()
-            ]
+            if mqtt_result:
+                if 'STATUS_DEVICE' not in mqtt_result:
+                    return -1 
+                if 'MSG_DEVICE' not in mqtt_result:
+                    return -1 
+                if 'STATUS_REGISTER' not in mqtt_result:
+                    return -1 
+                if 'POINT_LIST' not in mqtt_result:
+                    return -1 
+                status_device = mqtt_result['STATUS_DEVICE']        
+                msg_device = mqtt_result['MSG_DEVICE']
+                status_register = mqtt_result['STATUS_REGISTER']
+                
+                for item in mqtt_result['POINT_LIST']:
+                    value = str(item["Value"])
+                    point_id = str(item["ItemID"])
+                                
+                    result_value.append(value)
+                    result_point_id.append(point_id)
+                                
+                result_values_dict[device_id] = result_value, result_point_id
+                result_list = [
+                    {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
+                    for device_id, (values, point_id) in result_values_dict.items()
+                ]
+            else: 
+                pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+            
 #--------------------------------------------------------------------
 # /**
 # 	 * @description 
@@ -209,76 +243,172 @@ async def get_data_from_MQTT(host, port, topic, username, password):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def update_data_for_device_in_database():
-    
-    result_mybatis=get_mybatis('/mybatis/logfile.xml')
-    QUERY_ALL_DEVICES=result_mybatis["QUERY_ALL_DEVICES"]
-    QUERY_TIME_CREATE_FILE=result_mybatis["QUERY_TIME_CREATE_FILE"]
-    
-    if  QUERY_ALL_DEVICES  != -1 and QUERY_TIME_CREATE_FILE  != -1 :
-        pass
-    else:           
-        print("Error not found data in file mybatis")
-        return -1
-    
+async def Insert_TableDevice():
+    global result_list
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
-    #---------------------------------------------------------------------------------------------------------------
-    while True:
-        current_time = get_utc()
-        current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-        year,month, day, hour, minute, second = current_datetime.year , current_datetime.month,current_datetime.day,current_datetime.hour, current_datetime.minute, current_datetime.second  
-        global result_list
-        data_to_write =""
-        point_id = ""
-        
-        #-----------------------------------------------------
-        for item in time_create_file_insert_data_table_dev:
-            time = item["time_log_interval"]
-            position = time.rfind("minute")
-            number = time[:position]
-            int_number = int(number)
+    # Initialize an empty dictionary to store SQL queries and values
+    sql_queries = {}
+    counter = 0
+    point_id = []
+    data = []
+
+    for item in result_all:
+        sql_id = item["id"]
+        DictID = [item for item in result_list if item["id"] == sql_id]
+
+        if DictID:
+            data = DictID[0]["data"]
+            point_id = DictID[0]["point_id"]
+
+        try:
+            # Write data to corresponding devices in the database
+            time_insert_dev = get_utc()
+            value_insert = (time_insert_dev, sql_id) + tuple(data)
+
+            # Create Query
+            columns = ["time", "id_device"]
+            for i in range(len(point_id)):
+                columns.append(f"pt{i}")
+
+            table_name = f"dev_{sql_id:05d}"
+
+            # Create a query with REPLACE INTO syntax
+            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+            val = value_insert
+
+            # Check if the SQL query exists in the dictionary
+            if sql_id in sql_queries:
+                # Update the SQL query
+                sql_queries[sql_id][0] = query
+                sql_queries[sql_id][1] = val
+            else:
+                # Add a new entry to the dictionary
+                sql_queries[sql_id] = [query, val]
+
+            counter += 1
+            if counter == len(result_all) :
+                MySQL_Insert_v3(sql_queries)
+                status = "Data inserted successfully"
+                # print("=================================", sql_queries)
+            else :
+                status = "Waiting for the record to finish"
+        except Exception as e:
+            
+            print(f"Error during file creation is : {e}")
+                
+# Describe functions before writing code
+# /**
+# 	 * @description MQTT public status of device
+# 	 * @author vnguyen
+# 	 * @since 14-11-2023
+# 	 * @param {host, port,topic, username, password, device_name}
+# 	 * @return data ()
+# 	 */
+async def monitoring_device(sql_id,id_device,host, port,topic, username, password):
+    global status_device 
+    global status_file
+    global result_list
+    global QUERY_ALL_DEVICES
+    global QUERY_TIME_SYNC_DATA
+    global status 
+    global time_interval
+    
+    current_time = get_utc()
+    result_all = []
+    data = []
+    sql_id_str = ""
+    device_name = ""
+    
+    #++++++++++++++++++
+    id_device_fr_sys = id_device[1]
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    
+    for item in time_sync_data:
+        type_file = item["type_protocol"]
+    #++++++++++++++++++
+    
+    DictID = [item for item in result_list if item["id"] == sql_id]
+    if DictID:
+        data = DictID[0]["data"]
+                
+    try:
+        data_mqtt={
+            "ID_DEVICE":sql_id,
+            "STATUS_CHANNEL":status,
+            "Timestamp" :current_time,
+            "Time_Log": time_interval ,
+            "DATA_LOG":data,
+            }
         
         # File creation time 
-            if minute % int_number == 0 and second % 10 == 0:
-                for item in result_all:
-                    sql_id = item["id"]
-                    
-                    DictID = [item for item in result_list if item["id"] == sql_id]
-                    
-                    for item in DictID:
-                        data = item["data"]
-                        data_to_write = data
-                        
-                    for item in DictID:
-                        point_id = item["point_id"]
-                    try:
-                            # Write data to corresponding devices in the database-------------
-                            if data_to_write :
-                                time_insert_dev = get_utc()
-                                value_insert = (time_insert_dev, sql_id ) + tuple(data_to_write) 
-                                MySQL_Insert_v2(f'dev_{sql_id:05d}', point_id ,value_insert)       
-                                
-                                print(f"ghi data vào database dev0000 thành công theo chu kì {int_number} phút 10s ")
-                            else :
-                                print(f"ghi data vào thành công theo chu kì {int_number} phút 10s và danh sách ghi vào rỗng ")
-                            # ----------------------------------------------------------------
-                    except Exception as e:
-                        print(f"Error during file creation is : {e}")
-            await asyncio.sleep(1)
-    
+        sql_id_str = str(sql_id)
+        device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
+        
+        push_data_to_mqtt(host,
+                port,
+                topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
+                username,
+                password,
+                data_mqtt)
+    except Exception as err:
+        print('Error monitoring_device : ',err)
+        
 async def main():
+    result_mybatis = get_mybatis('/mybatis/logfile.xml')
+    global QUERY_TIME_CREATE_FILE
+    global QUERY_ALL_DEVICES 
+    global QUERY_TIME_SYNC_DATA
+    global time_interval
+    try:
+        QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
+        QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
+        QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
+    except Exception as e:
+            print('An exception occurred',e)
+    
+    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA:
+        print("Error not found data in file mybatis") 
+        return -1
+    #------------------------------------------------------------------------
+    time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    
+    item = time_create_file_insert_data_table_dev[0]
+    time_interval = item["time_log_interval"]
+    position = time_interval.rfind("minute")
+    number = time_interval[:position]
+    int_number = int(number)
+    
+    if not time_create_file_insert_data_table_dev or not result_all:
+        print("Error not found data in Database")
+        return -1
+    
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(Insert_TableDevice, 'cron', minute = f'*/{int_number}')
+    for item in result_all:
+        sql_id = item["id"]
+        scheduler.add_job(monitoring_device, 'cron',  second = f'*/7' , args=[ sql_id,
+                                                                                arr,
+                                                                                MQTT_BROKER,
+                                                                                MQTT_PORT,
+                                                                                MQTT_TOPIC_PUB,
+                                                                                MQTT_USERNAME,
+                                                                                MQTT_PASSWORD])
+    scheduler.start()
+    
     tasks = []
-    tasks.append(asyncio.create_task(update_data_for_device_in_database ()))
-                                                    
-    tasks.append(asyncio.create_task(get_data_from_MQTT(MQTT_BROKER,
-                                                            MQTT_PORT,
-                                                            MQTT_TOPIC_SUB,
-                                                            MQTT_USERNAME,
-                                                            MQTT_PASSWORD
-                                                            )))
+    tasks.append(Get_MQTT(MQTT_BROKER,
+                                    MQTT_PORT,
+                                    MQTT_TOPIC_SUB,
+                                    MQTT_USERNAME,
+                                    MQTT_PASSWORD
+                                    ))
+    
     await asyncio.gather(*tasks, return_exceptions=False)
     #-------------------------------------
-    
+    await asyncio.sleep(0.05)
 if __name__ == "__main__":
     asyncio.run(main())
+
+

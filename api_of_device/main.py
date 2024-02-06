@@ -3,31 +3,60 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 import secrets
 import sys
 
-import models
+from utils import LOGGER, path_directory_relative
+
+path=path_directory_relative("ipc_api") # name of project
+sys.path.append(path)
+import logging
+
 import uvicorn
-from database import engine
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
                                   get_swagger_ui_oauth2_redirect_html)
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-from routers import (auth, device_list, ethernet, project, rs485,
-                     site_information, upload_channel, user)
-from utils import path_directory_relative
+from routers import (auth, device_group, device_list, ethernet, project, rs485,
+                     site_information, template, upload_channel, user)
+from starlette import status
+from starlette.exceptions import ExceptionMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp
 
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
+import models
 from config import Config
+from database import engine
+
+# from logging_setup import LoggerSetup
+# from logger_manager import setup_logger
+
+# setup root logger
+# LOGGER = setup_logger(module_name='API')
+
+
+# LOGGER = logging.getLogger(__name__)
+# setup root logger
+# logger_setup = LoggerSetup()
+
+# get logger for module
+# LOGGER = logging.getLogger(__name__)
 
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
+API_PORT= Config.API_PORT
 
 models.Base.metadata.create_all(bind=engine)
-
+class PartnerAvailabilityMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request, call_next):
+        raise CustomException(
+            status.HTTP_503_SERVICE_UNAVAILABLE, 'Partner services is unavailable.'
+        )
+        return await call_next(request)
 app = FastAPI(
     title="FastAPI",
     description="IPC SCADA",
@@ -52,13 +81,27 @@ app.add_middleware(
 )
 app.include_router(user.router)
 app.include_router(auth.router)
+app.include_router(template.router)
+app.include_router(device_group.router)
 app.include_router(device_list.router)
+
 app.include_router(ethernet.router)
 app.include_router(rs485.router)
 app.include_router(site_information.router)
 app.include_router(upload_channel.router)
 app.include_router(project.router)
 # 
+
+class CustomException(Exception):
+    def __init__(self, code: int, message: str):
+        self.code = code
+        self.message = message
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request: Request, exc: CustomException):
+    return JSONResponse(
+        status_code=exc.code,
+        content={"message": f"Exception Occurred! Reason -> {exc.message}"},
+    )
 # Describe functions before writing code
 # /**
 # 	 * @description get current username
@@ -147,11 +190,16 @@ def root():
 @app.on_event("startup")
 async def startup():
     print("startup ---------")
+    LOGGER.info("--- Start up App ---")
+
+    
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
-  
+    LOGGER.error("--- Shutdown App ---")
+
 
 if __name__ == '__main__':
     # uvicorn.run(app, port=8080, host='0.0.0.0')
-    uvicorn.run("__main__:app", host="0.0.0.0", port=8000, reload=True, workers=2)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=API_PORT, reload=True, workers=2)
+    # uvicorn.run("__main__:app", host="0.0.0.0", port=API_PORT, reload=False, workers=2)

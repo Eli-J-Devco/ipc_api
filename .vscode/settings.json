@@ -17,4 +17,8 @@
     "prettier.enable": false,
   "editor.formatOnSave": false,
   "notebook.codeActionsOnSave": {},
+  "cSpell.words": [
+    "mqtt",
+    "mqttools"
+  ],
 }
