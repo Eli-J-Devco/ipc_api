@@ -241,10 +241,16 @@ ExecStart=usr/bin/python3 /home/ipc/ipc_api/main.py
 [Install]
 WantedBy=multi-user.target
 
+sudo systemctl disable ipc.service
 sudo systemctl daemon-reload
 sudo systemctl enable ipc.service
 sudo systemctl start ipc.service
 sudo systemctl status ipc.service
+
+<!-- Running A Python Script At Boot Using Cron -->
+sudo crontab -e
+@reboot sudo /usr/bin/python3 /home/ipc/ipc_api/main.py >> /var/log/ipc_api.log 2>&1
+
 <!--  -->
 1 Operation not permitted
 2 No such file or directory
@@ -283,6 +289,11 @@ sudo systemctl status ipc.service
 162 System time changed, caused logger to restart logging for intervals.
 163 System auto-restart
 164 Log entry corrupt
+<!-- Linux root -->
+How do I set the root password 
+sudo -i passwd
+123654789
+
 <!--  Enter password sudo -->
 echo [password] | sudo ...
 <!--  wmi pyuac -->
@@ -375,5 +386,13 @@ Ctrl + Shift +LO
 15012024 config_information -> add row id 270 -272
 15012024 device_list -> all On Update and On Delete set = Set null
 15012024 device_group -> On Update and On Delete set = Set null
-
-
+sysData=
+{
+  "id_upload_channel":1,
+  "id_device":1,
+  "list":[
+    {"id": "2024-01-10 04:06:30","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"},
+    {"id": "2024-02-05 04:24:00","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"},
+    {"id": "2024-02-05 04:36:00","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"}
+  ]
+}

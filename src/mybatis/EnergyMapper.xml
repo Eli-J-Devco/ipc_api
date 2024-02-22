@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="mybatis">  
+  <select id="selectDevice">
+    SELECT
+      *
+    FROM
+      ${table_device_list} 
+     <where>
+	1=1
+		<if test="status != null and status !=''">
+		and status = #{status}
+		</if>
+		</where>
+  </select>
+  <select id="getDataIrradianceToday">
+ SELECT
+      *
+    FROM
+      (<foreach collection="groupInverter" item="item" separator="union all">
+            SELECT * FROM ${item} GROUP BY id_device
+      </foreach>) AS t;
+  </select>
+</mapper>

@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime
+from test.config import Config
 
 from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime,
                         ForeignKey, Integer, String, Text, create_engine)
@@ -9,7 +10,6 @@ from sqlalchemy.orm import (declarative_base, mapped_column, relationship,
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
-from config import Config
 from libcom import path_directory_relative
 
 path=path_directory_relative("ipc_api") # name of project

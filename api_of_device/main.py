@@ -12,6 +12,7 @@ from utils import LOGGER, path_directory_relative
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 import logging
+from test.config import Config
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -29,7 +30,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
 import models
-from config import Config
 from database import engine
 
 # from logging_setup import LoggerSetup

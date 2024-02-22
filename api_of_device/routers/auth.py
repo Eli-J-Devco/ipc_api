@@ -10,7 +10,6 @@ from pprint import pprint
 
 import oauth2
 import schemas
-import utils
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -19,10 +18,11 @@ from sqlalchemy.orm import Session
 
 import database
 import models
+import utils
 from database import get_db
 
 sys.path.insert(1, "../")
-from config import Config
+from test.config import Config
 
 SECRET_KEY = Config.SECRET_KEY
 REFRESH_SECRET_KEY = Config.SECRET_KEY
@@ -44,7 +44,10 @@ LOGGER = logging.getLogger(__name__)
 # 	 */ 
 @router.post('/login/', response_model=schemas.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    pprint(user_credentials.password)
     pprint(user_credentials.username)
+    # key ="" // user
+    # passw="12345"
     user_query = db.query(models.User).filter(
         models.User.email == user_credentials.username)
     result_user=user_query.first()
@@ -57,6 +60,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     user_query.update(dict( 
                             last_login=now,    
                            ), synchronize_session=False)
+    
     db.commit()
     if not utils.verify(user_credentials.password, result_user.password):
         raise HTTPException(

@@ -733,7 +733,7 @@ def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Dep
         LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@router.post("/charting/")
+@router.get("/charting/")
 async def charting(db: Session = Depends(get_db)):
     try:
         param={
@@ -750,7 +750,7 @@ async def charting(db: Session = Depends(get_db)):
         query_sql= cov_xml_sql("getDataIrradianceToday",param)
         
         
-        # print(f'query_sql: {query_sql}')
+        print(f'query_sql: {query_sql}')
         
         
         result=db.execute(text(str(query_sql))).all()

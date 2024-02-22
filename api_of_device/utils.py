@@ -40,11 +40,12 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
+from test.config import Config
+
 # from logging_setup import LoggerSetup
 from passlib.context import CryptContext
 
 import models
-from config import Config
 from libcom import cov_xml_sql
 # logging
 from logger_manager import setup_logger
