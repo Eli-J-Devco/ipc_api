@@ -222,7 +222,8 @@ def enable_permission_ipc():
 # 	 * @return data ()
 # 	 */
 def delete_all_app_pm2():
-    os.system(f'pm2 delete all')
+    os.system(f'sudo pm2 delete all')
+    
 # Describe functions before writing code
 # /**
 # 	 * @description run API of web

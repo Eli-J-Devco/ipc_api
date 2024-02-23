@@ -154,6 +154,8 @@ password = "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89
 ct_b64 = "U2FsdGVkX1+LKFFEChpO6bcHGHDwJ+yMm0ts1c2Lnik="
 pt = decrypt(ct_b64, password)
 print("pt", pt)
-# username=encrypt(b"12345",password)
-# print("username", username)
+username=encrypt(b"nguyenvudtd@gmail.com",password)
+print("username", username)
+passwords=encrypt(b"Admin123@",password)
+print("passwords", passwords)
 # print("pt", decrypt(encrypt(pt, password), password))

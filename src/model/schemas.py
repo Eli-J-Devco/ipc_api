@@ -26,6 +26,21 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 
 
 # ----------------------------------------------------
+# <- Config_information ->
+class ConfigInformationBase(BaseModel):
+    # id : int
+    parent: Optional[int] = None
+    name : Optional[str] = None
+    namekey : Optional[str] = None
+    description : Optional[str] = None
+    value :Optional[int] = None
+    type :Optional[int] = None
+    id_type : Optional[int] = None
+class ConfigInformationOut(ConfigInformationBase):
+    id : Optional[int] = None
+   
+    class Config:
+        orm_mode = True
 # <- driver_list ->
 class DriverListBase(BaseModel):
     id: Optional[int] = None
