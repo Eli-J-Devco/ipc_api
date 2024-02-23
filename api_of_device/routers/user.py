@@ -10,14 +10,12 @@ import random
 import string
 from typing import Optional
 
-import models
 import oauth2
 # from model import auth_user
 import schemas
-from database import engine, get_db
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException,
                      Response, status)
-from psycopg2 import sql
+# from psycopg2 import sql
 # from sqlalchemy.sql import text
 from sqlalchemy import (Integer, MetaData, String, Table, and_, bindparam, exc,
                         func, insert, join, literal_column, select, text,
@@ -26,6 +24,9 @@ from sqlalchemy.orm import Session, aliased
 from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
                    delete_program_pm2, find_program_pm2, get_mybatis, hash,
                    path, pybatis, restart_program_pm2, verify)
+
+import models
+from database import engine, get_db
 
 router = APIRouter(
     prefix="/users",
@@ -45,6 +46,8 @@ router = APIRouter(
 # 	 */
 @router.post("/create_user", status_code=status.HTTP_201_CREATED, response_model=schemas.UserStateOut)
 def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
+    
+    
     user_query = db.query(models.User).filter(models.User.email == user.email).first()
     if user_query:
         return {
@@ -59,13 +62,18 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
             datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         # new_user = models.User(date_joined=now,
         #                         last_login=now, **user.dict())
-        new_user = models.User(fullname=user.fullname,
+        new_user = models.User(
+                                # fullname=user.fullname,
+                                first_name=user.first_name,
+                                last_name=user.last_name,
                                 email=user.email,
                                 password=user.password,
                                 phone=user.phone,
-                                id_language=user.id_language,
-                                date_joined=now,
-                                last_login=now,       
+                                # id_language=user.id_language,
+                                # date_joined=now,
+                                # last_login=now,
+                                create_date=now,
+                                last_login=now,     
                                 )
         try:
             db.add(new_user)

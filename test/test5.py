@@ -32,6 +32,7 @@ sys.path.append(path)
 # print(Config.DATABASE_HOSTNAME)
 
 import base64
+import binascii
 # if platform.system() == 'linux':
 #     # load_dotenv('.env.production')
 #     print(".env.production")
@@ -41,13 +42,26 @@ import base64
 import hashlib
 import os
 import platform
-from hashlib import sha256
+import random
+import string
+from base64 import b64decode, b64encode
+from hashlib import md5, sha256
 
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Cryptodome import Random
+from Cryptodome.Cipher import AES
 
-from config import *
+# from AESify import AESify
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad, unpad
+# from Cryptodome.Cipher import AES
+# from Cryptodome.Random import get_random_bytes
+# from cryptography.fernet import Fernet
+# from cryptography.hazmat.primitives import hashes
+# from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+
+# from config import *
 
 # print(Config.DATABASE_HOSTNAME)
 # # if platform.node() == 'dev-machine':
@@ -72,29 +86,76 @@ from config import *
 #     salt=salt,
 #     iterations=390000,
 # )
-# message = b"1"
-# password = b"@qua$weet@NW"
+# password = b"1"
+# token = b"@qua$weet@NW"
 # # key= base64.urlsafe_b64encode(kdf.derive(password))
-# key =b'yYGx967p94hCCUaeJnImSkNjYjXPgQ3yHCl3Qf3pFUc='
+# key =b'7ZvQ1c52jX4wJw1MWgiEkCjFOQhkg3LdTgmhzmf5vnQ='
+
 # f = Fernet(key)
 # # --------------------
 # print(f'key: {key.decode()}')
-# encMessage = f.encrypt(message)
-# print(f'{encMessage.decode()}')
-# decMessage = f.decrypt(encMessage)
-# print(decMessage.decode('utf-8'))
+# encMessage = f.encrypt(password)
 
-stmt = 'SELECT * FROM :id_role'
-data={"id_role":1,"b":2}
-def pybatis(query= str,data={}):
-  
-  if not type(data) is dict:
-    return -1
-  if not type(query) is str:
-    return -1
-  new_string=""
-  for key, value in data.items():
-    if str(f':{key}') in query:
-      new_string = query.replace(str(f':{key}'), str(value))
-  return new_string
-print(pybatis(stmt,data))
+# print(f'Ma hoa {encMessage.decode()}')
+# decMessage = f.decrypt(encMessage)
+# giaima=decMessage.decode('utf-8')
+# print(f'Giai ma {giaima}')
+
+
+
+
+
+
+#AES ECB mode without IV
+
+
+
+BLOCK_SIZE = 16
+
+def pad(data):
+    length = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
+    return data + (chr(length)*length).encode()
+
+def unpad(data):
+    return data[:-(data[-1] if type(data[-1]) == int else ord(data[-1]))]
+
+def bytes_to_key(data, salt, output=48):
+    # extended from https://gist.github.com/gsakkis/4546068
+    assert len(salt) == 8, len(salt)
+    data += salt
+    key = md5(data).digest()
+    final_key = key
+    while len(final_key) < output:
+        key = md5(key + data).digest()
+        final_key += key
+    return final_key[:output]
+
+def encrypt(message, passphrase):
+    salt = Random.new().read(8)
+    key_iv = bytes_to_key(passphrase, salt, 32+16)
+    key = key_iv[:32]
+    iv = key_iv[32:]
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    return base64.b64encode(b"Salted__" + salt + aes.encrypt(pad(message)))
+
+def decrypt(encrypted, passphrase):
+    encrypted = base64.b64decode(encrypted)
+    assert encrypted[0:8] == b"Salted__"
+    salt = encrypted[8:16]
+    key_iv = bytes_to_key(passphrase, salt, 32+16)
+    key = key_iv[:32]
+    iv = key_iv[32:]
+    aes = AES.new(key, AES.MODE_CBC, iv)
+    return unpad(aes.decrypt(encrypted[16:]))
+
+
+password = "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a".encode()
+# ct_b64 = "U2FsdGVkX1+ATH716DgsfPGjzmvhr+7+pzYfUzR+25u0D7Z5Lw04IJ+LmvPXJMpz"
+ct_b64 = "U2FsdGVkX1+LKFFEChpO6bcHGHDwJ+yMm0ts1c2Lnik="
+pt = decrypt(ct_b64, password)
+print("pt", pt)
+username=encrypt(b"tv.nhan164@gmail.com",password)
+print("username", username)
+upassword=encrypt(b"Admin123@",password)
+print("pass", upassword)
+# print("pt", decrypt(encrypt(pt, password), password))

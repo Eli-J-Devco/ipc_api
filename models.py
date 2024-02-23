@@ -151,9 +151,9 @@ class Project_setup(Base):
     logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
     first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
-    number_limit_alarm= Column(Integer, nullable=True)
-    time_limit_alarm= Column(Integer, nullable=True)
-    mode_control = Column(Integer, nullable=False,default=0)
+    # number_limit_alarm= Column(Integer, nullable=True)
+    # time_limit_alarm= Column(Integer, nullable=True)
+    # mode_control = Column(Integer, nullable=False,default=0)
     
 class Template_library(Base):
     __tablename__ = "template_library"
@@ -214,6 +214,15 @@ class Point_list(Base):
     # 
     template_library=relationship("Template_library", back_populates='point_list')
     # 
+    alarmenabled= Column(Boolean, nullable=False, default=True)
+    alarmsetpoint= Column(String(255), nullable=True)
+    id_alarmcodeerror= Column(Integer, ForeignKey(
+        "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    id_alarmcondition= Column(Integer, ForeignKey(
+        "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    # 
+    
+    
 
 class Device_group(Base):
     __tablename__ = "device_group"
@@ -261,19 +270,36 @@ class Role_screen_map(Base):
 class User(Base):
     __tablename__ = "user"
     id = Column(Integer, primary_key=True, nullable=False)
-    fullname = Column(String(255), nullable=True)
+    first_name = Column(String(255), nullable=True)
+    last_name = Column(String(255), nullable=True)
+    # fullname = Column(String(255), nullable=True)
+    
     email = Column(String(100), nullable=False, unique=True)
     password = Column(String(255), nullable=False)
+    salt = Column(String(255), nullable=False)
     phone = Column(String(50), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    
+    create_date = Column(TIMESTAMP(timezone=True),
+                        nullable=True)
+    
     last_login = Column(TIMESTAMP(timezone=True),
                         nullable=True)
-    date_joined = Column(TIMESTAMP(timezone=True),
+    create_by = Column(String(200), nullable=False)
+    
+    updated_date = Column(TIMESTAMP(timezone=True),
                         nullable=True)
-    id_language = Column(Integer, ForeignKey(
-        "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    is_active = Column(Boolean, nullable=False, default=False)
-    status = Column(Boolean, nullable=False, default=True)
-    language  = relationship('Language_list', foreign_keys=[id_language])
+    updated_by = Column(String(200), nullable=False)
+    
+    # date_joined = Column(TIMESTAMP(timezone=True),
+                        # nullable=True)
+    # id_language = Column(Integer, ForeignKey(
+    #     "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # is_active = Column(Boolean, nullable=False, default=False)
+    
+    # language  = relationship('Language_list', foreign_keys=[id_language])
+    
+    
 # 
 class User_role_map(Base):
     __tablename__ = "user_role_map"
@@ -541,6 +567,80 @@ class Error(Base):
     time_limit_alarm  = Column(Integer, nullable=False, default=5)
     number_limit_alarm  = Column(Integer, nullable=False, default=5)
 
+
+class datalog_inv1(Base):
+    __tablename__ = "dev_00002"
+    time = Column(TIMESTAMP(timezone=True), primary_key=True, nullable=False)
+    id_device = Column(Integer, ForeignKey(
+        "device.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    error = Column(Integer, nullable=True)
+    low_alarm = Column(Integer, nullable=True)
+    high_alarm = Column(Integer, nullable=True)
+    serial_number = Column(String(255), nullable=True)
+    pt0 = Column(DOUBLE, nullable=True)
+    pt1 = Column(DOUBLE, nullable=True)
+    pt2 = Column(DOUBLE, nullable=True)
+    pt3 = Column(DOUBLE, nullable=True)
+    pt4 = Column(DOUBLE, nullable=True)
+    pt5 = Column(DOUBLE, nullable=True)
+    pt6 = Column(DOUBLE, nullable=True)
+    pt7 = Column(DOUBLE, nullable=True)
+    pt8 = Column(DOUBLE, nullable=True)
+    pt9 = Column(DOUBLE, nullable=True)
+    pt10 = Column(DOUBLE, nullable=True)
+    pt11 = Column(DOUBLE, nullable=True)
+    pt12 = Column(DOUBLE, nullable=True)
+    pt13 = Column(DOUBLE, nullable=True)
+    pt14 = Column(DOUBLE, nullable=True)
+    pt15 = Column(DOUBLE, nullable=True)
+    pt16 = Column(DOUBLE, nullable=True)
+    pt17 = Column(DOUBLE, nullable=True)
+    pt18 = Column(DOUBLE, nullable=True)
+    pt19 = Column(DOUBLE, nullable=True)
+    pt20 = Column(DOUBLE, nullable=True)
+    pt21 = Column(DOUBLE, nullable=True)
+    pt22 = Column(DOUBLE, nullable=True)
+    pt23 = Column(DOUBLE, nullable=True)
+    pt24 = Column(DOUBLE, nullable=True)
+    pt25 = Column(DOUBLE, nullable=True)
+    pt26 = Column(DOUBLE, nullable=True)
+    pt27 = Column(DOUBLE, nullable=True)
+    pt28 = Column(DOUBLE, nullable=True)
+    pt29 = Column(DOUBLE, nullable=True)
+    pt30 = Column(DOUBLE, nullable=True)
+    pt31 = Column(DOUBLE, nullable=True)
+    pt32 = Column(DOUBLE, nullable=True)
+    pt33 = Column(DOUBLE, nullable=True)
+    pt34 = Column(DOUBLE, nullable=True)
+    pt35 = Column(DOUBLE, nullable=True)
+    pt36 = Column(DOUBLE, nullable=True)
+    pt37 = Column(DOUBLE, nullable=True)
+    pt38 = Column(DOUBLE, nullable=True)
+    pt39 = Column(DOUBLE, nullable=True)
+    pt40 = Column(DOUBLE, nullable=True)
+    pt41 = Column(DOUBLE, nullable=True)
+    pt42 = Column(DOUBLE, nullable=True)
+    pt43 = Column(DOUBLE, nullable=True)
+    pt44 = Column(DOUBLE, nullable=True)
+    pt45 = Column(DOUBLE, nullable=True)
+    pt46 = Column(DOUBLE, nullable=True)
+    pt47 = Column(DOUBLE, nullable=True)
+    pt48 = Column(DOUBLE, nullable=True)
+    pt49 = Column(DOUBLE, nullable=True)
+    pt50 = Column(DOUBLE, nullable=True)
+    pt51 = Column(DOUBLE, nullable=True)
+    pt52 = Column(DOUBLE, nullable=True)
+    pt53 = Column(DOUBLE, nullable=True)
+    pt54 = Column(DOUBLE, nullable=True)
+    pt55 = Column(DOUBLE, nullable=True)
+    pt56 = Column(DOUBLE, nullable=True)
+    pt57 = Column(DOUBLE, nullable=True)
+    pt58 = Column(DOUBLE, nullable=True)
+    pt59 = Column(DOUBLE, nullable=True)
+    pt60 = Column(DOUBLE, nullable=True)
+    pt61 = Column(DOUBLE, nullable=True)
+    pt62 = Column(DOUBLE, nullable=True)
+#
 # 
 def create_table(table_name):
     class DynamicTable(Base):

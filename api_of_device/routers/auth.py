@@ -8,20 +8,21 @@ import logging
 import sys
 from pprint import pprint
 
-import database
-import models
 import oauth2
 import schemas
-import utils
-from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+import database
+import models
+import utils
+from database import get_db
+
 sys.path.insert(1, "../")
-from config import Config
+from test.config import Config
 
 SECRET_KEY = Config.SECRET_KEY
 REFRESH_SECRET_KEY = Config.SECRET_KEY
@@ -43,7 +44,10 @@ LOGGER = logging.getLogger(__name__)
 # 	 */ 
 @router.post('/login/', response_model=schemas.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(database.get_db)):
+    pprint(user_credentials.password)
     pprint(user_credentials.username)
+    # key ="" // user
+    # passw="12345"
     user_query = db.query(models.User).filter(
         models.User.email == user_credentials.username)
     result_user=user_query.first()
@@ -56,6 +60,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     user_query.update(dict( 
                             last_login=now,    
                            ), synchronize_session=False)
+    
     db.commit()
     if not utils.verify(user_credentials.password, result_user.password):
         raise HTTPException(
@@ -106,9 +111,11 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
     if not result_screen:
         raise HTTPException(status_code=404, detail="Screen list empty")
     result_user_out=schemas.UserLoginOut(
-        fullname=result_user.fullname,
+        first_name=result_user.first_name,
+        last_name=result_user.last_name,
+        # fullname=result_user.fullname,
         phone=result_user.phone,
-        id_language=result_user.id_language,
+        # id_language=result_user.id_language,
         auth=result_auth
     )
     # refresh a token
