@@ -135,7 +135,9 @@ class PointUpdateBase(PointBase):
         orm_mode = True
         # fields = {'id_pointkey': {'exclude': True}}
 
-
+class PointChangeNumberBase(BaseModel):
+    id_template: Optional[int]=None
+    number_point: Optional[int]=Field(None, ge=1)
 
 class PointDataType(BaseModel):
     id: int = Field(..., alias='id')

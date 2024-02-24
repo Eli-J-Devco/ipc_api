@@ -11,8 +11,8 @@ from jose import jwt
 algorithm = "HS256"
 secret_key = "25a6f201f7f43132035d95e1b0125ec3f937ec284bd93e6f4ad17078b75b3cdf"
 REFRESH_SECRET_KEY="4845118e9928805aea99b052f2ef7426c885325a109bed4171a84303b9594e8d"
-refresh_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NCwiZXhwIjoxNzA5MjY1NzkyfQ.hA4PUiRAuUzL2udZB-3AVKNfg0l1XxDXXZe4oAuLsHk'
-access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NCwiZXhwIjoxNzA4NjY0NTkyfQ.VvGIPL6wCVFXWc5aHLaZI3GXvX2r2rUAax1dup3psG0'
+refresh_token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NCwiZXhwIjoxNzA5MjcxMDIzfQ.H3SVg_Vb4Yw2-Guhhci2GeLy2fPdbEyFJ4yjZTIoIgA'
+access_token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjo1NCwiZXhwIjoxNzA4NjY5ODIzfQ.JjCNZW3fOg_IsxZV3u9htUHB_jnUFGW7Q8WdkSDeZeI'
 
 
 def test_create_user():
@@ -35,7 +35,7 @@ def test_create_user():
 def test_login_user():
     # Test OK
     # defining the api-endpoint
-    API_ENDPOINT = "http://127.0.0.1:3002/login/"
+    API_ENDPOINT = "http://192.168.1.21:3001/login/"
     payload = {
         # 'username': 'nguyenvudtd@gmail.com',
         # 'password': 'Admin123@'
@@ -124,7 +124,7 @@ def test_update_post():
 def test_refresh_token():
     # Test OK
     # defining the api-endpoint
-    API_ENDPOINT = "http://127.0.0.1:3002/refresh_token/"
+    API_ENDPOINT = "http://192.168.1.21:3001/refresh_token/"
     payload = {
         'refresh_token': refresh_token
     }

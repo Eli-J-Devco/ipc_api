@@ -79,4 +79,4 @@ class Device_list(Base):
     point_pf_list  = relationship('Point_list', foreign_keys=[point_pf])
     # 
     # # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
-    # device_group= relationship("Device_group", back_populates="device_list")
+    device_group= relationship("Device_group", back_populates="device_list")

@@ -39,40 +39,40 @@ from database.db import Base, engine
 # Base=declarative_base()
 
 # 
-# class Page(Base):
-#     __tablename__ = "page"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     description = Column(Text, nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-# # 
-# class Driver_list(Base):
-#     __tablename__ = "driver_list"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     status = Column(Boolean, nullable=False, default=True)
+class Page(Base):
+    __tablename__ = "page"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+# 
+class Driver_list(Base):
+    __tablename__ = "driver_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
 
-# # 
-# class Communication(Base):
-#     __tablename__ = "communication"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=True)
-#     namekey = Column(String(255), nullable=False)
-#     id_driver_list = Column(Integer, ForeignKey(
-#         "driver_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_type_baud_rates = Column(Integer, nullable=True)
-#     id_type_parity = Column(Integer, ForeignKey(
-#         "type_parity.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_type_stopbits = Column(Integer, ForeignKey(
-#         "type_stopbits.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_type_timeout = Column(Integer, ForeignKey(
-#         "type_timeout.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_type_debug_level = Column(Integer, ForeignKey(
-#         "type_debug_level.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     note1 = Column(String(255), nullable=True)
-#     note2 = Column(String(255), nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-#     driver_list  = relationship('Driver_list', foreign_keys=[id_driver_list])
+# 
+class Communication(Base):
+    __tablename__ = "communication"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=False)
+    id_driver_list = Column(Integer, ForeignKey(
+        "driver_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_baud_rates = Column(Integer, nullable=True)
+    id_type_parity = Column(Integer, ForeignKey(
+        "type_parity.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_stopbits = Column(Integer, ForeignKey(
+        "type_stopbits.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_timeout = Column(Integer, ForeignKey(
+        "type_timeout.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_type_debug_level = Column(Integer, ForeignKey(
+        "type_debug_level.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    note1 = Column(String(255), nullable=True)
+    note2 = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    driver_list  = relationship('Driver_list', foreign_keys=[id_driver_list])
 
 # class Language_list(Base):
 #     __tablename__ = "language_list"
@@ -170,59 +170,59 @@ class Config_information(Base):
 #     register_list= relationship("Register_block", back_populates='template_library')
 # # 
 # # 
-# class Point_list(Base):
-#     __tablename__ = "point_list"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     id_pointkey = Column(Integer, nullable=False)
-#     id_template = Column(Integer, ForeignKey(
-#         "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     name = Column(String(255), nullable=False)
-#     nameedit = Column(Boolean, nullable=False, default=True)
-#     id_type_units = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     unitsedit = Column(Boolean, nullable=False, default=True)
+class Point_list(Base):
+    __tablename__ = "point_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_pointkey = Column(Integer, nullable=False)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    name = Column(String(255), nullable=False)
+    nameedit = Column(Boolean, nullable=False, default=True)
+    id_type_units = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    unitsedit = Column(Boolean, nullable=False, default=True)
     
-#     equation = Column(Integer,  ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     config = Column(Integer,  ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    equation = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    config = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     
-#     register = Column(Integer, nullable=False)
-#     id_type_datatype = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     id_type_byteorder = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     slope = Column(DOUBLE, nullable=False)
-#     slopeenabled = Column(Boolean, nullable=False, default=True)
-#     offset = Column(DOUBLE, nullable=False)
-#     offsetenabled = Column(Boolean, nullable=False, default=True)
-#     multreg = Column(Integer, nullable=False)
-#     multregenabled = Column(Boolean, nullable=True, default=True)
-#     userscaleenabled = Column(Boolean, nullable=False, default=True)
-#     invalidvalue = Column(Integer, nullable=False)
-#     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
-#     extendednumpoints = Column(Integer, nullable=True)
-#     extendedregblocks = Column(Integer, nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-#     function= Column(Text, nullable=True)
-#     constants=Column(DOUBLE(), nullable=True, default=0)
-#     # 
-#     # template_library  = relationship('Template_library', foreign_keys=[id_template])
-#     type_units  = relationship('Config_information', foreign_keys=[id_type_units])
-#     type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
-#     type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
-#     type_point= relationship('Config_information', foreign_keys=[equation])
-#     type_class= relationship('Config_information', foreign_keys=[config])
-#     # 
-#     template_library=relationship("Template_library", back_populates='point_list')
-#     # 
-#     alarmenabled= Column(Boolean, nullable=False, default=True)
-#     alarmsetpoint= Column(String(255), nullable=True)
-#     id_alarmcodeerror= Column(Integer, ForeignKey(
-#         "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
-#     id_alarmcondition= Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
-#     # 
+    register = Column(Integer, nullable=False)
+    id_type_datatype = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_type_byteorder = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    slope = Column(DOUBLE, nullable=False)
+    slopeenabled = Column(Boolean, nullable=False, default=True)
+    offset = Column(DOUBLE, nullable=False)
+    offsetenabled = Column(Boolean, nullable=False, default=True)
+    multreg = Column(Integer, nullable=False)
+    multregenabled = Column(Boolean, nullable=True, default=True)
+    userscaleenabled = Column(Boolean, nullable=False, default=True)
+    invalidvalue = Column(Integer, nullable=False)
+    invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    extendednumpoints = Column(Integer, nullable=True)
+    extendedregblocks = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    function= Column(Text, nullable=True)
+    constants=Column(DOUBLE(), nullable=True, default=0)
+    # 
+    # template_library  = relationship('Template_library', foreign_keys=[id_template])
+    type_units  = relationship('Config_information', foreign_keys=[id_type_units])
+    type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
+    type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    type_point= relationship('Config_information', foreign_keys=[equation])
+    type_class= relationship('Config_information', foreign_keys=[config])
+    # 
+    template_library=relationship("Template_library", back_populates='point_list')
+    # # 
+    # alarmenabled= Column(Boolean, nullable=False, default=True)
+    # alarmsetpoint= Column(String(255), nullable=True)
+    # id_alarmcodeerror= Column(Integer, ForeignKey(
+    #     "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    # id_alarmcondition= Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+    # # 
     
     
 
@@ -472,19 +472,19 @@ class Config_information(Base):
 #     # type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
 #     # 
 # # 
-# class Register_block(Base):
-#     __tablename__ = "register_block"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     id_template = Column(Integer, ForeignKey(
-#         "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     addr = Column(Integer, nullable=False)
-#     count = Column(Integer, nullable=False)
-#     id_type_function = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     status = Column(Boolean, nullable=False, default=True)
-#     # template_library  = relationship('Template_library', foreign_keys=[id_template])
-#     type_function  = relationship('Config_information', foreign_keys=[id_type_function])
-#     template_library=relationship("Template_library", back_populates='register_list')
+class Register_block(Base):
+    __tablename__ = "register_block"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    addr = Column(Integer, nullable=False)
+    count = Column(Integer, nullable=False)
+    id_type_function = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
+    # template_library  = relationship('Template_library', foreign_keys=[id_template])
+    type_function  = relationship('Config_information', foreign_keys=[id_type_function])
+    template_library=relationship("Template_library", back_populates='register_list')
 # class Device_register_block(Base):
 #     __tablename__ = "device_register_block"
 #     id = Column(Integer, primary_key=True, nullable=False)
@@ -727,6 +727,3 @@ class Config_information(Base):
 #         pt62 = Column(DOUBLE, nullable=True)
 #         device = relationship("Device_list")
 #     DynamicTable.__table__.create(engine)
-    
-    
-
