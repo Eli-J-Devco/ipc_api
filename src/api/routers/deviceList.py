@@ -33,7 +33,7 @@ import api.domain.deviceList.models as deviceList_models
 import api.domain.deviceList.schemas as deviceList_schemas
 import model.models as models
 from database.db import engine, get_db
-from utils.libCom import get_mybatis
+# from utils.libCom import get_mybatis
 # from model import schemas
 # from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
 #                    delete_program_pm2, find_program_pm2, get_mybatis, path,
