@@ -13,15 +13,18 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
                 ("src"))
 # import models
 from configs.config import Config
-from database.db import engine
+
+# from database.db import engine
 
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 API_PORT= Config.API_PORT
 
 print(f'API_DOCS_USERNAME: {API_DOCS_USERNAME}')
+import http
 import logging
 import secrets
+import time
 
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -33,7 +36,16 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 # from routers import (auth, device_group, device_list, ethernet, project, rs485,
 #                      site_information, template, upload_channel, user)
-from routers import auth, project, siteInfo, user
+# -------------------------------------------------------------
+from routers import auth as auth_router
+from routers import deviceGroup as deviceGroup_router
+from routers import deviceList as deviceList_router
+from routers import ethernet as ethernet_router
+from routers import project as project_router
+from routers import siteInfo as siteInfo_router
+from routers import template as template_router
+from routers import user as user_router
+# -------------------------------------------------------------
 from starlette import status
 from starlette.exceptions import ExceptionMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -63,6 +75,27 @@ app = FastAPI(
 
 origins = ["*"]
 security = HTTPBasic()
+async def log_request_middleware(request: Request, call_next):
+    """
+    This middleware will log all requests and their processing time.
+    E.g. log:
+    0.0.0.0:1234 - GET /ping 200 OK 1.00ms
+    """
+    # logger.debug("middleware: log_request_middleware")
+    url = f"{request.url.path}?{request.query_params}" if request.query_params else request.url.path
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = (time.time() - start_time) * 1000
+    formatted_process_time = "{0:.2f}".format(process_time)
+    host = getattr(getattr(request, "client", None), "host", None)
+    port = getattr(getattr(request, "client", None), "port", None)
+    try:
+        status_phrase = http.HTTPStatus(response.status_code).phrase
+    except ValueError:
+        status_phrase=""
+    # logger.info(f'{host}:{port} - "{request.method} {url}" {response.status_code} {status_phrase} {formatted_process_time}ms')
+    return response
+app.middleware("http")(log_request_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -70,17 +103,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(user.router)
-app.include_router(auth.router)
-# app.include_router(template.router)
-# app.include_router(deviceGroup.router)
-# app.include_router(deviceList.router)
+app.include_router(user_router.router)
+app.include_router(auth_router.router)
+app.include_router(template_router.router)
+app.include_router(deviceGroup_router.router)
+app.include_router(deviceList_router.router)
 
-# app.include_router(ethernet.router)
+app.include_router(ethernet_router.router)
 # app.include_router(rs485.router)
-app.include_router(siteInfo.router)
+app.include_router(siteInfo_router.router)
 # app.include_router(upload_channel.router)
-app.include_router(project.router)
+app.include_router(project_router.router)
 # 
 
 class CustomException(Exception):

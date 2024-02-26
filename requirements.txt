@@ -41,3 +41,5 @@ APScheduler
 pyinstaller
 tk
 psycopg2
+pycryptodomex
+pycryptodome

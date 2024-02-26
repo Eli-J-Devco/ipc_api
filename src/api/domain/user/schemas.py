@@ -193,12 +193,12 @@ class Token(BaseModel):
         screen: Optional[list[ScreenOut]]= None
         class Config:
             orm_mode = True
-    refresh_token: str
-    access_token: str
-    token_type: str
+    refresh_token: str = None
+    access_token: str = None
+    token_type: str = None
     user: Optional[UserLoginOut] = None
-    screen: Optional[list[ScreenBase]]=[]
-    role: Optional[list[TokenRole]]=[]
+    screen: list[ScreenBase]=[]
+    role:list[TokenRole] = None
 class TokenData(BaseModel):
     id: Optional[str] = None
 

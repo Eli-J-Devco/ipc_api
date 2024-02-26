@@ -53,18 +53,17 @@ LOGGER = logging.getLogger(__name__)
 @router.post('/login/', response_model=schemas.Token)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
+        # Admin123@
         # username b'U2FsdGVkX19ZDkZuu1l7LGxevbTdWIgvCUD9KE6dVVTgTFVhFvfxvxBrIR65e0aa'
-        # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
+        # password b'U2FsdGVkX19pC80uku9GJZDYOO2ElN06ELaZdw514v8='
         pprint(user_credentials.username)
         pprint(user_credentials.password)
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
         pprint(f'username: {username}')
-        pprint(f'password: {password}')
-    
+        pprint(f'pass: {password}')
         user_query = db.query(models.User).filter(
             models.User.email == username)
-        pprint(user_query)
         result_user=user_query.first()
         
         if not result_user:
@@ -172,10 +171,13 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 @router.post("/refresh_token/", response_model=schemas.Token)
 def refresh_token(request: schemas.TokenItem, db: Session = Depends(get_db)):
     refresh_token = request.refresh_token
+    print(f'refresh_token: {refresh_token}')
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
     try:
         payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
+        print(f'payload: {payload}')
+        
         access_token = oauth2.create_access_token(data={"user_id": payload["user_id"]})
         id=payload["user_id"]
         user_query = db.query(models.User).filter(models.User.id == id)

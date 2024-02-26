@@ -19,24 +19,24 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 from database.db import Base, engine
 
 
-class Page(Base):
-    __tablename__ = "page"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    status = Column(Boolean, nullable=False, default=True)
-class Config_information(Base):
-    __tablename__ = "config_information"
-    id = Column(Integer, primary_key=True, nullable=False)
-    parent = Column(Integer, nullable=True)
-    name = Column(String(255), nullable=True)
-    namekey = Column(String(255), nullable=True)
-    description = Column(Text, nullable=True)
-    value = Column(Integer, nullable=True)
-    type = Column(Integer, nullable=True)
-    id_type = Column(Integer, ForeignKey(
-        "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    status = Column(Boolean, nullable=False, default=True)
+# class Page(Base):
+#     __tablename__ = "page"
+#     id = Column(Integer, primary_key=True, nullable=False)
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     status = Column(Boolean, nullable=False, default=True)
+# class Config_information(Base):
+#     __tablename__ = "config_information"
+#     id = Column(Integer, primary_key=True, nullable=False)
+#     parent = Column(Integer, nullable=True)
+#     name = Column(String(255), nullable=True)
+#     namekey = Column(String(255), nullable=True)
+#     description = Column(Text, nullable=True)
+#     value = Column(Integer, nullable=True)
+#     type = Column(Integer, nullable=True)
+#     id_type = Column(Integer, ForeignKey(
+#         "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+#     status = Column(Boolean, nullable=False, default=True)
 class Project_setup(Base):
     __tablename__ = "project_setup"
     id = Column(Integer, primary_key=True, nullable=False)

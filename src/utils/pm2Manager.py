@@ -201,7 +201,7 @@ def create_program_pm2(filename,pid,id):
         f'pm2 start {filename} -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
     else:               
         subprocess.Popen(
-        f'pm2 start {filename} --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+        f'sudo pm2 start {filename} --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description init app in pm2
@@ -254,12 +254,12 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
                             # use run with window
                           
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
+                                f'pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
                            
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                                f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             
     except Exception as e:
         print('Error init driver: ',e)

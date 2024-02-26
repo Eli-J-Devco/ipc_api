@@ -27,7 +27,7 @@ class Template_library(Base):
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
     
-    # device_group = relationship("Device_group", back_populates='templates_library')
-    # point_list= relationship("Point_list", back_populates='template_library')
-    # register_list= relationship("Register_block", back_populates='template_library')
+    device_group = relationship("Device_group", back_populates='templates_library')
+    point_list= relationship("Point_list", back_populates='template_library')
+    register_list= relationship("Register_block", back_populates='template_library')
 # 
