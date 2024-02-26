@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "mybatis-mapper": "^0.7.1"
+    
+  }
+}
