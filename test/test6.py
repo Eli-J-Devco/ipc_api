@@ -22,9 +22,9 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 import datetime
+from test.config import *
 
-from config import *
-from libMySQL import *
+from utils.libMySQL import *
 
 
 def get_utc():

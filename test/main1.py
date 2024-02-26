@@ -7,6 +7,7 @@ import asyncio
 import datetime
 import json
 import logging
+import os
 import secrets
 import sys
 import time
@@ -22,13 +23,16 @@ from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from pydantic import BaseModel
-from utils import path_directory_relative
 
+sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
+                ("src"))
 # 
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
-from config import Config
-from libMySQL import *
+# path=path_directory_relative("ipc_api") # name of project
+# sys.path.append(path)
+from test.config import Config
+
+from utils import path_directory_relative
+from utils.libMySQL import *
 
 # 
 # DATABASE_HOSTNAME = Config.DATABASE_HOSTNAME

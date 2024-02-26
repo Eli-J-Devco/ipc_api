@@ -151,9 +151,9 @@ class Project_setup(Base):
     logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
     first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
-    number_limit_alarm= Column(Integer, nullable=True)
-    time_limit_alarm= Column(Integer, nullable=True)
-    mode_control = Column(Integer, nullable=False,default=0)
+    # number_limit_alarm= Column(Integer, nullable=True)
+    # time_limit_alarm= Column(Integer, nullable=True)
+    # mode_control = Column(Integer, nullable=False,default=0)
     
 class Template_library(Base):
     __tablename__ = "template_library"

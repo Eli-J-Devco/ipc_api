@@ -7,9 +7,6 @@
 import sys
 from datetime import datetime, timedelta
 
-import database
-# from . import schemas, database, models
-import models
 import schemas
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
@@ -17,8 +14,12 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
+import database
+# from . import schemas, database, models
+import models
+
 sys.path.insert(1, "../")
-from config import Config
+from test.config import Config
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='login')
 

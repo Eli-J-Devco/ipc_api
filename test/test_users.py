@@ -35,14 +35,14 @@ def test_create_user():
 def test_login_user():
     # Test OK
     # defining the api-endpoint
-    API_ENDPOINT = "http://127.0.0.1:8000/login"
+    API_ENDPOINT = "http://192.168.1.21:3001/login"
     payload = {
         'username': 'nguyenvudtd@gmail.com',
-        'password': '12345'
+        'password': 'Admin123@'
     }
     # sending post request and saving response as response object
     headers = {"Content-Type": "application/json; charset=utf-8"}
-    r = requests.post(url=API_ENDPOINT, data=payload)
+    r = requests.post(url=API_ENDPOINT, data=payload, headers=headers)
 
     # extracting response text
     data = r.json()

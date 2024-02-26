@@ -16,14 +16,11 @@ import mybatis_mapper2sql
 import pandas as pd
 from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
-from libcom import path_directory_relative
-
-# sys.path.insert(1, "./")
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
-from libMySQL import *
-
 # absDirname=os.path.dirname(os.path.abspath(__file__))
+# path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")+"/"
+# sys.path.append(path)
+path=os.path.dirname(__file__)+"/src/"
+from src.utils.libMySQL import *
 
 # Describe functions before writing code
 # /**
@@ -39,7 +36,7 @@ def init_driver():
         absDirname=path
         # load file sql from mybatis
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-            xml= absDirname + '/mybatis/device_list.xml')
+            xml= absDirname + 'mybatis/device_list.xml')
 
         statement = mybatis_mapper2sql.get_statement(
         mapper, result_type='list', reindent=True, strip_comments=True)
@@ -52,7 +49,6 @@ def init_driver():
         query_all = statement[0]["select_all_device"]
         # 
         results = MySQL_Select(query_all, ())
-        
         if type(results) == list and len(results)>=1:
             pass
         else:           
@@ -60,7 +56,7 @@ def init_driver():
             return -1
         result_rs485_group=[]
         for item in results:
-           
+        
             # call driver ModbusTCP
             if item["connect_type"] == "Modbus/TCP":
                 # name of pid pm2=Dev|id_communication|connect_type|id|name
@@ -74,12 +70,12 @@ def init_driver():
                     # use run with window
 
                     subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/deviceDriver/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
                     # use run with ubuntu/linux
-                 
+                
                     subprocess.Popen(
-                        f'pm2 start {absDirname}/driver_of_device/ModbusTCP.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                        f'sudo pm2 start {absDirname}/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             # join the same group ModbusRTU
             if item["connect_type"] == "RS485":
                 result_rs485_group.append(item)
@@ -125,12 +121,12 @@ def init_driver():
                             # use run with window
                           
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
+                                f'pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
                            
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/driver_of_device/ModbusRTU.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                                f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                         
                 
     except Exception as e:
@@ -171,36 +167,38 @@ def init_logfile():
             #             f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/dataLog/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
             else:
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/create_logfile/log_file.py --interpreter python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-def init_syncfile():
-        absDirname=path
-        # load file sql from mybatis
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-            xml= absDirname + '/mybatis/settup.xml')
+                        f'sudo pm2 start {absDirname}/dataLog/log_file.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True)
+# def init_syncfile():
+#         absDirname=path
+#         # load file sql from mybatis
+#         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+#             xml= absDirname + '/mybatis/settup.xml')
+
+#         statement = mybatis_mapper2sql.get_statement(
+#         mapper, result_type='list', reindent=True, strip_comments=True)
         
-        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
-        query_all = statement[1]["select_upload_channel"]
-        results = MySQL_Select(query_all, ())
-        # print(f'results: {results}')
-        for item in results:
+#         if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
+#             pass
+#         else:           
+#             print("Error not found data in file mybatis")
+#             return -1
+#         query_all = statement[1]["select_upload_channel"]
+#         results = MySQL_Select(query_all, ())
+#         # print(f'results: {results}')
+#         for item in results:
             
-            id = item["id"]
-            name = item["name"]
-            type_protocol= item["type_protocol"]
-            pid = f'Log|{id}|{name}|{type_protocol}'
-            if sys.platform == 'win32':
-                subprocess.Popen(
-                        f'pm2 start {absDirname}/sync_data_uploadfile/client.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+#             id = item["id"]
+#             name = item["name"]
+#             type_protocol= item["type_protocol"]
+#             pid = f'Log|{id}|{name}|{type_protocol}'
+#             if sys.platform == 'win32':
+#                 subprocess.Popen(
+#                         f'pm2 start {absDirname}/sync_data_uploadfile/client.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+
 # Describe functions before writing code
 # /**
 # 	 * @description enable permission folder config network ubuntu ipc
@@ -239,14 +237,14 @@ def init_api_web():
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/api_of_device/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/api/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'pm2 start {absDirname}/api_of_device/main.py --interpreter python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/api/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
-init_driver()
-init_logfile()
+# init_driver()
+# init_logfile()
 init_api_web()
 # init_syncfile()
 # 

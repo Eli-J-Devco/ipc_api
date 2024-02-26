@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
 from utils import path_directory_relative
 
 # Describe functions before writing code
@@ -23,7 +24,7 @@ from utils import path_directory_relative
 # 	 */
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
-from config import Config
+from test.config import Config
 
 database_hostname = Config.DATABASE_HOSTNAME
 database_port = Config.DATABASE_PORT

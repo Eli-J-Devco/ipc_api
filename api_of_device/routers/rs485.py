@@ -9,21 +9,21 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from test.config import Config
 
-import models
 import oauth2
 import psutil
 import schemas
 import serial.tools.list_ports as ports
 from async_timeout import timeout
-from database import get_db
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-from utils import restart_program_pm2
 
-from config import Config
+import models
+from database import get_db
+from utils import restart_program_pm2
 
 # 
 router = APIRouter(
