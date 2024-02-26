@@ -23,13 +23,17 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
-sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-                ("src"))
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
 # import models
 # import utils
-# from api.domain.deviceList import models, schemas
-from api.domain.deviceList import models, schemas
+
+import api.domain.deviceGroup.models as deviceGroup_models
+import api.domain.deviceList.models as deviceList_models
+import api.domain.deviceList.schemas as deviceList_schemas
+import model.models as models
 from database.db import engine, get_db
+from utils.libCom import get_mybatis
 # from model import schemas
 # from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
 #                    delete_program_pm2, find_program_pm2, get_mybatis, path,
@@ -60,11 +64,11 @@ router = APIRouter(
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/', response_model=schemas.DeviceListOfPointListOut)
+@router.get('/', response_model=deviceList_schemas.DeviceListOfPointListOut)
 def get_only_device(id: int, db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
-    Device_list = db.query(models.Device_list).filter(models.Device_list.id == id).first()
+    Device_list = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id == id).first()
     # Device_list=Device_list.__dict__
     # print(f'device_list :{Device_list}')
     # ----------------------
@@ -88,11 +92,11 @@ def get_only_device(id: int, db: Session = Depends(get_db), ):
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/all/', response_model=list[schemas.DeviceListOfPointListOut])
+@router.get('/all/', response_model=list[deviceList_schemas.DeviceListOfPointListOut])
 def get_all_device( db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
-    Device_list = db.query(models.Device_list)
+    Device_list = db.query(deviceList_models.Device_list)
     # Device_list=Device_list.__dict__
     # ----------------------
     if not Device_list:
@@ -110,7 +114,7 @@ def get_all_device( db: Session = Depends(get_db), ):
 # 	 * @return data (DeviceConfigOut)
 # 	 */ 
 
-@router.get('/config/', response_model=schemas.DeviceConfigOut)
+@router.get('/config/', response_model=deviceList_schemas.DeviceConfigOut)
 def get_device_config( db: Session = Depends(get_db), ):
     # print(f'id: {id}')
     # ----------------------
@@ -118,11 +122,11 @@ def get_device_config( db: Session = Depends(get_db), ):
     if not device_type_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device type does not exist")
-    device_group_query = db.query(models.Device_group)
+    device_group_query = db.query(deviceGroup_models.Device_group)
     if not device_group_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device group does not exist")
-    device_list_query = db.query(models.Device_list).order_by(models.Device_list.id.asc())
+    device_list_query = db.query(deviceList_models.Device_list).order_by(deviceList_models.Device_list.id.asc())
     communication_query = db.query(models.Communication)
     result_device_type=[]
     for item in device_type_query.all():
@@ -158,13 +162,14 @@ def get_device_config( db: Session = Depends(get_db), ):
 # 	 * @param {DeviceCreate,db}
 # 	 * @return data (DeviceState)
 # 	 */
-@router.post("/create/", response_model=schemas.DeviceState)
-async def create_device(create_device: schemas.DeviceCreate,db: Session = Depends(get_db)):
+@router.post("/create/", response_model=deviceList_schemas.DeviceState)
+async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Session = Depends(get_db)):
     
     # create_device: list[schemas.DeviceCreate],
     try:
         # format id =
         # create table
+        print(f'path: {path}')
         async def execute_func():
             try:
                 
@@ -182,7 +187,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                     # 
                     # del create_device["driver_list_name"]
                     # 
-                    new_device = models.Device_list(pv=pv,
+                    new_device = deviceList_models.Device_list(pv=pv,
                                                     model=model,
                                                     send_p=send_p,
                                                     send_q=send_q,
@@ -200,7 +205,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                     
                     # read file mybatis query sql
     
-                    result_mybatis=get_mybatis('/mybatis/device.xml')
+                    result_mybatis=get_mybatis(path+'/mybatis/device.xml')
                     
                     sql_query=result_mybatis["create_device"]
                     sql_register_block=result_mybatis["insert_device_register_block"]
@@ -220,15 +225,15 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                         # delete device in table device_list
                         print(err.args[0])
                         db.rollback()
-                        db.query(models.Device_list).filter_by(id=id).delete()
+                        db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                         db.commit()
                         return 300
                     finally:
                         pass
                     if not id :
                         db.rollback()
-                        db.query(models.Device_list).filter_by(id=id).delete()
-                     
+                        db.query(deviceList_models.Device_list).filter_by(id=id).delete()
+
                         return 300        
                     communication_query = db.query(models.Communication).filter(models.Communication.id == id_communication).first()
                     try:                    
@@ -238,7 +243,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                             pass
                     except Exception as err:
                         print(err)
-                        db.query(models.Device_list).filter_by(id=id).delete()
+                        db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                         db.execute(text(f'DROP TABLE {name_device}'))
                         return 300
                     finally:
@@ -255,7 +260,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                         print(f'result_register_block: {result_register_block.__dict__}')                                                       
                         print(f'result_point_list: {result_point_list.__dict__}')
                         if result_register_block.rowcount == 0 or result_point_list.rowcount==0:
-                            db.query(models.Device_list).filter_by(id=id).delete()
+                            db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                             db.execute(text(f'DROP TABLE {name_device}'))                          
                             return 300
                         db.commit()                          
@@ -265,21 +270,21 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                             result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')
                             # delete success app pm2
                             if result_delete_app_pm2!=100:
-                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                                 db.execute(text(f'DROP TABLE {name_device}'))
                                 return 200                          
                             # check list device and Exclusions device new
                             device_list_query = db.query(
-                                models.Device_list).filter(models.Device_list.id_communication ==
+                                deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==
                                                             id_communication).filter(
-                                models.Device_list.status == 1).order_by(
-                                                            models.Device_list.id.asc()).all()
+                                deviceList_models.Device_list.status == 1).order_by(
+                                                            deviceList_models.Device_list.id.asc()).all()
                             # check device same group rs485 com port   
                             item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
                                         id_communication]
                             # find device in group rs485
                             if not item_rs485:
-                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                                 db.execute(text(f'DROP TABLE {name_device}'))
                                 return 200 
                             if item_rs485:
@@ -290,7 +295,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                                                                             create_device.id_communication}).all()
                                 results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
                                 if not results_device_group_dict:
-                                    db.query(models.Device_list).filter_by(id=id).delete()
+                                    db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                                     db.execute(text(f'DROP TABLE {name_device}'))
                                     return 300                                              
                                 # init restart pm2 app same rs485
@@ -306,7 +311,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                                                                         id_communication}).all()
                             results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
                             if not results_device_group_dict:
-                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                                 db.execute(text(f'DROP TABLE {name_device}'))
                                 return 200
                             # init restart pm2 app same rs485
@@ -323,7 +328,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                             result_point_list = db.execute(text(sql_point_list), params={'id': id})                        
                             print(f'result_point_list: {result_point_list.__dict__}')
                             if result_register_block.rowcount == 0 or result_point_list.rowcount==0:
-                                db.query(models.Device_list).filter_by(id=id).delete()
+                                db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                                 db.execute(text(f'DROP TABLE {name_device}'))                                                                 
                                 return 300 
                             db.commit()
@@ -331,7 +336,7 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
                             name = new_device.name
                             connect_type=driver_list.name
                             pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-                            create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
+                            create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id)
                             # restart pm2 app log
                             return 100
                                                                 
@@ -371,8 +376,8 @@ async def create_device(create_device: schemas.DeviceCreate,db: Session = Depend
 # 	 * @param {DeviceCreate,db}
 # 	 * @return data (DeviceState)
 # 	 */
-@router.post("/create_multiple/", response_model=schemas.DeviceState)
-async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db: Session = Depends(get_db)):
+@router.post("/create_multiple/", response_model=deviceList_schemas.DeviceState)
+async def create_multiple_device(create_device: deviceList_schemas.MultipleDeviceCreate ,db: Session = Depends(get_db)):
     try:
         def reset_data_new(new_device_list):
             # delete device in table device_list
@@ -442,7 +447,7 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
                             
                         else:
                             return 300 
-                        new_device = models.Device_list(pv=pv,
+                        new_device = deviceList_models.Device_list(pv=pv,
                                                         model=model,
                                                         send_p=send_p,
                                                         send_q=send_q,
@@ -464,7 +469,7 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
                 db.flush()           
             
                 # create table new device            
-                result_mybatis=get_mybatis('/mybatis/device.xml')
+                result_mybatis=get_mybatis(path+'/mybatis/device.xml')
                 sql_query=result_mybatis["create_device"]
                 sql_register_block=result_mybatis["insert_device_register_block"]
                 sql_point_list=result_mybatis["insert_device_point_list"]
@@ -530,10 +535,10 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
                                 reset_data_new(new_device_list)
                             # check list device and Exclusions device new
                             device_list_query = db.query(
-                                    models.Device_list).filter(models.Device_list.id_communication ==
+                                    deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==
                                                                 id_communication).filter(
-                                    models.Device_list.status == 1).order_by(
-                                                                models.Device_list.id.asc()).all()
+                                    deviceList_models.Device_list.status == 1).order_by(
+                                                                deviceList_models.Device_list.id.asc()).all()
                             # check device same group rs485 com port   
                             item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
                                             id_communication]
@@ -606,7 +611,7 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
                             name = item.name
                             connect_type=driver_list.name
                             pid = f'Dev|{id_communication}|{connect_type}|{item.id}|{name}'
-                            create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,item.id)
+                            create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item.id)
                             # restart pm2 app log
                         restart_program_pm2(f'Log')
                         return 100 
@@ -642,7 +647,7 @@ async def create_multiple_device(create_device: schemas.MultipleDeviceCreate ,db
 # 	 * @param {id,db}
 # 	 * @return data (DevicePointListBase)
 # 	 */
-@router.get('/point_list/', response_model=list[schemas.DevicePointListBase])
+@router.get('/point_list/', response_model=list[deviceList_schemas.DevicePointListBase])
 def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
     
     # ----------------------
@@ -665,18 +670,18 @@ def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
 # 	 * @param {id,db}
 # 	 * @return data (DeviceState)
 # 	 */
-@router.post("/delete/", response_model=schemas.DeviceState)
+@router.post("/delete/", response_model=deviceList_schemas.DeviceState)
 async def delete_device(
-                        delete_device: schemas.DeviceDelete,
+                        delete_device: deviceList_schemas.DeviceDelete,
                         db: Session = Depends(get_db)):
     try:
         
         if not delete_device.mode in [1,2] :
             return {"status": "error","code": str(300)}
         id=delete_device.id
-        device_list_query = db.query(models.Device_list).filter(
-        models.Device_list.id == id).filter(
-        models.Device_list.status == 1)
+        device_list_query = db.query(deviceList_models.Device_list).filter(
+        deviceList_models.Device_list.id == id).filter(
+        deviceList_models.Device_list.status == 1)
         
         result=device_list_query.first()
         if not result:
@@ -703,7 +708,7 @@ async def delete_device(
             connect_type=result_driver.name
             if mode ==1:
                 # Deactivate device in table device_list -----
-                device_list_query.filter(models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
+                device_list_query.filter(deviceList_models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
                 db.commit()
                 # delete app running in pm2
                 result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
@@ -712,7 +717,7 @@ async def delete_device(
                 return {"status": "success","code": str(100)}
             if mode ==2:
                 # Delete data device in table device_list -----
-                result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
+                result_delete_device_list =db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                 db.commit()
                 result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
                 print(f'result_pm2: {result_pm2}')
@@ -720,7 +725,7 @@ async def delete_device(
                 return {"status": "success","code": str(100)}
             
         elif result_driver.name == "RS485":
-            result_mybatis=get_mybatis('/mybatis/device.xml')
+            result_mybatis=get_mybatis(path+'/mybatis/device.xml')
             sql_query=result_mybatis["create_device"]
             sql_register_block=result_mybatis["insert_device_register_block"]
             sql_point_list=result_mybatis["insert_device_point_list"]
@@ -728,11 +733,11 @@ async def delete_device(
             
             if mode ==1:
                 # Deactivate device in table device_list -----
-                device_list_query.filter(models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
+                device_list_query.filter(deviceList_models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
                 db.commit()
             if mode ==2:   
                 # Delete data device in table device_list -----
-                result_delete_device_list =db.query(models.Device_list).filter_by(id=id).delete()
+                result_delete_device_list =db.query(deviceList_models.Device_list).filter_by(id=id).delete()
                 db.commit()
             result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
             if result_find_app_pm2==100:
@@ -740,10 +745,10 @@ async def delete_device(
                 if result_delete_app_pm2!=100:
                     return {"status": "error","code": str(300)}
                 all_device_list_query = db.query(
-                                models.Device_list).filter(models.Device_list.id_communication ==id_communication
+                                deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==id_communication
                                                             ).filter(
-                                models.Device_list.status == 1).order_by(
-                                                            models.Device_list.id.asc()).all()
+                                deviceList_models.Device_list.status == 1).order_by(
+                                                            deviceList_models.Device_list.id.asc()).all()
                 item_rs485 = [item.__dict__ for item in all_device_list_query if item.id_communication == 
                                             id_communication]
                 
@@ -780,8 +785,8 @@ async def delete_device(
 # 	 * @param {DeviceUpdateBase,db}
 # 	 * @return data (DeviceState)
 # 	 */
-@router.post("/update/", response_model=schemas.DeviceState)
-async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Session = Depends(get_db)):
+@router.post("/update/", response_model=deviceList_schemas.DeviceState)
+async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase,db: Session = Depends(get_db)):
     try:
         # need restart pm2
         # name --> allow change
@@ -815,12 +820,12 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                 else:
                     # init start pm2 app
                     pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-                    create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
+                    create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id)
                     return 100
             else:
                 # init start pm2 app
                 pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-                create_program_pm2(f'{path}/driver_of_device/ModbusTCP.py',pid,id)
+                create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id)
                 return 100
         def init_pm2_dev_rs485(id_communication,sql_select_device):
             result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
@@ -830,10 +835,10 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                     return 300
                 # check list device and Exclusions device new
                 device_list_query = db.query(
-                        models.Device_list).filter(models.Device_list.id_communication ==
+                        deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==
                                                     id_communication).filter(
-                        models.Device_list.status == 1).order_by(
-                                                    models.Device_list.id.asc()).all()
+                        deviceList_models.Device_list.status == 1).order_by(
+                                                    deviceList_models.Device_list.id.asc()).all()
                 # check device same group rs485 com port   
                 item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
                                 id_communication]
@@ -878,7 +883,7 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                 id_device_group=update_device.id_device_group
                 name = update_device.name
                 # id_communication
-                device_list_query = db.query(models.Device_list).filter(models.Device_list.id == id)
+                device_list_query = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id == id)
                 result_device_list = device_list_query.first()
                 
                 if not result_device_list:
@@ -886,13 +891,13 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                 id_communication=result_device_list.id_communication
                 connect_type=result_device_list.communication.driver_list.name
                 # 
-                result_mybatis=get_mybatis('/mybatis/device.xml')
+                result_mybatis=get_mybatis(path+'/mybatis/device.xml')
                 sql_register_block=result_mybatis["insert_device_register_block"]
                 sql_point_list=result_mybatis["insert_device_point_list"]
                 sql_select_device=result_mybatis["select_all_device"]
                 # check changed id_device_group, If it changed Re-initialize --> device_point_list and device_register_block
-                result_check_id_device_group=db.query(models.Device_list).filter(models.Device_list.id 
-                                                                                == id).filter(models.Device_list.id_device_group 
+                result_check_id_device_group=db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id 
+                                                                                == id).filter(deviceList_models.Device_list.id_device_group 
                                                                                 == id_device_group).first()
                 if not result_check_id_device_group: #Re-initialize
                     try:
@@ -901,7 +906,7 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                         result_del_device_register_block=db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
                         db.flush()
                         update_data=update_device.dict()
-                        device_list_query.filter(models.Device_list.id == id).update(update_data, synchronize_session=False)
+                        device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
                         result_register_block = db.execute(text(sql_register_block), params={'id': id})
                         result_point_list = db.execute(text(sql_point_list), params={'id': id})
                         db.flush()                          
@@ -927,7 +932,7 @@ async def update_device_basic(update_device: schemas.DeviceUpdateBase,db: Sessio
                 else: # keep
                     print(f'Update --> id: {id}| id_device_group: {id_device_group}|')
                     update_data=update_device.dict()
-                    device_list_query.filter(models.Device_list.id == id).update(update_data, synchronize_session=False)
+                    device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
                     db.commit()
                     if connect_type=="Modbus/TCP":
                         init_pm2_dev_tcp(id,name,id_communication,connect_type)

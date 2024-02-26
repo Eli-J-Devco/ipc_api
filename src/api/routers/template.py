@@ -34,6 +34,7 @@ import api.domain.template.schemas as template_schemas
 import model.models as models
 import model.schemas as schemas
 from database.db import engine, get_db
+from utils.libCom import cov_xml_sql
 # from utils.pm2Manager import (LOGGER, cov_xml_sql,
 #                               create_device_group_rs485_run_pm2,
 #                               create_program_pm2, delete_program_pm2,
@@ -427,7 +428,9 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
         result_point=point_query.first()
         if not result_point:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                               detail=f"Point with id: {id} does not exist")
+
+                                content={"detail": f"Point with id: {id} does not exist"}
+                                )
         mode_modbus_equation=db.query(models.Config_information).filter(
         models.Config_information.id == info_point.equation).first()
         if not hasattr(mode_modbus_equation, 'value'):
@@ -608,7 +611,9 @@ def delete_point_list(point_list: template_schemas.PointDeleteTemplateBase, db: 
         result_point=point_query.all()
         if not result_point:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Not have data")
+
+                                content={"detail": f"Not have data"}
+                                )
         
         for item in point_list.id_point:
             point_query.filter(
@@ -637,7 +642,9 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
         result_register=register_query.all()
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         config_register = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
         type_function=[]
@@ -669,7 +676,9 @@ def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depe
         print(result_register.__dict__)
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Register with id: {id} does not exist")
+
+                                content={"detail": f"Register with id: {id} does not exist"}
+                                )
         restart_pm2_change_template(id_template,db)
         register_query.update(info_register.dict())   
         db.commit()
@@ -721,7 +730,8 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         result_register=register_query.all()
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         
         for item in register_list:
             register_query.filter(
@@ -750,7 +760,8 @@ def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Dep
         result_template=template_query.all()
         if not result_template:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         
         
         # db.commit()
@@ -774,10 +785,10 @@ async def charting(db: Session = Depends(get_db)):
         # db.commit()
         # print(result)
         # query_sql= cov_xml_sql("selectDevice",param)
-        query_sql= cov_xml_sql("getDataIrradianceToday",param)
+        query_sql= cov_xml_sql("EnergyMapper.xml","getDataIrradianceToday",param)
         
         
-        print(f'query_sql: {query_sql}')
+        # print(f'query_sql: {query_sql}')
         
         
         result=db.execute(text(str(query_sql))).all()

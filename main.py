@@ -244,7 +244,7 @@ def init_api_web():
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/api/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
-# init_driver()
+init_driver()
 # init_logfile()
 init_api_web()
 # init_syncfile()
