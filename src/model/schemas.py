@@ -241,7 +241,7 @@ class CommunicationBase(BaseModel):
 
 class CommunicationOut(CommunicationBase):
     id: int
-    driver_list: DeviceListOut
+    # driver_list: DeviceListOut
     # driver_list: List[DeviceListOut]
     class Config():
         orm_mode = True
