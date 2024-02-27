@@ -20,10 +20,9 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 
 # from api.domain.deviceList.schemas import DeviceListBase, DeviceListOut
 
-
 # from model.schemas import (PointBase, PointByteOrder, PointDataType,
 #                            PointOutBase, PointUnit, RegisterListBase)
-
+# import api.domain.deviceList.schemas as deviceList_schemas
 
 # ----------------------------------------------------
 
@@ -225,31 +224,31 @@ class DeviceTypeBase(BaseModel):
         orm_mode = True
         
 # <- Communication ->
-class CommunicationBase(BaseModel):
-    name: Optional[str] = None
-    namekey: Optional[str] = None
-    id_driver_list: Optional[int] = None
-    id_type_baud_rates: Optional[int] = None
-    id_type_parity: Optional[int] = None
-    id_type_stopbits: Optional[int] = None
-    id_type_timeout: Optional[int] = None
-    id_type_debug_level: Optional[int] = None
-    # driver_list: DeviceListOut
-    # note1: str
-    # note1: str
-    # status: bool = True
+# class CommunicationBase(BaseModel):
+#     name: Optional[str] = None
+#     namekey: Optional[str] = None
+#     id_driver_list: Optional[int] = None
+#     id_type_baud_rates: Optional[int] = None
+#     id_type_parity: Optional[int] = None
+#     id_type_stopbits: Optional[int] = None
+#     id_type_timeout: Optional[int] = None
+#     id_type_debug_level: Optional[int] = None
+#     # driver_list: DeviceListOut
+#     # note1: str
+#     # note1: str
+#     # status: bool = True
 
-class CommunicationOut(CommunicationBase):
-    id: int
-    # driver_list: DeviceListOut
-    # driver_list: List[DeviceListOut]
-    class Config():
-        orm_mode = True
-class CommunicationCreate(CommunicationBase):
-    id: int
-    driver_list: DriverListBase
-    class Config:
-        orm_mode = True 
+# class CommunicationOut(CommunicationBase):
+#     id: int
+#     driver_list: DeviceListOut
+#     # driver_list: List[DeviceListOut]
+#     class Config():
+#         orm_mode = True
+# class CommunicationCreate(CommunicationBase):
+#     id: int
+#     driver_list: DriverListBase
+#     class Config:
+#         orm_mode = True 
 
 class type_logging_interval(BaseModel):
     id: int = Field(..., alias='id')

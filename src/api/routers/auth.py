@@ -26,7 +26,9 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 
 from configs.config import *
 from database.db import get_db
+from utils.logger_manager import setup_logger
 
+LOGGER = setup_logger(module_name='API')
 SECRET_KEY = Config.SECRET_KEY
 REFRESH_SECRET_KEY = Config.SECRET_KEY 
 ALGORITHM = Config.ALGORITHM
@@ -43,7 +45,6 @@ import api.domain.user.schemas as user_schemas
 from utils import oauth2
 from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 
-LOGGER = logging.getLogger(__name__)
 
 # Describe functions before writing code
 # /**
@@ -63,7 +64,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
         # pprint(user_credentials.password)
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        pprint(f'username: {username}')
+        # pprint(f'username: {username}')
         # pprint(f'pass: {password}')
         user_query = db.query(user_models.User).filter(
             user_models.User.email == username)
@@ -162,7 +163,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
         # create a token
         access_token = oauth2.create_access_token(data={"user_id": result_user.id})
         # return token
-        LOGGER.info(f"--- Login: {user_credentials.username} ---")
+        # LOGGER.info(f"--- Login: {user_credentials.username} ---")
         role_screen={}
         screen_list=[]
         for role_item in role_list:
@@ -209,8 +210,10 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
                 
                 }
     except (Exception) as err:
-        # print('Error : ',err.__class__)
-        print('Errors : ',err)
+        print('Error : ',err.__class__)
+        # print('Errors : ',err)
+        LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description refresh token
@@ -222,9 +225,11 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 @router.post("/refresh_token/", response_model=user_schemas.Token)
 def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)):
     refresh_token = request.refresh_token
-    print(f'refresh_token: {refresh_token}')
-    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                          detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    # print(f'refresh_token: {refresh_token}')
+    credentials_exception = JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED,
+                                        
+                                        content={"detail": "Could not validate credentials"},
+                                        headers={"WWW-Authenticate": "Bearer"})
     try:
         payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
         print(f'payload: {payload}')
@@ -241,5 +246,8 @@ def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)
         return {"refresh_token": refresh_token,
                 "access_token": access_token, 
                 "token_type": "bearer"}
-    except JWTError:
+    # except JWTError:
+    except (Exception) as err:
+        print('Error : ',err.__class__)
+        LOGGER.error(f'--- {err} ---')
         raise credentials_exception    

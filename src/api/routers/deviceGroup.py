@@ -23,13 +23,11 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-# import models
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='API')
 from api.domain.deviceGroup import models, schemas
 from database.db import engine, get_db
-# import oauth2
-# import schemas
-# import utils
-# from database import get_db
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               find_program_pm2, restart_pm2_change_template,

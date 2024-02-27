@@ -18,7 +18,8 @@ from pydantic.types import conint
 
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-
+from model.schemas import DriverListBase
+import api.domain.deviceList.schemas as deviceList_schemas
 class RS485BaudRate(BaseModel):
     id: int = Field(..., alias='id')
     namekey: int = Field(...,examples=[9600],alias='baud')
@@ -92,3 +93,27 @@ class S485SearchModBusUpdate(BaseModel):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
+class CommunicationBase(BaseModel):
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+    id_driver_list: Optional[int] = None
+    id_type_baud_rates: Optional[int] = None
+    id_type_parity: Optional[int] = None
+    id_type_stopbits: Optional[int] = None
+    id_type_timeout: Optional[int] = None
+    id_type_debug_level: Optional[int] = None
+    # driver_list: DeviceListOut
+    # note1: str
+    # note1: str
+    # status: bool = True
+class CommunicationOut(CommunicationBase):
+    id: int
+    driver_list: deviceList_schemas.DeviceListOut
+    # driver_list: List[DeviceListOut]
+    class Config():
+        orm_mode = True
+class CommunicationCreate(CommunicationBase):
+    id: int
+    driver_list: DriverListBase
+    class Config:
+        orm_mode = True 
