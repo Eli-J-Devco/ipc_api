@@ -41,7 +41,7 @@ router = APIRouter(
 # 	 * @param {id,db}
 # 	 * @return data (CommunicationOut)
 # 	 */
-@router.get('/{id}', response_model=schemas.CommunicationOut)
+@router.get('/{id}', response_model=rs485_schemas.CommunicationOut)
 def get_rs485(id: int, db: Session = Depends(get_db), ):
     # ----------------------
     communication = db.query(models.Communication).filter(models.Communication.id == id).first()
@@ -128,7 +128,7 @@ def get_scan_serial():
 # 	 * @return data (RS485State)
 # 	 */   
 @router.post("/update/{id}", response_model=rs485_schemas.RS485State)
-async def update_rs485(id: int,  updated_communication: schemas.CommunicationCreate,db: Session = Depends(get_db)):
+async def update_rs485(id: int,  updated_communication: rs485_schemas.CommunicationCreate,db: Session = Depends(get_db)):
     try:
         communication_query = db.query(models.Communication).filter(models.Communication.id == id)
        

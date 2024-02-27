@@ -26,7 +26,9 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 
 from configs.config import *
 from database.db import get_db
+from utils.logger_manager import setup_logger
 
+LOGGER = setup_logger(module_name='API')
 SECRET_KEY = Config.SECRET_KEY
 REFRESH_SECRET_KEY = Config.SECRET_KEY 
 ALGORITHM = Config.ALGORITHM
@@ -43,7 +45,6 @@ import api.domain.user.schemas as user_schemas
 from utils import oauth2
 from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 
-LOGGER = logging.getLogger(__name__)
 
 # Describe functions before writing code
 # /**
@@ -160,7 +161,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         # create a token
         access_token = oauth2.create_access_token(data={"user_id": result_user.id})
         # return token
-        LOGGER.info(f"--- Login: {user_credentials.username} ---")
+        # LOGGER.info(f"--- Login: {user_credentials.username} ---")
         role_screen={}
         screen_list=[]
         for role_item in role_list:
@@ -206,8 +207,10 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                 "permissions":new_role_screen
                 }
     except (Exception) as err:
-        # print('Error : ',err.__class__)
-        print('Errors : ',err)
+        print('Error : ',err)
+        # print('Errors : ',err)
+        LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description refresh token
