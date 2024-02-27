@@ -210,7 +210,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
                 
                 }
     except (Exception) as err:
-        print('Error : ',err.__class__)
+        print('Error : ',err)
         # print('Errors : ',err)
         LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
