@@ -42,8 +42,10 @@ from routers import deviceGroup as deviceGroup_router
 from routers import deviceList as deviceList_router
 from routers import ethernet as ethernet_router
 from routers import project as project_router
+from routers import rs485 as rs485_router
 from routers import siteInfo as siteInfo_router
 from routers import template as template_router
+from routers import uploadChannel as uploadChannel_router
 from routers import user as user_router
 # -------------------------------------------------------------
 from starlette import status
@@ -110,9 +112,9 @@ app.include_router(deviceGroup_router.router)
 app.include_router(deviceList_router.router)
 
 app.include_router(ethernet_router.router)
-# app.include_router(rs485.router)
+app.include_router(rs485_router.router)
 app.include_router(siteInfo_router.router)
-# app.include_router(upload_channel.router)
+app.include_router(uploadChannel_router.router)
 app.include_router(project_router.router)
 # 
 

@@ -958,4 +958,3 @@ async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase
         
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
-

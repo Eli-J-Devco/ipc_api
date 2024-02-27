@@ -197,8 +197,9 @@ class Token(BaseModel):
     access_token: str = None
     token_type: str = None
     user: Optional[UserLoginOut] = None
-    screen: list[ScreenBase]=[]
-    role:list[TokenRole] = None
+    # screen: list[ScreenBase]=[]
+    # role:list[TokenRole] = None
+    permissions: list=None
 class TokenData(BaseModel):
     id: Optional[str] = None
 
