@@ -1,5 +1,4 @@
 /venv
-/.venv
 /backend_api/__pycache__
 /control_device/__pycache__
 /backend_api/__pycache__
@@ -21,13 +20,12 @@ node_modules
 # .env.production
 /build
 /dist
-package.json
-package-lock.json
+# package.json
+# package-lock.json
 api_of_device/__pycache__/schemas.cpython-311.pyc
+src/utils/node_modules
+src/logs/
+# src/utils/package.json
+# src/utils/package-lock.json
 backend_api/routers/__pycache__
-*/__pycache__/*
-*/__pycache__
-*/*/__pycache__/*
 .venv
-*/*/*/*/*/*/__pycache__
-__pycache__

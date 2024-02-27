@@ -15,7 +15,7 @@ def path_directory_relative(project_name):
     return result
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
-from logger_manager import LoggerSetup
+from utils.logger_manager import LoggerSetup
 
 # setup root logger
 logger_setup = LoggerSetup(path,"ControlDevice")

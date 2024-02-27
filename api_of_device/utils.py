@@ -48,7 +48,7 @@ from passlib.context import CryptContext
 import models
 from libcom import cov_xml_sql
 # logging
-from logger_manager import setup_logger
+from utils.logger_manager import setup_logger
 
 # setup root logger
 LOGGER = setup_logger(module_name='API')

@@ -23,8 +23,7 @@ print(f'{VERSION = }-2024')
 if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
 else:
-    # load_dotenv(find_dotenv(".env.development"))
-    load_dotenv()
+    load_dotenv(find_dotenv(".env.development"))
 class Settings(BaseSettings):
     DATABASE_HOSTNAME: str
     DATABASE_PORT: str

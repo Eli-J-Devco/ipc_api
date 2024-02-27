@@ -56,8 +56,11 @@ def path_directory_relative(project_name):
         return -1
     result=path_os[0:int(index_os)+len(string_find)]
     return result
-path=path_directory_relative("ipc_api") # name of project
+# path=path_directory_relative("ipc_api") # name of project
+# sys.path.append(path)
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
+
 class LoggerSetup:
     def __init__(self,FOLDER="") -> None:
         # 

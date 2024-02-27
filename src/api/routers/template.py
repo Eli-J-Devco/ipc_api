@@ -27,10 +27,14 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceGroup.schemas as deviceGroup_schemas
+import api.domain.template.models as template_models
 import api.domain.template.schemas as template_schemas
-from api.domain.template import models
+import model.models as models
+import model.schemas as schemas
 from database.db import engine, get_db
+from utils.libCom import cov_xml_sql
 # from utils.pm2Manager import (LOGGER, cov_xml_sql,
 #                               create_device_group_rs485_run_pm2,
 #                               create_program_pm2, delete_program_pm2,
@@ -67,12 +71,12 @@ router = APIRouter(
 def create_template(template: template_schemas.TemplateCreateBase,db: Session = Depends(get_db) ):
     try:
         name=template.name
-        template_query = db.query(models.Template_library).filter(
-        models.Template_library.name == name).first()
+        template_query = db.query(template_models.Template_library).filter(
+        template_models.Template_library.name == name).first()
         if template_query:
             return  JSONResponse(content={"detail": "Template name already exists"}, status_code=status.HTTP_404_NOT_FOUND)
         
-        new_template = models.Template_library(**template.dict())
+        new_template = template_models.Template_library(**template.dict())
         db.add(new_template)
         db.flush()
         
@@ -139,7 +143,7 @@ def create_template(template: template_schemas.TemplateCreateBase,db: Session = 
         
         return new_template
     except (Exception) as err:
-        print('Error : ',err.__class__)
+        print('Error : ',err)
         
         # LOGGER.error(f'--- {err} ---')
         # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -157,7 +161,7 @@ def create_template(template: template_schemas.TemplateCreateBase,db: Session = 
 def delete_template(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
     try:
         
-        template_query = db.query(models.Template_library).filter(models.Template_library.id == id_template)
+        template_query = db.query(template_models.Template_library).filter(template_models.Template_library.id == id_template)
         result_template=template_query.first()
         if not result_template:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
@@ -167,7 +171,7 @@ def delete_template(id_template: Optional[int] = Body(embed=True), db: Session =
             if hasattr(result_template.device_group[0], 'device_list'):
                 result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
         result=template_query.filter(
-                                models.Template_library.id == id_template).delete(synchronize_session=False)
+                                template_models.Template_library.id == id_template).delete(synchronize_session=False)
         restart_pm2_update_template(result_device_list,db)
         db.commit()
         return {
@@ -194,10 +198,13 @@ def get_type( db: Session = Depends(get_db) ):
             filter(models.Config_information.status== 1).\
             filter(models.Config_information.id_type== 16).\
                 all() 
-        print(template_type_query)                                                
+                                                
         if not template_type_query:
-            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template type empty")
+            return  JSONResponse(
+                                status_code=status.HTTP_404_NOT_FOUND,
+                            
+                                content={"detail": "Template type empty"}
+                                )
         return template_type_query
     except (Exception) as err:
         print('Error : ',err)
@@ -215,18 +222,22 @@ def get_type( db: Session = Depends(get_db) ):
 def edit_each_template(template: template_schemas.TemplateUpdateBase,db: Session = Depends(get_db) ):
     try:
         id=template.id
-        template_query = db.query(models.Template_library).filter(
-        models.Template_library.id == id)
+        template_query = db.query(template_models.Template_library).filter(
+        template_models.Template_library.id == id)
         result_template=template_query.first()
+        # print(f'template_query: {template_query.first()}')
         if not result_template:
-            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id} does not exist")
+            return  JSONResponse(
+                                status_code=status.HTTP_404_NOT_FOUND,
+                                content={"detail": f"Template with id: {id} does not exist"}
+                                )
+
         
         template_query.update(template.dict())
         restart_pm2_change_template(id,db)
         db.commit()
         return result_template
-    except (Exception) as err:
+    except Exception as err:
         print('Error : ',err)
         # LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -241,11 +252,14 @@ def edit_each_template(template: template_schemas.TemplateUpdateBase,db: Session
 @router.post('/get_all/', response_model=list[template_schemas.TemplateBase])
 def get_list( db: Session = Depends(get_db) ):
     try:
-        template_query = db.query(models.Template_library)
+        template_query = db.query(template_models.Template_library)
         result_template=template_query.all()
         if not result_template:
-            return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template list empty")
+            return  JSONResponse(
+                                status_code=status.HTTP_404_NOT_FOUND,
+
+                                content={"detail": "Template list empty"}
+                                )
         return result_template
     except (Exception) as err:
         print('Error : ',err)
@@ -262,11 +276,12 @@ def get_list( db: Session = Depends(get_db) ):
 @router.post('/get_each_template/', response_model=template_schemas.TemplateListBase)
 def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
     try:
-        template_query = db.query(models.Template_library).filter(
-        models.Template_library.id == id_template).first()
+        template_query = db.query(template_models.Template_library).filter(
+        template_models.Template_library.id == id_template).first()
         if not template_query:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id} does not exist")
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         # print(device_group_query.__dict__)
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                 == 1).all()
@@ -310,11 +325,12 @@ def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session
 def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
     try:
         id=id_device_group
-        device_group_query = db.query(models.Device_group).filter(
-        models.Device_group.id == id).first()
+        device_group_query = db.query(deviceGroup_models.Device_group).filter(
+        deviceGroup_models.Device_group.id == id).first()
         if not device_group_query:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Device with id: {id} does not exist")
+                                content={"detail": f"Device with id: {id} does not exist"}
+                                )
         # print(device_group_query.__dict__)
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
@@ -366,7 +382,8 @@ def get_each_point(info_point: template_schemas.PointInfoTemplateBase,db: Sessio
         result_point=point_query.first()
         if not result_point:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                               detail=f"Point with id: {id} does not exist")
+                               content={"detail": f"Point with id: {info_point.id_point} does not exist"}
+                               )
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
         data_type=[]
@@ -383,7 +400,7 @@ def get_each_point(info_point: template_schemas.PointInfoTemplateBase,db: Sessio
         
         # result_point["type_units_list"]=point_unit
         
-        return schemas.PointTemplateOutBase(**result_point.__dict__,
+        return template_schemas.PointTemplateOutBase(**result_point.__dict__,
                                             type_units_list=point_unit,
                                             type_datatype_list=data_type,
                                             type_byteorder_list=byte_order,
@@ -411,7 +428,9 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
         result_point=point_query.first()
         if not result_point:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                               detail=f"Point with id: {id} does not exist")
+
+                                content={"detail": f"Point with id: {id} does not exist"}
+                                )
         mode_modbus_equation=db.query(models.Config_information).filter(
         models.Config_information.id == info_point.equation).first()
         if not hasattr(mode_modbus_equation, 'value'):
@@ -584,7 +603,7 @@ def change_number_point(change_number_point: schemas.PointChangeNumberBase, db: 
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/delete_point_list/', response_model=list[schemas.PointBase])
-def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session = Depends(get_db) ):
+def delete_point_list(point_list: template_schemas.PointDeleteTemplateBase, db: Session = Depends(get_db) ):
     try:
         id_template=point_list.id_template
         point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template).\
@@ -592,7 +611,9 @@ def delete_point_list(point_list: schemas.PointDeleteTemplateBase, db: Session =
         result_point=point_query.all()
         if not result_point:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Not have data")
+
+                                content={"detail": f"Not have data"}
+                                )
         
         for item in point_list.id_point:
             point_query.filter(
@@ -621,7 +642,9 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
         result_register=register_query.all()
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         config_register = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                    == 1).all()
         type_function=[]
@@ -653,7 +676,9 @@ def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depe
         print(result_register.__dict__)
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Register with id: {id} does not exist")
+
+                                content={"detail": f"Register with id: {id} does not exist"}
+                                )
         restart_pm2_change_template(id_template,db)
         register_query.update(info_register.dict())   
         db.commit()
@@ -705,7 +730,8 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
         result_register=register_query.all()
         if not result_register:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         
         for item in register_list:
             register_query.filter(
@@ -734,7 +760,8 @@ def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Dep
         result_template=template_query.all()
         if not result_template:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Template with id: {id_template} does not exist")
+                                content={"detail": f"Template with id: {id_template} does not exist"}
+                                )
         
         
         # db.commit()
@@ -758,10 +785,10 @@ async def charting(db: Session = Depends(get_db)):
         # db.commit()
         # print(result)
         # query_sql= cov_xml_sql("selectDevice",param)
-        query_sql= cov_xml_sql("getDataIrradianceToday",param)
+        query_sql= cov_xml_sql("EnergyMapper.xml","getDataIrradianceToday",param)
         
         
-        print(f'query_sql: {query_sql}')
+        # print(f'query_sql: {query_sql}')
         
         
         result=db.execute(text(str(query_sql))).all()

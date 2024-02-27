@@ -26,6 +26,29 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 
 
 # ----------------------------------------------------
+
+class type_protocol(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(..., alias='Protocol')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
+# <- Config_information ->
+class ConfigInformationBase(BaseModel):
+    # id : int
+    parent: Optional[int] = None
+    name : Optional[str] = None
+    namekey : Optional[str] = None
+    description : Optional[str] = None
+    value :Optional[int] = None
+    type :Optional[int] = None
+    id_type : Optional[int] = None
+class ConfigInformationOut(ConfigInformationBase):
+    id : Optional[int] = None
+   
+    class Config:
+        orm_mode = True
 # <- driver_list ->
 class DriverListBase(BaseModel):
     id: Optional[int] = None
@@ -120,7 +143,9 @@ class PointUpdateBase(PointBase):
         orm_mode = True
         # fields = {'id_pointkey': {'exclude': True}}
 
-
+class PointChangeNumberBase(BaseModel):
+    id_template: Optional[int]=None
+    number_point: Optional[int]=Field(None, ge=1)
 
 class PointDataType(BaseModel):
     id: int = Field(..., alias='id')
@@ -214,17 +239,17 @@ class CommunicationBase(BaseModel):
     # note1: str
     # status: bool = True
 
-# class CommunicationOut(CommunicationBase):
-#     id: int
-#     driver_list: DeviceListOut
-#     # driver_list: List[DeviceListOut]
-#     class Config():
-#         orm_mode = True
-# class CommunicationCreate(CommunicationBase):
-#     id: int
-#     driver_list: DriverListBase
-#     class Config:
-#         orm_mode = True 
+class CommunicationOut(CommunicationBase):
+    id: int
+    # driver_list: DeviceListOut
+    # driver_list: List[DeviceListOut]
+    class Config():
+        orm_mode = True
+class CommunicationCreate(CommunicationBase):
+    id: int
+    driver_list: DriverListBase
+    class Config:
+        orm_mode = True 
 
 class type_logging_interval(BaseModel):
     id: int = Field(..., alias='id')

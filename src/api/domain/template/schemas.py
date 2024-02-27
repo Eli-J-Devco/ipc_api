@@ -82,3 +82,22 @@ class PointTemplateOutBase(PointOutBase):
     type_class_list: Optional[list[TypeClassBase]] = None
     class Config:
         orm_mode = True
+class TemplateListBase(BaseModel):
+    data_type:list[PointDataType]=None
+    byte_order:list[PointByteOrder]=None
+    point_unit:list[PointUnit]=None
+    point_list : list[PointOutBase]=None
+    register_list : list[RegisterListBase]=None
+    
+    class Config:
+        orm_mode = True
+class PointInfoTemplateBase(BaseModel):
+    id_point: Optional[int]=None
+
+class PointDeleteTemplateBase(BaseModel):
+    id_template: Optional[int]=None
+    id_point:Optional[list[int]]=None
+    
+    class Config:
+        orm_mode = True
+        from_attributes = True
