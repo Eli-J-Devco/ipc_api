@@ -29,3 +29,4 @@ src/logs/
 # src/utils/package-lock.json
 backend_api/routers/__pycache__
 .venv
+__pycache__

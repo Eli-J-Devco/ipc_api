@@ -53,16 +53,18 @@ LOGGER = logging.getLogger(__name__)
 # 	 * @param {user_credentials,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post('/login/', response_model=schemas.Token)
+@router.post('/login/', response_model=user_schemas.Token)
 def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
         # username b'U2FsdGVkX19ZDkZuu1l7LGxevbTdWIgvCUD9KE6dVVTgTFVhFvfxvxBrIR65e0aa'
         # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        
-        user_query = db.query(models.User).filter(
-            models.User.email == username)
+        pprint(f'username: {username}')
+        pprint(f'password: {password}')
+
+        user_query = db.query(user_models.User).filter(
+            user_models.User.email == username)
         result_user=user_query.first()
         
         if not result_user:
@@ -158,7 +160,6 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         # create a token
         access_token = oauth2.create_access_token(data={"user_id": result_user.id})
         # return token
-        response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
         LOGGER.info(f"--- Login: {user_credentials.username} ---")
         role_screen={}
         screen_list=[]
@@ -191,9 +192,9 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
             "auth":convert_binary_auth(role_screen["id"+str(item["id"])]["auth"]),
             }
             new_role_screen.append(new_item)
-
-        # print(f'new_role_screen: {new_role_screen}')
-        return {"refresh_token": refresh_token,
+        response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
+        
+        return {
                 "access_token": access_token, 
                 "token_type": "bearer",
                 # "user":info_user_out,
@@ -203,7 +204,6 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                 "last_name":info_user_out.last_name,
                 "email":info_user_out.email,
                 "permissions":new_role_screen
-                
                 }
     except (Exception) as err:
         # print('Error : ',err.__class__)
@@ -216,7 +216,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
 # 	 * @param {TokenItem,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post("/refresh_token/", response_model=schemas.Token)
+@router.post("/refresh_token/", response_model=user_schemas.Token)
 def refresh_token(request: Request, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
@@ -224,7 +224,7 @@ def refresh_token(request: Request, db: Session = Depends(get_db)):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
         raise credentials_exception
-    pprint(refresh_token)
+    
     try:
         payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
         print(f'payload: {payload}')
