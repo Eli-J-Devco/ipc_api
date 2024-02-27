@@ -216,7 +216,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
 # 	 * @param {TokenItem,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post("/refresh_token/", response_model=user_schemas.Token)
+@router.post("/refresh_token/", response_model=user_schemas.TokenItem)
 def refresh_token(request: Request, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})

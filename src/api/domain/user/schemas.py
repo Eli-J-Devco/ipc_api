@@ -207,4 +207,5 @@ class TokenData(BaseModel):
     id: Optional[str] = None
 
 class TokenItem(BaseModel):
-    refresh_token: Optional[str] = None
+    access_token: str = None
+    token_type: str = None

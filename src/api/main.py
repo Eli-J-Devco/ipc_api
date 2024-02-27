@@ -102,6 +102,7 @@ async def log_request_middleware(request: Request, call_next):
         status_phrase=""
     # logger.info(f'{host}:{port} - "{request.method} {url}" {response.status_code} {status_phrase} {formatted_process_time}ms')
     return response
+
 app.middleware("http")(log_request_middleware)
 app.add_middleware(
     CORSMiddleware,
