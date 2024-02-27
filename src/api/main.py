@@ -13,9 +13,10 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
                 ("src"))
 # import models
 from configs.config import Config
+from utils.logger_manager import setup_logger
 
 # from database.db import engine
-
+LOGGER = setup_logger(module_name='API')
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 API_PORT= Config.API_PORT
@@ -216,13 +217,13 @@ def root():
 @app.on_event("startup")
 async def startup():
     print("startup ---------")
-    # LOGGER.info("--- Start up App ---")
+    LOGGER.info("--- Start up App ---")
 
     
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
-    # LOGGER.error("--- Shutdown App ---")
+    LOGGER.error("--- Shutdown App ---")
 
 
 if __name__ == '__main__':
