@@ -57,7 +57,7 @@ LOGGER = logging.getLogger(__name__)
 def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
         
-        # username b'U2FsdGVkX1+BXuo9iCdhV5hw3AIk+/YVKka/dJSMXGM208lGAnbBCOY2jKrZT+i3'
+        # username b'U2FsdGVkX185D6fXTKLAUMsaWnIm0861YAMQXtNE5/V1RPChpxkWIAYlA05RJmio'
         # password b'U2FsdGVkX19pC80uku9GJZDYOO2ElN06ELaZdw514v8='
         # pprint(user_credentials.username)
         # pprint(user_credentials.password)
@@ -151,6 +151,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
         info_user_out=user_schemas.UserLoginOut(
             first_name=result_user.first_name,
             last_name=result_user.last_name,
+            email=result_user.email,
             # fullname=result_user.fullname,
             phone=result_user.phone,
             # id_language=result_user.id_language,
@@ -198,9 +199,12 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
         return {"refresh_token": refresh_token,
                 "access_token": access_token, 
                 "token_type": "bearer",
-                "user":info_user_out,
+                # "user":info_user_out,
                 # "screen":result_screen,#s
                 # "role":role_list #s
+                "first_name":info_user_out.first_name,
+                "last_name":info_user_out.last_name,
+                "email":info_user_out.email,
                 "permissions":new_role_screen
                 
                 }

@@ -126,7 +126,8 @@ class UserLoginOut(BaseModel):
     first_name:Optional[str] = None
     last_name:Optional[str] = None
     # fullname: str
-    phone: str
+    phone: Optional[str] = None
+    email:Optional[str] = None
     # id_language: int
     # last_login: datetime
     # date_joined: datetime
@@ -196,7 +197,10 @@ class Token(BaseModel):
     refresh_token: str = None
     access_token: str = None
     token_type: str = None
-    user: Optional[UserLoginOut] = None
+    first_name: str = None
+    last_name: str = None
+    email: str = None
+    # user: Optional[UserLoginOut] = None
     # screen: list[ScreenBase]=[]
     # role:list[TokenRole] = None
     permissions: list=None
