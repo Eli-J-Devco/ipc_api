@@ -12,7 +12,7 @@ from pprint import pprint
 # import oauth2
 # import schemas
 # import utils
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -53,20 +53,16 @@ LOGGER = logging.getLogger(__name__)
 # 	 * @param {user_credentials,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post('/login/', response_model=user_schemas.Token)
-def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+@router.post('/login/', response_model=schemas.Token)
+def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
-        
-        # username b'U2FsdGVkX185D6fXTKLAUMsaWnIm0861YAMQXtNE5/V1RPChpxkWIAYlA05RJmio'
-        # password b'U2FsdGVkX19pC80uku9GJZDYOO2ElN06ELaZdw514v8='
-        # pprint(user_credentials.username)
-        # pprint(user_credentials.password)
+        # username b'U2FsdGVkX19ZDkZuu1l7LGxevbTdWIgvCUD9KE6dVVTgTFVhFvfxvxBrIR65e0aa'
+        # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        pprint(f'username: {username}')
-        # pprint(f'pass: {password}')
-        user_query = db.query(user_models.User).filter(
-            user_models.User.email == username)
+        
+        user_query = db.query(models.User).filter(
+            models.User.email == username)
         result_user=user_query.first()
         
         if not result_user:
@@ -162,6 +158,7 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
         # create a token
         access_token = oauth2.create_access_token(data={"user_id": result_user.id})
         # return token
+        response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
         LOGGER.info(f"--- Login: {user_credentials.username} ---")
         role_screen={}
         screen_list=[]
@@ -219,12 +216,15 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 # 	 * @param {TokenItem,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post("/refresh_token/", response_model=user_schemas.Token)
-def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)):
-    refresh_token = request.refresh_token
-    print(f'refresh_token: {refresh_token}')
+@router.post("/refresh_token/", response_model=schemas.Token)
+def refresh_token(request: Request, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise credentials_exception
+    pprint(refresh_token)
     try:
         payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
         print(f'payload: {payload}')
@@ -238,8 +238,19 @@ def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)
                 status_code=status.HTTP_403_FORBIDDEN, 
                 content={"detail": "Invalid Credentials"}
                 )
-        return {"refresh_token": refresh_token,
+        return {
                 "access_token": access_token, 
-                "token_type": "bearer"}
+                "token_type": "bearer"
+                }
     except JWTError:
         raise credentials_exception    
+    except (Exception) as err:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            content={"detail": "Bad Request"}
+            )
+    
+@router.post("/logout/", response_model=str)
+def refresh_token(response: Response):
+    response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="Lax")
+    return "Logout successfully"

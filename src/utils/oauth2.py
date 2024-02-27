@@ -119,4 +119,8 @@ def create_refresh_token(data: dict):
     expires_delta = datetime.utcnow() + timedelta(minutes=eval(REFRESH_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expires_delta})
     encoded_jwt = jwt.encode(to_encode, REFRESH_SECRET_KEY, ALGORITHM)
-    return encoded_jwt
+    return {
+        "token": encoded_jwt,
+        "expires": expires_delta.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+        "max-age": int(expires_delta.timestamp())
+    }
