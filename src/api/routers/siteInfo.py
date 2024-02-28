@@ -43,7 +43,7 @@ router = APIRouter(
 # 	 * @param {id,db}
 # 	 * @return data (SiteInformOut)
 # 	 */
-@router.get('/{id}', response_model=schemas.SiteInformOut)
+@router.post('/', response_model=schemas.SiteInformOut)
 def get_site_information(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     try:
         
@@ -68,7 +68,7 @@ def get_site_information(id: int, db: Session = Depends(get_db), current_user: i
 # 	 * @param {id,updated_SiteInform,db}
 # 	 * @return data (SiteInformOut)
 # 	 */
-@router.post("/update/{id}", response_model=schemas.SiteInformOut)
+@router.post("/update/", response_model=schemas.SiteInformOut)
 def update_site_information(id: int,  updated_SiteInform: schemas.SiteInformUpdate,db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     
     

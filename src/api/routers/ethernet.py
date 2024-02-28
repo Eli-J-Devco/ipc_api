@@ -44,7 +44,7 @@ router = APIRouter(
 # 	 * @param {id,db}
 # 	 * @return data (EthernetOut)
 # 	 */  
-@router.get('/{id}', response_model=ethernet_schemas.EthernetOut)
+@router.post('/', response_model=ethernet_schemas.EthernetOut)
 def get_ethernet(id: int, db: Session = Depends(get_db), 
                  current_user: int = Depends(oauth2.get_current_user) ):
     try:
@@ -74,7 +74,7 @@ def get_ethernet(id: int, db: Session = Depends(get_db),
 # 	 * @param {id,db}
 # 	 * @return data (EthernetOut)
 # 	 */  
-@router.post("/update/{id}", response_model=ethernet_schemas.EthernetOut)
+@router.post("/update/", response_model=ethernet_schemas.EthernetOut)
 def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
                     db: Session = Depends(get_db)
                     , current_user: int = Depends(oauth2.get_current_user)):

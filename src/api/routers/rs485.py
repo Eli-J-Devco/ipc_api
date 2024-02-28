@@ -42,7 +42,7 @@ router = APIRouter(
 # 	 * @param {id,db}
 # 	 * @return data (CommunicationOut)
 # 	 */
-@router.get('/{id}', response_model=rs485_schemas.CommunicationOut)
+@router.post('/', response_model=rs485_schemas.CommunicationOut)
 def get_rs485(id: int, db: Session = Depends(get_db), 
               current_user: int = Depends(oauth2.get_current_user)):
     # ----------------------

@@ -65,7 +65,7 @@ router = APIRouter(
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/', response_model=deviceList_schemas.DeviceListOfPointListOut)
+@router.post('/', response_model=deviceList_schemas.DeviceListOfPointListOut)
 def get_only_device(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
@@ -93,7 +93,7 @@ def get_only_device(id: int, db: Session = Depends(get_db), current_user: int = 
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.get('/all/', response_model=list[deviceList_schemas.DeviceListOfPointListOut])
+@router.post('/all/', response_model=list[deviceList_schemas.DeviceListOfPointListOut])
 def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
@@ -115,7 +115,7 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
 # 	 * @return data (DeviceConfigOut)
 # 	 */ 
 
-@router.get('/config/', response_model=deviceList_schemas.DeviceConfigOut)
+@router.post('/config/', response_model=deviceList_schemas.DeviceConfigOut)
 def get_device_config( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
@@ -649,7 +649,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
 # 	 * @param {id,db}
 # 	 * @return data (DevicePointListBase)
 # 	 */
-@router.get('/point_list/', response_model=list[deviceList_schemas.DevicePointListBase])
+@router.post('/point_list/', response_model=list[deviceList_schemas.DevicePointListBase])
 def get_point_list_only_device(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     
     # ----------------------
