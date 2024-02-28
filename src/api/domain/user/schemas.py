@@ -194,7 +194,6 @@ class Token(BaseModel):
         screen: Optional[list[ScreenOut]]= None
         class Config:
             orm_mode = True
-    refresh_token: str = None
     access_token: str = None
     token_type: str = None
     first_name: str = None
@@ -208,4 +207,5 @@ class TokenData(BaseModel):
     id: Optional[str] = None
 
 class TokenItem(BaseModel):
-    refresh_token: Optional[str] = None
+    access_token: str = None
+    token_type: str = None

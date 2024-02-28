@@ -12,7 +12,8 @@ from pprint import pprint
 # import oauth2
 # import schemas
 # import utils
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import (APIRouter, Depends, HTTPException, Request, Response,
+                     status)
 from fastapi.responses import JSONResponse
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from jose import JWTError, jwt
@@ -56,17 +57,15 @@ from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 # 	 * @return data (Token)
 # 	 */ 
 @router.post('/login/', response_model=user_schemas.Token)
-def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
-        
-        # username b'U2FsdGVkX185D6fXTKLAUMsaWnIm0861YAMQXtNE5/V1RPChpxkWIAYlA05RJmio'
-        # password b'U2FsdGVkX19pC80uku9GJZDYOO2ElN06ELaZdw514v8='
-        # pprint(user_credentials.username)
-        # pprint(user_credentials.password)
+        # username b'U2FsdGVkX19ZDkZuu1l7LGxevbTdWIgvCUD9KE6dVVTgTFVhFvfxvxBrIR65e0aa'
+        # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        # pprint(f'username: {username}')
-        # pprint(f'pass: {password}')
+        pprint(f'username: {username}')
+        pprint(f'password: {password}')
+
         user_query = db.query(user_models.User).filter(
             user_models.User.email == username)
         result_user=user_query.first()
@@ -196,9 +195,9 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
             "auth":convert_binary_auth(role_screen["id"+str(item["id"])]["auth"]),
             }
             new_role_screen.append(new_item)
-
-        # print(f'new_role_screen: {new_role_screen}')
-        return {"refresh_token": refresh_token,
+        response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
+        
+        return {
                 "access_token": access_token, 
                 "token_type": "bearer",
                 # "user":info_user_out,
@@ -208,7 +207,6 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
                 "last_name":info_user_out.last_name,
                 "email":info_user_out.email,
                 "permissions":new_role_screen
-                
                 }
     except (Exception) as err:
         # print('Error : ',err)
@@ -225,14 +223,15 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
 # 	 * @param {TokenItem,db}
 # 	 * @return data (Token)
 # 	 */ 
-@router.post("/refresh_token/", response_model=user_schemas.Token)
-def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)):
-    refresh_token = request.refresh_token
-    # print(f'refresh_token: {refresh_token}')
-    credentials_exception = JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED,
-                                        
-                                        content={"detail": "Could not validate credentials"},
-                                        headers={"WWW-Authenticate": "Bearer"})
+@router.post("/refresh_token/", response_model=user_schemas.TokenItem)
+def refresh_token(request: Request, db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                          detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+    
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise credentials_exception
+    
     try:
         payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
         print(f'payload: {payload}')
@@ -246,12 +245,19 @@ def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)
                 status_code=status.HTTP_403_FORBIDDEN, 
                 content={"detail": "Invalid Credentials"}
                 )
-        return {"refresh_token": refresh_token,
+        return {
                 "access_token": access_token, 
-                "token_type": "bearer"}
-    # except JWTError:
+                "token_type": "bearer"
+                }
+    except JWTError:
+        raise credentials_exception    
     except (Exception) as err:
-        print('Error : ',err.__class__)
-        # LOGGER.error(f'--- {err} ---')
-        raise credentials_exception
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            content={"detail": "Bad Request"}
+            )
     
+@router.post("/logout/", response_model=str)
+def refresh_token(response: Response):
+    response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="Lax")
+    return "Logout successfully"

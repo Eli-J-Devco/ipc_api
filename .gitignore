@@ -27,3 +27,6 @@ src/utils/node_modules
 src/logs/
 # src/utils/package.json
 # src/utils/package-lock.json
+backend_api/routers/__pycache__
+.venv
+__pycache__

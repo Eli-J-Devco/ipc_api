@@ -77,7 +77,11 @@ app = FastAPI(
     openapi_url = None,
     )
 
-origins = ["*"]
+origins = [
+    "http://localhost:2007",
+    "http://127.0.0.1:2007",
+]
+
 security = HTTPBasic()
 # async def log_request_middleware(request: Request, call_next):
 #     """
