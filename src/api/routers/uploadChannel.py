@@ -28,6 +28,7 @@ sys.path.append(path)
 import api.domain.uploadChannel.models as uploadChannel_models
 import api.domain.uploadChannel.schemas as uploadChannel_schemas
 import model.models as models
+import utils.oauth2 as oauth2
 from database.db import engine, get_db
 from utils.pm2Manager import (delete_program_pm2, restart_program_pm2,
                               stop_program_pm2)
@@ -46,7 +47,7 @@ router = APIRouter(
 # 	 * @return data (AllUploadChannelOut)
 # 	 */
 @router.post("/all_channel/", response_model=uploadChannel_schemas.AllUploadChannelOut)
-def get_all_upload_channel(db: Session = Depends(get_db)):
+def get_all_upload_channel(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         upload_channel_query = db.query(uploadChannel_models.Upload_channel).filter(uploadChannel_models.Upload_channel.status == 1)
         result=upload_channel_query.all()
@@ -74,7 +75,7 @@ def get_all_upload_channel(db: Session = Depends(get_db)):
 # 	 * @return data (UploadChannelConfig)
 # 	 */
 @router.post('/config/', response_model=uploadChannel_schemas.UploadChannelConfig)
-def get_upload_channel_config( db: Session = Depends(get_db), ):
+def get_upload_channel_config( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     try:
         config_information_query = db.query(models.Config_information).filter(models.Config_information.id_type >= 6).filter(models.Config_information.id_type <= 7).filter(models.Config_information.status == 1).all()
         if not config_information_query:
@@ -107,7 +108,10 @@ def get_upload_channel_config( db: Session = Depends(get_db), ):
 # 	 * @return data (UploadChannelState)
 # 	 */
 @router.post("/update/", response_model=uploadChannel_schemas.UploadChannelState)
-async def update_upload_channel(updated_communication: list[uploadChannel_schemas.UploadChannelUpdate],db: Session = Depends(get_db)):
+async def update_upload_channel(updated_communication: list[uploadChannel_schemas.UploadChannelUpdate],
+                                db: Session = Depends(get_db)
+                                , current_user: int = Depends(oauth2.get_current_user)
+                                ):
     try:
         
         

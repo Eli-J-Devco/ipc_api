@@ -25,6 +25,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
                 ("src"))
 # from utils.logger_manager import setup_logger
 
+import utils.oauth2 as oauth2
 # LOGGER = setup_logger(module_name='API')
 from api.domain.deviceGroup import models, schemas
 from database.db import engine, get_db
@@ -46,7 +47,7 @@ router = APIRouter(
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/get_all/', response_model=list[schemas.DeviceGroupOutBase])
-def get_all_group( db: Session = Depends(get_db) ):
+def get_all_group( db: Session = Depends(get_db) ,  current_user: int = Depends(oauth2.get_current_user)):
     try:
         
         device_group_query = db.query(models.Device_group).filter(
@@ -59,7 +60,7 @@ def get_all_group( db: Session = Depends(get_db) ):
         
     except Exception as err: 
         print('Error : ',err)
-        LOGGER.error(f'--- {err} ---')
+        # LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 
@@ -72,7 +73,7 @@ def get_all_group( db: Session = Depends(get_db) ):
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/get_each/', response_model=schemas.DeviceGroupOutBase)
-def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
     try:
         
         device_group_query = db.query(models.Device_group).filter(
@@ -100,7 +101,7 @@ def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Sessio
         return result
     except Exception as err: 
         print('Error : ',err)
-        LOGGER.error(f'--- {err} ---')
+        # LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -112,7 +113,7 @@ def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Sessio
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/edit_each/', response_model=schemas.DeviceGroupOutBase)
-def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
+def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
     try:
         id=device_group.id
         device_group_query = db.query(models.Device_group).filter(
@@ -131,7 +132,7 @@ def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(
         return result_device_group
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
-        LOGGER.error(f'--- {err} ---')
+        # LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -143,7 +144,7 @@ def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/create/', response_model=schemas.DeviceGroupOutBase)
-def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depends(get_db) ):
+def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
     try:
         name=device_group.name
         device_group_query = db.query(models.Device_group).filter(
@@ -160,7 +161,7 @@ def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depen
         return new_device_group
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
-        LOGGER.error(f'--- {err} ---')
+        # LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -172,7 +173,7 @@ def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depen
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/delete_group/', response_model=schemas.DeviceGroupStateBase)
-def delete_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db) ):
+def delete_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
     try:
         id=device_group.id
         device_group_query = db.query(models.Device_group).filter(models.Device_group.id == id)
@@ -195,6 +196,6 @@ def delete_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get
             }
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
-        LOGGER.error(f'--- {err} ---')
+        # LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")

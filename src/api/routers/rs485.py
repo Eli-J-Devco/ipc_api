@@ -24,6 +24,7 @@ import api.domain.rs485.models as rs485_models
 import api.domain.rs485.schemas as rs485_schemas
 import model.models as models
 import model.schemas as schemas
+import utils.oauth2 as oauth2
 from database.db import engine, get_db
 from utils.pm2Manager import (delete_program_pm2, restart_program_pm2,
                               stop_program_pm2)
@@ -42,7 +43,8 @@ router = APIRouter(
 # 	 * @return data (CommunicationOut)
 # 	 */
 @router.get('/{id}', response_model=rs485_schemas.CommunicationOut)
-def get_rs485(id: int, db: Session = Depends(get_db), ):
+def get_rs485(id: int, db: Session = Depends(get_db), 
+              current_user: int = Depends(oauth2.get_current_user)):
     # ----------------------
     communication = db.query(models.Communication).filter(models.Communication.id == id).first()
     # ethernet_list=ethernet.__dict__
@@ -75,7 +77,8 @@ def get_rs485(id: int, db: Session = Depends(get_db), ):
 # 	 */
 @router.post('/config/', response_model=rs485_schemas.RS485ConfigBase)
 # , response_model_by_alias=False
-def get_rs485_config( db: Session = Depends(get_db), ):
+def get_rs485_config( db: Session = Depends(get_db), 
+                     current_user: int = Depends(oauth2.get_current_user)):
     communication_rs485 = db.query(models.Config_information).filter(models.Config_information.id_type == 4).filter(models.Config_information.status == 1).all()
     if not communication_rs485:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -104,7 +107,7 @@ def get_rs485_config( db: Session = Depends(get_db), ):
 # 	 * @return data (SerialListBase)
 # 	 */
 @router.post('/serial/', response_model=rs485_schemas.SerialListBase)
-def get_scan_serial():
+def get_scan_serial(current_user: int = Depends(oauth2.get_current_user)):
     
     result=[]
     com_ports = list(ports.comports()) # create a list of com ['COM1','COM2'] 
@@ -128,7 +131,11 @@ def get_scan_serial():
 # 	 * @return data (RS485State)
 # 	 */   
 @router.post("/update/{id}", response_model=rs485_schemas.RS485State)
-async def update_rs485(id: int,  updated_communication: rs485_schemas.CommunicationCreate,db: Session = Depends(get_db)):
+async def update_rs485(id: int,  
+                       updated_communication: rs485_schemas.CommunicationCreate,
+                       db: Session = Depends(get_db),
+                       current_user: int = Depends(oauth2.get_current_user)
+                       ):
     try:
         communication_query = db.query(models.Communication).filter(models.Communication.id == id)
        
@@ -170,7 +177,11 @@ async def update_rs485(id: int,  updated_communication: rs485_schemas.Communicat
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_search_modbus_rtu/', response_model=rs485_schemas.RS485State)
-def update_option_rs485_search_modbus(id: int,updated_search_modbus: rs485_schemas.S485SearchModBusUpdate, db: Session = Depends(get_db) ):
+def update_option_rs485_search_modbus(id: int,
+                                      updated_search_modbus: rs485_schemas.S485SearchModBusUpdate, 
+                                      db: Session = Depends(get_db) ,
+                                      current_user: int = Depends(oauth2.get_current_user)
+                                      ):
     # ----------------------
     
     project_query = db.query(project_models.Project_setup).filter(project_models.Project_setup.id == id)

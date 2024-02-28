@@ -33,6 +33,7 @@ import api.domain.template.models as template_models
 import api.domain.template.schemas as template_schemas
 import model.models as models
 import model.schemas as schemas
+import utils.oauth2 as oauth2
 from database.db import engine, get_db
 from utils.libCom import cov_xml_sql
 # from utils.pm2Manager import (LOGGER, cov_xml_sql,
@@ -68,7 +69,9 @@ router = APIRouter(
 # 	 * @return data (TemplateOutBase)
 # 	 */
 @router.post('/create/', response_model=template_schemas.TemplateOutBase)
-def create_template(template: template_schemas.TemplateCreateBase,db: Session = Depends(get_db) ):
+def create_template(template: template_schemas.TemplateCreateBase,
+                    db: Session = Depends(get_db) ,
+                     current_user: int = Depends(oauth2.get_current_user)):
     try:
         name=template.name
         template_query = db.query(template_models.Template_library).filter(
@@ -158,7 +161,10 @@ def create_template(template: template_schemas.TemplateCreateBase,db: Session = 
 # 	 * @return data (TemplateDelete)
 # 	 */
 @router.post('/delete/', response_model=template_schemas.TemplateDelete)
-def delete_template(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def delete_template(id_template: Optional[int] = Body(embed=True), 
+                    db: Session = Depends(get_db)
+                    , current_user: int = Depends(oauth2.get_current_user)
+                    ):
     try:
         
         template_query = db.query(template_models.Template_library).filter(template_models.Template_library.id == id_template)
@@ -192,7 +198,9 @@ def delete_template(id_template: Optional[int] = Body(embed=True), db: Session =
 # 	 * @return data (TemplateTypeBase)
 # 	 */
 @router.post('/get_template_type/', response_model=list[template_schemas.TemplateTypeBase])
-def get_type( db: Session = Depends(get_db) ):
+def get_type( db: Session = Depends(get_db) 
+             , current_user: int = Depends(oauth2.get_current_user)
+             ):
     try:
         template_type_query = db.query(models.Config_information).\
             filter(models.Config_information.status== 1).\
@@ -219,7 +227,10 @@ def get_type( db: Session = Depends(get_db) ):
 # 	 * @return data ()
 # 	 */
 @router.post('/edit_each/', response_model=deviceGroup_schemas.DeviceGroupOutBase)
-def edit_each_template(template: template_schemas.TemplateUpdateBase,db: Session = Depends(get_db) ):
+def edit_each_template(template: template_schemas.TemplateUpdateBase,
+                       db: Session = Depends(get_db) 
+                       , current_user: int = Depends(oauth2.get_current_user)
+                       ):
     try:
         id=template.id
         template_query = db.query(template_models.Template_library).filter(
@@ -250,7 +261,7 @@ def edit_each_template(template: template_schemas.TemplateUpdateBase,db: Session
 # 	 * @return data (TemplateBase)
 # 	 */
 @router.post('/get_all/', response_model=list[template_schemas.TemplateBase])
-def get_list( db: Session = Depends(get_db) ):
+def get_list( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     try:
         template_query = db.query(template_models.Template_library)
         result_template=template_query.all()
@@ -274,7 +285,10 @@ def get_list( db: Session = Depends(get_db) ):
 # 	 * @return data (TemplateListBase)
 # 	 */
 @router.post('/get_each_template/', response_model=template_schemas.TemplateListBase)
-def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def get_each_template(id_template: Optional[int] = Body(embed=True), 
+                      db: Session = Depends(get_db) 
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
     try:
         template_query = db.query(template_models.Template_library).filter(
         template_models.Template_library.id == id_template).first()
@@ -322,7 +336,10 @@ def get_each_template(id_template: Optional[int] = Body(embed=True), db: Session
 # 	 * @return data (TemplateGroupDeviceOutBase)
 # 	 */
 @router.post('/get_device_group/', response_model=deviceGroup_schemas.TemplateGroupDeviceOutBase)
-def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def get_group_device(id_device_group: Optional[int] = Body(embed=True), 
+                     db: Session = Depends(get_db)
+                     , current_user: int = Depends(oauth2.get_current_user)
+                     ):
     try:
         id=id_device_group
         device_group_query = db.query(deviceGroup_models.Device_group).filter(
@@ -374,7 +391,10 @@ def get_group_device(id_device_group: Optional[int] = Body(embed=True), db: Sess
 # 	 * @return data (PointTemplateOutBase)
 # 	 */
 @router.post('/get_each_point/', response_model=template_schemas.PointTemplateOutBase)
-def get_each_point(info_point: template_schemas.PointInfoTemplateBase,db: Session = Depends(get_db) ):
+def get_each_point(info_point: template_schemas.PointInfoTemplateBase,
+                   db: Session = Depends(get_db) 
+                   , current_user: int = Depends(oauth2.get_current_user)
+                   ):
     try:
         point_query = db.query(models.Point_list).filter(
         models.Point_list.id == info_point.id_point)
@@ -420,7 +440,10 @@ def get_each_point(info_point: template_schemas.PointInfoTemplateBase,db: Sessio
 # 	 * @return data (PointOutBase)
 # 	 */
 @router.post('/edit_each_point/', response_model=schemas.PointOutBase)
-def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(get_db) ):
+def edit_each_point(info_point: schemas.PointUpdateBase,
+                    db: Session = Depends(get_db) 
+                    , current_user: int = Depends(oauth2.get_current_user)
+                    ):
     try:
         point_query = db.query(models.Point_list).filter(
         models.Point_list.id == info_point.id).filter(
@@ -473,7 +496,10 @@ def edit_each_point(info_point: schemas.PointUpdateBase,db: Session = Depends(ge
 # 	 * @return data (PointBase)
 # 	 */
 @router.post('/change_number_point/', response_model=list[schemas.PointBase])
-def change_number_point(change_number_point: schemas.PointChangeNumberBase, db: Session = Depends(get_db) ):
+def change_number_point(change_number_point: schemas.PointChangeNumberBase, 
+                        db: Session = Depends(get_db)
+                        , current_user: int = Depends(oauth2.get_current_user)
+                        ):
     try:
         number_point=change_number_point.number_point
         id_template=change_number_point.id_template
@@ -603,7 +629,10 @@ def change_number_point(change_number_point: schemas.PointChangeNumberBase, db: 
 # 	 * @return data (DeviceGroupOutBase)
 # 	 */
 @router.post('/delete_point_list/', response_model=list[schemas.PointBase])
-def delete_point_list(point_list: template_schemas.PointDeleteTemplateBase, db: Session = Depends(get_db) ):
+def delete_point_list(point_list: template_schemas.PointDeleteTemplateBase, 
+                      db: Session = Depends(get_db)
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
     try:
         id_template=point_list.id_template
         point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template).\
@@ -636,7 +665,10 @@ def delete_point_list(point_list: template_schemas.PointDeleteTemplateBase, db: 
 # 	 * @return data (RegisterConfigOutBase)
 # 	 */
 @router.post('/get_register_list/', response_model=schemas.RegisterConfigOutBase)
-def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def get_register_list(id_template: Optional[int] = Body(embed=True), 
+                      db: Session = Depends(get_db) 
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
     try:
         register_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
         result_register=register_query.all()
@@ -666,7 +698,10 @@ def get_register_list(id_template: Optional[int] = Body(embed=True), db: Session
 # 	 * @return data (RegisterOutBase)
 # 	 */
 @router.post('/edit_each_register/', response_model=schemas.RegisterOutBase)
-def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depends(get_db) ):
+def edit_each_register(info_register: schemas.RegisterOutBase,
+                       db: Session = Depends(get_db) 
+                       , current_user: int = Depends(oauth2.get_current_user)
+                       ):
     try:
         id=info_register.id
         id_template=info_register.id_template
@@ -696,7 +731,10 @@ def edit_each_register(info_register: schemas.RegisterOutBase,db: Session = Depe
 # 	 * @return data (RegisterOutBase)
 # 	 */
 @router.post('/edit_all_register/', response_model=list[schemas.RegisterOutBase])
-def edit_all_register(register_list: list[schemas.RegisterOutBase],db: Session = Depends(get_db) ):
+def edit_all_register(register_list: list[schemas.RegisterOutBase],
+                      db: Session = Depends(get_db) 
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
     try:
         id_template=register_list[0].id_template
 
@@ -723,7 +761,10 @@ def edit_all_register(register_list: list[schemas.RegisterOutBase],db: Session =
 # 	 * @return data (RegisterOutBase)
 # 	 */
 @router.post('/delete_register/', response_model=list[schemas.RegisterOutBase])
-def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = Depends(get_db) ):
+def delete_register(register_list: list[schemas.RegisterOutBase], 
+                    db: Session = Depends(get_db) 
+                    , current_user: int = Depends(oauth2.get_current_user)
+                    ):
     try:
         id_template=register_list[0].id_template
         register_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
@@ -753,7 +794,10 @@ def delete_register(register_list: list[schemas.RegisterOutBase], db: Session = 
 # 	 * @return data (RegisterOutBase)
 # 	 */
 @router.post('/export_file/', response_model=list[schemas.RegisterOutBase])
-def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db) ):
+def export_file(id_template: Optional[int] = Body(embed=True), 
+                db: Session = Depends(get_db) 
+                , current_user: int = Depends(oauth2.get_current_user)
+                ):
     try:
         
         template_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
@@ -772,7 +816,9 @@ def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Dep
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @router.get("/charting/")
-async def charting(db: Session = Depends(get_db)):
+async def charting(db: Session = Depends(get_db)
+                   , current_user: int = Depends(oauth2.get_current_user)
+                   ):
     try:
         param={
         "table_device_list":'device_list',

@@ -25,6 +25,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 import api.domain.ethernet.models as ethernet_models
 import api.domain.ethernet.schemas as ethernet_schemas
 import model.models as models
+import utils.oauth2 as oauth2
 # from api.domain.ethernet import models, schemas
 from configs.config import *
 from database.db import get_db
@@ -44,7 +45,8 @@ router = APIRouter(
 # 	 * @return data (EthernetOut)
 # 	 */  
 @router.get('/{id}', response_model=ethernet_schemas.EthernetOut)
-def get_ethernet(id: int, db: Session = Depends(get_db), ):
+def get_ethernet(id: int, db: Session = Depends(get_db), 
+                 current_user: int = Depends(oauth2.get_current_user) ):
     try:
         # ----------------------
         ethernet = db.query(ethernet_models.Ethernet).filter(ethernet_models.Ethernet.id == id).first()
@@ -73,7 +75,9 @@ def get_ethernet(id: int, db: Session = Depends(get_db), ):
 # 	 * @return data (EthernetOut)
 # 	 */  
 @router.post("/update/{id}", response_model=ethernet_schemas.EthernetOut)
-def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,db: Session = Depends(get_db)):
+def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
+                    db: Session = Depends(get_db)
+                    , current_user: int = Depends(oauth2.get_current_user)):
     try:
     
         # result = db.execute(
@@ -139,7 +143,7 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
 # 	 * @return data (NetworkBase)
 # 	 */ 
 @router.post('/ifconfig/', response_model=ethernet_schemas.NetworkBase)
-def get_network_interface():
+def get_network_interface( current_user: int = Depends(oauth2.get_current_user)):
     try:
         result=psutil.net_if_addrs()
         # print(result["Ethernet"])

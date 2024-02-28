@@ -54,7 +54,7 @@ router = APIRouter(
 # 	 * @return data (UserStateOut)
 # 	 */
 @router.post("/create_user", status_code=status.HTTP_201_CREATED, response_model=schemas.UserStateOut)
-def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
     
     
     user_query = db.query(models.User).filter(models.User.email == user.email).first()
@@ -203,7 +203,7 @@ def change_password(user_credentials: schemas.UserChangePassword, db: Session = 
 # 	 * @return data (UserStateOut)
 # 	 */
 @router.post("/reset_password", response_model=schemas.UserResetPassword)
-def reset_password(username: Optional[str] = Body(embed=True), db: Session = Depends(get_db)):
+def reset_password(username: Optional[str] = Body(embed=True), db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
     
         try:
             # print(f'current_user.id: {current_user.id}')

@@ -23,6 +23,7 @@ from sqlalchemy.sql import text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+import utils.oauth2 as oauth2
 from api.domain.project import models as project_models
 from api.domain.siteInfo import schemas
 from database.db import engine, get_db
@@ -43,7 +44,7 @@ router = APIRouter(
 # 	 * @return data (SiteInformOut)
 # 	 */
 @router.get('/{id}', response_model=schemas.SiteInformOut)
-def get_site_information(id: int, db: Session = Depends(get_db) ):
+def get_site_information(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     try:
         
         print('------------------------------------------')
@@ -68,7 +69,7 @@ def get_site_information(id: int, db: Session = Depends(get_db) ):
 # 	 * @return data (SiteInformOut)
 # 	 */
 @router.post("/update/{id}", response_model=schemas.SiteInformOut)
-def update_site_information(id: int,  updated_SiteInform: schemas.SiteInformUpdate,db: Session = Depends(get_db)):
+def update_site_information(id: int,  updated_SiteInform: schemas.SiteInformUpdate,db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     
     
     site_information_query = db.query(project_models.Project_setup).filter(project_models.Project_setup.id == id)

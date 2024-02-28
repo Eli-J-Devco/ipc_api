@@ -28,6 +28,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 import api.domain.project.models as project_models
 import api.domain.project.schemas as project_schemas
 import model.models as models
+import utils.oauth2 as oauth2
 from database.db import engine, get_db
 
 router = APIRouter(
@@ -44,7 +45,8 @@ router = APIRouter(
 # 	 * @return data (ProjectOut)
 # 	 */
 @router.post('/', response_model= project_schemas.ProjectOut)
-def get_project(id: int, db: Session = Depends(get_db), ):
+def get_project(id: int, db: Session = Depends(get_db),
+                current_user: int = Depends(oauth2.get_current_user)):
     try:
         # ----------------------
         project_query = db.query( project_models.Project_setup).filter( project_models.Project_setup.id == id).first()
@@ -75,7 +77,11 @@ def get_project(id: int, db: Session = Depends(get_db), ):
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_logging_rate/', response_model= project_schemas.ProjectState)
-def update_project_logging_rate(id: int,updated_logging_rate:  project_schemas.ProjectLoggingRateUpdate, db: Session = Depends(get_db) ):
+def update_project_logging_rate(id: int,
+                                updated_logging_rate:  project_schemas.ProjectLoggingRateUpdate, 
+                                db: Session = Depends(get_db),
+                                current_user: int = Depends(oauth2.get_current_user)
+                                ):
     try:
         # ----------------------
         print(updated_logging_rate)
@@ -100,7 +106,11 @@ def update_project_logging_rate(id: int,updated_logging_rate:  project_schemas.P
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_remote_access/', response_model= project_schemas.ProjectState)
-def update_project_remote_access(id: int,updated_remote_access:  project_schemas.ProjectRemoteAccessUpdate, db: Session = Depends(get_db) ):
+def update_project_remote_access(id: int,
+                                 updated_remote_access:  project_schemas.ProjectRemoteAccessUpdate, 
+                                 db: Session = Depends(get_db),
+                                 current_user: int = Depends(oauth2.get_current_user)
+                                 ):
     try:
         # ----------------------
         
@@ -125,7 +135,11 @@ def update_project_remote_access(id: int,updated_remote_access:  project_schemas
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_first_page_login/', response_model= project_schemas.ProjectState)
-def update_project_first_page_login(id: int,updated_page_login:  project_schemas.ProjectPageLoginUpdate, db: Session = Depends(get_db) ):
+def update_project_first_page_login(id: int,
+                                    updated_page_login:  project_schemas.ProjectPageLoginUpdate, 
+                                    db: Session = Depends(get_db),
+                                    current_user: int = Depends(oauth2.get_current_user)
+                                    ):
     try:
         # ----------------------
         

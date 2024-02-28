@@ -32,6 +32,7 @@ import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
 import api.domain.deviceList.schemas as deviceList_schemas
 import model.models as models
+import utils.oauth2 as oauth2
 from database.db import engine, get_db
 from utils.libCom import get_mybatis
 # from model import schemas
@@ -65,7 +66,7 @@ router = APIRouter(
 # 	 */ 
 
 @router.get('/', response_model=deviceList_schemas.DeviceListOfPointListOut)
-def get_only_device(id: int, db: Session = Depends(get_db), ):
+def get_only_device(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
     Device_list = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id == id).first()
@@ -93,7 +94,7 @@ def get_only_device(id: int, db: Session = Depends(get_db), ):
 # 	 */ 
 
 @router.get('/all/', response_model=list[deviceList_schemas.DeviceListOfPointListOut])
-def get_all_device( db: Session = Depends(get_db), ):
+def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
     Device_list = db.query(deviceList_models.Device_list)
@@ -115,7 +116,7 @@ def get_all_device( db: Session = Depends(get_db), ):
 # 	 */ 
 
 @router.get('/config/', response_model=deviceList_schemas.DeviceConfigOut)
-def get_device_config( db: Session = Depends(get_db), ):
+def get_device_config( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
     device_type_query = db.query(models.Device_type)
@@ -163,7 +164,7 @@ def get_device_config( db: Session = Depends(get_db), ):
 # 	 * @return data (DeviceState)
 # 	 */
 @router.post("/create/", response_model=deviceList_schemas.DeviceState)
-async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Session = Depends(get_db)):
+async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     
     # create_device: list[schemas.DeviceCreate],
     try:
@@ -377,7 +378,8 @@ async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Sessi
 # 	 * @return data (DeviceState)
 # 	 */
 @router.post("/create_multiple/", response_model=deviceList_schemas.DeviceState)
-async def create_multiple_device(create_device: deviceList_schemas.MultipleDeviceCreate ,db: Session = Depends(get_db)):
+async def create_multiple_device(create_device: deviceList_schemas.MultipleDeviceCreate ,
+                                 db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         def reset_data_new(new_device_list):
             # delete device in table device_list
@@ -648,7 +650,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
 # 	 * @return data (DevicePointListBase)
 # 	 */
 @router.get('/point_list/', response_model=list[deviceList_schemas.DevicePointListBase])
-def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
+def get_point_list_only_device(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     
     # ----------------------
     device_point_list_query = db.query(models.Device_point_list).filter(
@@ -673,7 +675,7 @@ def get_point_list_only_device(id: int, db: Session = Depends(get_db) ):
 @router.post("/delete/", response_model=deviceList_schemas.DeviceState)
 async def delete_device(
                         delete_device: deviceList_schemas.DeviceDelete,
-                        db: Session = Depends(get_db)):
+                        db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         
         if not delete_device.mode in [1,2] :
@@ -786,7 +788,8 @@ async def delete_device(
 # 	 * @return data (DeviceState)
 # 	 */
 @router.post("/update/", response_model=deviceList_schemas.DeviceState)
-async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase,db: Session = Depends(get_db)):
+async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase,
+                              db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         # need restart pm2
         # name --> allow change
