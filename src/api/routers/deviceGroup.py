@@ -23,9 +23,9 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-from utils.logger_manager import setup_logger
+# from utils.logger_manager import setup_logger
 
-LOGGER = setup_logger(module_name='API')
+# LOGGER = setup_logger(module_name='API')
 from api.domain.deviceGroup import models, schemas
 from database.db import engine, get_db
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,

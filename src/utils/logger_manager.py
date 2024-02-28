@@ -112,6 +112,7 @@ class LoggerSetup:
         self.logger.addHandler(logHandlerWarn)
         self.logger.addHandler(logHandlerError)
         self.logger.addHandler(logHandlerCritical)
+
 def setup_logger(module_name=None, add_stdout_logger=True):
     custom_logger = logging.getLogger('global')
     if module_name:
