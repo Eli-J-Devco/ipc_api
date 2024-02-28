@@ -260,4 +260,5 @@ def refresh_token(request: Request, db: Session = Depends(get_db)):
 @router.post("/logout/", response_model=str)
 def refresh_token(response: Response):
     response.set_cookie("refresh_token", "", expires=0, httponly=True, secure=True, samesite="Lax")
+    # 
     return "Logout successfully"
