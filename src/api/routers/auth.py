@@ -4,7 +4,7 @@
 # *
 # *********************************************************/
 import datetime
-import logging
+# import logging
 import os
 import sys
 from pprint import pprint
@@ -26,9 +26,10 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 
 from configs.config import *
 from database.db import get_db
-from utils.logger_manager import setup_logger
 
-LOGGER = setup_logger(module_name='API')
+# from utils.logger_manager import setup_logger
+
+# LOGGER = setup_logger(module_name='API')
 SECRET_KEY = Config.SECRET_KEY
 REFRESH_SECRET_KEY = Config.SECRET_KEY 
 ALGORITHM = Config.ALGORITHM
@@ -210,10 +211,12 @@ def login(user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session =
                 
                 }
     except (Exception) as err:
-        print('Error : ',err)
+        # print('Error : ',err)
         # print('Errors : ',err)
-        LOGGER.error(f'--- {err} ---')
-        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # LOGGER.error(f'--- {err} ---')
+        # return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        raise HTTPException(status_code=500, detail="Internal server error")
+
 # Describe functions before writing code
 # /**
 # 	 * @description refresh token
@@ -249,5 +252,6 @@ def refresh_token(request: user_schemas.TokenItem, db: Session = Depends(get_db)
     # except JWTError:
     except (Exception) as err:
         print('Error : ',err.__class__)
-        LOGGER.error(f'--- {err} ---')
-        raise credentials_exception    
+        # LOGGER.error(f'--- {err} ---')
+        raise credentials_exception
+    

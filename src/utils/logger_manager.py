@@ -119,13 +119,13 @@ def setup_logger(module_name=None, add_stdout_logger=True):
 
     print("Clear all handlers in logger") # prevent multiple handler creation
     custom_logger.handlers.clear()
-
+    custom_logger.disabled = False
     if add_stdout_logger:
         # add log format
         # LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
         callerframerecord = inspect.stack()[1]
                                             
-        frame = callerframerecord[0]
+        # frame = callerframerecord[0]
         # info = inspect.getframeinfo(frame)
         # line=str(traceback.extract_stack()[-1][1])
         # info.filename

@@ -93,19 +93,24 @@ def bytes_to_key(data, salt, output=48):
     return final_key[:output]
 
 def encrypt(message, passphrase):
-    salt = Random.new().read(8)
-    key_iv = bytes_to_key(passphrase, salt, 32+16)
-    key = key_iv[:32]
-    iv = key_iv[32:]
-    aes = AES.new(key, AES.MODE_CBC, iv)
-    return base64.b64encode(b"Salted__" + salt + aes.encrypt(pad(message)))
-
+    try:
+        salt = Random.new().read(8)
+        key_iv = bytes_to_key(passphrase, salt, 32+16)
+        key = key_iv[:32]
+        iv = key_iv[32:]
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return base64.b64encode(b"Salted__" + salt + aes.encrypt(pad(message)))
+    except (Exception) as err:
+        return -1
 def decrypt(encrypted, passphrase):
-    encrypted = base64.b64decode(encrypted)
-    assert encrypted[0:8] == b"Salted__"
-    salt = encrypted[8:16]
-    key_iv = bytes_to_key(passphrase, salt, 32+16)
-    key = key_iv[:32]
-    iv = key_iv[32:]
-    aes = AES.new(key, AES.MODE_CBC, iv)
-    return unpad(aes.decrypt(encrypted[16:]))
+    try:
+        encrypted = base64.b64decode(encrypted)
+        assert encrypted[0:8] == b"Salted__"
+        salt = encrypted[8:16]
+        key_iv = bytes_to_key(passphrase, salt, 32+16)
+        key = key_iv[:32]
+        iv = key_iv[32:]
+        aes = AES.new(key, AES.MODE_CBC, iv)
+        return unpad(aes.decrypt(encrypted[16:]))
+    except (Exception) as err:
+        return -1

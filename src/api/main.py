@@ -13,17 +13,18 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
                 ("src"))
 # import models
 from configs.config import Config
-from utils.logger_manager import setup_logger
+
+# from utils.logger_manager import setup_logger
 
 # from database.db import engine
-LOGGER = setup_logger(module_name='API')
+# LOGGER = setup_logger(module_name='API')
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 API_PORT= Config.API_PORT
 
 print(f'API_DOCS_USERNAME: {API_DOCS_USERNAME}')
 import http
-import logging
+# import logging
 import secrets
 import time
 
@@ -57,12 +58,12 @@ from starlette.types import ASGIApp
 # from utils import LOGGER, path_directory_relative
 
 # models.Base.metadata.create_all(bind=engine)
-class PartnerAvailabilityMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        raise CustomException(
-            status.HTTP_503_SERVICE_UNAVAILABLE, 'Partner services is unavailable.'
-        )
-        return await call_next(request)
+# class PartnerAvailabilityMiddleware(BaseHTTPMiddleware):
+#     async def dispatch(self, request, call_next):
+#         raise CustomException(
+#             status.HTTP_503_SERVICE_UNAVAILABLE, 'Partner services is unavailable.'
+#         )
+#         return await call_next(request)
 app = FastAPI(
     title="FastAPI",
     description="IPC SCADA",
@@ -78,27 +79,27 @@ app = FastAPI(
 
 origins = ["*"]
 security = HTTPBasic()
-async def log_request_middleware(request: Request, call_next):
-    """
-    This middleware will log all requests and their processing time.
-    E.g. log:
-    0.0.0.0:1234 - GET /ping 200 OK 1.00ms
-    """
-    # logger.debug("middleware: log_request_middleware")
-    url = f"{request.url.path}?{request.query_params}" if request.query_params else request.url.path
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = (time.time() - start_time) * 1000
-    formatted_process_time = "{0:.2f}".format(process_time)
-    host = getattr(getattr(request, "client", None), "host", None)
-    port = getattr(getattr(request, "client", None), "port", None)
-    try:
-        status_phrase = http.HTTPStatus(response.status_code).phrase
-    except ValueError:
-        status_phrase=""
-    # logger.info(f'{host}:{port} - "{request.method} {url}" {response.status_code} {status_phrase} {formatted_process_time}ms')
-    return response
-app.middleware("http")(log_request_middleware)
+# async def log_request_middleware(request: Request, call_next):
+#     """
+#     This middleware will log all requests and their processing time.
+#     E.g. log:
+#     0.0.0.0:1234 - GET /ping 200 OK 1.00ms
+#     """
+#     # logger.debug("middleware: log_request_middleware")
+#     url = f"{request.url.path}?{request.query_params}" if request.query_params else request.url.path
+#     start_time = time.time()
+#     response = await call_next(request)
+#     process_time = (time.time() - start_time) * 1000
+#     formatted_process_time = "{0:.2f}".format(process_time)
+#     host = getattr(getattr(request, "client", None), "host", None)
+#     port = getattr(getattr(request, "client", None), "port", None)
+#     try:
+#         status_phrase = http.HTTPStatus(response.status_code).phrase
+#     except ValueError:
+#         status_phrase=""
+#     # logger.info(f'{host}:{port} - "{request.method} {url}" {response.status_code} {status_phrase} {formatted_process_time}ms')
+#     return response
+# app.middleware("http")(log_request_middleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -119,16 +120,16 @@ app.include_router(uploadChannel_router.router)
 app.include_router(project_router.router)
 # 
 
-class CustomException(Exception):
-    def __init__(self, code: int, message: str):
-        self.code = code
-        self.message = message
-@app.exception_handler(CustomException)
-async def custom_exception_handler(request: Request, exc: CustomException):
-    return JSONResponse(
-        status_code=exc.code,
-        content={"message": f"Exception Occurred! Reason -> {exc.message}"},
-    )
+# class CustomException(Exception):
+#     def __init__(self, code: int, message: str):
+#         self.code = code
+#         self.message = message
+# @app.exception_handler(CustomException)
+# async def custom_exception_handler(request: Request, exc: CustomException):
+#     return JSONResponse(
+#         status_code=exc.code,
+#         content={"message": f"Exception Occurred! Reason -> {exc.message}"},
+#     )
 # Describe functions before writing code
 # /**
 # 	 * @description get current username
@@ -217,13 +218,13 @@ def root():
 @app.on_event("startup")
 async def startup():
     print("startup ---------")
-    LOGGER.info("--- Start up App ---")
+    # LOGGER.info("--- Start up App ---")
 
     
 @app.on_event("shutdown")
 async def shutdown():
     print("shutdown ---------")
-    LOGGER.error("--- Shutdown App ---")
+    # LOGGER.error("--- Shutdown App ---")
 
 
 if __name__ == '__main__':
