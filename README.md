@@ -398,3 +398,57 @@ sysData=
 }
 python D:\NEXTWAVE\project\ipc_api\main.py
 pm2 start D:\NEXTWAVE\project\ipc_api\src/deviceDriver/ModbusTCP.py -f  --name "TCP" -- 296
+pipeline {
+    agent any
+
+    stages {
+        stage('Hello') {
+            steps {
+                checkout scmGit(branches: [[name: 'Dev-Vu']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Eli-J-Devco/ipc_api.git']])
+            }
+        }
+        stage('install'){
+            steps{
+                sh 'sudo rm -rf /sources/python/ipc_api/'
+                echo 'installing libraries'
+                sh 'pip3 install -r requirements.txt'
+                sh 'echo 123654789 | sudo -S apt-get install python3-tk'
+                sh 'echo 123654789 | sudo ufw allow 1883'
+                sh 'echo 123654789 | sudo ufw allow 3000'
+                sh 'echo 123654789 | sudo ufw allow 3001'
+            }
+        }
+        stage('Build') {
+            steps {
+                git branch: 'Dev-Vu', url: 'https://github.com/Eli-J-Devco/ipc_api.git'
+                //sh 'sudo python3 main.py'
+            }
+        }
+        stage('product') {
+            steps {
+                
+                //sh 'echo 123654789 | sudo cp -rf /var/lib/jenkins/workspace/ipc_api/ /sources/python/ipc_api/ '
+                sh 'echo 123654789 | sudo cp -rf /var/lib/jenkins/workspace/ipc_api/ /sources/python/'
+                // sh 'sudo chmod -R 777 /sources/python/ipc_api/'
+                sh 'sudo python3 /sources/python/ipc_api/main.py'
+            }
+        }
+        // stage('Build') {
+        //     steps {
+        //         git branch: 'Dev-Vu', url: 'https://github.com/Eli-J-Devco/ipc_api.git'
+        //         sh 'pyinstaller main.spec'
+                
+        //     }
+        // }
+        //  stage('Deliver') { // (1)
+        //     steps {
+        //         sh "pyinstaller --onefile test/test9.py" // (2)
+        //     }
+        //     post {
+        //         success {
+        //             archiveArtifacts 'dist/test9' // (3)
+        //         }
+        //     }
+        // }
+    }
+}
