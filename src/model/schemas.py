@@ -20,12 +20,19 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 
 # from api.domain.deviceList.schemas import DeviceListBase, DeviceListOut
 
-
 # from model.schemas import (PointBase, PointByteOrder, PointDataType,
 #                            PointOutBase, PointUnit, RegisterListBase)
-
+# import api.domain.deviceList.schemas as deviceList_schemas
 
 # ----------------------------------------------------
+
+class type_protocol(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(..., alias='Protocol')
+    class Config:
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
 # <- Config_information ->
 class ConfigInformationBase(BaseModel):
     # id : int
@@ -217,19 +224,19 @@ class DeviceTypeBase(BaseModel):
         orm_mode = True
         
 # <- Communication ->
-class CommunicationBase(BaseModel):
-    name: Optional[str] = None
-    namekey: Optional[str] = None
-    id_driver_list: Optional[int] = None
-    id_type_baud_rates: Optional[int] = None
-    id_type_parity: Optional[int] = None
-    id_type_stopbits: Optional[int] = None
-    id_type_timeout: Optional[int] = None
-    id_type_debug_level: Optional[int] = None
-    # driver_list: DeviceListOut
-    # note1: str
-    # note1: str
-    # status: bool = True
+# class CommunicationBase(BaseModel):
+#     name: Optional[str] = None
+#     namekey: Optional[str] = None
+#     id_driver_list: Optional[int] = None
+#     id_type_baud_rates: Optional[int] = None
+#     id_type_parity: Optional[int] = None
+#     id_type_stopbits: Optional[int] = None
+#     id_type_timeout: Optional[int] = None
+#     id_type_debug_level: Optional[int] = None
+#     # driver_list: DeviceListOut
+#     # note1: str
+#     # note1: str
+#     # status: bool = True
 
 # class CommunicationOut(CommunicationBase):
 #     id: int

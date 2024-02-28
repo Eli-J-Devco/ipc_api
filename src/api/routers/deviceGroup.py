@@ -23,13 +23,11 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-# import models
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='API')
 from api.domain.deviceGroup import models, schemas
 from database.db import engine, get_db
-# import oauth2
-# import schemas
-# import utils
-# from database import get_db
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               find_program_pm2, restart_pm2_change_template,
@@ -61,6 +59,7 @@ def get_all_group( db: Session = Depends(get_db) ):
         
     except Exception as err: 
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 
@@ -101,6 +100,7 @@ def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Sessio
         return result
     except Exception as err: 
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -131,6 +131,7 @@ def edit_each_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(
         return result_device_group
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -159,6 +160,7 @@ def create_group(device_group: schemas.DeviceGroupCreateBase,db: Session = Depen
         return new_device_group
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")
 # Describe functions before writing code
@@ -193,5 +195,6 @@ def delete_group(device_group: schemas.DeviceGroupBase,db: Session = Depends(get
             }
     except exc.SQLAlchemyError as err:
         print('Error : ',err)
+        LOGGER.error(f'--- {err} ---')
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Not have data")

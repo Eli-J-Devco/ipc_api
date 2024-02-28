@@ -15,7 +15,7 @@ from configs.config import Config
 
 # path=path_directory_relative("ipc_api") # name of project
 # sys.path.append(path)
-# 
+# #
 database_hostname =Config.DATABASE_HOSTNAME
 database_port = Config.DATABASE_PORT
 database_password =Config.DATABASE_PASSWORD
