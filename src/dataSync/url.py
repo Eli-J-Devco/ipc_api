@@ -14,15 +14,17 @@ import paho.mqtt.publish as publish
 
 sys.stdout.reconfigure(encoding='utf-8')
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
 
 import requests
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-                ("src"))
 from configs.config import Config
 from utils.libMySQL import *
+
+# from config import *
+# from libMySQL import *
 
 arr = sys.argv
 id_upload_chanel = arr
@@ -124,8 +126,8 @@ def path_directory_relative(project_name):
     result=path_os[0:int(index_os)+len(string_find)]
     print("Path directory relative:", result)
     return result
-path=path_directory_relative("ipc_api") # name of project
-sys.path.append(path)
+# path=path_directory_relative("ipc_api") # name of project
+# sys.path.append(path)
 # Describe functions before writing code
 # /**
 # 	 * @description get_mybatis
@@ -1215,7 +1217,7 @@ async def main():
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     
-    result_mybatis = get_mybatis('/mybatis/logfile.xml')
+    result_mybatis = get_mybatis(path+'/mybatis/logfile.xml')
     try:
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_GETDATA_SERVER = result_mybatis["QUERY_GETDATA_SERVER"]
@@ -1351,6 +1353,5 @@ if __name__ == "__main__":
 # song phan gui url 1 file va nhieu file , mat server , mat connect sql , mat connect mqtt , ok 
 # song phan gui url 1 json va nhieu json , mat server , mat connect sql , mat connect mqtt , ok 
 # no co 1 loi la ket qua sql bi day se khong chay duoc phai chay cau lenh sql : UPDATE sync_data SET synced = DEFAULT, updatetime = DEFAULT , error = DEFAULT , number_of_time_retry = DEFAULT;
-
 
 

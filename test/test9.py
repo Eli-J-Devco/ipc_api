@@ -48,7 +48,7 @@ for role_item in data:
         }
 # print(len(screen_list))
 new_Data = [x for i, x in enumerate(screen_list) if x['id'] not in {y['id'] for y in screen_list[:i]}]
-print(new_Data)
+# print(new_Data)
 def convert_binary_auth(auth):
     try:
         result_auth=""
@@ -73,5 +73,5 @@ for item in new_Data:
       "description":item["description"],
     }
     new_role_screen.append(new_item)
-print(new_role_screen)
+# print(new_role_screen)
 # print(new_role_screen[0][])

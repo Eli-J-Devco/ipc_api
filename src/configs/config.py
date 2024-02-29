@@ -49,4 +49,10 @@ class Settings(BaseSettings):
     HEAD_FILE_LOG : str
     API_PORT : int
     PASSWORD_SECRET_KEY: str
+    URL_SERVER_SYNC : str
+    URL_SERVER_SYNC_FILE : str
+    FTPSERVER_HOSTNAME : str
+    FTPSERVER_PORT : int
+    FTPSERVER_USERNAME : str
+    FTPSERVER_PASSWORD : str
 Config = Settings()
