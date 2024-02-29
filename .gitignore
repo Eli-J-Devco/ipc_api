@@ -30,3 +30,5 @@ src/logs/
 backend_api/routers/__pycache__
 .venv
 __pycache__
+*.py
+D:\NEXTWAVE\project\ipc_api\src\dataSync\sync_file_sever.py
