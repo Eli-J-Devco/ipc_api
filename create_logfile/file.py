@@ -40,6 +40,7 @@ device_name = ""
 file_name = ""
 flag_mqtt = False
 count_mqtt = 0
+countMonitor = 0
 data_in_file = ""
 formatted_time1 = ""
 time_interval = ""
@@ -157,8 +158,7 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def Get_MQTT(host, port, topic, username, password):
-    global status_device    
+async def get_mqtt(host, port, topic, username, password):   
     global msg_device 
     global status_register
     global result_list
@@ -166,6 +166,7 @@ async def Get_MQTT(host, port, topic, username, password):
     result_values_dict = {}
     result_value = []
     result_point_id = []
+
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client :
@@ -198,18 +199,19 @@ async def Get_MQTT(host, port, topic, username, password):
                 if 'STATUS_REGISTER' not in mqtt_result:
                     return -1 
                 if 'POINT_LIST' not in mqtt_result:
-                    return -1 
-                status_device = mqtt_result['STATUS_DEVICE']        
+                    return -1        
+                
                 msg_device = mqtt_result['MSG_DEVICE']
                 status_register = mqtt_result['STATUS_REGISTER']
                 
                 for item in mqtt_result['POINT_LIST']:
                     value = str(item["Value"])
                     point_id = str(item["ItemID"])
-                                
-                    result_value.append(value)
-                    result_point_id.append(point_id)
-                                
+                    if countMonitor :
+                        result_value.append(value)
+                        result_point_id.append(point_id)
+                    else :
+                        pass
                 result_values_dict[device_id] = result_value, result_point_id
                 result_list = [
                     {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
@@ -229,7 +231,7 @@ async def Get_MQTT(host, port, topic, username, password):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic, username, password):
+async def create_filelog(sql_id,base_path,id_device,head_file):
 
     id_device_fr_sys = id_device[1]
     
@@ -239,8 +241,6 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
     global QUERY_INSERT_SYNC_DATA
     
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(id_device_fr_sys,))
-    count = array_count_point[0]['COUNT(*)']
     #---------------------------------------------------------------------------------------------------------------
     current_time = get_utc()
     current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
@@ -257,20 +257,18 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
     global data_in_file
     global file_name
     global formatted_time1
+    global countMonitor 
     time_online = current_time
     data_insert =""
-    data_mqtt = []
-    data_mqtts = []
     #-----------------------------------------------------
         
     for item in time_sync_data:
         type_file = item["type_protocol"]
         
     # File creation time 
-    sql_id_str = str(sql_id)
-    device_name = [item['name'] for item in result_all if item['id'] == sql_id][0]
     modbus_device = [item['rtu_bus_address'] for item in result_all if item['id'] == sql_id][0]
-    
+    array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(sql_id,))
+    count = array_count_point[0]['COUNT(*)']
     DictID = [item for item in result_list if item["id"] == sql_id]
     
     if DictID:
@@ -284,19 +282,22 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
         time_file = get_utc()
         time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
         formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
-        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
+        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.log'
         file_path = os.path.join(date_folder_path, file_name)
         source_file = date_folder_path + "/" + file_name
-        
+    
         if not data_to_write:
             data_in_file = ["" for i in range(count)]
         else:
             data_in_file = [str(val) for val in data_to_write]
-
+            
         with open(file_path, 'w') as file:
             formatted_time2 = "'" + time_file + "'"
             file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
-            
+            if countMonitor < 2 :
+                countMonitor += 1 
+            else :
+                pass
             # code write data in table sync data ------------------------------------------------------------------
             time_insert = get_utc()
             if not data_to_write:
@@ -323,21 +324,6 @@ async def Create_Filelog(sql_id,base_path,id_device,head_file,host, port, topic,
             else :
                 status_device ="OLD"
                 pass
-            data_mqtt={
-            "ID_DEVICE":sql_id_str,
-            "STATUS_DATA":status_device,
-            "STATUS_CHANNEL":status_file,
-            "FILE_NAME":file_name,
-            "Timestamp" :current_time,
-            "TimeOnline" :time_online,
-            "DATA_LOG":[data_in_file]
-            }
-            push_data_to_mqtt(host,
-                    port,
-                    topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
-                    username,
-                    password,
-                    data_mqtt)
             #----------------------------------------------------------------- 
     except Exception as e:
         status_file = "Fault"
@@ -361,6 +347,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     global result_list
     global formatted_time1
     global time_interval
+    global countMonitor
     
     current_time = get_utc()
     result_all = []
@@ -382,7 +369,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     if DictID:
         time_online = DictID[0]["time"]
         data = DictID[0]["data"]    
-    try:
+    try: 
         if formatted_time1 :
             data_mqtt={
                 "ID_DEVICE":sql_id,
@@ -398,14 +385,15 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
             status_file = "Fault"
             data_mqtt={
                 "ID_DEVICE":sql_id,
-                "STATUS_DATA":"loading",
-                "STATUS_CHANNEL":status_file,
-                "FILE_NAME":"None",
+                "STATUS_DATA":"OLD",
+                "STATUS_CHANNEL":"No files yet",
+                "FILE_NAME":"No files yet",
                 "TIME_STAMP" :current_time,
                 "TIME_ONLINE" :time_online,
                 "TIME_LOG": time_interval,
-                "DATA_LOG":data,
+                "DATA_LOG":"No files yet",
                 }
+
         # File creation time 
         sql_id_str = str(sql_id)
         device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
@@ -415,7 +403,6 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
                 username,
                 password,
                 data_mqtt)
-        # status_file = "Success"
     except Exception as err:
         print('Error monitoring_device : ',err)
         
@@ -427,7 +414,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
 # 	 * @param {}
 # 	 * @return  
 # 	 */ 
-async def Insert_Sync():
+async def insert_sync():
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global value_many
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
@@ -474,15 +461,11 @@ async def main():
     scheduler = AsyncIOScheduler()
     for item in result_all:
         sql_id = item["id"]
-        scheduler.add_job(Create_Filelog, 'cron',  minute = f'*/{int_number}', args=[sql_id,
+        scheduler.add_job(create_filelog, 'cron',  minute = f'*/{int_number}', args=[sql_id,
                                                                             FOLDER_PATH,
                                                                             arr,
                                                                             HEAD_FILE_LOG,
-                                                                            MQTT_BROKER,
-                                                                            MQTT_PORT,
-                                                                            MQTT_TOPIC_PUB,
-                                                                            MQTT_USERNAME,
-                                                                            MQTT_PASSWORD])
+                                                                            ])
         scheduler.add_job(monitoring_device, 'cron',  second = f'*/7' , args=[ sql_id,
                                                                                 arr,
                                                                                 HEAD_FILE_LOG,
@@ -491,11 +474,11 @@ async def main():
                                                                                 MQTT_TOPIC_PUB,
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
-    scheduler.add_job(Insert_Sync, 'cron',  minute = f'*/{int_number}')
+    scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}')
     scheduler.start()
     #-------------------------------------------------------
     tasks = []
-    tasks.append(asyncio.create_task(Get_MQTT(MQTT_BROKER,
+    tasks.append(asyncio.create_task(get_mqtt(MQTT_BROKER,
                                                             MQTT_PORT,
                                                             MQTT_TOPIC_SUB,
                                                             MQTT_USERNAME,
