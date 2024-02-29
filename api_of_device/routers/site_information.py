@@ -10,17 +10,18 @@ import os
 import subprocess
 from pathlib import Path
 
-import models
 import oauth2
 import psutil
 import schemas
 import serial.tools.list_ports as ports
 from async_timeout import timeout
-from database import get_db
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
+
+import models
+from database import get_db
 
 # from config import Config
 
@@ -38,16 +39,22 @@ router = APIRouter(
 # 	 * @return data (SiteInformOut)
 # 	 */
 @router.get('/{id}', response_model=schemas.SiteInformOut)
-def get_site_information(id: int, db: Session = Depends(get_db), ):
-    # ----------------------
-    site_information_query = db.query(models.Project_setup).filter(models.Project_setup.id == id).first()
-   
+def get_site_information(id: int, db: Session = Depends(get_db) ):
+    try:
+        
+        print('------------------------------------------')
+        print(f'{id}')
+        # ----------------------
+        site_information_query = db.query(models.Project_setup).filter(models.Project_setup.id == int(id)).first()
+        print(site_information_query)
+        print('+++++++++++++++++++++++++++++++')
+        if not site_information_query:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f"Site information with id: {id} does not exist")
 
-    if not site_information_query:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"Site information with id: {id} does not exist")
-
-    return site_information_query
+        return site_information_query
+    except (Exception) as err:
+        print(err)
 # Describe functions before writing code
 # /**
 # 	 * @description update site information
@@ -58,6 +65,8 @@ def get_site_information(id: int, db: Session = Depends(get_db), ):
 # 	 */
 @router.post("/update/{id}", response_model=schemas.SiteInformOut)
 def update_site_information(id: int,  updated_SiteInform: schemas.SiteInformUpdate,db: Session = Depends(get_db)):
+    
+    
     site_information_query = db.query(models.Project_setup).filter(models.Project_setup.id == id)
     if site_information_query.first() == None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

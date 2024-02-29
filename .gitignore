@@ -4,7 +4,7 @@
 /backend_api/__pycache__
 /__pycache__
 /api_of_device/__pycache__
-/api_of_device/routers/__pycache__
+/api_of_device/routers/__pycache__/
 vscode-extensions.list
 .env1
 .env2
@@ -12,11 +12,21 @@ vscode-extensions.list
 /api_of_device/logs
 api_of_device/logs/fastapi-efk.log
 create_alarm/__pycache__
-logs/
+/logs
+
 information_DB.md
 node_modules
-.env.development
-package-lock.json
-package.json
-requirements.txt
-vscode-extensions.list
+# .env.development
+# .env.production
+/build
+/dist
+# package.json
+# package-lock.json
+api_of_device/__pycache__/schemas.cpython-311.pyc
+src/utils/node_modules
+src/logs/
+# src/utils/package.json
+# src/utils/package-lock.json
+backend_api/routers/__pycache__
+.venv
+__pycache__

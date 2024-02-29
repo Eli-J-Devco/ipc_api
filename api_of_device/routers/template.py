@@ -25,16 +25,16 @@ from sqlalchemy import exc
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
-from utils import (LOGGER, create_device_group_rs485_run_pm2,
+from utils import (LOGGER, cov_xml_sql, create_device_group_rs485_run_pm2,
                    create_program_pm2, delete_program_pm2, find_program_pm2,
-                   get_mybatis, path, restart_pm2_change_template,
-                   restart_pm2_update_template, restart_program_pm2,
-                   restart_program_pm2_many)
+                   get_mybatis, path, path_directory_relative,
+                   restart_pm2_change_template, restart_pm2_update_template,
+                   restart_program_pm2, restart_program_pm2_many)
 
 import models
 from database import get_db
 
-LOGGER = logging.getLogger(__name__)
+# LOGGER = logging.getLogger(__name__)
 # # setup root logger
 # logger_setup = LoggerSetup()
 # # get logger for module
@@ -732,3 +732,37 @@ def export_file(id_template: Optional[int] = Body(embed=True), db: Session = Dep
         print(f'Error: {err}')
         LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@router.get("/charting/")
+async def charting(db: Session = Depends(get_db)):
+    try:
+        param={
+        "table_device_list":'device_list',
+        "status":1,
+        "groupInverter":["dev_00002","dev_00003","dev_00004","dev_00005","dev_00006",
+                        "dev_00296","dev_00303","dev_00304","dev_00305","dev_00306","dev_00307"]
+        }
+        # query_sql=""
+        # result=db.execute(query_sql)
+        # db.commit()
+        # print(result)
+        # query_sql= cov_xml_sql("selectDevice",param)
+        query_sql= cov_xml_sql("getDataIrradianceToday",param)
+        
+        
+        print(f'query_sql: {query_sql}')
+        
+        
+        result=db.execute(text(str(query_sql))).all()
+        
+        results_dict = [row._asdict() for row in result]
+        print(f'results_dict: {len(results_dict)}')
+        # print(result)
+        # template_query = db.query(models.datalog_inv1)
+        # result_template=template_query.all()
+        # print(result_template[0].__dict__)
+        
+        
+        return {"message": "successfully added vote"}
+    except (Exception) as err:
+        LOGGER.error(f'--- {err} ---')

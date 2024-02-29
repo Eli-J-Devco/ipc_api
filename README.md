@@ -241,10 +241,16 @@ ExecStart=usr/bin/python3 /home/ipc/ipc_api/main.py
 [Install]
 WantedBy=multi-user.target
 
+sudo systemctl disable ipc.service
 sudo systemctl daemon-reload
 sudo systemctl enable ipc.service
 sudo systemctl start ipc.service
 sudo systemctl status ipc.service
+
+<!-- Running A Python Script At Boot Using Cron -->
+sudo crontab -e
+@reboot sudo /usr/bin/python3 /home/ipc/ipc_api/main.py >> /var/log/ipc_api.log 2>&1
+
 <!--  -->
 1 Operation not permitted
 2 No such file or directory
@@ -283,6 +289,11 @@ sudo systemctl status ipc.service
 162 System time changed, caused logger to restart logging for intervals.
 163 System auto-restart
 164 Log entry corrupt
+<!-- Linux root -->
+How do I set the root password 
+sudo -i passwd
+123654789
+
 <!--  Enter password sudo -->
 echo [password] | sudo ...
 <!--  wmi pyuac -->
@@ -375,5 +386,69 @@ Ctrl + Shift +LO
 15012024 config_information -> add row id 270 -272
 15012024 device_list -> all On Update and On Delete set = Set null
 15012024 device_group -> On Update and On Delete set = Set null
+sysData=
+{
+  "id_upload_channel":1,
+  "id_device":1,
+  "list":[
+    {"id": "2024-01-10 04:06:30","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"},
+    {"id": "2024-02-05 04:24:00","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"},
+    {"id": "2024-02-05 04:36:00","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"}
+  ]
+}
+python D:\NEXTWAVE\project\ipc_api\main.py
+pm2 start D:\NEXTWAVE\project\ipc_api\src/deviceDriver/ModbusTCP.py -f  --name "TCP" -- 296
+pipeline {
+    agent any
 
-
+    stages {
+        stage('Hello') {
+            steps {
+                checkout scmGit(branches: [[name: 'Dev-Vu']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/Eli-J-Devco/ipc_api.git']])
+            }
+        }
+        stage('install'){
+            steps{
+                sh 'sudo rm -rf /sources/python/ipc_api/'
+                echo 'installing libraries'
+                sh 'pip3 install -r requirements.txt'
+                sh 'echo 123654789 | sudo -S apt-get install python3-tk'
+                sh 'echo 123654789 | sudo ufw allow 1883'
+                sh 'echo 123654789 | sudo ufw allow 3000'
+                sh 'echo 123654789 | sudo ufw allow 3001'
+            }
+        }
+        stage('Build') {
+            steps {
+                git branch: 'Dev-Vu', url: 'https://github.com/Eli-J-Devco/ipc_api.git'
+                //sh 'sudo python3 main.py'
+            }
+        }
+        stage('product') {
+            steps {
+                
+                //sh 'echo 123654789 | sudo cp -rf /var/lib/jenkins/workspace/ipc_api/ /sources/python/ipc_api/ '
+                sh 'echo 123654789 | sudo cp -rf /var/lib/jenkins/workspace/ipc_api/ /sources/python/'
+                // sh 'sudo chmod -R 777 /sources/python/ipc_api/'
+                sh 'sudo python3 /sources/python/ipc_api/main.py'
+            }
+        }
+        // stage('Build') {
+        //     steps {
+        //         git branch: 'Dev-Vu', url: 'https://github.com/Eli-J-Devco/ipc_api.git'
+        //         sh 'pyinstaller main.spec'
+                
+        //     }
+        // }
+        //  stage('Deliver') { // (1)
+        //     steps {
+        //         sh "pyinstaller --onefile test/test9.py" // (2)
+        //     }
+        //     post {
+        //         success {
+        //             archiveArtifacts 'dist/test9' // (3)
+        //         }
+        //     }
+        // }
+    }
+}
