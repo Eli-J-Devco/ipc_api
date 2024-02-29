@@ -148,6 +148,8 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
 def convert_register_to_point_list(point_list_item,data_of_register):
     try:
         point_list={}
+        # print(f'data_of_register: {data_of_register}')
+        # print(f'point_list_item: {point_list_item}')
         match point_list_item['value_datatype']:
             case 3: # Short Signed 16-bit
                 result = []
@@ -187,15 +189,225 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                 else:  
                     return point_list
             case 4: # Word Unsigned 16-bit
-                return {}
+                result = []
+                point_value :int = None
+                for itemD in data_of_register:
+                    if point_list_item['register'] == itemD["MRA"]:
+                        result.append(itemD["Value"])
+                # print(f'result: --- {result}')        
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_16bit_uint()
+                    
+                else:
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1,
+                                            MsgError="Not found register"
+                                            )
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return point_list
             case 5: # Long Signed 32-bit
-                return {}
+                
+                result = []
+                point_value :int = None
+                Rn=[]
+                R1=int(point_list_item['register'])
+                if R1:
+                    R2=R1+1
+                    Rn.append(R1)
+                    Rn.append(R2)
+                for item in Rn:
+                    for itemD in data_of_register:
+                        if item == itemD["MRA"]:
+                            result.append(itemD["Value"])      
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_32bit_int()
+                    
+                else:
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1,
+                                            MsgError="Not found register"
+                                            )
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return point_list
             case 6: # DWord Unsigned 32-bit
-                return {}
+                result = []
+                point_value :int = None
+                Rn=[]
+                R1=int(point_list_item['register'])
+                if R1:
+                    R2=R1+1
+                    Rn.append(R1)
+                    Rn.append(R2)
+                for item in Rn:
+                    for itemD in data_of_register:
+                        if item == itemD["MRA"]:
+                            result.append(itemD["Value"])      
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_32bit_uint()
+                    
+                else:
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1,
+                                            MsgError="Not found register"
+                                            )
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return point_list
             case 7: # LLong Signed 64-bit
-                return {}
+                result = []
+                point_value :int = None
+                Rn=[]
+                R1=int(point_list_item['register'])
+                if R1:
+                    R2=R1+1
+                    R3=R1+2
+                    R4=R1+3
+                    
+                    Rn.append(R1)
+                    Rn.append(R2)
+                    Rn.append(R3)
+                    Rn.append(R4)
+                for item in Rn:
+                    for itemD in data_of_register:
+                        if item == itemD["MRA"]:
+                            result.append(itemD["Value"])      
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_64bit_int()
+                    
+                else:
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1,
+                                            MsgError="Not found register"
+                                            )
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return point_list
             case 8: # QWord Unsigned 64-bit 
-                return {}
+                result = []
+                point_value :int = None
+                Rn=[]
+                R1=int(point_list_item['register'])
+                if R1:
+                    R2=R1+1
+                    R3=R1+2
+                    R4=R1+3
+                    
+                    Rn.append(R1)
+                    Rn.append(R2)
+                    Rn.append(R3)
+                    Rn.append(R4)
+                for item in Rn:
+                    for itemD in data_of_register:
+                        if item == itemD["MRA"]:
+                            result.append(itemD["Value"])      
+                if len(result) > 0:
+                    
+                    decoder = BinaryPayloadDecoder.fromRegisters(
+                                                result, byteorder=Endian.Big, wordorder=Endian.Big)
+                    point_value = decoder.decode_64bit_uint()
+                    
+                else:
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'],
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            point_value, 
+                                            1,
+                                            MsgError="Not found register"
+                                            )
+                if point_value != None:
+                    point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                    point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                    point_list=point_object(
+                                            # point_list_item['id_pointkey'], 
+                                            point_list_item['id'], 
+                                            point_list_item['unit_desc'], 
+                                            point_list_item['name_units'], 
+                                            func_check_float(point_value), 
+                                            0)
+                    
+                    return point_list 
+                else:  
+                    return point_list
             case 9: # Float 32-bit real value IEEE-754       
                 result = []
                 point_value : float = None
