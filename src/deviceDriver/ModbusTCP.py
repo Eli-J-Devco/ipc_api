@@ -84,14 +84,15 @@ def getUTC():
 # 	 * @param {}
 # 	 * @return data {ItemID, Name, Units, Value, Timestamp,Quality}
 # 	 */
-def point_object(ItemID,Name,Units,Value,Quality,Timestamp=None):
+def point_object(ItemID,Name,Units,Value,Quality,Timestamp=None,MsgError=""):
     
     return {"ItemID": ItemID, 
             "Name": Name, 
             "Units": Units, 
             "Value":  Value, 
             "Timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
-            "Quality":Quality
+            "Quality":Quality,
+            "MsgError":MsgError
             }
 # Describe functions before writing code
 # /**
@@ -154,7 +155,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                 for itemD in data_of_register:
                     if point_list_item['register'] == itemD["MRA"]:
                         result.append(itemD["Value"])
-                        
+                # print(f'result: --- {result}')        
                 if len(result) > 0:
                     
                     decoder = BinaryPayloadDecoder.fromRegisters(
@@ -168,7 +169,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
-                                            1)
+                                            1,
+                                            MsgError="Not found register"
+                                            )
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
@@ -182,7 +185,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     
                     return point_list 
                 else:  
-                    return {}
+                    return point_list
             case 4: # Word Unsigned 16-bit
                 return {}
             case 5: # Long Signed 32-bit
@@ -213,7 +216,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
-                                            1)      
+                                            1,
+                                            MsgError="Not found register"
+                                            )      
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
@@ -227,7 +232,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     
                     return point_list 
                 else:
-                    return {}  
+                    return point_list 
                     
             case 10: # Double 64-bit real value
                 return {}
@@ -568,6 +573,7 @@ async def device(ConfigPara):
                                             item['Value'], 
                                             1,
                                             item['Timestamp'], 
+                                            MsgError="Error Device"
                                             ))
                     point_list_device=point_list_error
                     await asyncio.sleep(5)
@@ -602,7 +608,9 @@ async def monitoring_device(host, port,topic, username, password
                 "TIME_STAMP":getUTC(),
                 "MSG_DEVICE":msg_device,
                 "STATUS_REGISTER":status_register_block,
+                "POINT_COUNT":len(point_list_device),
                 "POINT_LIST":point_list_device,
+                
             }
             if device_name !="":
                 func_mqtt_public(   host,

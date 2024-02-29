@@ -59,14 +59,15 @@ def func_check_data_mybatis(data,item,object_name):
     except Exception as err:
       print('Error not find object mybatis')
       return ""
-def point_object(ItemID,Name,Units,Value,Quality,Timestamp=None):
+def point_object(ItemID,Name,Units,Value,Quality,Timestamp=None,MsgError=""):
     
     return {"ItemID": ItemID, 
             "Name": Name, 
             "Units": Units, 
             "Value":  Value, 
             "Timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
-            "Quality":Quality
+            "Quality":Quality,
+            "MsgError":MsgError
             }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
@@ -165,7 +166,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
-                                            1)
+                                            1,
+                                            MsgError="Not found register")
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
@@ -179,7 +181,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     
                     return point_list 
                 else:  
-                    return {}
+                    return point_list
             case 4: # Word Unsigned 16-bit
                 return {}
             case 5: # Long Signed 32-bit
@@ -210,7 +212,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                             point_list_item['unit_desc'], 
                                             point_list_item['name_units'], 
                                             point_value, 
-                                            1)      
+                                            1,
+                                            MsgError="Not found register"
+                                            )      
                 if point_value != None:
                     point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
                     point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
@@ -224,7 +228,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     
                     return point_list 
                 else:
-                    return {}  
+                    return point_list
                     
             case 10: # Double 64-bit real value
                 return {}
