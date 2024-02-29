@@ -82,6 +82,7 @@ def MySQL_Select(query,val):
     else :
         while True :
             time.sleep(1)
+            
 def MySQL_Insert(query):
     db = create_server_connection(
     DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
