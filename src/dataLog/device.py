@@ -266,7 +266,10 @@ async def Insert_TableDevice():
             # Write data to corresponding devices in the database
             time_insert_dev = get_utc()
             value_insert = (time_insert_dev, sql_id) + tuple(data)
-
+            
+            # Replace 'None' with 'NULL' in the data tuple
+            value_insert = tuple(None if x == 'None' else x for x in value_insert)
+            
             # Create Query
             columns = ["time", "id_device"]
             for i in range(len(point_id)):

@@ -587,18 +587,14 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                 print("json" ,url )
                 try:
                     if json_data or files:
-                        if type_file == "URL_TSL" :
-                            response = requests.post(url, json=json_data) 
+                        if type_file == "URL" :
+                            # response = requests.post(url, json=json_data) 
                             print("="*40 , "json" ,"="*40 )
                             print("json" ,json_data )
-                        elif type_file == "URL" :
-                            response = requests.post(url, files=files , data=headers)
+                        elif type_file == "FILELOG" :
+                            # response = requests.post(url, files=files , data=headers)
                             print("="*40 , "File" ,"="*40 )
                             print("File" ,device.file_name )
-                            print("="*40 , "Headers" ,"="*40 )
-                            print("Headers" ,headers )
-                            print("="*40 , "status_code" ,"="*40 )
-                            print("status_code" ,response.status_code )
                         if response.status_code == 200:
                             # Step 3 : update data error in database
                             MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
@@ -736,16 +732,10 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                     
                     try:
                         if json_data_total:
-                            if type_file == "URL_TSL" :
+                            if type_file == "URL" :
                                 response = requests.post(url, json=json_data_total)# Sử dụng tham số "json" để tự động chuyển đổi dữ liệu thành JSON
-                            elif type_file == "URL" :
+                            elif type_file == "FILELOG" :
                                 response = requests.post(url, files = files , data = headers)
-                            print("="*40 , "File" ,"="*40 )
-                            print("File" ,devices[i].file_name )
-                            print("="*40 , "Headers" ,"="*40 )
-                            print("Headers" ,headers )
-                            print("="*40 , "status_code" ,"="*40 )
-                            print("status_code" ,response.status_code )
                             if response.status_code == 200:
                                 # Step 3 : update data sync in database
                                 MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
@@ -1266,7 +1256,7 @@ async def main():
     try: 
         result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
         number_file = result1[0]["remaining_files"]
-        if number_file <= 20 :
+        if number_file <= 2000 :
             multifile = False 
         else :
             multifile = True 
