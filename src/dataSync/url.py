@@ -265,7 +265,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
         type_file = item["type_protocol"]
         
     class MyVariable1:
-        def __init__(self, time_id, file_name, number_time_retry, id_device,id_device_str, device_name, error, result_error, status):
+        def __init__(self, time_id, file_name, number_time_retry, id_device,id_device_str, device_name, error, result_error, status ):
             self.time_id = time_id
             self.file_name = file_name
             self.number_time_retry = number_time_retry
@@ -382,7 +382,9 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
+async def sync_ServerURL_Database():
+    
+    print("="*40 , "ServerURL" , "="*40)
     # Step 1 : Read data from database 
     current_time = get_utc()
     
@@ -390,7 +392,6 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     global data_sent_server
     global status_sync
     global count
-    global number_file 
     global multifile
     global time_retry
     global vals
@@ -413,6 +414,7 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     devices = []
     file = []
     files = []
+    array_files = []
     name_serial_device = ""
     url = ""
     # array_file = []
@@ -424,21 +426,24 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     global json_datas
     file = {}
     json_datas = {}
-    
+    merged_content = ""
     global number_device
     global array_file
-    global array_files
+    # global array_files
     result1 =[]
     result2 =[]
     result3 =[]
     by_pass = 0 
+    response =""
+    number_file =""
 
     class MyVariable2:
-        def __init__(self, time_id, id_device, modbusdevice, source, file_name, file_content, file_size, datasql, data_file):
+        def __init__(self, time_id, id_device, modbusdevice, source, ensuredir, file_name, file_content, file_size, datasql, data_file):
             self.time_id = time_id
             self.id_device = id_device
             self.modbusdevice = modbusdevice
             self.source = source
+            self.ensuredir = ensuredir
             self.file_name = file_name
             self.file_content = file_content
             self.file_size = file_size
@@ -446,7 +451,7 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
             self.data_file = data_file
 
     for _ in range(number_device):
-        device = MyVariable2("", "", "", "", "", "", 0 , "", "")
+        device = MyVariable2("", "", "", "", "","", "", 0 , "", "")
         devices.append(device)
     
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
@@ -455,6 +460,12 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
         
     result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
     number_file = result1[0]["remaining_files"]
+    print("="*40 , "number_file" , "="*40)
+    print("number_file" ,number_file )
+    if number_file <= 20 :
+        multifile = False 
+    else :
+        multifile = True 
     
     result2 = await MySQL_Select_v1(QUERY_SELECT_SERIAL_NUMBER)
     name_serial_device = result2[0]["serial_number_port"] 
@@ -463,6 +474,373 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
     url = result3[0]["uploadurl"] 
     
     if multifile is False :
+        print("="*40 , "ServerURL Sigle" , "="*40)
+        if count == 0 :
+            try :
+                data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
+                if data_sync_server :
+                    data_sync_dict = data_sync_server[0]
+                    if 'id' not in data_sync_dict:
+                        return -1 
+                    if 'id_device' not in data_sync_dict:
+                        return -1 
+                    if 'modbusdevice' not in data_sync_dict:
+                        return -1 
+                    if 'data' not in data_sync_dict:
+                        return -1 
+                    if 'filename' not in data_sync_dict:
+                        return -1
+                    if 'source' not in data_sync_dict:
+                        return -1
+                    if 'data' not in data_sync_dict:
+                        return -1
+                    
+                    time_id_temp = data_sync_dict['id']        
+                    id_device_temp = data_sync_dict['id_device']
+                    modbusdevice_temp = data_sync_dict['modbusdevice']
+                    file_name_temp = data_sync_dict['filename']  
+                    source_temp = data_sync_dict['source']
+                    datasql_temp = data_sync_dict['data']
+                    
+                    data_sent_server = {"id": time_id_temp, "id_device": id_device_temp, "modbusdevice": modbusdevice_temp, "filename": file_name_temp,"source": source_temp,"data_sql": datasql_temp}
+                    if len(datasql_temp) == 0 :
+                        upErr_Database(time_id_temp,id_device_temp) 
+            except Exception as e: 
+                print('An exception occurred',e)
+        else :
+            data_sent_server = data_sent_server
+        # Step 2 : Sent data to server 
+        if data_sent_server : 
+            if 'id' not in data_sent_server:
+                return -1 
+            if 'id_device' not in data_sent_server:
+                return -1 
+            if 'modbusdevice' not in data_sent_server:
+                return -1 
+            if 'data_sql' not in data_sent_server:
+                return -1
+            
+            if (len(str(data_sent_server['id_device'])) > 0
+                and len(str(data_sent_server['modbusdevice'])) > 0
+                and len(data_sent_server["data_sql"]) > 0):
+                if isinstance(data_sent_server['id'], datetime.datetime):
+                    data_sent_server['id'] = data_sent_server['id'].strftime('%Y-%m-%d %H:%M:%S')
+                else:
+                    pass
+                data_sent_server["data_sql"] = data_sent_server["data_sql"].strip("'") 
+                device.time_id = data_sent_server['id']
+                device.id_device = data_sent_server["id_device"]
+                device.file_name = data_sent_server["filename"]
+                device.source = data_sent_server["source"]
+                device.datasql = data_sent_server["data_sql"]
+                if device.file_name and os.path.exists( device.source):
+                    with open(device.source, 'r') as file:
+                        device.file_content = file.read()
+                        device.file_size = os.path.getsize(device.source)
+                        if device.file_size > 0 :
+                            device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
+                        else :
+                            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                                upErr_Database(device.time_id,device.id_device)
+                                by_pass = 1 
+                            else:
+                                pass
+                else:
+                    upErr_Database(device.time_id,device.id_device)
+                    by_pass = 1    
+                if device.data_file : 
+                    array_file = device.file_content.split(',')
+                    # Tạo đối tượng JSON dựa trên mảng dữ liệu
+                    if name_serial_device :
+                        # ==================================Information sent json to server ==================================
+                        json_data = {
+                        "id_channel": id_device_fr_sys,
+                        "id_device": device.id_device,
+                        "serial_number_port" : name_serial_device,
+                        "datetime": current_time,
+                        'datas': {
+                            "time": array_file[0] if len(array_file) > 0 else None,
+                            "error": array_file[1] if len(array_file) > 1 else None,
+                            "high_alarm": array_file[2] if len(array_file) > 2 else None,
+                            "low_alarm": array_file[3] if len(array_file) > 3 else None
+                        }
+                    }
+                        # ==================================Information sent json to server ==================================
+                    else :
+                        pass
+
+                template_names = MySQL_Select(QUERY_GET_THE_KEY, (device.id_device,))
+
+                # Vòng lặp để thay đổi key
+                if template_names : 
+                    for i in range(4, len(array_file)):
+                        if i - 4 < len(template_names):
+                            key = template_names[i-4]
+                            value = array_file[i] if array_file[i] else None
+                            json_data["datas"][key['template_name']] = value
+                        else:
+                            print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
+                print("="*40 , "url" ,"="*40 )
+                print("json" ,url )
+                try:
+                    if json_data or files:
+                        if type_file == "URL" :
+                            response = requests.post(url, json=json_data) 
+                            print("="*40 , "json" ,"="*40 )
+                            print("json" ,json_data )
+                            print("="*40 , "status_code" ,"="*40 )
+                            print("status_code" ,response.status_code )
+                        if response.status_code == 200:
+                            # Step 3 : update data error in database
+                            MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
+                            try :
+                                print("="*40, "Reponse", "="*40)
+                                print(response.json())
+                                status_sync = 1
+                                count = 0 
+                            except json.JSONDecodeError:
+                                print("Empty response")
+                        else:
+                            print(response.json())
+                            status_sync = 0
+                            Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
+                except Exception as e:
+                    status_sync = 0 
+                    Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
+                    print('An exception occurred ',e)
+        else : 
+            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                upErr_Database(device.time_id,device.id_device)
+            pass
+    else :# There are a lot of files 
+        print("="*40 , "ServerURL Multi" , "="*40)
+        try :
+            if id_device_fr_sys :
+                data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,))
+            if data_sync_server :
+                for item in data_sync_server :
+                    data_sync_dict = item 
+                    
+                    time_id_temp = data_sync_dict['id']        
+                    id_device_temp = data_sync_dict['id_device']
+                    modbusdevice_temp = data_sync_dict['modbusdevice']
+                    file_name_temp = data_sync_dict['filename']  
+                    source_temp = data_sync_dict['source']
+                    datasql_temp = data_sync_dict['data']
+                    ensuredir_temp = data_sync_dict['ensuredir']
+                    
+                    data_sent_server = {"id": time_id_temp, "id_device": id_device_temp, "modbusdevice": modbusdevice_temp, "filename": file_name_temp,"source": source_temp,"data_sql": datasql_temp,"ensuredir": ensuredir_temp}
+                    data_sent_server_list.append(data_sent_server)
+                    if len(data_sent_server_list) == number_device :
+                        for i in range(number_device): 
+                            if len(str(data_sent_server_list[i]["modbusdevice"])) == 0 or len(data_sent_server_list[i]["data_sql"]) == 0 :
+                                upErr_Database(data_sent_server_list[i]["id"],data_sent_server_list[i]["id_device"]) 
+        except Exception as e: 
+            print('An exception occurred SQL',e)
+        else :
+            pass
+            data_sent_server_list = data_sent_server_list
+        #Step 2 : Sent data to server 
+        if (len(data_sent_server_list) == 10 and data_sent_server_list ): 
+            if (len(str(data_sent_server_list[i]['id_device'])) > 0 and len(str(data_sent_server_list[i]['modbusdevice'])) > 0 and len(data_sent_server_list[i]["data_sql"]) > 0 ):
+                
+                for i in range(number_device): 
+                    if isinstance(data_sent_server_list[i]['id'], datetime.datetime):
+                        data_sent_server_list[i]['id'] = data_sent_server_list[i]['id'].strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        pass
+                    data_sent_server_list[i]["data_sql"] = data_sent_server_list[i]["data_sql"].strip("'") 
+                    
+                    devices[i].time_id = data_sent_server_list[i]["id"]
+                    devices[i].id_device = data_sent_server_list[i]["id_device"]
+                    devices[i].file_name = data_sent_server_list[i]["filename"]
+                    devices[i].source = data_sent_server_list[i]["source"]
+                    devices[i].datasql = data_sent_server_list[i]["data_sql"]
+                    devices[i].ensuredir = data_sent_server_list[i]["ensuredir"]
+                    
+                    if devices[i].file_name and os.path.exists(devices[i].source):
+                        with open(devices[i].source, 'r') as file:
+                            devices[i].file_content = file.read()
+                            devices[i].file_size = os.path.getsize(devices[i].source)
+                            if devices[i].file_size > 0 and devices[i].file_content == devices[i].datasql:
+                                pass
+                            else :
+                                # upErr_Database(devices[i].time_id,devices[i].id_device)
+                                by_pass = 1 
+                    else:
+                        upErr_Database(devices[i].time_id,devices[i].id_device)
+                        by_pass = 1 
+                            
+                    array_file = devices[i].file_content.split(',')
+                    # Thu thập dữ liệu sau khi gửi data thành công thì update vào trong database 
+                    data_insert_many_temp = (current_time,devices[i].time_id ,id_device_fr_sys , devices[i].id_device)
+                    data_insert_many.append(data_insert_many_temp)
+                    # Thu thập thông tin khi xảy ra lỗi thì update số lần lỗi vào database
+                    val = (count,devices[i].time_id ,id_device_fr_sys ,devices[i].id_device)
+                    if count > 0 :
+                        vals.append(val)
+                    # Tạo đối tượng JSON dựa trên mảng dữ liệu từ thiết bị hiện tại
+                    if name_serial_device : 
+                    # ==================================Information sent json to server ==================================
+                        json_data_total = {
+                            "id_channel": id_device_fr_sys,
+                            "id_device": devices[i].id_device,
+                            "serial_number_port": name_serial_device,
+                            "datetime": current_time,
+                            "datas": {
+                                "time": array_file[0] if array_file and len(array_file) > 0 else None,
+                                "error": array_file[1] if array_file and len(array_file) > 1 else None,
+                                "high_alarm": array_file[2] if array_file and len(array_file) > 2 else None,
+                                "low_alarm": array_file[3] if array_file and len(array_file) > 3 else None
+                            }
+                        }
+                    # ==================================Information sent json to server ==================================
+                    else :
+                        pass
+
+                    template_names = MySQL_Select(QUERY_GET_THE_KEY, (devices[i].id_device,))
+
+                    # Vòng lặp để thay đổi key
+                    for i in range(4, len(array_file)):
+                        if i - 4 < len(template_names):
+                            key = template_names[i-4]
+                            value = array_file[i] if array_file[i] else None
+                            json_data_total["datas"][key['template_name']] = value
+                        else:
+                            # print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
+                            pass
+                    try:
+                        if json_data_total:
+                            if type_file == "URL" :
+                                response = requests.post(url, json=json_data_total)# Sử dụng tham số "json" để tự động chuyển đổi dữ liệu thành JSON
+                                print("="*40, "Json Sent Sever", "="*40)
+                                print(f"Json: {json_data_total}")
+                                print("="*40 , "status_code" ,"="*40 )
+                                print("status_code" ,response.status_code)
+                            if response.status_code == 200:
+                                # Step 3 : update data sync in database
+                                MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
+                                try :
+                                    print("="*40, "Response ", "="*40)
+                                    print(response.json())
+                                    status_sync = 1
+                                    count = 0 
+                                except json.JSONDecodeError:
+                                    print("Empty response")
+                            else:
+                                Executeup_NumberRetry_Database_Multies(time_retry)
+                                print(response.json())
+                                status_sync = 0
+                    except Exception as e:
+                        Executeup_NumberRetry_Database_Multies(time_retry)
+                        status_sync = 0 
+                        print('An exception occurred ',e)
+                else : 
+                    if i < len(devices) and len(devices[i].time_id) > 0 and len(str(devices[i].id_device)) > 0:
+                        upErr_Database(devices[i].time_id,devices[i].id_device)
+                    else :
+                        pass
+# Describe sync_Server_Database
+# /**
+# 	 * @description read data from database , send data to server , update data sent in database
+# 	 * @author bnguyen
+# 	 * @since 17-1-2023
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def sync_ServerFile_Database():
+    print("="*40 , "ServerFile" , "="*40)
+    # Step 1 : Read data from database 
+    current_time = get_utc()
+    
+    global id_upload_chanel
+    global data_sent_server
+    global status_sync
+    global count
+    global multifile
+    global time_retry
+    global vals
+    
+    global QUERY_SYNC_SERVER
+    global QUERY_TIME_RETRY
+    global QUERY_UPDATE_DATABASE
+    global QUERY_NUMER_FILE
+    global QUERY_SYNC_MULTIFILE_SERVER
+    global QUERY_GET_THE_KEY
+    global QUERY_SELECT_SERIAL_NUMBER
+    global QUERY_SELECT_URL
+    global QUERY_TIME_SYNC_DATA
+    
+    id_device_fr_sys = id_upload_chanel[1]
+    data_sync_server = []
+    template_names  = []
+    data_sent_server_list = []
+    data_sync_dict = []
+    devices = []
+    file = []
+    files = []
+    array_files = []
+    name_serial_device = ""
+    number_file = ""
+    url = ""
+    # array_file = []
+    # array_files = []
+    data_insert_many_temp = []
+    data_insert_many = []
+    val = []
+    global json_data 
+    global json_datas
+    file = {}
+    json_datas = {}
+    global number_device
+    global array_file
+    # global array_files
+    result1 =[]
+    result2 =[]
+    result3 =[]
+    by_pass = 0 
+    response = ""
+    merged_content = ""
+    count_merged = 0
+
+    class MyVariable3:
+        def __init__(self, time_id, id_device, modbusdevice, source, ensuredir, file_name, file_content, file_size, datasql, data_file):
+            self.time_id = time_id
+            self.id_device = id_device
+            self.modbusdevice = modbusdevice
+            self.source = source
+            self.ensuredir = ensuredir
+            self.file_name = file_name
+            self.file_content = file_content
+            self.file_size = file_size
+            self.datasql = datasql
+            self.data_file = data_file
+
+    for _ in range(number_device):
+        device = MyVariable3("", "", "", "", "","", "", 0 , "", "")
+        devices.append(device)
+    
+    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    for item in time_sync_data:
+        type_file = item["type_protocol"]
+        
+    result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
+    number_file = result1[0]["remaining_files"]
+    print("="*40 , "number_file" , "="*40)
+    print("number_file" ,number_file )
+    if number_file <= 200 :
+        multifile = False 
+    else :
+        multifile = True 
+    
+    result2 = await MySQL_Select_v1(QUERY_SELECT_SERIAL_NUMBER)
+    name_serial_device = result2[0]["serial_number_port"] 
+    
+    result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
+    url = result3[0]["uploadurl"] 
+    
+    if multifile is False and number_file != 0:
+        print("="*40 , "ServerFILE Sigle" , "="*40)
         if count == 0 :
             try :
                 data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
@@ -551,68 +929,29 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                     # ==================================Information sent file to server ==================================
                 else:
                     upErr_Database(device.time_id,device.id_device)
-                if device.data_file : 
-                    array_file = device.file_content.split(',')
-                    # Tạo đối tượng JSON dựa trên mảng dữ liệu
-                    if name_serial_device :
-                        # ==================================Information sent json to server ==================================
-                        json_data = {
-                        "id_channel": id_device_fr_sys,
-                        "id_device": device.id_device,
-                        "serial_number_port" : name_serial_device,
-                        "datetime": current_time,
-                        'datas': {
-                            "time": array_file[0] if len(array_file) > 0 else None,
-                            "error": array_file[1] if len(array_file) > 1 else None,
-                            "high_alarm": array_file[2] if len(array_file) > 2 else None,
-                            "low_alarm": array_file[3] if len(array_file) > 3 else None
-                        }
-                    }
-                        # ==================================Information sent json to server ==================================
-                    else :
-                        pass
-
-                template_names = MySQL_Select(QUERY_GET_THE_KEY, (device.id_device,))
-
-                # Vòng lặp để thay đổi key
-                if template_names : 
-                    for i in range(4, len(array_file)):
-                        if i - 4 < len(template_names):
-                            key = template_names[i-4]
-                            value = array_file[i] if array_file[i] else None
-                            json_data["datas"][key['template_name']] = value
-                        else:
-                            print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
-                print("="*40 , "url" ,"="*40 )
-                print("json" ,url )
                 try:
                     if json_data or files:
-                        if type_file == "URL_TSL" :
-                            response = requests.post(url, json=json_data) 
-                            print("="*40 , "json" ,"="*40 )
-                            print("json" ,json_data )
-                        elif type_file == "URL" :
-                            response = requests.post(url, files=files , data=headers)
-                            print("="*40 , "File" ,"="*40 )
-                            print("File" ,device.file_name )
-                            print("="*40 , "Headers" ,"="*40 )
-                            print("Headers" ,headers )
-                            print("="*40 , "status_code" ,"="*40 )
-                            print("status_code" ,response.status_code )
-                        if response.status_code == 200:
-                            # Step 3 : update data error in database
-                            MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
-                            try :
-                                print("="*40, "Reponse", "="*40)
-                                print(response.json())
-                                status_sync = 1
-                                count = 0 
-                            except json.JSONDecodeError:
-                                print("Empty response")
-                        else:
+                        response = requests.post(url, files=files , data=headers)
+                        print("="*40 , "File" ,"="*40 )
+                        print("File" ,device.file_name )
+                        print("="*40 , "Headers" ,"="*40 )
+                        print("Headers" ,headers )
+                        print("="*40 , "status_code" ,"="*40 )
+                        print("status_code" ,response.status_code )
+                    if response.status_code == 200:
+                        # Step 3 : update data error in database
+                        MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
+                        try :
+                            print("="*40, "Reponse", "="*40)
                             print(response.json())
-                            status_sync = 0
-                            Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
+                            status_sync = 1
+                            count = 0 
+                        except json.JSONDecodeError:
+                            print("Empty response")
+                    else:
+                        print(response.json())
+                        status_sync = 0
+                        Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                 except Exception as e:
                     status_sync = 0 
                     Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
@@ -621,7 +960,8 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
             if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
                 upErr_Database(device.time_id,device.id_device)
             pass
-    else :# There are a lot of files 
+    elif multifile is False and number_file != 0 :# There are a lot of files 
+        print("="*40 , "ServerFILE Multi" , "="*40)
         try :
             if id_device_fr_sys :
                 data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,))
@@ -635,8 +975,9 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                     file_name_temp = data_sync_dict['filename']  
                     source_temp = data_sync_dict['source']
                     datasql_temp = data_sync_dict['data']
+                    ensuredir_temp = data_sync_dict['ensuredir']
                     
-                    data_sent_server = {"id": time_id_temp, "id_device": id_device_temp, "modbusdevice": modbusdevice_temp, "filename": file_name_temp,"source": source_temp,"data_sql": datasql_temp}
+                    data_sent_server = {"id": time_id_temp, "id_device": id_device_temp, "modbusdevice": modbusdevice_temp, "filename": file_name_temp,"source": source_temp,"data_sql": datasql_temp,"ensuredir": ensuredir_temp}
                     data_sent_server_list.append(data_sent_server)
                     if len(data_sent_server_list) == number_device :
                         for i in range(number_device): 
@@ -663,7 +1004,8 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                     devices[i].file_name = data_sent_server_list[i]["filename"]
                     devices[i].source = data_sent_server_list[i]["source"]
                     devices[i].datasql = data_sent_server_list[i]["data_sql"]
-
+                    devices[i].ensuredir = data_sent_server_list[i]["ensuredir"]
+                    
                     if devices[i].file_name and os.path.exists(devices[i].source):
                         with open(devices[i].source, 'r') as file:
                             devices[i].file_content = file.read()
@@ -678,21 +1020,28 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                         by_pass = 1 
                             
                     array_file = devices[i].file_content.split(',')
-                    
+                    # Cộng dồn nội dung của 10 file thành một file duy nhất
+                    merged_content += ','.join(array_file) + '\n'
+                    count_merged += 1
+                    # Tạo đường dẫn đầy đủ tới tệp tin
+                    current_time = get_utc()
+                    time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+                    formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
+                    file_name = f'{"mb"}-{devices[i].id_device:03d}.{formatted_time1}.log'
+                    file_path = devices[i].ensuredir
+                    source_file = os.path.join(file_path, file_name)
+
+                    # Ghi nội dung từ merged_content vào tệp tin đã tạo
+                    with open(source_file, 'w', encoding='utf-8') as file:
+                        file.write(merged_content)
+
                     # ==================================Information sent file to server ==================================
                     headers = {
                         'SERIALNUMBER': name_serial_device,
-                        'MODBUSDEVICE': device.id_device,
-                        'MODBUSPORT': device.id_device,
+                        'MODBUSDEVICE': devices[i].id_device,
+                        'MODBUSPORT': devices[i].id_device,
                         'MODE': 'LOGFILEUPLOAD'
                     }
-                    # Gom file lại gửi len server 1 lần
-                    if os.path.exists(devices[i].source):
-                        file = ('files', ( devices[i].file_name, open( devices[i].source, 'rb'), 'text/plain'))
-                        files.append(file)  
-                    # ==================================Information sent file to server ==================================
-                    else:
-                        upErr_Database(devices[i].time_id,devices[i].id_device)
 
                     # Thu thập dữ liệu sau khi gửi data thành công thì update vào trong database 
                     data_insert_many_temp = (current_time,devices[i].time_id ,id_device_fr_sys , devices[i].id_device)
@@ -701,54 +1050,22 @@ async def sync_ServerURL_Database(URL_SERVER_SYNC, URL_SERVER_SYNC_FILE):
                     val = (count,devices[i].time_id ,id_device_fr_sys ,devices[i].id_device)
                     if count > 0 :
                         vals.append(val)
-                    # Tạo đối tượng JSON dựa trên mảng dữ liệu từ thiết bị hiện tại
-                    if name_serial_device : 
-                    # ==================================Information sent json to server ==================================
-                        json_data_total = {
-                            "id_channel": id_device_fr_sys,
-                            "id_device": devices[i].id_device,
-                            "serial_number_port": name_serial_device,
-                            "datetime": current_time,
-                            "datas": {
-                                "time": array_file[0] if array_file and len(array_file) > 0 else None,
-                                "error": array_file[1] if array_file and len(array_file) > 1 else None,
-                                "high_alarm": array_file[2] if array_file and len(array_file) > 2 else None,
-                                "low_alarm": array_file[3] if array_file and len(array_file) > 3 else None
-                            }
-                        }
-                    # ==================================Information sent json to server ==================================
-                    else :
-                        pass
-
-                    template_names = MySQL_Select(QUERY_GET_THE_KEY, (devices[i].id_device,))
-
-                    # Vòng lặp để thay đổi key
-                    for i in range(4, len(array_file)):
-                        if i - 4 < len(template_names):
-                            key = template_names[i-4]
-                            value = array_file[i] if array_file[i] else None
-                            json_data_total["datas"][key['template_name']] = value
-                        else:
-                            # print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
-                            pass
-                    print("="*40, "Json Sent Sever", "="*40)
-                    print(f"Json: {json_data_total}")
-                    
                     try:
-                        if json_data_total:
-                            if type_file == "URL_TSL" :
-                                response = requests.post(url, json=json_data_total)# Sử dụng tham số "json" để tự động chuyển đổi dữ liệu thành JSON
-                            elif type_file == "URL" :
-                                response = requests.post(url, files = files , data = headers)
-                            print("="*40 , "File" ,"="*40 )
-                            print("File" ,devices[i].file_name )
+                        if count_merged == 10 :
+                            file = ('LOGFILE', (file_name, open(source_file, 'rb'), 'text/plain'))
+                            files.append(file)
+                            # Gửi tệp tin lên server và đợi phản hồi 200
+                            response = requests.post(url, files=files, data=headers)
                             print("="*40 , "Headers" ,"="*40 )
                             print("Headers" ,headers )
                             print("="*40 , "status_code" ,"="*40 )
-                            print("status_code" ,response.status_code )
+                            print("status_code" ,response.status_code)
+                            
                             if response.status_code == 200:
                                 # Step 3 : update data sync in database
                                 MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
+                                count_merged = 0
+                                merged_content = ""
                                 try :
                                     print("="*40, "Response ", "="*40)
                                     print(response.json())
@@ -785,7 +1102,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
     global data_sent_server
     global status_sync
     global count
-    global number_file 
+    number_file 
     global multifile
     global count_FTP_Server
     global isUploadSuccess
@@ -830,8 +1147,12 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
 
     result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
     number_file = result1[0]["remaining_files"]
+    if number_file <= 20 :
+        multifile = False 
+    else :
+        multifile = True 
         
-    if multifile is False :
+    if multifile is False and number_file != 0 :
         if count == 0 :
             try :
                 data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
@@ -928,7 +1249,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
             if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
                 upErr_Database(device.time_id,device.id_device)
             pass
-    else :
+    elif multifile is False and number_file != 0 :
         print("che do ftp nhieu file")
         try :
             data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys))
@@ -1264,12 +1585,6 @@ async def main():
         print("Error not found data in file mybatis")
         return -1
     try: 
-        result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
-        number_file = result1[0]["remaining_files"]
-        if number_file <= 20 :
-            multifile = False 
-        else :
-            multifile = True 
         result = await MySQL_Select_v1(QUERY_TIME_RETRY)
         time_retry = result[0]["time_log_data_server"]
         result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
@@ -1296,31 +1611,60 @@ async def main():
         if time_sentdata and count <= 1 and type_file == "URL":
                 if 0 <= time_sentdata <= 24:
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[])
                     scheduler.start()
                 elif time_sentdata == 95 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[])
                     scheduler.start()
                 elif time_sentdata == 96 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[])
                     scheduler.start()
                 elif time_sentdata == 97 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{time_sentdata}",  args=[URL_SERVER_SYNC])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{time_sentdata}",  args=[])
                     scheduler.start()
                 elif time_sentdata == 98 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[])
                     scheduler.start()
                 elif time_sentdata == 99 :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[])
                     scheduler.start()
                 elif time_sentdata == 100 : # test cron 
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[URL_SERVER_SYNC,URL_SERVER_SYNC_FILE])
+                    scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[])
+                    scheduler.start()
+        if time_sentdata and count <= 1 and type_file == "FILELOG":
+                if 0 <= time_sentdata <= 24:
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'cron', hour = time_sentdata,  args=[])
+                    scheduler.start()
+                elif time_sentdata == 95 :
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "12",  args=[])
+                    scheduler.start()
+                elif time_sentdata == 96 :
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "8",  args=[])
+                    scheduler.start()
+                elif time_sentdata == 97 :
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = f"{time_sentdata}",  args=[])
+                    scheduler.start()
+                elif time_sentdata == 98 :
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = "15",  args=[])
+                    scheduler.start()
+                elif time_sentdata == 99 :
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "1",  args=[])
+                    scheduler.start()
+                elif time_sentdata == 100 : # test cron 
+                    scheduler = AsyncIOScheduler()
+                    scheduler.add_job(sync_ServerFile_Database, 'cron', second = "*/10",  args=[])
                     scheduler.start()
         if time_sentdata and count <= 1 and type_file == "FTP":
                 if 0 <= time_sentdata <= 24:
