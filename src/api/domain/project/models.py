@@ -46,7 +46,7 @@ class Project_setup(Base):
     administrative_contact = Column(String(255), nullable=True)
 
     id_first_page_on_login = Column(Integer, ForeignKey(
-        "page.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "screen.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_logging_interval = Column(Integer, ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
 
@@ -87,7 +87,7 @@ class Project_setup(Base):
     status = Column(Boolean, nullable=False, default=True)
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=True)
     logging_interval  = relationship('Config_information', foreign_keys=[id_logging_interval])
-    first_page_on_login= relationship('Page', foreign_keys=[id_first_page_on_login])
+    first_page_on_login= relationship('Screen', foreign_keys=[id_first_page_on_login])
     enable_search_modbus_rtu_device= Column(Boolean, nullable=False, default=False)
     # number_limit_alarm= Column(Integer, nullable=True)
     # time_limit_alarm= Column(Integer, nullable=True)
