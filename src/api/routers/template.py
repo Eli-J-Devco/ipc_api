@@ -35,7 +35,7 @@ import model.models as models
 import model.schemas as schemas
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
-from utils.libCom import cov_xml_sql
+from utils.libcom import cov_xml_sql
 # from utils.pm2Manager import (LOGGER, cov_xml_sql,
 #                               create_device_group_rs485_run_pm2,
 #                               create_program_pm2, delete_program_pm2,

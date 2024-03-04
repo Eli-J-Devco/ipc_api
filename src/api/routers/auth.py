@@ -198,6 +198,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
         
         return {
+                "refresh_token": refresh_token["token"],
                 "access_token": access_token, 
                 "token_type": "bearer",
                 # "user":info_user_out,
@@ -213,6 +214,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         # print('Errors : ',err)
         # LOGGER.error(f'--- {err} ---')
         # return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(f'Error: {err}')
         raise HTTPException(status_code=500, detail="Internal server error")
 
 # Describe functions before writing code
@@ -224,16 +226,16 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
 # 	 * @return data (Token)
 # 	 */ 
 @router.post("/refresh_token/", response_model=user_schemas.TokenItem)
-def refresh_token(request: Request, db: Session = Depends(get_db)):
+def refresh_token(request: user_schemas.TokenRefresh, db: Session = Depends(get_db)):
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
-                                          detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
+                                          detail={"detail": f"Could not validate credentials"}, headers={"WWW-Authenticate": "Bearer"})
     
-    refresh_token = request.cookies.get("refresh_token")
+    refresh_token = request.refresh_token
     if not refresh_token:
-        raise credentials_exception
+        return credentials_exception
     
     try:
-        payload = jwt.decode(refresh_token,SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         print(f'payload: {payload}')
         
         access_token = oauth2.create_access_token(data={"user_id": payload["user_id"]})
@@ -249,12 +251,12 @@ def refresh_token(request: Request, db: Session = Depends(get_db)):
                 "access_token": access_token, 
                 "token_type": "bearer"
                 }
-    except JWTError:
-        raise credentials_exception    
+    except JWTError as err:
+        return credentials_exception    
     except (Exception) as err:
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            content={"detail": "Bad Request"}
+            content={"detail": "Invalid token"}
             )
     
 @router.post("/logout/", response_model=str)

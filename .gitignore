@@ -30,3 +30,9 @@ src/logs/
 backend_api/routers/__pycache__
 .venv
 __pycache__
+*.pyc
+*.pyc
+*.pyc
+src/utils/__pycache__/passwordHasher.cpython-311.pyc
+*.pyc
+__pycache__

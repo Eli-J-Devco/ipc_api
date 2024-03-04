@@ -29,7 +29,7 @@ import utils.oauth2 as oauth2
 # from api.domain.ethernet import models, schemas
 from configs.config import *
 from database.db import get_db
-from utils.libCom import create_file_config_network
+from utils.libcom import create_file_config_network
 
 # 
 router = APIRouter(
