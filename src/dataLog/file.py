@@ -221,6 +221,8 @@ async def get_mqtt(host, port, topic, username, password):
                     {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
                     for device_id, (values, point_id) in result_values_dict.items()
                 ]
+                for item in result_list:
+                    item['data'] = [val if val != 'None' else '' for val in item['data']]
             else: 
                 pass
     except Exception as err:

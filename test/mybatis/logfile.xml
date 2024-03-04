@@ -103,13 +103,22 @@ INNER JOIN
 FROM `sync_data`
 WHERE synced = 0 AND error IS NULL;
   </select>
- <select id="QUERY_SYNC_MULTIFILE_SERVER">
+ <select id="QUERY_SYNC_MULTIFILE_SERVER1">
     SELECT * FROM sync_data
     WHERE 
     id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
     ORDER BY id ASC, id_device ASC
     LIMIT 10;
 </select>
+ <select id="QUERY_SYNC_MULTIFILE_SERVER">
+    SELECT * FROM sync_data
+    WHERE 
+    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
+    AND id_device >= (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL)
+    ORDER BY id_device
+    LIMIT 10;
+</select>
+
  <select id="QUERY_SYNC_ERROR_MQTT">
 SELECT error
 FROM sync_data
@@ -118,5 +127,31 @@ WHERE id_upload_channel = %s AND filename = %s;
 <select id="QUERY_INSERT_SYNC_DATA_EXECUTEMANY">
   INSERT INTO sync_data (id, id_device, modbusdevice, ensuredir, source, filename, createtime, DATA, id_upload_channel) 
 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) 
+  </select>
+<select id="QUERY_GET_THE_KEY">
+  SELECT
+ pl.id_pointkey AS template_name
+FROM device_list dl
+JOIN
+ device_group dg ON dl.id_device_group = dg.id
+JOIN
+ point_list pl ON dg.id_template = pl.id_template
+WHERE
+ dl.id = %s;
+  </select>
+<select id="QUERY_UPDATE_SERIAL_NUMBER">
+UPDATE project_setup
+SET serial_number_port = %s
+LIMIT 1;
+  </select>
+<select id="QUERY_SELECT_SERIAL_NUMBER">
+SELECT serial_number_port
+FROM project_setup
+LIMIT 1;
+  </select>
+<select id="QUERY_SELECT_URL">
+SELECT uploadurl
+FROM upload_channel
+WHERE id = %s;
   </select>
 </mapper>
