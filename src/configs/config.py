@@ -63,4 +63,5 @@ class Settings(BaseSettings):
     FTPSERVER_PORT : int
     FTPSERVER_USERNAME : str
     FTPSERVER_PASSWORD : str
+
 Config = Settings()
