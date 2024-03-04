@@ -39,12 +39,12 @@ from database.db import Base, engine
 # Base=declarative_base()
 
 # 
-class Page(Base):
-    __tablename__ = "page"
-    id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=False)
-    description = Column(Text, nullable=True)
-    status = Column(Boolean, nullable=False, default=True)
+# class Page(Base):
+#     __tablename__ = "page"
+#     id = Column(Integer, primary_key=True, nullable=False)
+#     name = Column(String(255), nullable=False)
+#     description = Column(Text, nullable=True)
+#     status = Column(Boolean, nullable=False, default=True)
 # 
 class Driver_list(Base):
     __tablename__ = "driver_list"
@@ -52,6 +52,7 @@ class Driver_list(Base):
     name = Column(String(255), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
 
+# 
 # 
 class Communication(Base):
     __tablename__ = "communication"

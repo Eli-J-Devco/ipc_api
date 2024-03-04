@@ -70,13 +70,13 @@ def create_access_token(data: dict):
 def verify_access_token(token: str, credentials_exception):
 
     try:
-        print('---------- verify_access_token ----------')
-        print(f'SECRET_KEY:  {SECRET_KEY}')
-        print(f'token:  {token}')
+        # print('---------- verify_access_token ----------')
+        # print(f'SECRET_KEY:  {SECRET_KEY}')
+        # print(f'token:  {token}')
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f'payload:  {payload}')
+        # print(f'payload:  {payload}')
         id: str = payload.get("user_id")
-        print(f'id:  {id}')
+        # print(f'id:  {id}')
         if id is None:
             raise credentials_exception
         # print(f'if :  {id}')
@@ -101,8 +101,6 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
                                           detail=f"Could not validate credentials", headers={"WWW-Authenticate": "Bearer"})
 
     token = verify_access_token(token, credentials_exception)
-    print(f'token get_current_user:  {token}')
-    print(f'token id:  {token.id}')
     user = db.query(models.User).filter(models.User.id == token.id).first()
 
     return user

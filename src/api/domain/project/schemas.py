@@ -68,7 +68,7 @@ class ProjectBase(BaseModel):
     logging_interval:type_logging_interval
     logging_interval_list:list[type_logging_interval]
     first_page_on_login:PageBase
-    first_page_on_login_list:list[PageBase]
+    page_list:list[PageBase]
     class Config:
         orm_mode = True
 class ProjectOut(ProjectBase):

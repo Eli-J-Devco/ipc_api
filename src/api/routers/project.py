@@ -19,6 +19,7 @@ import serial.tools.list_ports as ports
 from async_timeout import timeout
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
@@ -27,6 +28,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 # from api.domain.project import models, schemas
 import api.domain.project.models as project_models
 import api.domain.project.schemas as project_schemas
+import api.domain.user.models as user_models
 import model.models as models
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
@@ -45,29 +47,26 @@ router = APIRouter(
 # 	 * @return data (ProjectOut)
 # 	 */
 @router.post('/', response_model= project_schemas.ProjectOut)
-def get_project(id: int, db: Session = Depends(get_db),
+def get_project( db: Session = Depends(get_db),
                 current_user: int = Depends(oauth2.get_current_user)):
     try:
         # ----------------------
-        project_query = db.query( project_models.Project_setup).filter( project_models.Project_setup.id == id).first()
+        project_query = db.query( project_models.Project_setup).first()
         if not project_query:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Project with id: {id} does not exist")
-        config_information_query = db.query(models.Config_information).filter(models.Config_information.id_type== 6).filter(models.Config_information.status == 1).all()
+            return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
+        config_information_query = db.query(models.Config_information).filter_by(id_type= 6).filter_by(status = 1).all()
         if not config_information_query:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"Config project logging rate does not exist")
-        page_query = db.query(models.Page).filter(models.Config_information.status == 1).all()
+            return JSONResponse(content={"detail": "Config project logging rate does not exist"}, status_code=status.HTTP_404_NOT_FOUND)
+        page_query = db.query(user_models.Screen).filter_by(status = 1).all()
         if not page_query:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"Page does not exist")
+            return JSONResponse(content={"detail": "Page does not exist"}, status_code=status.HTTP_404_NOT_FOUND)
                 
         project_query.logging_interval_list=config_information_query
-        project_query.first_page_on_login_list=page_query
+        project_query.page_list=page_query
         return project_query
     except (Exception) as err:
         print('Error : ',err)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return JSONResponse(content={"detail": "Internal server error"}, status_code=500)
 # Describe functions before writing code
 # /**
 # 	 * @description update project logging rate
@@ -77,26 +76,22 @@ def get_project(id: int, db: Session = Depends(get_db),
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_logging_rate/', response_model= project_schemas.ProjectState)
-def update_project_logging_rate(id: int,
+def update_project_logging_rate(
                                 updated_logging_rate:  project_schemas.ProjectLoggingRateUpdate, 
                                 db: Session = Depends(get_db),
                                 current_user: int = Depends(oauth2.get_current_user)
                                 ):
     try:
         # ----------------------
-        print(updated_logging_rate)
-        project_query = db.query( project_models.Project_setup).filter( project_models.Project_setup.id == id)
-    
-
+        project_query = db.query( project_models.Project_setup)
         if not project_query.first():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Project with id: {id} does not exist")
+            return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
         project_query.update(updated_logging_rate.dict(), synchronize_session=False)
         db.commit()
         return {"status": "success","code": "200"}
     except (Exception) as err:
         print('Error : ',err)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return JSONResponse(content={"detail": "Internal server error"}, status_code=500)
 # Describe functions before writing code
 # /**
 # 	 * @description update project remote access
@@ -106,7 +101,7 @@ def update_project_logging_rate(id: int,
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_remote_access/', response_model= project_schemas.ProjectState)
-def update_project_remote_access(id: int,
+def update_project_remote_access(
                                  updated_remote_access:  project_schemas.ProjectRemoteAccessUpdate, 
                                  db: Session = Depends(get_db),
                                  current_user: int = Depends(oauth2.get_current_user)
@@ -118,14 +113,13 @@ def update_project_remote_access(id: int,
     
 
         if not project_query.first():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Project with id: {id} does not exist")
+            return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
         project_query.update(updated_remote_access.dict(), synchronize_session=False)
         db.commit()
         return {"status": "success","code": "200"}
     except (Exception) as err:
         print('Error : ',err)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return JSONResponse(content={"detail": "Internal server error"}, status_code=500)
 # Describe functions before writing code
 # /**
 # 	 * @description update project first page login
@@ -135,23 +129,20 @@ def update_project_remote_access(id: int,
 # 	 * @return data (ProjectState)
 # 	 */
 @router.post('/update_first_page_login/', response_model= project_schemas.ProjectState)
-def update_project_first_page_login(id: int,
+def update_project_first_page_login(
                                     updated_page_login:  project_schemas.ProjectPageLoginUpdate, 
                                     db: Session = Depends(get_db),
                                     current_user: int = Depends(oauth2.get_current_user)
                                     ):
     try:
         # ----------------------
-        
-        project_query = db.query( project_models.Project_setup).filter( project_models.Project_setup.id == id)
-        
-
+        project_query = db.query(project_models.Project_setup)
         if not project_query.first():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Project with id: {id} does not exist")
-        project_query.update(updated_page_login.dict(), synchronize_session=False)
+            return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
+        project_query.update(
+            updated_page_login.dict(), synchronize_session=False)
         db.commit()
         return {"status": "success","code": "200"}
     except (Exception) as err:
         print('Error : ',err)
-        raise HTTPException(status_code=500, detail="Internal server error")
+        return JSONResponse(content={"detail": "Internal server error"}, status_code=500)
