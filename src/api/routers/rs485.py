@@ -79,7 +79,7 @@ def get_rs485(id: int, db: Session = Depends(get_db),
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), 
                      current_user: int = Depends(oauth2.get_current_user)):
-    communication_rs485 = db.query(models.Config_information).filter_by(id_type =4).filter(status = 1).all()
+    communication_rs485 = db.query(models.Config_information).filter_by(id_type =4).filter_by(status = 1).all()
     if not communication_rs485:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")

@@ -57,12 +57,12 @@ class EthernetCreate(EthernetBase):
     class Config:
         orm_mode = True
 
-class NetworkInterfaceBase(NetworkInfBase):
-    # interface: Optional[str] = None
-    # information: Optional[NetworkInfBase] = None
-    class Config:
-        orm_mode = True
+# class NetworkInterfaceBase(NetworkInfBase):
+#     # interface: Optional[str] = None
+#     # information: Optional[NetworkInfBase] = None
+#     class Config:
+#         orm_mode = True
 class NetworkBase(BaseModel):
-    network:list[NetworkInterfaceBase]
+    network:list[NetworkInfBase]= None
     class Config:
         orm_mode = True
