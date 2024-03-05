@@ -46,7 +46,7 @@ router = APIRouter(
 def get_rs485(id: int, db: Session = Depends(get_db), 
               current_user: int = Depends(oauth2.get_current_user)):
     # ----------------------
-    communication = db.query(models.Communication).filter(models.Communication.id == id).first()
+    communication = db.query(models.Communication).filter_by(id =id).first()
     # ethernet_list=ethernet.__dict__
     # print(f'ethernet :{ethernet_list}')
     # ----------------------
@@ -79,7 +79,7 @@ def get_rs485(id: int, db: Session = Depends(get_db),
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), 
                      current_user: int = Depends(oauth2.get_current_user)):
-    communication_rs485 = db.query(models.Config_information).filter(models.Config_information.id_type == 4).filter(models.Config_information.status == 1).all()
+    communication_rs485 = db.query(models.Config_information).filter_by(id_type =4).filter(status = 1).all()
     if not communication_rs485:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
@@ -137,7 +137,7 @@ async def update_rs485(id: int,
                        current_user: int = Depends(oauth2.get_current_user)
                        ):
     try:
-        communication_query = db.query(models.Communication).filter(models.Communication.id == id)
+        communication_query = db.query(models.Communication).filter_by(id = id)
        
         if communication_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -184,7 +184,7 @@ def update_option_rs485_search_modbus(id: int,
                                       ):
     # ----------------------
     
-    project_query = db.query(project_models.Project_setup).filter(project_models.Project_setup.id == id)
+    project_query = db.query(project_models.Project_setup).filter_by(id = id)
    
 
     if not project_query.first():

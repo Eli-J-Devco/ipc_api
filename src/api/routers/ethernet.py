@@ -14,6 +14,7 @@ import psutil
 # import schemas
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
                      status)
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
@@ -21,6 +22,8 @@ from sqlalchemy.sql import text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+
+import netifaces
 
 import api.domain.ethernet.models as ethernet_models
 import api.domain.ethernet.schemas as ethernet_schemas
@@ -49,7 +52,7 @@ def get_ethernet(id: int, db: Session = Depends(get_db),
                  current_user: int = Depends(oauth2.get_current_user) ):
     try:
         # ----------------------
-        ethernet = db.query(ethernet_models.Ethernet).filter(ethernet_models.Ethernet.id == id).first()
+        ethernet = db.query(ethernet_models.Ethernet).filter_by(id = id).first()
         # ethernet_list=ethernet.__dict__
         # print(f'ethernet :{ethernet_list}')
         # ----------------------
@@ -59,9 +62,7 @@ def get_ethernet(id: int, db: Session = Depends(get_db),
         # print(f'{results_dict}')
         # ----------------------
         if not ethernet:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f"Ethernet with id: {id} does not exist")
-
+            return JSONResponse(content={"detail": f"Ethernet with id: {id} does not exist"}, status_code=status.HTTP_404_NOT_FOUND)
         return ethernet
     except (Exception) as err:
         print('Error : ',err)
@@ -84,13 +85,13 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
         # text('select * from ethernet  where id =:id'), params={'id': id}).all()
         # select * from ethernet INNER JOIN config_information ON config_information.id=ethernet.id_type_ethernet where ethernet.id =:id'
         
-        ethernet_query = db.query(ethernet_models.Ethernet).filter(ethernet_models.Ethernet.id == id)
+        ethernet_query = db.query(ethernet_models.Ethernet).filter_by(id = id)
         if ethernet_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Ethernet with id: {id} does not exist")
         id_type_ethernet=updated_ethernet.id_type_ethernet
         
-        config_information_query = db.query(models.Config_information).filter(models.Config_information.id == id_type_ethernet).first()
+        config_information_query = db.query(models.Config_information).filter_by(id = id_type_ethernet).first()
         if config_information_query == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Ethernet with DHCP/Use Static Ip: {id_type_ethernet} does not exist")
@@ -145,7 +146,7 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
 @router.post('/ifconfig/', response_model=ethernet_schemas.NetworkBase)
 def get_network_interface( current_user: int = Depends(oauth2.get_current_user)):
     try:
-        result=psutil.net_if_addrs()
+        # result=psutil.net_if_addrs()
         # print(result["Ethernet"])
         # for key, value in result["Ethernet"].items(): 
         #     print(key)
@@ -153,15 +154,45 @@ def get_network_interface( current_user: int = Depends(oauth2.get_current_user))
         # if not result:
         #     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
         #                         detail=f"Not find network interface card")
-        network_list=[]
-        for key, value in result.items(): 
+        # network_list=[]
+        # for key, value in result.items(): 
         
-            array_item=[]
-            for item in value:
-                array_item.append(str(item))
+        #     array_item=[]
+        #     for item in value:
+        #         array_item.append(str(item))
+            
+        #     network_list.append({
+        #         "interface":key,
+        #         "information": array_item
+        #     })
+       
+        network_list=[]
+        interfaceList=netifaces.interfaces()
+        # ----------------------------------------------
+        for interface in interfaceList:
+            result=netifaces.ifaddresses(interface)
+            addr=""
+            netmask=""
+            try:
+                addr=result[2][0]['addr']
+                netmask=result[2][0]['netmask']
+            except (Exception) as err:
+                pass
+            result=netifaces.gateways()
+            Gateway=""
+            try:
+                for item in result[2]:
+                    if item[1]==interface:
+                        Gateway=item[0]
+            except (Exception) as err:
+                pass
             network_list.append({
-                "interface":key,
-                "information": array_item
+                "interface":interface,
+                "information": {
+                    "addr":addr,
+                    "netmask":netmask,
+                    "Gateway":Gateway
+                }
             })
         return {
             "network":network_list

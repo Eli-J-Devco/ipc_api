@@ -136,7 +136,7 @@ def update_project_first_page_login(
                                     ):
     try:
         # ----------------------
-        project_query = db.query(project_models.Project_setup)
+        project_query = db.query(project_models.Project_setup)#.filter_by(id=2)
         if not project_query.first():
             return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
         project_query.update(

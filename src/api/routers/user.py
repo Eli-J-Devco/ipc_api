@@ -24,17 +24,15 @@ from sqlalchemy.orm import Session, aliased
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
 
+import api.domain.deviceList.models as deviceList_models
+import api.domain.deviceList.schemas as deviceList_schemas
+# from api.domain.user import models, schemas
+import api.domain.user.models as user_models
+import api.domain.user.schemas as user_schemas
 import utils.oauth2 as oauth2
-# import models
-# from model import auth_user
-from api.domain.user import models, schemas
 from configs.config import *
-# from database import engine, get_db
 from database.db import engine, get_db
-# from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
-#                    delete_program_pm2, find_program_pm2, get_mybatis, hash,
-#                    oauth2, path, pybatis, restart_program_pm2, verify)
-# from utils import hash, oauth2
+from utils.libCom import cov_xml_sql
 from utils.passwordHasher import convert_binary_auth, hash, verify
 
 router = APIRouter(
@@ -53,11 +51,11 @@ router = APIRouter(
 # 	 * @param {UserCreate,db}
 # 	 * @return data (UserStateOut)
 # 	 */
-@router.post("/create_user", status_code=status.HTTP_201_CREATED, response_model=schemas.UserStateOut)
-def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
+@router.post("/create_user", status_code=status.HTTP_201_CREATED, response_model=user_schemas.UserStateOut)
+def create_user(user: user_schemas.UserRoleCreate, db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
     
     
-    user_query = db.query(models.User).filter(models.User.email == user.email).first()
+    user_query = db.query(user_models.User).filter(user_models.User.email == user.email).first()
     if user_query:
         return {
             "status": "success",
@@ -71,7 +69,7 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db),curr
             datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         # new_user = models.User(date_joined=now,
         #                         last_login=now, **user.dict())
-        new_user = models.User(
+        new_user = user_models.User(
                                 # fullname=user.fullname,
                                 first_name=user.first_name,
                                 last_name=user.last_name,
@@ -96,7 +94,7 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db),curr
             # 
             new_user_role_list=[]
             for item in user.role:
-                new_user_role=models.User_role_map( id_user=new_user.id,
+                new_user_role=user_models.User_role_map( id_user=new_user.id,
                                                     id_role=item.id,     
                                                     )
                 new_user_role_list.append(new_user_role)
@@ -126,18 +124,18 @@ def create_user(user: schemas.UserRoleCreate, db: Session = Depends(get_db),curr
 # 	 * @param {UserCreate,db}
 # 	 * @return data (new_user)
 # 	 */
-@router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=list[schemas.UserRoleOut])
+@router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=list[user_schemas.UserRoleOut])
 def get_all_user( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
         try:
-            user_query = db.query(models.User).filter(models.User.status == 1)
+            user_query = db.query(user_models.User).filter(user_models.User.status == 1)
             result_user=user_query.all()
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"User empty")
             user_list=[]
             for item_user in result_user:
-                result_user_role = db.query(models.User_role_map).filter(
-                models.User_role_map.id_user == item_user.id).all()
+                result_user_role = db.query(user_models.User_role_map).filter(
+                user_models.User_role_map.id_user == item_user.id).all()
                 role_list=[]
                 for item_role in result_user_role:
                     role_list.append({
@@ -164,13 +162,13 @@ def get_all_user( db: Session = Depends(get_db), current_user: int = Depends(oau
 # 	 * @param {UserChangePassword,db}
 # 	 * @return data (UserStateOut)
 # 	 */
-@router.post("/change_password", response_model=schemas.UserStateOut)
-def change_password(user_credentials: schemas.UserChangePassword, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+@router.post("/change_password", response_model=user_schemas.UserStateOut)
+def change_password(user_credentials: user_schemas.UserChangePassword, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     
         try:
             print(f'current_user.id: {current_user.id}')
-            user_query = db.query(models.User).filter(
-                models.User.id == current_user.id)
+            user_query = db.query(user_models.User).filter(
+                user_models.User.id == current_user.id)
             result_user=user_query.first()
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -202,13 +200,13 @@ def change_password(user_credentials: schemas.UserChangePassword, db: Session = 
 # 	 * @param {UserChangePassword,db}
 # 	 * @return data (UserStateOut)
 # 	 */
-@router.post("/reset_password", response_model=schemas.UserResetPassword)
+@router.post("/reset_password", response_model=user_schemas.UserResetPassword)
 def reset_password(username: Optional[str] = Body(embed=True), db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
     
         try:
             # print(f'current_user.id: {current_user.id}')
-            user_query = db.query(models.User).filter(
-                models.User.email == username)
+            user_query = db.query(user_models.User).filter(
+                user_models.User.email == username)
             result_user=user_query.first()
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -242,14 +240,14 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
 # 	 * @param {id}
 # 	 * @return data (RoleScreenState)
 # 	 */
-@router.post("/delete/user/", response_model=schemas.UserStateOut)
+@router.post("/delete/user/", response_model=user_schemas.UserStateOut)
 def delete_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     
 
     try:
-        user_query = db.query(models.User).filter(
-        models.User.id == id).filter(
-        models.User.status == 1)
+        user_query = db.query(user_models.User).filter(
+        user_models.User.id == id).filter(
+        user_models.User.status == 1)
         result_role=user_query.first()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -277,17 +275,17 @@ def delete_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_
 # 	 * @param {id,db}
 # 	 * @return data (new_user)
 # 	 */
-@router.post('/only_user', response_model=schemas.UserRoleOut)
+@router.post('/only_user', response_model=user_schemas.UserRoleOut)
 # def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
 def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     # print(f'id: {id}')
     # ----------------------
-    user = db.query(models.User).filter(models.User.id == id).first()
+    user = db.query(user_models.User).filter(user_models.User.id == id).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
-    result_user_role = db.query(models.User_role_map).filter(
-        models.User_role_map.id_user == user.id).all()
+    result_user_role = db.query(user_models.User_role_map).filter(
+        user_models.User_role_map.id_user == user.id).all()
     role_list=[]
     for item_role in result_user_role:
          if hasattr(item_role, 'role'):
@@ -326,11 +324,11 @@ def get_only_user(id: Optional[int] = Body(embed=True), db: Session = Depends(ge
 # 	 * @param {id,UserCreate,db,current_user}
 # 	 * @return data (UserOut)
 # 	 */
-@router.post("/update_user/", response_model=schemas.UserStateOut)
-def update_user( updated_user: schemas.UserUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+@router.post("/update_user/", response_model=user_schemas.UserStateOut)
+def update_user( updated_user: user_schemas.UserUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         id=updated_user.id
-        user_query = db.query(models.User).filter(models.User.id == id)
+        user_query = db.query(user_models.User).filter(user_models.User.id == id)
         result_user=user_query.first()
         
         if not result_user:
@@ -339,11 +337,11 @@ def update_user( updated_user: schemas.UserUpdate, db: Session = Depends(get_db)
         user_query.update(dict( fullname=updated_user.fullname,
                                 phone=updated_user.phone,
                                 id_language=updated_user.id_language), synchronize_session=False)
-        user_role_query= db.query(models.User_role_map).filter(models.User_role_map.id_user == id)
+        user_role_query= db.query(user_models.User_role_map).filter(user_models.User_role_map.id_user == id)
         result_delete=user_role_query.delete(synchronize_session=False)
         new_user_role_list=[]
         for item in updated_user.role:
-            new_user_role=models.User_role_map( id_user=id,
+            new_user_role=user_models.User_role_map( id_user=id,
                                                 id_role=item.id,     
                                                 )
             new_user_role_list.append(new_user_role)
@@ -382,11 +380,11 @@ def update_user( updated_user: schemas.UserUpdate, db: Session = Depends(get_db)
 # 	 * @param {UserActive,db}
 # 	 * @return data (UserStateOut)
 # 	 */
-@router.post("/active_user/", response_model=schemas.UserStateOut)
-def active_user( updated_user: schemas.UserActive, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+@router.post("/active_user/", response_model=user_schemas.UserStateOut)
+def active_user( updated_user: user_schemas.UserActive, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         id=updated_user.id
-        user_query = db.query(models.User).filter(models.User.id == id)
+        user_query = db.query(user_models.User).filter(user_models.User.id == id)
         result_user=user_query.first()
         
         if not result_user:
@@ -415,24 +413,31 @@ def active_user( updated_user: schemas.UserActive, db: Session = Depends(get_db)
 # 	 * @param {}
 # 	 * @return data (RoleOut)
 # 	 */
-@router.post("/create/role/", response_model=schemas.RoleOut)
-def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+@router.post("/create/role/", response_model=user_schemas.RoleOut)
+def create_role(create_role: user_schemas.RoleCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     
     try:
-        new_role = models.Role( name=create_role.name,
+        new_role = user_models.Role( name=create_role.name,
                             description=create_role.description,
                             )
         db.add(new_role)
         db.flush()
-        print(new_role.__dict__)
+        # print(new_role.__dict__)
         if not hasattr(new_role, 'name'):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role create error")
-        db.query(models.Device_list)
+        # db.query(deviceList_models.Device_list)
         id=new_role.id
         
-        stmt = "INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,:auths FROM `screen`"
-        result_insert =db.execute(text(stmt),{"id_role": id,"auths":0})
+        # stmt = "INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,:auths FROM `screen`"
+        # result_insert =db.execute(text(stmt),{"id_role": id,"auths":0})
+        param={
+            "id_role":id,
+            "auths":1
+        }
+        query_sql= cov_xml_sql("device.xml","add_role_screen",param)
+        # print(f'query_sql: {query_sql}')
+        result_insert =db.execute(text(query_sql))
         db.commit()
         return {
                         "status": "success",
@@ -558,14 +563,14 @@ def create_role(create_role: schemas.RoleCreate, db: Session = Depends(get_db), 
 # 	 * @param {id}
 # 	 * @return data (RoleScreenState)
 # 	 */
-@router.post("/delete/role/", response_model=schemas.RoleScreenState)
+@router.post("/delete/role/", response_model=user_schemas.RoleScreenState)
 def delete_role(id: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     
 
     try:
-        role_query = db.query(models.Role).filter(
-        models.Role.id == id).filter(
-        models.Role.status == 1)
+        role_query = db.query(user_models.Role).filter(
+        user_models.Role.id == id).filter(
+        user_models.Role.status == 1)
         result_role=role_query.first()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -593,14 +598,14 @@ def delete_role(id: Optional[int] = Body(embed=True), db: Session = Depends(get_
 # 	 * @param {RoleUpdate}
 # 	 * @return data (RoleScreenState)
 # 	 */
-@router.post("/update/role/", response_model=schemas.RoleScreenState)
-def update_role(update_role: schemas.RoleUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+@router.post("/update/role/", response_model=user_schemas.RoleScreenState)
+def update_role(update_role: user_schemas.RoleUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     
 
     try:
-        role_query = db.query(models.Role).filter(
-        models.Role.id == update_role.id).filter(
-        models.Role.status == 1)
+        role_query = db.query(user_models.Role).filter(
+        user_models.Role.id == update_role.id).filter(
+        user_models.Role.status == 1)
         result_role=role_query.first()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -628,19 +633,19 @@ def update_role(update_role: schemas.RoleUpdate, db: Session = Depends(get_db), 
 # 	 * @param {RoleScreenUpdate}
 # 	 * @return data (RoleScreenState)
 # 	 */
-@router.post("/update/role_screen/", response_model=schemas.RoleScreenState)
-def update_role_screen(update_role_screen: schemas.RoleScreenUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+@router.post("/update/role_screen/", response_model=user_schemas.RoleScreenState)
+def update_role_screen(update_role_screen: user_schemas.RoleScreenUpdate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     try:
-        role_screen_query = db.query(models.Role_screen_map).filter(
-        models.Role_screen_map.id_role == update_role_screen.id_role).filter(
-        models.Role_screen_map.status == 1)
+        role_screen_query = db.query(user_models.Role_screen_map).filter(
+        user_models.Role_screen_map.id_role == update_role_screen.id_role).filter(
+        user_models.Role_screen_map.status == 1)
         result_role=role_screen_query.all()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role with id: {id} does not exist")
         for item in update_role_screen.role_screen:
-            role_screen_query.filter(models.Role_screen_map.id_role == 
-                                         update_role_screen.id_role).filter(models.Role_screen_map.id_screen == 
+            role_screen_query.filter(user_models.Role_screen_map.id_role == 
+                                         update_role_screen.id_role).filter(user_models.Role_screen_map.id_screen == 
                                          item.id_screen).update(dict(auths=item.auth))
             db.commit()
         return {
@@ -663,12 +668,12 @@ def update_role_screen(update_role_screen: schemas.RoleScreenUpdate, db: Session
 # 	 * @param {RoleScreenUpdate}
 # 	 * @return data (RoleScreenState)
 # 	 */
-@router.post("/get/role_screen/", response_model=list[schemas.RoleScreenOut])
+@router.post("/get/role_screen/", response_model=list[user_schemas.RoleScreenOut])
 def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
     try:
-        role_screen_query = db.query(models.Role_screen_map).filter(
-        models.Role_screen_map.id_role ==id_role).filter(
-        models.Role_screen_map.status == 1)
+        role_screen_query = db.query(user_models.Role_screen_map).filter(
+        user_models.Role_screen_map.id_role ==id_role).filter(
+        user_models.Role_screen_map.status == 1)
         result_role=role_screen_query.all()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -700,11 +705,11 @@ def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Dep
 # 	 * @param {db}
 # 	 * @return data (RoleOut)
 # 	 */
-@router.post('/all_role', response_model=list[schemas.RoleOut])
+@router.post('/all_role', response_model=list[user_schemas.RoleOut])
 def get_all_role( db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user)):
     # print(f'id: {id}')
     # ----------------------
-    result_role = db.query(models.Role).filter(models.Role.status == 1).all()
+    result_role = db.query(user_models.Role).filter(user_models.Role.status == 1).all()
     if not result_role:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Role empty")
