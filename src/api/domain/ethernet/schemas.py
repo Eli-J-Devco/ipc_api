@@ -23,18 +23,28 @@ from model.schemas import (ConfigInformationOut, PointByteOrder, PointDataType,
 
 
 # <- Ethernet ->
-class EthernetBase(BaseModel):
+class NetworkInfBase(BaseModel):
+    ip_address: Optional[str] = None
+    subnet_mask:  Optional[str] = None
+    gateway:  Optional[str] = None
+    mtu: Optional[str] = None
+    dns1:  Optional[str] = None
+    dns2:  Optional[str] = None
+    class Config:
+        orm_mode = True
+class EthernetBase(NetworkInfBase):
     # id_project_setup: int
     name: Optional[str] = None
     namekey: Optional[str] = None
     id_type_ethernet: Optional[int] = None
     allow_dns: Optional[bool] = None
-    ip_address: Optional[str] = None
-    subnet_mask: Optional[str] = None
-    gateway: Optional[str] = None
-    mtu: Optional[str] = None
-    dns1:  Optional[str] = None
-    dns2:  Optional[str] = None
+    # # 
+    # ip_address: Optional[str] = None
+    # subnet_mask: Optional[str] = None
+    # gateway: Optional[str] = None
+    # mtu: Optional[str] = None
+    # dns1:  Optional[str] = None
+    # dns2:  Optional[str] = None
  
     # status: bool = True
 class EthernetOut(EthernetBase):
@@ -45,12 +55,7 @@ class EthernetOut(EthernetBase):
 class EthernetCreate(EthernetBase):
     class Config:
         orm_mode = True
-class NetworkInfBase(BaseModel):
-    addr: Optional[str] = None
-    netmask:  Optional[str] = None
-    Gateway:  Optional[str] = None
-    class Config:
-        orm_mode = True
+
 class NetworkInterfaceBase(BaseModel):
     interface: Optional[str] = None
     information: Optional[NetworkInfBase] = None

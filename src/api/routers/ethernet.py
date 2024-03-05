@@ -189,9 +189,12 @@ def get_network_interface( current_user: int = Depends(oauth2.get_current_user))
             network_list.append({
                 "interface":interface,
                 "information": {
-                    "addr":addr,
-                    "netmask":netmask,
-                    "Gateway":Gateway
+                    "ip_address":addr,
+                    "subnet_mask":netmask,
+                    "gateway":Gateway,
+                    "mtu":"",
+                    "dns1":"",
+                    "dns2":"",
                 }
             })
         return {
