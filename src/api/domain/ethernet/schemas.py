@@ -44,10 +44,16 @@ class EthernetOut(EthernetBase):
         orm_mode = True
 class EthernetCreate(EthernetBase):
     class Config:
-        orm_mode = True 
+        orm_mode = True
+class NetworkInfBase(BaseModel):
+    addr: Optional[str] = None
+    netmask:  Optional[str] = None
+    Gateway:  Optional[str] = None
+    class Config:
+        orm_mode = True
 class NetworkInterfaceBase(BaseModel):
     interface: Optional[str] = None
-    information: list[str] = None
+    information: Optional[NetworkInfBase] = None
     class Config:
         orm_mode = True
 class NetworkBase(BaseModel):
