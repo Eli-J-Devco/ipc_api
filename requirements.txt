@@ -43,3 +43,4 @@ tk
 psycopg2
 pycryptodomex
 pycryptodome
+netifaces

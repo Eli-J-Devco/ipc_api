@@ -9,21 +9,29 @@ import sys
 from pathlib import Path
 from typing import Optional, Union, get_type_hints
 
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(SCRIPT_DIR))
+# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(os.path.dirname(SCRIPT_DIR))
+# print(f'SCRIPT_DIR: {SCRIPT_DIR}')
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 # from pydantic import BaseModel
 from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
-print(f'{VERSION = }-2024')
-# load_dotenv()
-# load_dotenv(dotenv_path=Path(".env"))
+print(f'{VERSION = }-202402')
+
+# env_file = find_dotenv(f'.env.{os.getenv("ENV", "development")}')
+# print(f'env_file: {env_file}')
+# load_dotenv(env_file)
 # load_dotenv(find_dotenv(".env"))
 # test="dev"
+# print(platform.system())
+# load_dotenv(find_dotenv(".env.development"))
 if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
 else:
     load_dotenv(find_dotenv(".env.development"))
+
+# debug = os.getenv('DATABASE_HOSTNAME')
+# print(debug)
 class Settings(BaseSettings):
     DATABASE_HOSTNAME: str
     DATABASE_PORT: str
@@ -55,4 +63,5 @@ class Settings(BaseSettings):
     FTPSERVER_PORT : int
     FTPSERVER_USERNAME : str
     FTPSERVER_PASSWORD : str
+
 Config = Settings()

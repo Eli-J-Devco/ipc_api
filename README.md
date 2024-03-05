@@ -396,6 +396,8 @@ sysData=
     {"id": "2024-02-05 04:36:00","data":"'2024-02-05 04:30:00',0,0,0,0.4,222.8,222.8,4"}
   ]
 }
+ sudo apt install python3-netifaces
+
 python D:\NEXTWAVE\project\ipc_api\main.py
 pm2 start D:\NEXTWAVE\project\ipc_api\src/deviceDriver/ModbusTCP.py -f  --name "TCP" -- 296
 pipeline {

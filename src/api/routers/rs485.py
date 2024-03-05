@@ -46,7 +46,7 @@ router = APIRouter(
 def get_rs485(id: int, db: Session = Depends(get_db), 
               current_user: int = Depends(oauth2.get_current_user)):
     # ----------------------
-    communication = db.query(models.Communication).filter(models.Communication.id == id).first()
+    communication = db.query(models.Communication).filter_by(id =id).first()
     # ethernet_list=ethernet.__dict__
     # print(f'ethernet :{ethernet_list}')
     # ----------------------
@@ -65,8 +65,32 @@ def get_rs485(id: int, db: Session = Depends(get_db),
     if not communication:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
-
-    return communication
+    
+    communication_rs485 = db.query(models.Config_information).filter_by(id_type =4).filter_by(status = 1).all()
+    if not communication_rs485:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"User with id: {id} does not exist")
+    baud = [item.__dict__ for item in communication_rs485 if item.type == 401]
+    parity= [item.__dict__ for item in communication_rs485 if item.type == 402]
+    stop_bits= [item.__dict__ for item in communication_rs485 if item.type == 403]
+    debuglevel= [item.__dict__ for item in communication_rs485 if item.type == 404]
+    timeout= [item.__dict__ for item in communication_rs485 if item.type == 405]
+    # 
+    rs485Inf={
+        "baud":baud,
+        "parity":parity,
+        "stop_bits":stop_bits,
+        "debuglevel":debuglevel,
+        "timeout":timeout,
+    }
+    # print(result.driver_list.__dict__)
+    # p = rs485_schemas.CommunicationOut(**{"rs485Inf": rs485Inf})
+    # return p
+    return {
+            **communication.__dict__,
+            **communication.driver_list.__dict__,
+            "rs485Inf":rs485Inf
+    }
 # Describe functions before writing code
 # /**
 # 	 * @description get rs485 config
@@ -79,7 +103,7 @@ def get_rs485(id: int, db: Session = Depends(get_db),
 # , response_model_by_alias=False
 def get_rs485_config( db: Session = Depends(get_db), 
                      current_user: int = Depends(oauth2.get_current_user)):
-    communication_rs485 = db.query(models.Config_information).filter(models.Config_information.id_type == 4).filter(models.Config_information.status == 1).all()
+    communication_rs485 = db.query(models.Config_information).filter_by(id_type =4).filter_by(status = 1).all()
     if not communication_rs485:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
@@ -90,7 +114,7 @@ def get_rs485_config( db: Session = Depends(get_db),
     timeout= [item.__dict__ for item in communication_rs485 if item.type == 405]
     # p = schemas.RS485BaudRate(**{'id': "1", 'namekey': '9600'})
     # print(f'p :{p}')
-   
+    
     return {
         "baud":baud,
         "parity":parity,
@@ -137,7 +161,7 @@ async def update_rs485(id: int,
                        current_user: int = Depends(oauth2.get_current_user)
                        ):
     try:
-        communication_query = db.query(models.Communication).filter(models.Communication.id == id)
+        communication_query = db.query(models.Communication).filter_by(id = id)
        
         if communication_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -184,7 +208,7 @@ def update_option_rs485_search_modbus(id: int,
                                       ):
     # ----------------------
     
-    project_query = db.query(project_models.Project_setup).filter(project_models.Project_setup.id == id)
+    project_query = db.query(project_models.Project_setup).filter_by(id = id)
    
 
     if not project_query.first():

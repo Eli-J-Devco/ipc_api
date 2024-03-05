@@ -36,6 +36,7 @@ from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+# from routers import deviceControl as deviceControl_router
 # from routers import (auth, device_group, device_list, ethernet, project, rs485,
 #                      site_information, template, upload_channel, user)
 # -------------------------------------------------------------
@@ -78,8 +79,7 @@ app = FastAPI(
     )
 
 origins = [
-    "http://localhost:2007",
-    "http://127.0.0.1:2007",
+    "*"
 ]
 
 security = HTTPBasic()
@@ -122,6 +122,7 @@ app.include_router(rs485_router.router)
 app.include_router(siteInfo_router.router)
 app.include_router(uploadChannel_router.router)
 app.include_router(project_router.router)
+# app.include_router(deviceControl_router.router)
 # 
 
 # class CustomException(Exception):

@@ -21,4 +21,5 @@
     "mqtt",
     "mqttools"
   ],
+  "python.terminal.activateEnvironment": false,
 }

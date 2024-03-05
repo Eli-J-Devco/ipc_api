@@ -26,23 +26,18 @@ from termcolor import colored
 
 # Color print
 init()
-
-def path_directory_relative(project_name):
-    if project_name =="":
-        return -1
-    path_os=os.path.dirname(__file__)
-    string_find=project_name
-    index_os = path_os.find(string_find)
-    if index_os <0:
-        return -1
-    result=path_os[0:int(index_os)+len(string_find)]
-    return result
-path=path_directory_relative("ipc_api") # name of project
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from test.config import Config
-
-from database import get_db
-from models import Alarm, Device_list, Error, Project_setup, Screen
+# 
+import api.domain.alarms.models as alarms_models
+import api.domain.deviceGroup.models as deviceGroup_models
+import api.domain.deviceList.models as deviceList_models
+import api.domain.project.models as project_models
+import api.domain.template.models as template_models
+import model.models as models
+# 
+from configs.config import Config
+from database.db import get_db
 
 # local_session=Session(bind=engine)
 
@@ -96,7 +91,7 @@ class AlarmLog:
             try:
                 now = datetime.datetime.now(datetime.timezone.utc)
                 id=now.strftime("%Y%m%d%H%M%S")+str(int(now.microsecond/10)).zfill(5)
-                new_alarm=Alarm(id=int(id),id_device=ID_DEVICE,id_error=error_list[0]["id"])
+                new_alarm=alarms_models.Alarm(id=int(id),id_device=ID_DEVICE,id_error=error_list[0]["id"])
                 db.add(new_alarm)
                 db.commit()
             except Exception as err:
@@ -247,12 +242,12 @@ class AlarmLog:
 async def main():
     tasks = []
     
-    device_query=db.query(Device_list).filter(Device_list.status==1).all()
-    project_setup_query=db.query(Project_setup).filter(Project_setup.id==1).first()
+    device_query=db.query(deviceList_models.Device_list).filter_by(status=1).all()
+    project_setup_query=db.query(project_models.Project_setup).filter(project_models.Project_setup.id==1).first()
     
     if project_setup_query and device_query:
         group_list= list(set([item.id_device_group for item in device_query]))
-        ERROR_QUERY=db.query(Error).filter(Error.status==1).all()
+        ERROR_QUERY=db.query(alarms_models.Error).filter(alarms_models.Error.status==1).all()
         mqtt_alert=AlarmLog(MQTT_BROKER,
                             MQTT_PORT,
                             MQTT_TOPIC,
