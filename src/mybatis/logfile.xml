@@ -118,7 +118,17 @@ WHERE synced = 0 AND error IS NULL;
     ORDER BY id_device
     LIMIT 10;
 </select>
-
+ <select id="QUERY_SYNC_FILELOG_SERVER">
+    SELECT * FROM sync_data
+    WHERE 
+    id_upload_channel = %s 
+    AND synced = 0 
+    AND updatetime IS NULL 
+    AND error IS NULL 
+    AND id_device = (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL AND id_device >= (SELECT COALESCE(MAX(id_device), 0) FROM sync_data WHERE id_upload_channel = %s AND synced = 1))
+    ORDER BY id_device
+    LIMIT 10;
+</select>
  <select id="QUERY_SYNC_ERROR_MQTT">
 SELECT error
 FROM sync_data
