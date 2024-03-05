@@ -24,6 +24,7 @@ from model.schemas import (ConfigInformationOut, PointByteOrder, PointDataType,
 
 # <- Ethernet ->
 class NetworkInfBase(BaseModel):
+    namekey: Optional[str] = None
     ip_address: Optional[str] = None
     subnet_mask:  Optional[str] = None
     gateway:  Optional[str] = None
@@ -35,7 +36,7 @@ class NetworkInfBase(BaseModel):
 class EthernetBase(NetworkInfBase):
     # id_project_setup: int
     name: Optional[str] = None
-    namekey: Optional[str] = None
+    # namekey: Optional[str] = None
     id_type_ethernet: Optional[int] = None
     allow_dns: Optional[bool] = None
     # # 
@@ -56,9 +57,9 @@ class EthernetCreate(EthernetBase):
     class Config:
         orm_mode = True
 
-class NetworkInterfaceBase(BaseModel):
-    interface: Optional[str] = None
-    information: Optional[NetworkInfBase] = None
+class NetworkInterfaceBase(NetworkInfBase):
+    # interface: Optional[str] = None
+    # information: Optional[NetworkInfBase] = None
     class Config:
         orm_mode = True
 class NetworkBase(BaseModel):

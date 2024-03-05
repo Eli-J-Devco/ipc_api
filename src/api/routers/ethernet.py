@@ -187,15 +187,13 @@ def get_network_interface( current_user: int = Depends(oauth2.get_current_user))
             except (Exception) as err:
                 pass
             network_list.append({
-                "interface":interface,
-                "information": {
-                    "ip_address":addr,
-                    "subnet_mask":netmask,
-                    "gateway":Gateway,
-                    "mtu":"",
-                    "dns1":"",
-                    "dns2":"",
-                }
+                "namekey":interface,
+                "ip_address":addr,
+                "subnet_mask":netmask,
+                "gateway":Gateway,
+                "mtu":"",
+                "dns1":"",
+                "dns2":"",
             })
         return {
             "network":network_list
