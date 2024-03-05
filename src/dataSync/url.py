@@ -23,9 +23,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs.config import Config
 from utils.libMySQL import *
 
-# from config import *
-# from libMySQL import *
-
+# Information DB
 arr = sys.argv
 id_upload_chanel = arr
 DATABASE_HOSTNAME = Config.DATABASE_HOSTNAME
@@ -39,9 +37,8 @@ FTPSERVER_PASSWORD = Config.FTPSERVER_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 URL_SERVER_SYNC = Config.URL_SERVER_SYNC
 URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE 
-FTP = ""
 
-# Variables 
+# Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/Upload" 
@@ -49,6 +46,7 @@ MQTT_TOPIC_SUB = "NgayLapTuc"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
+# Information Query
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
 QUERY_SYNC_SERVER = ""
@@ -66,30 +64,35 @@ QUERY_SELECT_SERIAL_NUMBER = ""
 QUERY_SELECT_URL = ""
 QUERY_SYNC_FILELOG_SERVER = ""
 
-data_sent_server = {}
+# Declare Variable 
 data_sent_server_list = []
 array_file = []
 array_files = []
-json_data = {}
-json_datas = {}
 json_data_list = []
 vals = []
+
+json_data = {}
+json_datas = {}
+data_sent_server = {}
+
 data = 0
 status_sync = 0 
 count = 0
 sync_immediately = 0 
-flag_sync_immediately = False 
-flag_end_update = False
-flag_retry = False
-count = 0 
-serial_number = ""
 count_FTP_Server = 0
 number_file = 0
 number_device = 10 
+count = 0 
+
+flag_sync_immediately = False 
+flag_end_update = False
+flag_retry = False
 multifile = False
+isUploadSuccess = False
+
+serial_number = ""
 time_retry = ""
 type_file = ""
-isUploadSuccess = False
 
 #----------------------------------------
 # /**
@@ -242,10 +245,12 @@ def pushMQTT(host, port,topic, username, password, data_send):
 # 	 * @return data ()
 # 	 */
 async def colectDatatoPushMQTT(host, port, topic, username, password):
-    global id_upload_chanel
+    
     global QUERY_TIME_SYNC_DATA
     global QUERY_SYNC_SERVER
     global QUERY_ALL_DEVICES
+    
+    global id_upload_chanel
     global status_sync
     global multifile
     global number_device 
@@ -365,7 +370,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     "STATUS_FILE_SERVER": devices[i].status,
                     "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
                 }
-                # Neu nhieu file Json 
+
                 data_mqtts.append(data_mqtt) 
                 
                 pushMQTT(host,
@@ -396,6 +401,9 @@ async def sync_ServerURL_Database():
     global multifile
     global time_retry
     global vals
+    global json_data 
+    global number_device
+    global array_file
     
     global QUERY_SYNC_SERVER
     global QUERY_TIME_RETRY
@@ -415,26 +423,17 @@ async def sync_ServerURL_Database():
     devices = []
     file = []
     files = []
-    array_files = []
-    name_serial_device = ""
-    url = ""
-    # array_file = []
-    # array_files = []
     data_insert_many_temp = []
     data_insert_many = []
     val = []
-    global json_data 
-    global json_datas
-    file = {}
-    json_datas = {}
-    merged_content = ""
-    global number_device
-    global array_file
-    # global array_files
     result1 =[]
     result2 =[]
     result3 =[]
-    by_pass = 0 
+    
+    file = {}
+    
+    name_serial_device = ""
+    url = ""
     response =""
     number_file =""
 
@@ -552,7 +551,7 @@ async def sync_ServerURL_Database():
                         by_pass = 1    
                     if device.data_file : 
                         array_file = device.file_content.split(',')
-                        # Tạo đối tượng JSON dựa trên mảng dữ liệu
+
                         if name_serial_device :
                             # ==================================Information sent json to server ==================================
                             json_data = {
@@ -573,7 +572,6 @@ async def sync_ServerURL_Database():
 
                     template_names = MySQL_Select(QUERY_GET_THE_KEY, (device.id_device,))
 
-                    # Vòng lặp để thay đổi key
                     if template_names : 
                         for i in range(4, len(array_file)):
                             if i - 4 < len(template_names):
@@ -674,14 +672,14 @@ async def sync_ServerURL_Database():
                             by_pass = 1 
                                 
                         array_file = devices[i].file_content.split(',')
-                        # Thu thập dữ liệu sau khi gửi data thành công thì update vào trong database 
+                        # Collect data and after successfully sending data, update it into the database 
                         data_insert_many_temp = (current_time,devices[i].time_id ,id_device_fr_sys , devices[i].id_device)
                         data_insert_many.append(data_insert_many_temp)
-                        # Thu thập thông tin khi xảy ra lỗi thì update số lần lỗi vào database
+                        # Collect information when an error occurs and update the number of errors to the database
                         val = (count,devices[i].time_id ,id_device_fr_sys ,devices[i].id_device)
                         if count > 0 :
                             vals.append(val)
-                        # Tạo đối tượng JSON dựa trên mảng dữ liệu từ thiết bị hiện tại
+                        # Creates a JSON object based on the array of data from the current device
                         if name_serial_device : 
                         # ==================================Information sent json to server ==================================
                             json_data_total = {
@@ -702,19 +700,19 @@ async def sync_ServerURL_Database():
 
                         template_names = MySQL_Select(QUERY_GET_THE_KEY, (devices[i].id_device,))
 
-                        # Vòng lặp để thay đổi key
+                        # Add the key to the sent json file
                         for i in range(4, len(array_file)):
                             if i - 4 < len(template_names):
                                 key = template_names[i-4]
                                 value = array_file[i] if array_file[i] else None
                                 json_data_total["datas"][key['template_name']] = value
                             else:
-                                # print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
+                                # print(f"Not enough elements in template_names for index {i}")
                                 pass
                         try:
                             if json_data_total:
                                 if type_file == "URL" :
-                                    response = requests.post(url, json=json_data_total)# Sử dụng tham số "json" để tự động chuyển đổi dữ liệu thành JSON
+                                    response = requests.post(url, json=json_data_total)
                                     print("="*40, "Json Sent Sever", "="*40)
                                     print(f"Json: {json_data_total}")
                                     print("="*40 , "status_code" ,"="*40 )
@@ -764,6 +762,9 @@ async def sync_ServerFile_Database():
     global multifile
     global time_retry
     global vals
+    global json_data 
+    global number_device
+    global array_file
     
     global QUERY_SYNC_SERVER
     global QUERY_TIME_RETRY
@@ -778,32 +779,23 @@ async def sync_ServerFile_Database():
     
     id_device_fr_sys = id_upload_chanel[1]
     data_sync_server = []
-    template_names  = []
     data_sent_server_list = []
     data_sync_dict = []
     devices = []
     file = []
     files = []
-    array_files = []
-    name_serial_device = ""
-    number_file = ""
-    url = ""
-    # array_file = []
-    # array_files = []
     data_insert_many_temp = []
     data_insert_many = []
     val = []
-    global json_data 
-    global json_datas
-    file = {}
-    json_datas = {}
-    global number_device
-    global array_file
-    # global array_files
     result1 =[]
     result2 =[]
     result3 =[]
-    by_pass = 0 
+    
+    file = {}
+    
+    name_serial_device = ""
+    number_file = ""
+    url = ""
     response = ""
     merged_content = ""
     count_merged = 0
@@ -833,7 +825,7 @@ async def sync_ServerFile_Database():
     number_file = result1[0]["remaining_files"]
     print("="*40 , "number_file" , "="*40)
     print("number_file" ,number_file )
-    if number_file <= 30 :
+    if number_file <= 400 :
         multifile = False 
     else :
         multifile = True 
@@ -1026,10 +1018,10 @@ async def sync_ServerFile_Database():
                         by_pass = 1 
                             
                     array_file = devices[i].file_content.split(',')
-                    # Cộng dồn nội dung của 10 file thành một file duy nhất
+                    # Accumulate the contents of 10 files into a single file
                     merged_content += ','.join(array_file) + '\n'
                     count_merged += 1
-                    # Tạo đường dẫn đầy đủ tới tệp tin
+                    # Create the full path to the file
                     current_time = get_utc()
                     time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
                     formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
@@ -1038,7 +1030,7 @@ async def sync_ServerFile_Database():
                     source_file = os.path.join(file_path, file_name)
                     print(f"filename {file_name} , source_file{source_file}")
 
-                    # Ghi nội dung từ merged_content vào tệp tin đã tạo
+                    # Write content from merged_content to the created file
                     with open(source_file, 'w', encoding='utf-8') as file:
                         file.write(merged_content)
                     print(f" da ghi noi dung {merged_content} vao filename {file_name} , source_file{source_file}")
@@ -1050,10 +1042,10 @@ async def sync_ServerFile_Database():
                         'MODE': 'LOGFILEUPLOAD'
                     }
 
-                    # Thu thập dữ liệu sau khi gửi data thành công thì update vào trong database 
+                    # Collect data and after successfully sending data, update it into the database
                     data_insert_many_temp = (current_time,devices[i].time_id ,id_device_fr_sys , devices[i].id_device)
                     data_insert_many.append(data_insert_many_temp)
-                    # Thu thập thông tin khi xảy ra lỗi thì update số lần lỗi vào database
+                    # Collect information when an error occurs and update the number of errors to the database
                     val = (count,devices[i].time_id ,id_device_fr_sys ,devices[i].id_device)
                     if count > 0 :
                         vals.append(val)
@@ -1061,7 +1053,7 @@ async def sync_ServerFile_Database():
                     if source_file and file_name:
                         file = ('LOGFILE', (file_name, open(source_file, 'rb'), 'text/plain'))
                         files.append(file)
-                        # Gửi tệp tin lên server và đợi phản hồi 200
+                        # Send the file to the server and wait for a 200 response
                         response = requests.post(url, files=files, data=headers)
                         print("="*40 , "Headers" ,"="*40 )
                         print("Headers" ,headers )
@@ -1111,7 +1103,6 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
     global data_sent_server
     global status_sync
     global count
-    number_file 
     global multifile
     global count_FTP_Server
     global isUploadSuccess
@@ -1128,13 +1119,11 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
     data_sent_server_list = []
     data_sync_dict = []
     devices = []
-    path = []
-    paths = []
     data_insert_many_temp = []
     data_insert_many = []
     val = []
     
-    
+    number_file
     by_pass = 0 
     file = {}
     
@@ -1728,9 +1717,5 @@ if __name__ == "__main__":
     loop.run_forever()
     asyncio.run(main())
     
-
-# song phan gui url 1 file va nhieu file , mat server , mat connect sql , mat connect mqtt , ok 
-# song phan gui url 1 json va nhieu json , mat server , mat connect sql , mat connect mqtt , ok 
-# no co 1 loi la ket qua sql bi day se khong chay duoc phai chay cau lenh sql : UPDATE sync_data SET synced = DEFAULT, updatetime = DEFAULT , error = DEFAULT , number_of_time_retry = DEFAULT;
 
 

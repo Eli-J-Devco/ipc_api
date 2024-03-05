@@ -32,32 +32,38 @@ arr = sys.argv
 # print(f'arr: {arr}')
 # ------------------------------------
 result_list =[]
+value_many = []
+value_dict = []
+result_all = []
+
+# Flag MQTT
+flag_mqtt = False
+
+count_mqtt = 0
+countMonitor = 0
+
+# Declare Variable 
 status_device = ""     
 msg_device = ""
 status_register = ""
 status_file = "Success"
-value_many = []
-value_dict = []
 data_mqtt = ""
 sql_id_str = ""
 device_name = ""
 file_name = ""
-flag_mqtt = False
-count_mqtt = 0
-countMonitor = 0
 data_in_file = ""
 formatted_time1 = ""
 time_interval = ""
+time_create_file_insert_data_table_dev = ""
+
+# Information Query
 QUERY_TIME_SYNC_DATA=""
 QUERY_ALL_DEVICES=""
 QUERY_INSERT_SYNC_DATA=""
 QUERY_INSERT_SYNC_DATA_EXECUTEMANY=""
 QUERY_SELECT_COUNT_POINT_LIST=""
 
-result_all = []
-time_create_file_insert_data_table_dev = ""
-
-# Variables 
+# Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Dev/#"
@@ -65,12 +71,14 @@ MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/CreateLogFile"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
+# Information DB
 DATABASE_HOSTNAME = Config.DATABASE_HOSTNAME
 DATABASE_PORT = Config.DATABASE_PORT
 DATABASE_USERNAME = Config.DATABASE_USERNAME
 DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 
+# Information Folder
 FOLDER_PATH = Config.FOLDER_PATH_LOG
 HEAD_FILE_LOG = Config.HEAD_FILE_LOG
 
@@ -239,18 +247,12 @@ async def get_mqtt(host, port, topic, username, password):
 # 	 */ 
 async def create_filelog(sql_id,base_path,id_device,head_file):
 
-    id_device_fr_sys = id_device[1]
-    
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    # Query Global
     global QUERY_TIME_SYNC_DATA
     global QUERY_SELECT_COUNT_POINT_LIST
     global QUERY_INSERT_SYNC_DATA
     
-    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    #---------------------------------------------------------------------------------------------------------------
-    current_time = get_utc()
-    current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-    year,month, day = current_datetime.year , current_datetime.month,current_datetime.day
+    # Variable Global
     global status_device    
     global msg_device 
     global status_register
@@ -259,13 +261,25 @@ async def create_filelog(sql_id,base_path,id_device,head_file):
     global type_file
     global value_many
     global flag_mqtt
-    data_to_write =""
     global data_in_file
     global file_name
     global formatted_time1
     global countMonitor 
+    
+    # Get information from SQL
+    id_device_fr_sys = id_device[1]
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    
+    # Take time to create file 
+    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    current_time = get_utc()
+    current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+    year,month, day = current_datetime.year , current_datetime.month,current_datetime.day
+    
+    # Declare Variable
     time_online = current_time
     data_insert =""
+    data_to_write =""
     #-----------------------------------------------------
         
     for item in time_sync_data:
@@ -421,6 +435,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
 # 	 * @return  
 # 	 */ 
 async def insert_sync():
+    # Variable Global
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global value_many
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
@@ -432,13 +447,18 @@ async def insert_sync():
 
 async def main():
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
+    # Query global 
     global QUERY_ALL_DEVICES
     global QUERY_TIME_CREATE_FILE
     global QUERY_TIME_SYNC_DATA
     global QUERY_INSERT_SYNC_DATA
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global QUERY_SELECT_COUNT_POINT_LIST
+    
+    # Variable global
     global time_interval
+    
+    result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
