@@ -30,7 +30,10 @@ from utils.libMySQL import *
 arr = sys.argv
 # print(f'arr: {arr}')
 # ------------------------------------
+
+# Declare Variable 
 result_list = []
+result_all = []
 status_device = ""     
 msg_device = ""
 status_register = ""
@@ -38,12 +41,12 @@ status_file = "Success"
 status = "Waiting for the record to finish"
 time_interval = ""
 
+# Information Query
 QUERY_TIME_CREATE_FILE = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
-result_all = []
     
-# Variables 
+# Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Dev/#"
@@ -51,12 +54,14 @@ MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogDeviceDatabase"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
+# Information DB
 DATABASE_HOSTNAME = Config.DATABASE_HOSTNAME
 DATABASE_PORT = Config.DATABASE_PORT
 DATABASE_USERNAME = Config.DATABASE_USERNAME
 DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 
+# Information Folder
 FOLDER_PATH = Config.FOLDER_PATH_LOG
 HEAD_FILE_LOG = Config.HEAD_FILE_LOG
 
@@ -247,13 +252,13 @@ async def Get_MQTT(host, port, topic, username, password):
 # 	 */ 
 async def Insert_TableDevice():
     global result_list
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    # Initialize an empty dictionary to store SQL queries and values
-    sql_queries = {}
     counter = 0
+    sql_queries = {}
     point_id = []
     data = []
 
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    
     for item in result_all:
         sql_id = item["id"]
         DictID = [item for item in result_list if item["id"] == sql_id]
@@ -294,7 +299,6 @@ async def Insert_TableDevice():
             if counter == len(result_all) :
                 MySQL_Insert_v3(sql_queries)
                 status = "Data inserted successfully"
-                # print("=================================", sql_queries)
             else :
                 status = "Waiting for the record to finish"
         except Exception as e:
@@ -310,11 +314,12 @@ async def Insert_TableDevice():
 # 	 * @return data ()
 # 	 */
 async def monitoring_device(sql_id,id_device,host, port,topic, username, password):
+    
+    global QUERY_ALL_DEVICES
+    global QUERY_TIME_SYNC_DATA
     global status_device 
     global status_file
     global result_list
-    global QUERY_ALL_DEVICES
-    global QUERY_TIME_SYNC_DATA
     global status 
     global time_interval
     
@@ -331,7 +336,6 @@ async def monitoring_device(sql_id,id_device,host, port,topic, username, passwor
     
     for item in time_sync_data:
         type_file = item["type_protocol"]
-    #++++++++++++++++++
     
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
@@ -360,11 +364,14 @@ async def monitoring_device(sql_id,id_device,host, port,topic, username, passwor
         print('Error monitoring_device : ',err)
         
 async def main():
-    result_mybatis = get_mybatis('/mybatis/logfile.xml')
+    
     global QUERY_TIME_CREATE_FILE
     global QUERY_ALL_DEVICES 
     global QUERY_TIME_SYNC_DATA
+    
     global time_interval
+    
+    result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
