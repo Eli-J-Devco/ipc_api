@@ -238,7 +238,7 @@ def init_log_data():
             id = item["id"]
             name = item["name"]
             type_protocol= item["type_protocol"]
-            pid = f'UpData|{id}|{name}|{type_protocol}'
+            pid = f'LogData|{id}|{name}|{type_protocol}'
             if sys.platform == 'win32':
                 subprocess.Popen(
                             f'pm2 start {absDirname}/dataLog/device.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
