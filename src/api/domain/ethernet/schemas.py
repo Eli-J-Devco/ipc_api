@@ -21,8 +21,11 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 from model.schemas import (ConfigInformationOut, PointByteOrder, PointDataType,
                            PointOutBase, PointUnit, RegisterListBase)
 
-
 # <- Ethernet ->
+
+class DHCPConfig(BaseModel):
+    id: int = Field(..., alias='id')
+    namekey: str = Field(..., alias='name')
 class NetworkInfBase(BaseModel):
     namekey: Optional[str] = None
     ip_address: Optional[str] = None
@@ -64,5 +67,6 @@ class EthernetCreate(EthernetBase):
 #         orm_mode = True
 class NetworkBase(BaseModel):
     network:list[NetworkInfBase]= None
+    mode:list[DHCPConfig]= None
     class Config:
         orm_mode = True

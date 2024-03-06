@@ -30,6 +30,7 @@ import api.domain.project.models as project_models
 import api.domain.project.schemas as project_schemas
 import api.domain.user.models as user_models
 import model.models as models
+import model.schemas as schemas
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
 
@@ -143,6 +144,33 @@ def update_project_first_page_login(
             updated_page_login.dict(), synchronize_session=False)
         db.commit()
         return {"status": "success","code": "200"}
+    except (Exception) as err:
+        print('Error : ',err)
+        return JSONResponse(content={"detail": "Internal server error"}, status_code=500)
+# Describe functions before writing code
+# /**
+# 	 * @description update project first page login
+# 	 * @author vnguyen
+# 	 * @since 05-03-2024
+# 	 * @param {id,ProjectPageLoginUpdate,db}
+# 	 * @return data (ProjectState)
+# 	 */
+@router.post('/logging_interval', response_model= schemas.loggingIntervalOut)
+def get_logging_interval( db: Session = Depends(get_db),
+                current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        # ----------------------
+
+        config_information_query = db.query(models.Config_information).filter_by(id_type= 6).filter_by(status = 1).all()
+        if not config_information_query:
+            return JSONResponse(content={"detail": "Config project logging rate does not exist"}, \
+                status_code=status.HTTP_404_NOT_FOUND)
+
+        # print(config_information_query[0])
+
+        return {
+           "interval": config_information_query
+        }
     except (Exception) as err:
         print('Error : ',err)
         return JSONResponse(content={"detail": "Internal server error"}, status_code=500)

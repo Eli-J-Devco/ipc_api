@@ -77,11 +77,11 @@ def get_rs485(id: int, db: Session = Depends(get_db),
     timeout= [item.__dict__ for item in communication_rs485 if item.type == 405]
     # 
     rs485Inf={
-        "baud":baud,
-        "parity":parity,
-        "stop_bits":stop_bits,
-        "debuglevel":debuglevel,
-        "timeout":timeout,
+        "baud":baud, #id_type_baud_rates
+        "parity":parity, #id_type_parity
+        "stop_bits":stop_bits, #id_type_stopbits
+        "debuglevel":debuglevel, #id_type_debug_level
+        "timeout":timeout, #id_type_timeout
     }
     # print(result.driver_list.__dict__)
     # p = rs485_schemas.CommunicationOut(**{"rs485Inf": rs485Inf})
