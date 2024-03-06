@@ -18,7 +18,6 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
                 ("src"))
 from database.db import Base, engine
 
-
 # class Page(Base):
 #     __tablename__ = "page"
 #     id = Column(Integer, primary_key=True, nullable=False)
@@ -37,26 +36,35 @@ from database.db import Base, engine
 #     id_type = Column(Integer, ForeignKey(
 #         "config_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
 #     status = Column(Boolean, nullable=False, default=True)
+
+class Time_zone(Base):
+    __tablename__ = "time_zone"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
 class Project_setup(Base):
     __tablename__ = "project_setup"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=False)
+    serial_number= Column(String(255), nullable=True)
     location = Column(String(255), nullable=True)
+    
     description = Column(String(255), nullable=True)
     administrative_contact = Column(String(255), nullable=True)
 
     id_first_page_on_login = Column(Integer, ForeignKey(
-        "screen.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "screen.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=1)
     id_logging_interval = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=172)
 
     id_scheduled_upload_time = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=220)
     number_times_retry = Column(Integer, nullable=False, default=3)
     id_time_wait_before_retry = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=196)
     id_upload_debug_information = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=214)
 
     enable_upload_data_on_alarm_status = Column(
         Boolean, nullable=False, default=True)
@@ -69,7 +77,7 @@ class Project_setup(Base):
     enable_static_routing = Column(Boolean, nullable=False, default=False)
 
     id_time_zone = Column(Integer, ForeignKey(
-        "time_zone.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+        "time_zone.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False,default=1)
     Time1cycle = Column(DOUBLE(), nullable=False, default=5)
     sampling_time1cycle = Column(DOUBLE(), nullable=False, default=15)
 

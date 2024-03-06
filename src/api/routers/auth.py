@@ -42,10 +42,9 @@ router = APIRouter(tags=['Authentication'])
 # from api.domain.user import models as user_models
 # from api.domain.user import models, schemas
 
+import api.domain.project.models as project_models
 import api.domain.user.models as user_models
 import api.domain.user.schemas as user_schemas
-import api.domain.project.models as project_models
-
 from utils import oauth2
 from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 
@@ -65,8 +64,8 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        pprint(f'username: {username}')
-        pprint(f'password: {password}')
+        # pprint(f'username: {username}')
+        # pprint(f'password: {password}')
 
         user_query = db.query(user_models.User).filter(
             user_models.User.email == username)
@@ -114,7 +113,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                     if hasattr(item_role_screen, 'screen'):
                         new_item_role_screen={
                             "id":item_role_screen.screen.id,
-                            "name":item_role_screen.screen.name,
+                            "name":item_role_screen.screen.screen_name,
                             "description":item_role_screen.screen.description,
                             "status":item_role_screen.screen.status,
                             "auth":item_role_screen.auths
@@ -130,7 +129,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                 }
             role_list.append(new_item)
             
-            
+
         for item_role in result_user_role:
             if hasattr(item_role.role, 'role_map'):
                 for item_role_screen in item_role.role.role_map:

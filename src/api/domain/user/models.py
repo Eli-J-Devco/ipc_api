@@ -22,9 +22,22 @@ from database.db import Base, engine
 class Screen(Base):
     __tablename__ = "screen"
     id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String(255), nullable=False)
+    screen_name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
+    class_icon= Column(String(255), nullable=False)
+    level= Column(Integer, nullable=True)
+    parent= Column(Integer, nullable=True)
+    path= Column(String(200), nullable=True)
+    has_child= Column(Boolean, nullable=False, default=False)
+    created_date=Column(TIMESTAMP(timezone=True),
+                        nullable=True)
+    created_by = Column(String(255), nullable=True)
+    updated_date=Column(TIMESTAMP(timezone=True),
+                        nullable=True)
+    updated_by = Column(String(255), nullable=True)
+    show_menu= Column(Boolean, nullable=False, default=True)
+    
 
 class Role(Base):
     __tablename__ = "role"

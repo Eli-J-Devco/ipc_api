@@ -26,6 +26,7 @@ class SiteInformBase(BaseModel):
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None
+    serial_number: Optional[str] = None
 
 class SiteInformOut(SiteInformBase):
     id: Optional[int] = None

@@ -1602,11 +1602,11 @@ async def main():
         print("Error not found data in Database")
         return -1
     
-    serial_number = get_serial_number_windows()
-    if serial_number :
-        MySQL_Update_V1(QUERY_UPDATE_SERIAL_NUMBER,(serial_number,))
-    else :
-        pass
+    # serial_number = get_serial_number_windows()
+    # if serial_number :
+    #     MySQL_Update_V1(QUERY_UPDATE_SERIAL_NUMBER,(serial_number,))
+    # else :
+    #     pass
         
     if result_all and time_data_server :
         time_sentdata = time_data_server[0]["time_log_data_server"]
