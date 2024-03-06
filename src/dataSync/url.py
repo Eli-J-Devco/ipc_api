@@ -154,27 +154,27 @@ def get_mybatis(file_name):
     except Exception as e:
         print('An exception occurred:',e)
         return -1 
-# Describe get serial number for system
-# /**
-# 	 * @description get_serial_number_windows
-# 	 * @author bnguyen
-# 	 * @since 27/2/2024
-# 	 * @param {}
-# 	 * @return serial number
-# 	 */  
-def get_serial_number_windows():
-    try:
-        if sys.platform == 'win32':
-            # Chạy lệnh wmic để lấy thông tin SerialNumber
-            result = subprocess.check_output(["wmic", "bios", "get", "serialnumber"]).decode("utf-8")
-            # Lọc kết quả để chỉ lấy SerialNumber
-            serial_number = result.strip().split("\n")[1]
-            return serial_number
-        else:
-            pass
-    except Exception as e:
-        print(f"Lỗi khi lấy thông tin SerialNumber: {e}")
-        return None
+# # Describe get serial number for system
+# # /**
+# # 	 * @description get_serial_number_windows
+# # 	 * @author bnguyen
+# # 	 * @since 27/2/2024
+# # 	 * @param {}
+# # 	 * @return serial number
+# # 	 */  
+# def get_serial_number_windows():
+#     try:
+#         if sys.platform == 'win32':
+#             # Chạy lệnh wmic để lấy thông tin SerialNumber
+#             result = subprocess.check_output(["wmic", "bios", "get", "serialnumber"]).decode("utf-8")
+#             # Lọc kết quả để chỉ lấy SerialNumber
+#             serial_number = result.strip().split("\n")[1]
+#             return serial_number
+#         else:
+#             pass
+#     except Exception as e:
+#         print(f"Lỗi khi lấy thông tin SerialNumber: {e}")
+#         return None
 # ----- MQTT -----
 # /**
 # 	 * @description Sub data MQTT
@@ -461,7 +461,7 @@ async def sync_ServerURL_Database():
     for item in time_sync_data:
         type_file = item["type_protocol"]
         
-    result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
+    result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     print("="*40 , "number_file" , "="*40)
     print("number_file" ,number_file )
@@ -471,12 +471,12 @@ async def sync_ServerURL_Database():
         multifile = True 
     
     result2 = await MySQL_Select_v1(QUERY_SELECT_SERIAL_NUMBER)
-    name_serial_device = result2[0]["serial_number_port"] 
+    name_serial_device = result2[0]["serial_number"] 
     
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"] 
     
-    if number_device != 0 :
+    if number_file != 0 :
         if multifile is False :
             print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
@@ -544,7 +544,7 @@ async def sync_ServerURL_Database():
                             if device.file_size > 0 :
                                 device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                             else :
-                                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                                if len(data_sent_server["id"])> 0 :
                                     upErr_Database(device.time_id,device.id_device)
                                     by_pass = 1 
                                 else:
@@ -612,7 +612,7 @@ async def sync_ServerURL_Database():
                         Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                         print('An exception occurred ',e)
             else : 
-                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                if len(data_sent_server["id"])> 0  :
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
@@ -824,7 +824,7 @@ async def sync_ServerFile_Database():
     for item in time_sync_data:
         type_file = item["type_protocol"]
         
-    result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
+    result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     print("="*40 , "number_file" , "="*40)
     print("number_file" ,number_file )
@@ -834,7 +834,7 @@ async def sync_ServerFile_Database():
         multifile = True 
     
     result2 = await MySQL_Select_v1(QUERY_SELECT_SERIAL_NUMBER)
-    name_serial_device = result2[0]["serial_number_port"] 
+    name_serial_device = result2[0]["serial_number"] 
     
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"] 
@@ -906,7 +906,7 @@ async def sync_ServerFile_Database():
                             if device.file_size > 0 :
                                 device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                             else :
-                                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                                if len(data_sent_server["id"])> 0  :
                                     upErr_Database(device.time_id,device.id_device)
                                     by_pass = 1 
                                 else:
@@ -957,7 +957,7 @@ async def sync_ServerFile_Database():
                         Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                         print('An exception occurred ',e)
             else : 
-                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                if len(data_sent_server["id"])> 0  :
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
@@ -1036,7 +1036,6 @@ async def sync_ServerFile_Database():
                     # Write content from merged_content to the created file
                     with open(source_file, 'w', encoding='utf-8') as file:
                         file.write(merged_content)
-                    print(f" da ghi noi dung {merged_content} vao filename {file_name} , source_file{source_file}")
                     # ==================================Information sent file to server==================================
                     headers = {
                         'SERIALNUMBER': name_serial_device,
@@ -1146,7 +1145,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
         device = MyVariable2("", "", "", "", "", "", 0 , "", "")
         devices.append(device)
 
-    result1 = await MySQL_Select_v1(QUERY_NUMER_FILE)
+    result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     if number_file <= 20 :
         multifile = False 
@@ -1219,7 +1218,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
                         if device.file_size > 0 :
                             device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                         else :
-                            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                            if len(data_sent_server["id"])> 0 :
                                 upErr_Database(device.time_id,device.id_device)
                                 by_pass = 1 
                             else:
@@ -1247,7 +1246,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
                     Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                     print('An exception occurred',e)
         else : 
-            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+            if len(data_sent_server["id"])> 0 :
                 upErr_Database(device.time_id,device.id_device)
             pass
     elif multifile is False and number_file != 0 :
@@ -1601,17 +1600,11 @@ async def main():
     if not result_all or not time_data_server :
         print("Error not found data in Database")
         return -1
-    
-    # serial_number = get_serial_number_windows()
-    # if serial_number :
-    #     MySQL_Update_V1(QUERY_UPDATE_SERIAL_NUMBER,(serial_number,))
-    # else :
-    #     pass
         
     if result_all and time_data_server :
         time_sentdata = time_data_server[0]["time_log_data_server"]
         time_sentdata = 100 # test 
-        if time_sentdata and count <= 1 and type_file == "URL":
+        if time_sentdata and type_file == "URL":
                 if 0 <= time_sentdata <= 24:
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[])
@@ -1640,7 +1633,7 @@ async def main():
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[])
                     scheduler.start()
-        if time_sentdata and count <= 1 and type_file == "FILELOG":
+        if time_sentdata and type_file == "LOGFILE":
                 if 0 <= time_sentdata <= 24:
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerFile_Database, 'cron', hour = time_sentdata,  args=[])

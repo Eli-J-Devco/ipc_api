@@ -101,7 +101,8 @@ INNER JOIN
  <select id="QUERY_NUMER_FILE">
     SELECT COUNT(*) AS remaining_files
 FROM `sync_data`
-WHERE synced = 0 AND error IS NULL;
+WHERE synced = 0 AND error IS NULL
+AND id_upload_channel = %s;
   </select>
  <select id="QUERY_SYNC_MULTIFILE_SERVER1">
     SELECT * FROM sync_data
@@ -155,7 +156,7 @@ SET serial_number_port = %s
 LIMIT 1;
   </select>
 <select id="QUERY_SELECT_SERIAL_NUMBER">
-SELECT serial_number_port
+SELECT serial_number
 FROM project_setup
 LIMIT 1;
   </select>
