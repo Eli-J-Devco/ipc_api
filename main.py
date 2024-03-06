@@ -171,7 +171,14 @@ def init_log_file():
             else:
                 subprocess.Popen(
                         f'sudo pm2 start {absDirname}/dataLog/file.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-
+# Describe functions before writing code
+# /**
+# 	 * @description init sync file
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
 def init_sync_file():
         absDirname=path
         # load file sql from mybatis
@@ -201,7 +208,44 @@ def init_sync_file():
             else:
                 subprocess.Popen(
                         f'sudo pm2 start {absDirname}/dataSync/url.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description init log data
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_log_data():
+        absDirname=path
+        # load file sql from mybatis
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+            xml= absDirname + '/mybatis/settup.xml')
 
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True)
+        
+        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
+            pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
+        query_all = statement[1]["select_upload_channel"]
+        print(f'query_all: {query_all}')
+        results = MySQL_Select(query_all, ())
+        # print(f'results: {results}')
+        for item in results:
+            id = item["id"]
+            name = item["name"]
+            type_protocol= item["type_protocol"]
+            pid = f'UpData|{id}|{name}|{type_protocol}'
+            if sys.platform == 'win32':
+                subprocess.Popen(
+                            f'pm2 start {absDirname}/dataLog/device.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+            else:
+                subprocess.Popen(
+                        f'sudo pm2 start {absDirname}/dataLog/device.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+  
 # Describe functions before writing code
 # /**
 # 	 * @description enable permission folder config network ubuntu ipc
@@ -252,6 +296,7 @@ delete_all_app_pm2()
 init_driver()
 init_log_file()
 init_sync_file()
+init_log_data()
 init_api_web()
 
 
