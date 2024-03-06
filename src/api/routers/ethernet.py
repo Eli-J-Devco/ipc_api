@@ -144,7 +144,7 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
 # 	 * @return data (NetworkBase)
 # 	 */ 
 @router.post('/ifconfig/', response_model=ethernet_schemas.NetworkBase)
-def get_network_interface( current_user: int = Depends(oauth2.get_current_user)):
+def get_network_interface(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     try:
         # result=psutil.net_if_addrs()
         # print(result["Ethernet"])
@@ -165,7 +165,9 @@ def get_network_interface( current_user: int = Depends(oauth2.get_current_user))
         #         "interface":key,
         #         "information": array_item
         #     })
-       
+        config_information_query = db.query(models.Config_information).filter_by(id_type = 14).\
+            filter_by(status = 1).all()
+        
         network_list=[]
         interfaceList=netifaces.interfaces()
         # ----------------------------------------------
@@ -196,7 +198,8 @@ def get_network_interface( current_user: int = Depends(oauth2.get_current_user))
                 "dns2":"",
             })
         return {
-            "network":network_list
+            "network":network_list,
+            "mode":config_information_query
         }
     except (Exception) as err:
         print('Error : ',err)
