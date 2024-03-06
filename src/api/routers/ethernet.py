@@ -123,7 +123,7 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
                         )
         create_file_config_network(all_ethernet_query,network_interface,pathfile)
         
-        # 
+        
         check_file = os.path.isfile(pathfile)
         
         if check_file == False:

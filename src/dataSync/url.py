@@ -80,7 +80,7 @@ status_sync = 0
 count = 0
 sync_immediately = 0 
 count_FTP_Server = 0
-number_file = 0
+# number_file = 0
 number_device = 10 
 count = 0 
 
@@ -164,11 +164,14 @@ def get_mybatis(file_name):
 # 	 */  
 def get_serial_number_windows():
     try:
-        # Chạy lệnh wmic để lấy thông tin SerialNumber
-        result = subprocess.check_output(["wmic", "bios", "get", "serialnumber"]).decode("utf-8")
-        # Lọc kết quả để chỉ lấy SerialNumber
-        serial_number = result.strip().split("\n")[1]
-        return serial_number
+        if sys.platform == 'win32':
+            # Chạy lệnh wmic để lấy thông tin SerialNumber
+            result = subprocess.check_output(["wmic", "bios", "get", "serialnumber"]).decode("utf-8")
+            # Lọc kết quả để chỉ lấy SerialNumber
+            serial_number = result.strip().split("\n")[1]
+            return serial_number
+        else:
+            pass
     except Exception as e:
         print(f"Lỗi khi lấy thông tin SerialNumber: {e}")
         return None

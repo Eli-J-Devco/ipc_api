@@ -30,8 +30,6 @@ if platform.system() == 'Linux':
 else:
     load_dotenv(find_dotenv(".env.development"))
 
-# debug = os.getenv('DATABASE_HOSTNAME')
-# print(debug)
 class Settings(BaseSettings):
     DATABASE_HOSTNAME: str
     DATABASE_PORT: str

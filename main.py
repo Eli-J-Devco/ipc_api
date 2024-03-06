@@ -167,7 +167,7 @@ def init_log_file():
             #             f'pm2 start {absDirname}/create_logfile/log_file.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'pm2 start {absDirname}/dataLog/log_file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
+                        f'pm2 start {absDirname}/dataLog/file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
             else:
                 subprocess.Popen(
                         f'sudo pm2 start {absDirname}/dataLog/file.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
@@ -187,6 +187,7 @@ def init_sync_file():
             print("Error not found data in file mybatis")
             return -1
         query_all = statement[1]["select_upload_channel"]
+        print(f'query_all: {query_all}')
         results = MySQL_Select(query_all, ())
         # print(f'results: {results}')
         for item in results:
@@ -196,7 +197,10 @@ def init_sync_file():
             pid = f'UpData|{id}|{name}|{type_protocol}'
             if sys.platform == 'win32':
                 subprocess.Popen(
-                        f'sudo pm2 start {absDirname}/dataSync/url.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataSync/url.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+            else:
+                subprocess.Popen(
+                        f'sudo pm2 start {absDirname}/dataSync/url.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
 
 # Describe functions before writing code
 # /**
@@ -246,8 +250,8 @@ def init_api_web():
             f'sudo pm2 start {absDirname}/api/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
 # init_driver()
-init_log_file()
-init_sync_file()
+# init_log_file()
+# init_sync_file()
 init_api_web()
 
 
