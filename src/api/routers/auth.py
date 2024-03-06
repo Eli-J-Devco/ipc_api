@@ -44,6 +44,8 @@ router = APIRouter(tags=['Authentication'])
 
 import api.domain.user.models as user_models
 import api.domain.user.schemas as user_schemas
+import api.domain.project.models as project_models
+
 from utils import oauth2
 from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 
@@ -195,6 +197,8 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
             "auth":convert_binary_auth(role_screen["id"+str(item["id"])]["auth"]),
             }
             new_role_screen.append(new_item)
+        
+        site_id = db.query(project_models.Project_setup).first().id
         response.set_cookie(key="refresh_token", value=refresh_token["token"], expires=refresh_token["expires"], max_age=refresh_token["max-age"], path="/", httponly=True, secure=True, samesite="Lax")
         
         return {
@@ -207,6 +211,7 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                 "first_name":info_user_out.first_name,
                 "last_name":info_user_out.last_name,
                 "email":info_user_out.email,
+                "project_id":site_id,
                 "permissions":new_role_screen
                 }
     except (Exception) as err:

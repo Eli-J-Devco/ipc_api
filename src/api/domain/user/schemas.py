@@ -203,6 +203,7 @@ class Token(BaseModel):
     # user: Optional[UserLoginOut] = None
     # screen: list[ScreenBase]=[]
     # role:list[TokenRole] = None
+    project_id: Optional[int] = None
     permissions: list=None
 class TokenData(BaseModel):
     id: Optional[str] = None
