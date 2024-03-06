@@ -476,7 +476,7 @@ async def sync_ServerURL_Database():
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"] 
     
-    if number_device != 0 :
+    if number_file != 0 :
         if multifile is False :
             print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
@@ -544,7 +544,7 @@ async def sync_ServerURL_Database():
                             if device.file_size > 0 :
                                 device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                             else :
-                                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                                if len(data_sent_server["id"])> 0 :
                                     upErr_Database(device.time_id,device.id_device)
                                     by_pass = 1 
                                 else:
@@ -612,7 +612,7 @@ async def sync_ServerURL_Database():
                         Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                         print('An exception occurred ',e)
             else : 
-                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                if len(data_sent_server["id"])> 0  :
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
@@ -906,7 +906,7 @@ async def sync_ServerFile_Database():
                             if device.file_size > 0 :
                                 device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                             else :
-                                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                                if len(data_sent_server["id"])> 0  :
                                     upErr_Database(device.time_id,device.id_device)
                                     by_pass = 1 
                                 else:
@@ -957,7 +957,7 @@ async def sync_ServerFile_Database():
                         Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                         print('An exception occurred ',e)
             else : 
-                if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                if len(data_sent_server["id"])> 0  :
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
@@ -1036,7 +1036,6 @@ async def sync_ServerFile_Database():
                     # Write content from merged_content to the created file
                     with open(source_file, 'w', encoding='utf-8') as file:
                         file.write(merged_content)
-                    print(f" da ghi noi dung {merged_content} vao filename {file_name} , source_file{source_file}")
                     # ==================================Information sent file to server==================================
                     headers = {
                         'SERIALNUMBER': name_serial_device,
@@ -1219,7 +1218,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
                         if device.file_size > 0 :
                             device.data_file = {'file_name': device.file_name, 'file_content': device.file_content}
                         else :
-                            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+                            if len(data_sent_server["id"])> 0 :
                                 upErr_Database(device.time_id,device.id_device)
                                 by_pass = 1 
                             else:
@@ -1247,7 +1246,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
                     Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                     print('An exception occurred',e)
         else : 
-            if len(data_sent_server["id"])> 0 and len(str(data_sent_server["id_device"]))> 0 :
+            if len(data_sent_server["id"])> 0 :
                 upErr_Database(device.time_id,device.id_device)
             pass
     elif multifile is False and number_file != 0 :
