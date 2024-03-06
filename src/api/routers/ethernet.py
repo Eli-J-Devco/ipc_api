@@ -126,6 +126,7 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
         try: 
             ethernet_query.update(updated_ethernet.dict(), synchronize_session=False)
         except exc.SQLAlchemyError as err:
+            db.rollback()
             if re.match("(.*)Duplicate entry(.*)", err.args[0]):
                 
                 return JSONResponse(content={"detail": "Duplicate record"}, status_code=409)
