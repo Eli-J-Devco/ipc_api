@@ -169,7 +169,7 @@ def get_logging_interval( db: Session = Depends(get_db),
         # print(config_information_query[0])
 
         return {
-           "loggingInterval": config_information_query
+           "interval": config_information_query
         }
     except (Exception) as err:
         print('Error : ',err)
