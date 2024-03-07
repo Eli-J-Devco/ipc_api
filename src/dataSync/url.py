@@ -759,7 +759,6 @@ async def sync_ServerURL_Database():
 # 	 * @return 
 # 	 */
 async def sync_ServerFile_Database():
-    print("="*40 , "ServerFile" , "="*40)
     # Step 1 : Read data from database 
     current_time = get_utc()
     
@@ -806,6 +805,7 @@ async def sync_ServerFile_Database():
     url = ""
     response = ""
     merged_content = ""
+    server_response_text = ""
     count_merged = 0
 
     class MyVariable3:
@@ -842,10 +842,12 @@ async def sync_ServerFile_Database():
     name_serial_device = result2[0]["serial_number"] 
     
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
-    url = result3[0]["uploadurl"] 
+    url = result3[0]["uploadurl"]
+    print("="*40 , "url" , "="*40)
+    print("url" ,url )
+    
     if number_file != 0 :
         if multifile is False and number_file != 0:
-            print("="*40 , "ServerFILE Sigle" , "="*40)
             if count == 0 :
                 try :
                     data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
@@ -937,24 +939,16 @@ async def sync_ServerFile_Database():
                     try:
                         if json_data or files:
                             response = requests.post(url, files=files , data=headers)
-                            print("="*40 , "File" ,"="*40 )
-                            print("File" ,device.file_name )
-                            print("="*40 , "Headers" ,"="*40 )
-                            print("Headers" ,headers )
-                            print("="*40 , "status_code" ,"="*40 )
-                            print("status_code" ,response.status_code )
-                        if response.status_code == 200:
+                            server_response_text = response.text
+                            print("Reponse from server" ,server_response_text , "="*40) 
+                            print("File" ,device.file_name)
+                            # print("repr(server_response_text)", repr(server_response_text))
+                        if response.text == "\nSUCCESS\n":
                             # Step 3 : update data error in database
                             MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
-                            try :
-                                print("="*40, "Reponse", "="*40)
-                                print(response.json())
-                                status_sync = 1
-                                count = 0 
-                            except json.JSONDecodeError:
-                                print("Empty response")
+                            status_sync = 1
+                            count = 0 
                         else:
-                            print(response.json())
                             status_sync = 0
                             Executeup_NumberRetry_Database(time_retry,device.time_id,device.id_device)
                     except Exception as e:
@@ -966,7 +960,6 @@ async def sync_ServerFile_Database():
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
-            print("="*40 , "ServerFILE Multi" , "="*40)
             try :
                 if id_device_fr_sys :
                     data_sync_server = MySQL_Select(QUERY_SYNC_FILELOG_SERVER,(id_device_fr_sys,id_device_fr_sys,id_device_fr_sys,))
@@ -1036,7 +1029,6 @@ async def sync_ServerFile_Database():
                     file_name = f'{"mb"}-{devices[i].id_device:03d}.{formatted_time1}.log'
                     file_path = devices[i].ensuredir
                     source_file = os.path.join(file_path, file_name)
-                    print(f"filename {file_name} , source_file{source_file}")
 
                     # Write content from merged_content to the created file
                     with open(source_file, 'w', encoding='utf-8') as file:
@@ -1062,26 +1054,19 @@ async def sync_ServerFile_Database():
                         files.append(file)
                         # Send the file to the server and wait for a 200 response
                         response = requests.post(url, files=files, data=headers)
-                        print("="*40 , "Headers" ,"="*40 )
-                        print("Headers" ,headers )
-                        print("="*40 , "status_code" ,"="*40 )
-                        print("status_code" ,response.status_code)
+                        server_response_text = response.text
+                        print("Reponse from server" ,server_response_text) 
+                        print("File" ,file_name)
                         
-                        if response.status_code == 200:
+                        if server_response_text == "\nSUCCESS\n":
                             # Step 3 : update data sync in database
                             MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
                             count_merged = 0
                             merged_content = ""
-                            try :
-                                print("="*40, "Response ", "="*40)
-                                print(response.json())
-                                status_sync = 1
-                                count = 0 
-                            except json.JSONDecodeError:
-                                print("Empty response")
+                            status_sync = 1
+                            count = 0 
                         else:
                             Executeup_NumberRetry_Database_Multies(time_retry)
-                            print(response.json())
                             status_sync = 0
                 except Exception as e:
                     Executeup_NumberRetry_Database_Multies(time_retry)
