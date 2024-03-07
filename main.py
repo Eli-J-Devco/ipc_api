@@ -162,6 +162,7 @@ def init_log_file():
             name = item["name"]
             type_protocol= item["type_protocol"]
             pid = f'LogFile|{id}|{name}|{type_protocol}'
+
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
