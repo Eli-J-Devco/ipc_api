@@ -80,3 +80,4 @@ class Device_list(Base):
     # 
     # # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
     device_group= relationship("Device_group", back_populates="device_list")
+    device_type = relationship('Device_type', foreign_keys=[id_device_type])

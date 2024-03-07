@@ -93,7 +93,7 @@ def get_only_device(id: int, db: Session = Depends(get_db), current_user: int = 
 # 	 * @return data (DeviceListOut)
 # 	 */ 
 
-@router.post('/all/', response_model=list[deviceList_schemas.DeviceListOfPointListOut])
+@router.post('/all/', response_model=list[deviceList_schemas.DeviceListShortOut])
 def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
     # ----------------------
@@ -103,8 +103,36 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
     if not Device_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
+    print(Device_list.all()[0].device_type.__dict__)
+    print(Device_list.all()[0].communication.driver_list.__dict__)
+    result_device_list=Device_list.all()
+    deviceLists=[]
+    for item in result_device_list:
+        # Port=""
+        # if item.communication.driver_list.name=='Modbus/TCP':
+        #     Port=f'{item.tcp_gateway_ip}:{item.tcp_gateway_port}@{item.rtu_bus_address}'
+        # elif  item.communication.driver_list.name== "RS485":
+        #     Port=f'{item.communication.name}@{ str(item.rtu_bus_address).zfill(4)}'
+        # else:
+        #     pass
+        deviceLists.append({
+            "id":item.id,
+            "name":item.name,
+            "rtu_bus_address":item.rtu_bus_address,
+            "tcp_gateway_ip":item.tcp_gateway_ip,
+            "tcp_gateway_port":item.tcp_gateway_port,
+            "status":item.status,
+            "type_name":item.device_type.name,
+            "driver_type":item.communication.driver_list.name
+            # "Port":Port,
+            # "Status":"Ok",
+            # "Name":item.name,
+            # "Type":item.device_type.name,
+            # "Points":item.point,
+            
+        })
     
-    return Device_list.all()
+    return deviceLists
 
 # Describe functions before writing code
 # /**

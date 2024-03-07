@@ -86,6 +86,7 @@ class Device_type(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
+    
 # 
 
 class Config_information(Base):
