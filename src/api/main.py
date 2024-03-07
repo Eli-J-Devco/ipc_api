@@ -9,6 +9,9 @@ import os
 import sys
 from pathlib import Path
 
+# from httpx import AsyncClient
+from starlette.status import HTTP_504_GATEWAY_TIMEOUT
+
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
 # import models
@@ -21,8 +24,9 @@ from configs.config import Config
 API_DOCS_USERNAME = Config.API_DOCS_USERNAME
 API_DOCS_PASSWORD = Config.API_DOCS_PASSWORD
 API_PORT= Config.API_PORT
-
+REQUEST_TIMEOUT_ERROR = 10
 print(f'API_DOCS_USERNAME: {API_DOCS_USERNAME}')
+import asyncio
 import http
 # import logging
 import secrets
@@ -230,7 +234,25 @@ async def startup():
 async def shutdown():
     print("shutdown ---------")
     # LOGGER.error("--- Shutdown App ---")
+# Describe functions before writing code
+# /**
+# 	 * @description Timeout API
+# 	 * @author vnguyen
+# 	 * @since 07-03-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    try:
+        start_time = time.time()
+        return await asyncio.wait_for(call_next(request), timeout=REQUEST_TIMEOUT_ERROR)
 
+    except asyncio.TimeoutError:
+        process_time = time.time() - start_time
+        return JSONResponse({'detail': 'Request processing time excedeed limit',
+                             'processing_time': process_time},
+                            status_code=HTTP_504_GATEWAY_TIMEOUT)
 
 if __name__ == '__main__':
     # uvicorn.run(app, port=8080, host='0.0.0.0')

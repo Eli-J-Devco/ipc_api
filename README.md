@@ -454,4 +454,10 @@ pipeline {
         // }
     }
 }
-DSNW28b23760
+<!-- MQTT Topic -->
+IPC/Dev
+IPC/Updata
+IPC/LogFile
+IPC/LogDevice
+<!--  -->
+<!--  -->
