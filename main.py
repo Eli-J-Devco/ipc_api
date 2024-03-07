@@ -296,7 +296,7 @@ delete_all_app_pm2()
 init_driver()
 init_log_file()
 init_sync_file()
-init_log_data()
+# init_log_data()
 init_api_web()
 
 

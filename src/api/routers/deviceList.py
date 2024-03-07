@@ -122,7 +122,7 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
             "tcp_gateway_ip":item.tcp_gateway_ip,
             "tcp_gateway_port":item.tcp_gateway_port,
             "status":item.status,
-            "type_name":item.device_type.name,
+            "device_type_name":item.device_type.name,
             "driver_type":item.communication.driver_list.name
             # "Port":Port,
             # "Status":"Ok",

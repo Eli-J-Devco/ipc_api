@@ -83,7 +83,7 @@ class DeviceListShortOut(BaseModel):
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None
     status: Optional[bool] = None
-    type_name: Optional[str] = None
+    device_type_name: Optional[str] = None
     driver_type: Optional[str] = None
     class Config:
         orm_mode = True  
