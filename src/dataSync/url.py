@@ -327,7 +327,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     "FILE_NAME": device.file_name,
                     "TIME_STAMP": date_str,
                     "STATUS_FILE_SERVER": device.status,
-                    "NUMBER_FILE":number_file,
+                    "REMAINDER_FILE":number_file,
                     "NUMBER_OF_RETRY":device.number_time_retry,
                 }
                 pushMQTT(host,
@@ -375,6 +375,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     "FILE_NAME": devices[i].file_name,
                     "TIME_STAMP": date_str,
                     "STATUS_FILE_SERVER": devices[i].status,
+                    "REMAINDER_FILE":number_file,
                     "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
                 }
 
@@ -1697,7 +1698,7 @@ async def main():
                     scheduler.start()
                 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(colectDatatoPushMQTT, 'interval', seconds = 10 , args=[MQTT_BROKER,
+    scheduler.add_job(colectDatatoPushMQTT, 'cron', second = "*/10" , args=[MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_TOPIC_PUB,
                                                                             MQTT_USERNAME,

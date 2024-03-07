@@ -27,7 +27,7 @@ from configs.config import Config
 from utils.libMySQL import *
 
 # Use passing parameters to file
-arr = sys.argv
+# arr = sys.argv
 # print(f'arr: {arr}')
 # ------------------------------------
 
@@ -315,7 +315,7 @@ async def Insert_TableDevice():
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(sql_id,id_device,host, port,topic, username, password):
+async def monitoring_device(sql_id,host, port,topic, username, password):
     
     global QUERY_ALL_DEVICES
     global QUERY_TIME_SYNC_DATA
@@ -332,12 +332,12 @@ async def monitoring_device(sql_id,id_device,host, port,topic, username, passwor
     device_name = ""
     
     #++++++++++++++++++
-    id_device_fr_sys = id_device[1]
+    # id_device_fr_sys = id_device[1]
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
-    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    # time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     
-    for item in time_sync_data:
-        type_file = item["type_protocol"]
+    # for item in time_sync_data:
+    #     type_file = item["type_protocol"]
     
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
@@ -358,7 +358,7 @@ async def monitoring_device(sql_id,id_device,host, port,topic, username, passwor
         
         push_data_to_mqtt(host,
                 port,
-                topic + f"/Channel{id_device_fr_sys}/{type_file}/"+sql_id_str+"|"+device_name,
+                topic + f"/"+sql_id_str+"|"+device_name,
                 username,
                 password,
                 data_mqtt)
@@ -403,7 +403,6 @@ async def main():
     for item in result_all:
         sql_id = item["id"]
         scheduler.add_job(monitoring_device, 'cron',  second = f'*/10' , args=[ sql_id,
-                                                                                arr,
                                                                                 MQTT_BROKER,
                                                                                 MQTT_PORT,
                                                                                 MQTT_TOPIC_PUB,
