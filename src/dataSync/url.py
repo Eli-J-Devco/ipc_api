@@ -41,8 +41,8 @@ URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/Upload" 
-MQTT_TOPIC_SUB = "NgayLapTuc"
+MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/Updata" 
+MQTT_TOPIC_SUB = "Control"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -80,7 +80,6 @@ status_sync = 0
 count = 0
 sync_immediately = 0 
 count_FTP_Server = 0
-# number_file = 0
 number_device = 10 
 count = 0 
 
@@ -265,6 +264,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     data_sync_dict = []
     devices = []
     data_mqtts = []
+    result1 =[]
+    number_file =""
 
     
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
@@ -272,6 +273,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     for item in time_sync_data:
         type_file = item["type_protocol"]
+    result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
+    number_file = result1[0]["remaining_files"]
         
     class MyVariable1:
         def __init__(self, time_id, file_name, number_time_retry, id_device,id_device_str, device_name, error, result_error, status ):
@@ -324,7 +327,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     "FILE_NAME": device.file_name,
                     "TIME_STAMP": date_str,
                     "STATUS_FILE_SERVER": device.status,
-                    "NUMBER_OF_RETRY":device.number_time_retry, 
+                    "NUMBER_FILE":number_file,
+                    "NUMBER_OF_RETRY":device.number_time_retry,
                 }
                 pushMQTT(host,
                         port,
@@ -1693,7 +1697,7 @@ async def main():
                     scheduler.start()
                 
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(colectDatatoPushMQTT, 'interval', seconds = 3 , args=[MQTT_BROKER,
+    scheduler.add_job(colectDatatoPushMQTT, 'interval', seconds = 10 , args=[MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_TOPIC_PUB,
                                                                             MQTT_USERNAME,

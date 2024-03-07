@@ -67,7 +67,7 @@ QUERY_SELECT_COUNT_POINT_LIST=""
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Dev/#"
-MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/CreateLogFile" 
+MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogFile" 
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -492,7 +492,7 @@ async def main():
                                                                             arr,
                                                                             HEAD_FILE_LOG,
                                                                             ])
-        scheduler.add_job(monitoring_device, 'cron',  second = f'*/7' , args=[ sql_id,
+        scheduler.add_job(monitoring_device, 'cron',  second = f'*/13' , args=[ sql_id,
                                                                                 arr,
                                                                                 HEAD_FILE_LOG,
                                                                                 MQTT_BROKER,
