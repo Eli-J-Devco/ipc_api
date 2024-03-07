@@ -332,7 +332,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 }
                 pushMQTT(host,
                         port,
-                        topic + f"/Channel{id_device_fr_sys}/{type_file}/"+device.id_device_str+"|"+ device.device_name,
+                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
                         username,
                         password,
                         data_mqtt)
@@ -383,7 +383,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 
                 pushMQTT(host,
                         port,
-                        topic + f"/Channel{id_device_fr_sys}/{type_file}/"+ devices[i].id_device_str +"|"+ devices[i].device_name,
+                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
                         username,
                         password,
                         data_mqtts)
