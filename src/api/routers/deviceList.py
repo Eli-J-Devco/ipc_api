@@ -103,8 +103,8 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
     if not Device_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"User with id: {id} does not exist")
-    print(Device_list.all()[0].device_type.__dict__)
-    print(Device_list.all()[0].communication.driver_list.__dict__)
+    # print(Device_list.all()[0].device_type.__dict__)
+    # print(Device_list.all()[0].communication.driver_list.__dict__)
     result_device_list=Device_list.all()
     deviceLists=[]
     for item in result_device_list:
@@ -124,12 +124,6 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
             "status":item.status,
             "device_type_name":item.device_type.name,
             "driver_type":item.communication.driver_list.name
-            # "Port":Port,
-            # "Status":"Ok",
-            # "Name":item.name,
-            # "Type":item.device_type.name,
-            # "Points":item.point,
-            
         })
     
     return deviceLists
