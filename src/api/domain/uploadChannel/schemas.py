@@ -34,7 +34,7 @@ class UploadChannelBase(BaseModel):
     uploadurl: Optional[str] = None
     username: Optional[str] = None
     password: Optional[str] = None
-    selected_upload: Optional[str] = None
+    # selected_upload: Optional[str] = None
     id_type_logging_interval: Optional[int] = None
     enable: Optional[bool] = None
     allow_remote_configuration: Optional[bool] = None

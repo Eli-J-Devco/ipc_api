@@ -63,8 +63,9 @@ def restart_program_pm2(app_name):
 # 	 * @param {list app_name of pm2}
 # 	 * @return data ()
 # 	 */
-def restart_program_pm2_many(app_name):
+def restart_program_pm2_many( app_name=[]):
     try:
+        print(f'List app pm2: {app_name}')
         shellscript = subprocess.Popen(["pm2", "jlist"],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
@@ -78,7 +79,7 @@ def restart_program_pm2_many(app_name):
                 if name.find(item_app)==0:
                     pid= item['pm_id']
                     pid_list.append(pid)
-        print(f'list {pid_list}')
+        print(f'List Id app pm2: {pid_list}')
         cmd_pm2=""
         if sys.platform == 'win32':
             cmd_pm2=f'pm2 restart '
@@ -90,7 +91,7 @@ def restart_program_pm2_many(app_name):
                 join_pid=join_pid+ " " +str(item)
             cmd_pm2= cmd_pm2 +join_pid
             print(f'cmd_pm2: {cmd_pm2}')
-            os.system(f'{cmd_pm2}')
+            # os.system(f'{cmd_pm2}')
             app_detect=1
         if app_detect==1:
             return 100

@@ -33,6 +33,7 @@ import model.models as models
 import model.schemas as schemas
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
+from utils.pm2Manager import restart_program_pm2_many
 
 router = APIRouter(
     prefix="/project",
@@ -61,9 +62,9 @@ def get_project( db: Session = Depends(get_db),
         page_query = db.query(user_models.Screen).filter_by(status = 1).all()
         if not page_query:
             return JSONResponse(content={"detail": "Page does not exist"}, status_code=status.HTTP_404_NOT_FOUND)
-                
+        print(f'page_query: {page_query[0].path}')
         project_query.logging_interval_list=config_information_query
-        project_query.page_list=page_query
+        project_query.screen_list=page_query
         return project_query
     except (Exception) as err:
         print('Error : ',err)
@@ -89,7 +90,12 @@ def update_project_logging_rate(
             return JSONResponse(content={"detail": "Project not exist"}, status_code=status.HTTP_404_NOT_FOUND)
         project_query.update(updated_logging_rate.dict(), synchronize_session=False)
         db.commit()
-        return {"status": "success","code": "200"}
+        # 
+        # restart pm2 LogDevice
+        # restart pm2 LogFile
+        result=restart_program_pm2_many(["LogDevice","LogFile"])
+        
+        return {"status": "success","code": str(result)}
     except (Exception) as err:
         print('Error : ',err)
         return JSONResponse(content={"detail": "Internal server error"}, status_code=500)

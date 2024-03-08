@@ -20,15 +20,49 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
                 ("src"))
 from model.schemas import type_logging_interval
 
-
+# class ScreenBase(BaseModel):
+#     # id: Optional[int] = None 
+#     name: Optional[str] = None
+#     description: Optional[str] = None
+#     status: Optional[bool] = None
+    
+#     class Config:
+#         orm_mode = True
 # <- project ->
 class PageBase(BaseModel):
     id : Optional[int] = None
-    name : Optional[str] = None
+    screen_name : Optional[str] = None
     description : Optional[str] = None
+    # class_icon: Optional[str] = None
+    # level: Optional[int] = None
+    # parent: Optional[int] = None
+    # path: Optional[str] = None
+    # has_child: Optional[bool] = None
+    # created_date : Optional[datetime] = None
+    # created_by: Optional[str] = None
+    # updated_date  : Optional[datetime] = None
+    # updated_by : Optional[str] = None
+    # show_menu: Optional[bool] = None
+    
     class Config:
         orm_mode = True
-
+class ScreenBase(BaseModel):
+    id : Optional[int] = None
+    screen_name : Optional[str] = None
+    description : Optional[str] = None
+    # class_icon: Optional[str] = None
+    # level: Optional[int] = None
+    # parent: Optional[int] = None
+    path: Optional[str] = None
+    # has_child: Optional[bool] = None
+    # created_date : Optional[datetime] = None
+    # created_by: Optional[str] = None
+    # updated_date  : Optional[datetime] = None
+    # updated_by : Optional[str] = None
+    # show_menu: Optional[bool] = None
+    
+    class Config:
+        orm_mode = True
 class ProjectBase(BaseModel):
 
     name: Optional[str] = None
@@ -67,8 +101,8 @@ class ProjectBase(BaseModel):
     status : Optional[bool] = None
     logging_interval:type_logging_interval
     logging_interval_list:list[type_logging_interval]
-    first_page_on_login:PageBase
-    page_list:list[PageBase]
+    first_page_on_login:ScreenBase
+    screen_list:list[ScreenBase]
     class Config:
         orm_mode = True
 class ProjectOut(ProjectBase):

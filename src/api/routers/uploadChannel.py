@@ -191,7 +191,7 @@ async def update_upload_channel(updated_channel: list[uploadChannel_schemas.Uplo
                             "uploadurl":channel.uploadurl,
                             "username":channel.username,
                             "password":channel.password,
-                            "selected_upload":channel.selected_upload,
+                            # "selected_upload":channel.selected_upload,
                             "id_type_logging_interval":channel.id_type_logging_interval,
                             "enable":channel.enable,
                             "allow_remote_configuration":channel.allow_remote_configuration,
