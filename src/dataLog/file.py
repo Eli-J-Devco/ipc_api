@@ -459,6 +459,7 @@ async def main():
     # Variable global
     global time_interval
     
+    result_all = []
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
@@ -472,8 +473,11 @@ async def main():
     if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_TIME_SYNC_DATA or not QUERY_INSERT_SYNC_DATA or not QUERY_SELECT_COUNT_POINT_LIST or not QUERY_INSERT_SYNC_DATA_EXECUTEMANY:
         print("Error not found data in file mybatis")
         return -1
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
-    time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    if len(arr) > 1 :
+        result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
+        time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    else:
+        pass
     
     if not result_all or not time_create_file_insert_data_table_dev :
         print("Error not found data in Database")

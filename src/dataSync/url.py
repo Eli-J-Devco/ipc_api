@@ -1552,6 +1552,7 @@ async def main():
     global QUERY_SELECT_URL
     global QUERY_SYNC_FILELOG_SERVER
     
+    result_all =[]
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
