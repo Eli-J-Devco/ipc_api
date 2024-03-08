@@ -42,7 +42,7 @@ class Upload_channel_device_map(Base):
     id_upload_channel = Column(Integer, ForeignKey(
         "upload_channel.id", ondelete="CASCADE", onupdate="CASCADE"),  primary_key=True,nullable=True)
     id_device = Column(Integer, ForeignKey(
-        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"),nullable=True)
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"),  primary_key=True,nullable=True)
     upload_channel= relationship('Upload_channel', foreign_keys=[id_upload_channel])
     device_list= relationship('Device_list', foreign_keys=[id_device])
     
