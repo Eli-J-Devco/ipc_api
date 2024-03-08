@@ -141,7 +141,7 @@ def stop_program_pm2_many(app_name):
         else:
             return 200
     except Exception as err:
-        print('Error restart pm2 : ',err)
+        print('Error stop pm2 : ',err)
         return 300
 # Describe functions before writing code
 # /**

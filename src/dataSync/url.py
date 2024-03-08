@@ -42,7 +42,7 @@ URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/UpData" 
-MQTT_TOPIC_SUB = "NgayLapTuc"
+MQTT_TOPIC_SUB = "Control"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -481,7 +481,7 @@ async def sync_ServerURL_Database():
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"] 
     
-    if number_file != 0 :
+    if number_file != 0 and url:
         if multifile is False :
             print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
@@ -846,7 +846,7 @@ async def sync_ServerFile_Database():
     print("="*40 , "url" , "="*40)
     print("url" ,url )
     
-    if number_file != 0 :
+    if number_file != 0 and url:
         if multifile is False and number_file != 0:
             if count == 0 :
                 try :
@@ -1115,7 +1115,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
     data_insert_many = []
     val = []
     
-    number_file
+    number_file=0
     by_pass = 0 
     file = {}
     
