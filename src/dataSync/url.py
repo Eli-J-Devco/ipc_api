@@ -47,7 +47,7 @@ MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
 # Information Query
-QUERY_ALL_DEVICES = ""
+QUERY_ALL_DEVICES_SYNCDATA = ""
 QUERY_TIME_SYNC_DATA = ""
 QUERY_SYNC_SERVER = ""
 QUERY_UPDATE_DATABASE = ""
@@ -250,7 +250,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     
     global QUERY_TIME_SYNC_DATA
     global QUERY_SYNC_SERVER
-    global QUERY_ALL_DEVICES
+    global QUERY_ALL_DEVICES_SYNCDATA
     
     global id_upload_chanel
     global status_sync
@@ -267,9 +267,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     result1 =[]
     number_file =""
 
-    
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
     id_device_fr_sys = id_upload_chanel[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     for item in time_sync_data:
         type_file = item["type_protocol"]
@@ -1536,7 +1535,7 @@ async def main():
     global time_retry
     global type_file
     global serial_number
-    global QUERY_ALL_DEVICES
+    global QUERY_ALL_DEVICES_SYNCDATA
     global QUERY_GETDATA_SERVER
     global QUERY_SYNC_SERVER
     global QUERY_UPDATE_DATABASE
@@ -1555,7 +1554,7 @@ async def main():
     
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
-        QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
+        QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
         QUERY_GETDATA_SERVER = result_mybatis["QUERY_GETDATA_SERVER"]
         QUERY_SYNC_SERVER = result_mybatis["QUERY_SYNC_SERVER"]
         QUERY_UPDATE_DATABASE = result_mybatis["QUERY_UPDATE_DATABASE"]
@@ -1573,15 +1572,15 @@ async def main():
         QUERY_SYNC_FILELOG_SERVER = result_mybatis["QUERY_SYNC_FILELOG_SERVER"]
     except Exception as e:
             print('An exception occurred',e)
-    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_GET_THE_KEY or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER:
+    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_GET_THE_KEY or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER:
         print("Error not found data in file mybatis")
         return -1
     try: 
         result = await MySQL_Select_v1(QUERY_TIME_RETRY)
         time_retry = result[0]["time_log_data_server"]
-        result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
         time_data_server = await MySQL_Select_v1(QUERY_GETDATA_SERVER)
         id_device_fr_sys = id_upload_chanel[1]
+        result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
         time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
         for item in time_sync_data:
             type_file = item["type_protocol"]
