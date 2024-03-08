@@ -481,7 +481,7 @@ async def sync_ServerURL_Database():
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"] 
     
-    if number_file != 0 :
+    if number_file != 0 and url:
         if multifile is False :
             print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
@@ -846,7 +846,7 @@ async def sync_ServerFile_Database():
     print("="*40 , "url" , "="*40)
     print("url" ,url )
     
-    if number_file != 0 :
+    if number_file != 0 and url:
         if multifile is False and number_file != 0:
             if count == 0 :
                 try :
