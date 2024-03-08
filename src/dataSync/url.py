@@ -41,7 +41,7 @@ URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/Updata" 
+MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/UpData" 
 MQTT_TOPIC_SUB = "Control"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
@@ -1115,7 +1115,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
     data_insert_many = []
     val = []
     
-    number_file
+    number_file = 0 
     by_pass = 0 
     file = {}
     

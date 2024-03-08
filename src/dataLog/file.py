@@ -268,7 +268,7 @@ async def create_filelog(sql_id,base_path,id_device,head_file):
     
     # Get information from SQL
     id_device_fr_sys = id_device[1]
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
     
     # Take time to create file 
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
@@ -375,7 +375,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     time_online = current_time
 
     id_device_fr_sys = id_device[1]
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     sql_id_str = ""
     device_name = ""
@@ -434,11 +434,12 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
 # 	 * @param {}
 # 	 * @return  
 # 	 */ 
-async def insert_sync():
+async def insert_sync(id_device):
     # Variable Global
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global value_many
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    id_device_fr_sys = id_device[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
     # File creation time 
     if len(value_many) == len(result_all):
         MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,value_many)
@@ -471,7 +472,7 @@ async def main():
     if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES or not QUERY_TIME_SYNC_DATA or not QUERY_INSERT_SYNC_DATA or not QUERY_SELECT_COUNT_POINT_LIST or not QUERY_INSERT_SYNC_DATA_EXECUTEMANY:
         print("Error not found data in file mybatis")
         return -1
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    result_all = MySQL_Select(QUERY_ALL_DEVICES,(arr[1],))
     time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
     
     if not result_all or not time_create_file_insert_data_table_dev :
@@ -500,7 +501,7 @@ async def main():
                                                                                 MQTT_TOPIC_PUB,
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
-    scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}')
+    scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}' , args=[arr])
     scheduler.start()
     #-------------------------------------------------------
     tasks = []
