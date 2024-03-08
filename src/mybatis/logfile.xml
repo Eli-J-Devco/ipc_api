@@ -18,7 +18,13 @@ WHERE
   </select>
 
   <select id="QUERY_ALL_DEVICES">
-    SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
+SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
+  </select>
+  <select id="QUERY_ALL_DEVICES_SYNCDATA">
+SELECT device_list.id, device_list.name, device_list.rtu_bus_address
+FROM device_list
+INNER JOIN upload_channel_device_map ON device_list.id = upload_channel_device_map.id_device
+WHERE device_list.status = 1 AND upload_channel_device_map.id_upload_channel = %s;
   </select>
 
   <select id="QUERY_INSERT_SYNC_DATA">
