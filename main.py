@@ -193,7 +193,7 @@ def init_sync_file():
             print("Error not found data in file mybatis")
             return -1
         query_all = statement[1]["select_upload_channel"]
-        print(f'query_all: {query_all}')
+        # print(f'query_all: {query_all}')
         results = MySQL_Select(query_all, ())
         # print(f'results: {results}')
         for item in results:
@@ -299,11 +299,11 @@ def init_api_web():
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/api/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
-init_driver()
-init_api_web()
-init_log_file()
+# init_driver()
+# init_api_web()
+# init_log_file()
 init_sync_file()
-init_log_data()
+# init_log_data()
 
 
 
