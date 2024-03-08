@@ -58,7 +58,7 @@ time_create_file_insert_data_table_dev = ""
 
 # Information Query
 QUERY_TIME_SYNC_DATA=""
-QUERY_ALL_DEVICES=""
+QUERY_ALL_DEVICES_SYNCDATA=""
 QUERY_INSERT_SYNC_DATA=""
 QUERY_INSERT_SYNC_DATA_EXECUTEMANY=""
 QUERY_SELECT_COUNT_POINT_LIST=""
@@ -268,7 +268,7 @@ async def create_filelog(sql_id,base_path,id_device,head_file):
     
     # Get information from SQL
     id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     
     # Take time to create file 
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
@@ -375,7 +375,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     time_online = current_time
 
     id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     sql_id_str = ""
     device_name = ""
@@ -439,7 +439,7 @@ async def insert_sync(id_device):
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
     global value_many
     id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES,(id_device_fr_sys,))
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     # File creation time 
     if len(value_many) == len(result_all):
         MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,value_many)
@@ -449,7 +449,7 @@ async def insert_sync(id_device):
 async def main():
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     # Query global 
-    global QUERY_ALL_DEVICES
+    global QUERY_ALL_DEVICES_SYNCDATA
     global QUERY_TIME_CREATE_FILE
     global QUERY_TIME_SYNC_DATA
     global QUERY_INSERT_SYNC_DATA
@@ -461,7 +461,7 @@ async def main():
     
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
-        QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
+        QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
         QUERY_TIME_SYNC_DATA=result_mybatis["QUERY_TIME_SYNC_DATA"]
         QUERY_INSERT_SYNC_DATA_EXECUTEMANY=result_mybatis["QUERY_INSERT_SYNC_DATA_EXECUTEMANY"]
@@ -469,10 +469,10 @@ async def main():
         QUERY_SELECT_COUNT_POINT_LIST=result_mybatis["QUERY_SELECT_COUNT_POINT_LIST"]
     except Exception as e:
             print('An exception occurred',e)
-    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES or not QUERY_TIME_SYNC_DATA or not QUERY_INSERT_SYNC_DATA or not QUERY_SELECT_COUNT_POINT_LIST or not QUERY_INSERT_SYNC_DATA_EXECUTEMANY:
+    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_TIME_SYNC_DATA or not QUERY_INSERT_SYNC_DATA or not QUERY_SELECT_COUNT_POINT_LIST or not QUERY_INSERT_SYNC_DATA_EXECUTEMANY:
         print("Error not found data in file mybatis")
         return -1
-    result_all = MySQL_Select(QUERY_ALL_DEVICES,(arr[1],))
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
     time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
     
     if not result_all or not time_create_file_insert_data_table_dev :
