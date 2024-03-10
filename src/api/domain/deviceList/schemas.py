@@ -25,6 +25,10 @@ from api.domain.deviceGroup.schemas import DeviceGroupBase
 from model.schemas import DeviceTypeBase, PointBase
 
 
+# class DeviceTypeBase(BaseModel):
+#     id: Optional[int] = None
+#     name: Optional[str] = None
+#     status : Optional[bool] = None
 # <- DeviceList ->
 class DeviceListBase(BaseModel):
     id: Optional[int] = None
@@ -32,6 +36,7 @@ class DeviceListBase(BaseModel):
     rtu_bus_address: Optional[int] = None
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None
+# 
 class DeviceListOut(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
@@ -69,6 +74,17 @@ class DeviceListOut(BaseModel):
     inverter_shutdown : Optional[datetime] = None
     status : Optional[bool] = None
 
+    class Config:
+        orm_mode = True  
+class DeviceListShortOut(BaseModel):
+    id: Optional[int] = None
+    name:Optional[str] = None
+    rtu_bus_address:Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    tcp_gateway_port: Optional[int] = None
+    status: Optional[bool] = None
+    device_type_name: Optional[str] = None
+    driver_type: Optional[str] = None
     class Config:
         orm_mode = True  
 class DeviceState(BaseModel):
@@ -161,10 +177,12 @@ class DeviceListOfPointListOut(DeviceListOut):
     point_p_list:Optional[PointBase] = None
     point_q_list:Optional[PointBase] = None
     point_pf_list:Optional[PointBase] = None
+    device_type:Optional[DeviceTypeBase]= Field(...,alias='Type')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
+
 # # <- DeviceConfig ->
 class DeviceConfigOut(BaseModel):
     device_list:list[DeviceListBase]

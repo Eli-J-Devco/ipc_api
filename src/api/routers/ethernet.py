@@ -6,6 +6,7 @@
 import datetime
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -24,6 +25,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
                 ("src"))
 
 import netifaces
+from sqlalchemy import exc
 
 import api.domain.ethernet.models as ethernet_models
 import api.domain.ethernet.schemas as ethernet_schemas
@@ -121,17 +123,24 @@ def update_ethernet(id: int,  updated_ethernet: ethernet_schemas.EthernetCreate,
                             pathfile=pathfile,
                             id_type_ethernet_name=id_type_ethernet_name
                         )
+        try: 
+            ethernet_query.update(updated_ethernet.dict(), synchronize_session=False)
+        except exc.SQLAlchemyError as err:
+            db.rollback()
+            if re.match("(.*)Duplicate entry(.*)", err.args[0]):
+                
+                return JSONResponse(content={"detail": "Duplicate record"}, status_code=409)
+        
         create_file_config_network(all_ethernet_query,network_interface,pathfile)
-        
-        
         check_file = os.path.isfile(pathfile)
         
         if check_file == False:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Ethernet with 01-netcfg.yaml: does not exist")
-        ethernet_query.update(updated_ethernet.dict(), synchronize_session=False)
-        db.commit() 
+            
+        db.commit()
         return ethernet_query.first()
+    
     except (Exception) as err:
         print('Error : ',err)
         raise HTTPException(status_code=500, detail="Internal server error")

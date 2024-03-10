@@ -43,7 +43,10 @@ def restart_program_pm2(app_name):
         for item in result:
             name = item['name']                   
             if name.find(app_name)==0:
-                os.system(f'pm2 restart "{name}"')
+                if sys.platform == 'win32':
+                    os.system(f'pm2 restart "{name}"')
+                else:
+                    os.system(f'sudo pm2 restart "{name}"')
                 app_detect=1
         if app_detect==1:
             return 100
@@ -60,7 +63,52 @@ def restart_program_pm2(app_name):
 # 	 * @param {list app_name of pm2}
 # 	 * @return data ()
 # 	 */
-def restart_program_pm2_many(app_name):
+def restart_program_pm2_many( app_name=[]):
+    try:
+        print(f'List app pm2: {app_name}')
+        shellscript = subprocess.Popen(["pm2", "jlist"],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        app_detect=0
+        pid_list=[]
+        for item in result:
+            name = item['name']
+            for item_app in app_name:
+                if name.find(item_app)==0:
+                    pid= item['pm_id']
+                    pid_list.append(pid)
+        print(f'List Id app pm2: {pid_list}')
+        cmd_pm2=""
+        if sys.platform == 'win32':
+            cmd_pm2=f'pm2 restart '
+        else:
+            cmd_pm2=f'sudo pm2 restart '
+        join_pid=""
+        if pid_list:
+            for item in pid_list:
+                join_pid=join_pid+ " " +str(item)
+            cmd_pm2= cmd_pm2 +join_pid
+            print(f'cmd_pm2: {cmd_pm2}')
+            # os.system(f'{cmd_pm2}')
+            app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error restart pm2 : ',err)
+        return 300
+# Describe functions before writing code
+# /**
+# 	 * @description stop many app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 07-03-2024
+# 	 * @param {list app_name of pm2}
+# 	 * @return data ()
+# 	 */
+def stop_program_pm2_many(app_name):
     try:
         shellscript = subprocess.Popen(["pm2", "jlist"],
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
@@ -76,7 +124,11 @@ def restart_program_pm2_many(app_name):
                     pid= item['pm_id']
                     pid_list.append(pid)
         print(f'list {pid_list}')
-        cmd_pm2=f'pm2 restart '
+        cmd_pm2=""
+        if sys.platform == 'win32':
+            cmd_pm2=f'pm2 stop '
+        else:
+            cmd_pm2=f'sudo pm2 stop '
         join_pid=""
         if pid_list:
             for item in pid_list:
@@ -90,7 +142,7 @@ def restart_program_pm2_many(app_name):
         else:
             return 200
     except Exception as err:
-        print('Error restart pm2 : ',err)
+        print('Error stop pm2 : ',err)
         return 300
 # Describe functions before writing code
 # /**
@@ -130,7 +182,12 @@ def delete_program_pm2(app_name):
                     
             if name.find(app_name)==0:
                 # print(f'Find channel RS485: {name}')
-                os.system(f'pm2 delete "{name}"')
+                # os.system(f'sudo pm2 delete "{name}"')
+                if sys.platform == 'win32':
+                    os.system(f'pm2 delete "{name}"')
+                else:
+                    os.system(f'sudo pm2 delete "{name}"')
+                
                 app_detect=1
         if app_detect==1:
             return 100
@@ -177,7 +234,11 @@ def stop_program_pm2(app_name):
                     
             if name.find(app_name)==0:
                 # print(f'Find channel RS485: {name}')
-                os.system(f'pm2 stop "{name}"')
+                # os.system(f'sudo pm2 stop "{name}"')
+                if sys.platform == 'win32':
+                    os.system(f'pm2 stop "{name}"')
+                else:
+                    os.system(f'sudo pm2 stop "{name}"')
                 app_detect=1
         if app_detect==1:
             return 100
@@ -254,7 +315,7 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
                             # use run with window
                           
                             subprocess.Popen(
-                                f'pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
+                                f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
                            

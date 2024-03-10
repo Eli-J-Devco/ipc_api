@@ -22,23 +22,32 @@ from api.domain.deviceList.schemas import DeviceListBase
 from model.schemas import type_logging_interval, type_protocol
 
 
+class DeviceUploadBase(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    class Config:
+        orm_mode = True 
 class UploadChannelBase(BaseModel):
     # id_project_setup: int
     name: Optional[str] = None
     id_type_protocol: Optional[int] = None
     uploadurl: Optional[str] = None
+    username: Optional[str] = None
     password: Optional[str] = None
-    selected_upload: Optional[str] = None
+    # selected_upload: Optional[str] = None
     id_type_logging_interval: Optional[int] = None
     enable: Optional[bool] = None
     allow_remote_configuration: Optional[bool] = None
+    device_list:list[DeviceUploadBase]=None
+    status: Optional[bool] = None
     class Config:
         orm_mode = True 
 class UploadChannelOut(UploadChannelBase):
     id: Optional[int] = None
     type_protocol: type_protocol
     type_logging_interval: type_logging_interval
-    status: Optional[bool] = None
+    # status: Optional[bool] = None
+    
     class Config:
         orm_mode = True
 class AllUploadChannelOut(BaseModel):

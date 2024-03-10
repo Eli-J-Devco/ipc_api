@@ -110,9 +110,9 @@ class CommunicationBase(BaseModel):
     # status: bool = True
 class CommunicationOut(CommunicationBase):
     id: int
-    driver_list:  Optional[deviceList_schemas.DeviceListOut]= None
+    # driver_list:  Optional[deviceList_schemas.DeviceListOut]= None
     rs485Inf: Optional[RS485ConfigBase] = None
-    # driver_list: List[DeviceListOut]
+    # driver_list: List[DeviceListOut]= None
     class Config():
         orm_mode = True
 class CommunicationCreate(CommunicationBase):
@@ -120,4 +120,10 @@ class CommunicationCreate(CommunicationBase):
     driver_list: DriverListBase
     
     class Config:
-        orm_mode = True 
+        orm_mode = True
+class CommunicationUpdate(CommunicationBase):
+    # id: int
+    # driver_list: DriverListBase
+    
+    class Config:
+        orm_mode = True

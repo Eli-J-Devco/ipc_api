@@ -10,6 +10,7 @@ Setting > Privacy > Screen Lock > Automatic Screen Lock (Off)
 sudo apt-get update
 sudo apt-get install python
 pip --version
+
 <!-- pip -->
 sudo apt-get install pip
 or sudo apt install python3-pip
@@ -454,3 +455,11 @@ pipeline {
         // }
     }
 }
+<!-- MQTT Topic -->
+IPC/Dev
+IPC/Updata
+IPC/LogFile
+IPC/LogDevice
+<!--  -->
+
+<!--  -->

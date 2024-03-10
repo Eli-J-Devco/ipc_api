@@ -154,41 +154,46 @@ def get_scan_serial(current_user: int = Depends(oauth2.get_current_user)):
 # 	 * @param {id,CommunicationCreate,db}
 # 	 * @return data (RS485State)
 # 	 */   
-@router.post("/update/{id}", response_model=rs485_schemas.RS485State)
+@router.post("/update/", response_model=rs485_schemas.RS485State)
 async def update_rs485(id: int,  
-                       updated_communication: rs485_schemas.CommunicationCreate,
+                       updated_communication: rs485_schemas.CommunicationUpdate,
                        db: Session = Depends(get_db),
                        current_user: int = Depends(oauth2.get_current_user)
                        ):
     try:
         communication_query = db.query(models.Communication).filter_by(id = id)
-       
+
         if communication_query.first() == None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"RS485 with id: {id} does not exist")
-                      
+        
+        result_communication= communication_query.first()
+        try:
+            communication_query.update(dict(dict(**updated_communication.dict()),id_driver_list=1))
+            db.commit()
+        except Exception as err:
+            print('Error update DB: ',err)
+            db.rollback()
         async def execute_func():
-            try:       
-                result=restart_program_pm2(f'Dev|{str(id)}|')
-                return result
+            try:
+                # return 300
+                # await asyncio.sleep(100)
+                modeType=""
+                if hasattr(result_communication, 'driver_list'):
+                    modeType=(result_communication.driver_list.__dict__)["name"]
+                else:
+                    return 300
+                if modeType=="RS485":
+                    result=restart_program_pm2(f'Dev|{str(id)}|{modeType}')
+                    return result
+                else:
+                    return 300
             except Exception as err:
                 print('Error restart pm2 : ',err)
                 return 300
         async with timeout(5) as cm:
             response=  await execute_func()
-            # print(response)
-            if response==100:
-                communication_query.update(updated_communication.dict(), synchronize_session=False)
-                db.commit()
-                return {"status": "success","code": str(response)}
-            elif response==200:
-                communication_query.update(updated_communication.dict(), synchronize_session=False)
-                db.commit()
-                return {"status": "success","code": str(response)}
-            elif response==300:
-                communication_query.update(updated_communication.dict(), synchronize_session=False)
-                db.commit()
-                return {"status": "success","code": str(response)}
+            return {"status": "success","code": str(response)}
     
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")

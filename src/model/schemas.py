@@ -260,7 +260,7 @@ class type_logging_interval(BaseModel):
 class loggingIntervalOut(BaseModel):
     # id: int = Field(..., alias='id')
     # namekey: str = Field(..., alias='Logging_Interval')
-    loggingInterval:  list[type_logging_interval] = None 
+    interval:  list[type_logging_interval] = None 
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
