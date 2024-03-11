@@ -382,7 +382,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 
                 pushMQTT(host,
                         port,
-                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
+                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
                         username,
                         password,
                         data_mqtts)
@@ -832,7 +832,7 @@ async def sync_ServerFile_Database():
     number_file = result1[0]["remaining_files"]
     print("="*40 , "number_file" , "="*40)
     print("number_file" ,number_file )
-    if number_file <= 400 :
+    if number_file <= 40 :
         multifile = False 
     else :
         multifile = True 
@@ -987,8 +987,6 @@ async def sync_ServerFile_Database():
                 data_sent_server_list = data_sent_server_list
             #Step 2 : Sent data to server 
             if data_sent_server_list: 
-                print("="*40 , "data_sent_server_list" ,"="*40 )
-                print("data_sent_server_list" , data_sent_server_list)
                 # if (len(str(data_sent_server_list[i]['id_device'])) > 0 and len(str(data_sent_server_list[i]['modbusdevice'])) > 0 and len(data_sent_server_list[i]["data_sql"]) > 0 ):
                     
                 for i in range(min(number_device, len(data_sent_server_list))):  
@@ -1587,35 +1585,41 @@ async def main():
             type_file = item["type_protocol"]
     except Exception as e:
             print('An exception occurred',e)
-    if not result_all or not time_data_server :
-        print("Error not found data in Database")
+    if not result_all :
+        print("None of the devices have been selected in the database")
         return -1
-        
+    if not time_data_server :
+        print("Unable to select synchronization time for data in the database.")
+        return -1
+    if type_file != "URL" and type_file != "LOGFILE" and type_file != "FTP":
+        print("Unable to select file type in the database.")
+        return -1
+    
     if result_all and time_data_server :
         time_sentdata = time_data_server[0]["time_log_data_server"]
         time_sentdata = 100 # test 
         if time_sentdata and type_file == "URL":
-                if 0 <= time_sentdata <= 24:
+                if 0 <= time_sentdata <= 24: #
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[])
                     scheduler.start()
-                elif time_sentdata == 95 :
+                elif time_sentdata == 95 : # Connect Every 12 hours
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[])
                     scheduler.start()
-                elif time_sentdata == 96 :
+                elif time_sentdata == 96 : # Connect Every 8 hours
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[])
                     scheduler.start()
-                elif time_sentdata == 97 :
+                elif time_sentdata == 97 : # Connect Every Log Cycle
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{time_sentdata}",  args=[])
                     scheduler.start()
-                elif time_sentdata == 98 :
+                elif time_sentdata == 98 : # Connect Every 15 minutes
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[])
                     scheduler.start()
-                elif time_sentdata == 99 :
+                elif time_sentdata == 99 : # Connect Every Hour
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[])
                     scheduler.start()
@@ -1681,7 +1685,7 @@ async def main():
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerFTP_Database, 'cron', second = "*/10",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
                     scheduler.start()
-                
+        
     scheduler = AsyncIOScheduler()
     scheduler.add_job(colectDatatoPushMQTT, 'cron', second = "*/10" , args=[MQTT_BROKER,
                                                                             MQTT_PORT,
