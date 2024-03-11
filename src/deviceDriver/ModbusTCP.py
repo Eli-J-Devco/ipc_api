@@ -1146,7 +1146,7 @@ async def main():
                                                              MQTT_USERNAME,
                                                              MQTT_PASSWORD
                                                              )))
-    # tasks.append(asyncio.create_task(check_device_control()))
+ 
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':
