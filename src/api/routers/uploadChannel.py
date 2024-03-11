@@ -118,7 +118,7 @@ def get_upload_channel_config( db: Session = Depends(get_db), current_user: int 
         type_logging_interval = [item.__dict__ for item in config_information_query if item.id_type == 6]
         device_list=[]
         device_list=[item.__dict__ for item in device_list_query]
-        print(f'type_protocol: {type_protocol}')
+        # print(f'type_protocol: {type_protocol}')
         return {
             "type_protocol":type_protocol,
             "device_list":device_list,

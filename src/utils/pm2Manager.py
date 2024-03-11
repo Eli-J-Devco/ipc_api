@@ -101,7 +101,7 @@ def restart_program_pm2_many( app_name=[]):
                 join_pid=join_pid+ " " +str(item)
             cmd_pm2= cmd_pm2 +join_pid
             print(f'cmd_pm2: {cmd_pm2}')
-            # os.system(f'{cmd_pm2}')
+            os.system(f'{cmd_pm2}')
             app_detect=1
         if app_detect==1:
             return 100
