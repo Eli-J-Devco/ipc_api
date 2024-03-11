@@ -63,6 +63,7 @@ QUERY_UPDATE_SERIAL_NUMBER = ""
 QUERY_SELECT_SERIAL_NUMBER = ""
 QUERY_SELECT_URL = ""
 QUERY_SYNC_FILELOG_SERVER = ""
+QUERY_TIME_CREATE_FILE = ""
 
 # Declare Variable 
 data_sent_server_list = []
@@ -1549,6 +1550,7 @@ async def main():
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     global QUERY_SYNC_FILELOG_SERVER
+    global QUERY_TIME_CREATE_FILE
     
     result_all =[]
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
@@ -1569,15 +1571,26 @@ async def main():
         QUERY_SELECT_SERIAL_NUMBER = result_mybatis["QUERY_SELECT_SERIAL_NUMBER"]
         QUERY_SELECT_URL = result_mybatis["QUERY_SELECT_URL"]
         QUERY_SYNC_FILELOG_SERVER = result_mybatis["QUERY_SYNC_FILELOG_SERVER"]
+        QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
+        
     except Exception as e:
             print('An exception occurred',e)
-    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_GET_THE_KEY or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER:
+    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_GET_THE_KEY or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER or not QUERY_TIME_CREATE_FILE:
         print("Error not found data in file mybatis")
         return -1
     try: 
         result = await MySQL_Select_v1(QUERY_TIME_RETRY)
         time_retry = result[0]["time_log_data_server"]
         time_data_server = await MySQL_Select_v1(QUERY_GETDATA_SERVER)
+        
+        # Retrieve file synchronization time according to the log cycle.
+        time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+        item = time_create_file_insert_data_table_dev[0]
+        time_interval = item["time_log_interval"]
+        position = time_interval.rfind("minute")
+        number = time_interval[:position]
+        int_number = int(number)
+        
         id_device_fr_sys = id_upload_chanel[1]
         result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
         time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
@@ -1611,9 +1624,9 @@ async def main():
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[])
                     scheduler.start()
-                elif time_sentdata == 97 : # Connect Every Log Cycle
+                elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{time_sentdata}",  args=[])
+                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{int_number}",  args=[])
                     scheduler.start()
                 elif time_sentdata == 98 : # Connect Every 15 minutes
                     scheduler = AsyncIOScheduler()
@@ -1640,9 +1653,9 @@ async def main():
                     scheduler = AsyncIOScheduler()
                     scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "8",  args=[])
                     scheduler.start()
-                elif time_sentdata == 97 :
+                elif time_sentdata == 97 and int_number :
                     scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = f"{time_sentdata}",  args=[])
+                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = f"{int_number}",  args=[])
                     scheduler.start()
                 elif time_sentdata == 98 :
                     scheduler = AsyncIOScheduler()

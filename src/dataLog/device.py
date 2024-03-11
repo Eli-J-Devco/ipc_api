@@ -395,8 +395,11 @@ async def main():
     number = time_interval[:position]
     int_number = int(number)
     
-    if not time_create_file_insert_data_table_dev or not result_all:
-        print("Error not found data in Database")
+    if not result_all :
+        print("None of the devices have been selected in the database")
+        return -1
+    if not int_number :
+        print("Unable to find file creation time in the database")
         return -1
     
     scheduler = AsyncIOScheduler()
