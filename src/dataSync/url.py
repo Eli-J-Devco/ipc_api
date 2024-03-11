@@ -871,7 +871,7 @@ async def sync_ServerFile_Database():
     number_file = result1[0]["remaining_files"]
     print("="*40 , "number_file" , "="*40)
     print("number_file" ,number_file )
-    if number_file <= 40 :
+    if number_file <= 400 :
         multifile = False 
     else :
         multifile = True 
@@ -885,7 +885,7 @@ async def sync_ServerFile_Database():
     print("url" ,url )
     
     if number_file != 0 and url:
-        if multifile is False and number_file != 0:
+        if multifile is False :
             if count == 0 :
                 try :
                     data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
