@@ -36,10 +36,10 @@ def restart_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -73,10 +73,10 @@ def restart_program_pm2_many( app_name=[]):
         print(f'List app pm2: {app_name}')
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -122,10 +122,10 @@ def stop_program_pm2_many(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -171,10 +171,10 @@ def delete_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -228,10 +228,10 @@ def stop_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -361,10 +361,10 @@ def find_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
-            cmd_list="pm2"
+            cmd_list="pm2 jlist"
         else:
-            cmd_list="sudo pm2"
-        shellscript = subprocess.Popen([cmd_list, "jlist"],
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
