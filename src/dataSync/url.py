@@ -329,6 +329,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     "REMAINDER_FILE":number_file,
                     "NUMBER_OF_RETRY":device.number_time_retry,
                 }
+                
                 pushMQTT(host,
                         port,
                         topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
@@ -379,7 +380,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 }
 
                 data_mqtts.append(data_mqtt) 
-                
+                # print(f'device.id_device_str {device.id_device_str }')
+                # print(f'device.device_name {device.device_name }')
                 pushMQTT(host,
                         port,
                         topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
@@ -988,7 +990,7 @@ async def sync_ServerFile_Database():
             #Step 2 : Sent data to server 
             if data_sent_server_list: 
                 print("="*40 , "data_sent_server_list" ,"="*40 )
-                print("data_sent_server_list" , data_sent_server_list)
+                # print("data_sent_server_list" , data_sent_server_list)
                 # if (len(str(data_sent_server_list[i]['id_device'])) > 0 and len(str(data_sent_server_list[i]['modbusdevice'])) > 0 and len(data_sent_server_list[i]["data_sql"]) > 0 ):
                     
                 for i in range(min(number_device, len(data_sent_server_list))):  
@@ -1587,6 +1589,9 @@ async def main():
             type_file = item["type_protocol"]
     except Exception as e:
             print('An exception occurred',e)
+    # print(f'11: {QUERY_GETDATA_SERVER}')
+    # print(f'1: {result_all}')
+    # print(f'2: {time_data_server}')
     if not result_all or not time_data_server :
         print("Error not found data in Database")
         return -1

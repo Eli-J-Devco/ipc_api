@@ -457,9 +457,10 @@ pipeline {
 }
 <!-- MQTT Topic -->
 IPC/Dev
-IPC/Updata
+IPC/UpData
 IPC/LogFile
 IPC/LogDevice
 <!--  -->
+Change device
 
 <!--  -->

@@ -102,7 +102,7 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
     # ----------------------
     if not Device_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} does not exist")
+                            detail=f"Device empty")
     # print(Device_list.all()[0].device_type.__dict__)
     # print(Device_list.all()[0].communication.driver_list.__dict__)
     result_device_list=Device_list.all()
