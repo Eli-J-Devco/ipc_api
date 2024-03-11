@@ -83,6 +83,7 @@ sync_immediately = 0
 count_FTP_Server = 0
 number_device = 10 
 count = 0 
+int_number = 0
 
 flag_sync_immediately = False 
 flag_end_update = False
@@ -93,6 +94,7 @@ isUploadSuccess = False
 serial_number = ""
 time_retry = ""
 type_file = ""
+time_sentdata = 0
 
 #----------------------------------------
 # /**
@@ -258,6 +260,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     global multifile
     global number_device 
     global json_data
+    global time_sentdata
+    global int_number
     
     data_sent_server_mqtt = []
     data_sent_server_list_mqtt = []
@@ -267,6 +271,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     data_mqtts = []
     result1 =[]
     number_file =""
+    time_sync = ""
 
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
@@ -322,11 +327,28 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                     device.status = "Success"
                 else :
                     device.status = "Fault"
+                if int_number:
+                    if 0 <= time_sentdata <= 24:
+                        time_sync = str(int_number) +" "+ "hour"
+                    elif time_sentdata == 95:
+                        time_sync = "Connect Every 12 hours"
+                    elif time_sentdata == 96:
+                        time_sync = "Connect Every 8 hours"
+                    elif time_sentdata == 97:
+                        time_sync = "Connect Every " + str(int_number) + " minute"
+                    elif time_sentdata == 98:
+                        time_sync = "Connect Every 15 minutes"
+                    elif time_sentdata == 99:
+                        time_sync = "Connect Every Hour"
+                else :
+                    pass
+                    
                 data_mqtt={
                     "ID_DEVICE":device.id_device,
                     "FILE_NAME": device.file_name,
                     "TIME_STAMP": date_str,
                     "STATUS_FILE_SERVER": device.status,
+                    "TIME_SYNC": time_sync ,
                     "REMAINDER_FILE":number_file,
                     "NUMBER_OF_RETRY":device.number_time_retry,
                 }
@@ -354,7 +376,6 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 devices[i].file_name = data_sent_server_list_mqtt[i]['filename']
                 devices[i].number_time_retry = data_sent_server_list_mqtt[i]['number_of_time_retry']
                 devices[i].result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,devices[i].file_name))
-                # devices[0].error = devices[0].result_error[0]["error"]
                 
                 # File creation time 
                 devices[i].id_device_str = str( devices[i].id_device)
@@ -370,11 +391,28 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
                 else :
                     devices[i].status = "Fault"
                 
+                if time_sentdata and int_number:
+                    if 0 <= time_sentdata <= 24:
+                        time_sync = str(time_sentdata) + "hour"
+                    elif time_sentdata == 95:
+                        time_sync = "Connect Every 12 hours"
+                    elif time_sentdata == 96:
+                        time_sync = "Connect Every 8 hours"
+                    elif time_sentdata == 97:
+                        time_sync = "Connect Every " + str(int_number) + " minute"
+                    elif time_sentdata == 98:
+                        time_sync = "Connect Every 15 minutes"
+                    elif time_sentdata == 99:
+                        time_sync = "Connect Every Hour"
+                else :
+                    pass
+                
                 data_mqtt={
                     "ID_DEVICE":devices[i].id_device,
                     "FILE_NAME": devices[i].file_name,
                     "TIME_STAMP": date_str,
                     "STATUS_FILE_SERVER": devices[i].status,
+                    "TIME_SYNC": time_sync ,
                     "REMAINDER_FILE":number_file,
                     "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
                 }
@@ -1534,6 +1572,9 @@ async def main():
     global time_retry
     global type_file
     global serial_number
+    global time_sentdata
+    global int_number
+    
     global QUERY_ALL_DEVICES_SYNCDATA
     global QUERY_GETDATA_SERVER
     global QUERY_SYNC_SERVER
@@ -1590,12 +1631,13 @@ async def main():
         position = time_interval.rfind("minute")
         number = time_interval[:position]
         int_number = int(number)
-        
+
         id_device_fr_sys = id_upload_chanel[1]
         result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
         time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
         for item in time_sync_data:
             type_file = item["type_protocol"]
+        
     except Exception as e:
             print('An exception occurred',e)
     if not result_all :
@@ -1608,96 +1650,101 @@ async def main():
         print("Unable to select file type in the database.")
         return -1
     
-    if result_all and time_data_server :
+    if time_data_server and isinstance(time_data_server[0].get("time_log_data_server"), int):
         time_sentdata = time_data_server[0]["time_log_data_server"]
-        time_sentdata = 100 # test 
-        if time_sentdata and type_file == "URL":
-                if 0 <= time_sentdata <= 24: #
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[])
-                    scheduler.start()
-                elif time_sentdata == 95 : # Connect Every 12 hours
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 96 : # Connect Every 8 hours
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{int_number}",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 98 : # Connect Every 15 minutes
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 99 : # Connect Every Hour
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 100 : # test cron 
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[])
-                    scheduler.start()
-        if time_sentdata and type_file == "LOGFILE":
-                if 0 <= time_sentdata <= 24:
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'cron', hour = time_sentdata,  args=[])
-                    scheduler.start()
-                elif time_sentdata == 95 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "12",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 96 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "8",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 97 and int_number :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = f"{int_number}",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 98 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = "15",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 99 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "1",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 100 : # test cron 
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'cron', second = "*/10",  args=[])
-                    scheduler.start()
-        if time_sentdata and count <= 1 and type_file == "FTP":
-                if 0 <= time_sentdata <= 24:
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'cron', hour = time_sentdata,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 95 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "12",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 96 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "8",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 97 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = f"{time_sentdata}",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 98 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = "15",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 99 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "1",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 100 : # test cron 
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'cron', second = "*/10",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
+        time_sentdata = int(time_sentdata)
+    else:
+        print("Cannot be converted to an integer.")
+        return -1
+
+    # time_sentdata = 100 # test 
+    if time_sentdata and type_file == "URL":
+            if 0 <= time_sentdata <= 24: # Connect by timestamp
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'cron', hour = 1,  args=[])
+                scheduler.start()
+            elif time_sentdata == 95 : # Connect Every 12 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 12,  args=[])
+                scheduler.start()
+            elif time_sentdata == 96 : # Connect Every 8 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 8,  args=[])
+                scheduler.start()
+            elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = int(int_number),  args=[])
+                scheduler.start()
+            elif time_sentdata == 98 : # Connect Every 15 minutes
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = 15,  args=[])
+                scheduler.start()
+            elif time_sentdata == 99 : # Connect Every Hour
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 1,  args=[])
+                scheduler.start()
+            elif time_sentdata == 100 : # test cron 
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[])
+                scheduler.start()
+    if time_sentdata and type_file == "LOGFILE":
+            if 0 <= time_sentdata <= 24: # Connect by timestamp
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'cron', hour = 1,  args=[])
+                scheduler.start()
+            elif time_sentdata == 95 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'interval', hours = 12,  args=[])
+                scheduler.start()
+            elif time_sentdata == 96 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'interval', hours = 8,  args=[])
+                scheduler.start()
+            elif time_sentdata == 97 and int_number :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = int(int_number),  args=[])
+                scheduler.start()
+            elif time_sentdata == 98 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = 15,  args=[])
+                scheduler.start()
+            elif time_sentdata == 99 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'interval', hours = 1,  args=[])
+                scheduler.start()
+            elif time_sentdata == 100 : # test cron 
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database, 'cron', second = "*/10",  args=[])
+                scheduler.start()
+    if time_sentdata and count <= 1 and type_file == "FTP":
+            if 0 <= time_sentdata <= 24:
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'cron', hour = 1,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 95 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "12",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 96 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "8",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 97 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = int(int_number),  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 98 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = "15",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 99 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "1",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            # elif time_sentdata == 100 : # test cron 
+            #     scheduler = AsyncIOScheduler()
+            #     scheduler.add_job(sync_ServerFTP_Database, 'cron', second = "*/10",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+            #     scheduler.start()
         
     scheduler = AsyncIOScheduler()
     scheduler.add_job(colectDatatoPushMQTT, 'cron', second = "*/10" , args=[MQTT_BROKER,
