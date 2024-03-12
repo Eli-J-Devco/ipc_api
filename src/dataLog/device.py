@@ -287,8 +287,7 @@ async def Insert_TableDevice():
             # Create a query with REPLACE INTO syntax
             query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
             val = value_insert
-            print("="*40 ,"value_insert" , "="*40)
-            print("value_insert" ,value_insert)
+
             # Check if the SQL query exists in the dictionary
             if sql_id in sql_queries:
                 # Update the SQL query
@@ -316,10 +315,11 @@ async def Insert_TableDevice():
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(sql_id,host, port,topic, username, password):
+async def monitoring_device(host, port,topic, username, password):
     
     global QUERY_ALL_DEVICES
     global QUERY_TIME_SYNC_DATA
+    
     global status_device 
     global status_file
     global result_list
@@ -332,39 +332,35 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
     sql_id_str = ""
     device_name = ""
     
-    #++++++++++++++++++
-    # id_device_fr_sys = id_device[1]
+
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
-    # time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    
-    # for item in time_sync_data:
-    #     type_file = item["type_protocol"]
-    
-    DictID = [item for item in result_list if item["id"] == sql_id]
-    if DictID:
-        data = DictID[0]["data"]
-                
-    try:
-        data_mqtt={
-            "ID_DEVICE":sql_id,
-            "STATUS_CHANNEL":status,
-            "TIME_STAMP" :current_time,
-            "TIME_LOG": time_interval ,
-            "DATA_LOG":data,
-            }
-        
-        # File creation time 
-        sql_id_str = str(sql_id)
-        device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
-        
-        push_data_to_mqtt(host,
-                port,
-                topic + f"/"+sql_id_str+"|"+device_name,
-                username,
-                password,
-                data_mqtt)
-    except Exception as err:
-        print('Error monitoring_device : ',err)
+    for item in result_all:
+        sql_id = item["id"]
+        DictID = [item for item in result_list if item["id"] == sql_id]
+        if DictID:
+            data = DictID[0]["data"]
+                    
+        try:
+            data_mqtt={
+                "ID_DEVICE":sql_id,
+                "STATUS_CHANNEL":status,
+                "TIME_STAMP" :current_time,
+                "TIME_LOG": time_interval ,
+                "DATA_LOG":data,
+                }
+            
+            # File creation time 
+            sql_id_str = str(sql_id)
+            device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
+            
+            push_data_to_mqtt(host,
+                    port,
+                    topic + f"/"+sql_id_str+"|"+device_name,
+                    username,
+                    password,
+                    data_mqtt)
+        except Exception as err:
+            print('Error monitoring_device : ',err)
         
 async def main():
     
@@ -404,14 +400,11 @@ async def main():
     
     scheduler = AsyncIOScheduler()
     scheduler.add_job(Insert_TableDevice, 'cron', minute = f'*/{int_number}')
-    for item in result_all:
-        sql_id = item["id"]
-        scheduler.add_job(monitoring_device, 'cron',  second = f'*/10' , args=[ sql_id,
-                                                                                MQTT_BROKER,
-                                                                                MQTT_PORT,
-                                                                                MQTT_TOPIC_PUB,
-                                                                                MQTT_USERNAME,
-                                                                                MQTT_PASSWORD])
+    scheduler.add_job(monitoring_device, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_TOPIC_PUB,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
     scheduler.start()
     
     tasks = []
