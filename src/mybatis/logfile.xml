@@ -101,7 +101,8 @@ INNER JOIN
     SELECT * FROM sync_data
     WHERE 
     id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    ORDER BY id ASC, id_device ASC
+    AND id_device = %s
+    ORDER BY id ASC
     LIMIT 1;
   </select>
  <select id="QUERY_NUMER_FILE">
@@ -120,8 +121,11 @@ AND id_upload_channel = %s;
  <select id="QUERY_SYNC_MULTIFILE_SERVER">
     SELECT * FROM sync_data
     WHERE 
-    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    AND id_device >= (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL)
+    id_upload_channel = %s 
+    AND synced = 0 
+    AND updatetime IS NULL 
+    AND error IS NULL 
+    AND id_device = %s
     ORDER BY id_device
     LIMIT 10;
 </select>
@@ -132,7 +136,7 @@ AND id_upload_channel = %s;
     AND synced = 0 
     AND updatetime IS NULL 
     AND error IS NULL 
-    AND id_device = (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL AND id_device >= (SELECT COALESCE(MAX(id_device), 0) FROM sync_data WHERE id_upload_channel = %s AND synced = 1))
+    AND id_device = %s
     ORDER BY id_device
     LIMIT 10;
 </select>
