@@ -256,7 +256,7 @@ async def Insert_TableDevice_AllDevice():
     tasks = []
     for item in result_all:
         sql_id = item["id"]
-        task = monitoring_device(sql_id)
+        task = Insert_TableDevice(sql_id)
         tasks.append(task)
     
     await asyncio.gather(*tasks)
@@ -271,6 +271,7 @@ async def Insert_TableDevice_AllDevice():
 # 	 * @return result_list 
 # 	 */ 
 async def Insert_TableDevice(sql_id):
+    print("sql_id",sql_id)
     global result_list
     counter = 0
     sql_queries = {}
@@ -284,12 +285,13 @@ async def Insert_TableDevice(sql_id):
     if DictID:
         data = DictID[0]["data"]
         point_id = DictID[0]["point_id"]
-
+    print("result_list",result_list)
+    print("data",data )
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()
         value_insert = (time_insert_dev, sql_id) + tuple(data)
-        
+        print("value_insert",value_insert)
         # Replace 'None' with 'NULL' in the data tuple
         value_insert = tuple(None if x == 'None' else x for x in value_insert)
         

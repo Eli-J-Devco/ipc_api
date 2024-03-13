@@ -398,7 +398,6 @@ async def monitoring_device_AllDevice(id_device,head_file,host, port,topic, user
 # 	 * @return data ()
 # 	 */
 async def monitoring_device(sql_id,id_device,head_file,host, port,topic, username, password):
-    print(" da vao ham monitoring " , sql_id)
     global flag_mqtt
     global data_mqtt
     global count_mqtt
@@ -411,14 +410,18 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     global time_interval
     global countMonitor
     
+    sql_id_str = ""
+    device_name = ""
+    
     current_time = get_utc()
     data = []
     time_online = current_time
 
     id_device_fr_sys = id_device[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    id_device_fr_sys = id_device[1]
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    sql_id_str = ""
-    device_name = ""
     
     for item in time_sync_data:
         type_file = item["type_protocol"]
@@ -426,11 +429,9 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
     if sql_id :
         file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
         DictID = [item for item in result_list if item["id"] == sql_id]
-        print("result_list MQTT" ,result_list)
         if DictID:
             time_online = DictID[0]["time"]
             data = DictID[0]["data"]  
-        print("data",data) 
         try: 
             if formatted_time1 :
                 data_mqtt={
