@@ -23,6 +23,8 @@ class Template_library(Base):
     __tablename__ = "template_library"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
+    id_device_group = Column(Integer, ForeignKey(
+        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     # id_template_type = Column(Integer, ForeignKey(
     #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)

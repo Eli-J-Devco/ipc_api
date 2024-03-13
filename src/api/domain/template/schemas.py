@@ -30,7 +30,7 @@ class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
-    
+    id_device_group: Optional[int] = None
     class Config:
         orm_mode = True
 # <-  -> 

@@ -151,7 +151,7 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     if not device_group_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device group does not exist")
-    device_list_query = db.query(deviceList_models.Device_list).order_by(deviceList_models.Device_list.id.asc())
+    # device_list_query = db.query(deviceList_models.Device_list).order_by(deviceList_models.Device_list.id.asc())
     template_query = db.query(template_models.Template_library).order_by(template_models.Template_library.id.asc())
     
     communication_query = db.query(models.Communication)
@@ -173,8 +173,9 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
         result_communication.append(new_item) 
     result_template=[]   
     for item in template_query.all():
-        new_item=item.__dict__
-        result_template.append(new_item) 
+        # new_item=item.__dict__
+        result_template.append({**item.__dict__,
+                                }) 
     # https://docs.sqlalchemy.org/en/14/core/tutorial.html#using-textual-sql
     
     return {
