@@ -165,9 +165,19 @@ class MultipleDeviceCreate(BaseModel):
                 
         #     }
         # }
+# class DeviceDelete(BaseModel):
+#     id: Optional[int] =  Field(...)
+#     mode:Optional[int] =  Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+#     class Config:
+#         orm_mode = True
 class DeviceDelete(BaseModel):
-    id: Optional[int] =  Field(...)
-    mode:Optional[int] =  Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True
+class DeviceDeleteMulti(BaseModel):
+    device: list[DeviceDelete]= None
+    delete_mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    
     class Config:
         orm_mode = True
 class DeviceUpdateBase(BaseModel):
