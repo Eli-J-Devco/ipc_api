@@ -518,7 +518,7 @@ async def device(ConfigPara):
         query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
         
         if query_device_rs485 != -1 and query_point_list  != -1  and query_register_block  != -1:
-          pass
+            pass
         else:           
             print("Error not found data in file mybatis")
             return -1

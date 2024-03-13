@@ -18,6 +18,7 @@ from pydantic.types import conint
 
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+# from api.domain.deviceGroup.schemas import DeviceGroupBase
 from model.schemas import (DataTypeBase, PointByteOrder, PointDataType,
                            PointOutBase, PointUnit, RegisterListBase,
                            TypeByteOrderBase, TypeClassBase, TypePointBase,

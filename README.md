@@ -469,4 +469,5 @@ Dev|
 When Change device
 call file 
 sudo pm2 start /sources/python/api_python/src/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f   -- 296  --restart-delay=10000
+sudo pm2 start /sources/python/api_python/src/api/main.py --interpreter /usr/bin/python3 -f  --name "API"  --restart-delay=10000
 <!--  -->

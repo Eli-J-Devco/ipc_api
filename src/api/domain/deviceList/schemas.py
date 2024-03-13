@@ -19,12 +19,32 @@ from pydantic.types import conint
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
 from api.domain.deviceGroup.schemas import DeviceGroupBase
+from api.domain.template.schemas import TemplateBase
 # import api.domain.deviceGroup.schemas as deviceGroup_schemas
 # from model.schemas import (PointBase, PointByteOrder, PointDataType,
 #                            PointOutBase, PointUnit, RegisterListBase)
-from model.schemas import DeviceTypeBase, PointBase
+from model.schemas import DeviceTypeBase, DriverListBase, PointBase
 
 
+class CommunicationBase(BaseModel):
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+    id_driver_list: Optional[int] = None
+    id_type_baud_rates: Optional[int] = None
+    id_type_parity: Optional[int] = None
+    id_type_stopbits: Optional[int] = None
+    id_type_timeout: Optional[int] = None
+    id_type_debug_level: Optional[int] = None
+    # driver_list: DeviceListOut
+    # note1: str
+    # note1: str
+    # status: bool = True
+class CommunicationCreate(CommunicationBase):
+    id: int
+    driver_list: DriverListBase
+    
+    class Config:
+        orm_mode = True
 # class DeviceTypeBase(BaseModel):
 #     id: Optional[int] = None
 #     name: Optional[str] = None
@@ -47,7 +67,8 @@ class DeviceListOut(BaseModel):
     id_project_setup: Optional[int] = None
     id_device_type: Optional[int] = None
     id_communication: Optional[int] = None
-    id_device_group: Optional[int] = None
+    # id_device_group: Optional[int] = None
+    id_template: Optional[int] = None
     enable : Optional[bool] = None
     point : Optional[int] = None
     pv : Optional[int] = None
@@ -185,9 +206,10 @@ class DeviceListOfPointListOut(DeviceListOut):
 
 # # <- DeviceConfig ->
 class DeviceConfigOut(BaseModel):
-    device_list:list[DeviceListBase]
-    device_type:list[DeviceTypeBase]
-    device_group:list[DeviceGroupBase]
-    # communication:list[CommunicationCreate]
+    # device_list:list[DeviceListBase]= None
+    device_type:list[DeviceTypeBase]= None
+    device_group:list[DeviceGroupBase]= None
+    communication:list[CommunicationCreate]= None
+    template:list[TemplateBase]= None 
     class Config:
         orm_mode = True

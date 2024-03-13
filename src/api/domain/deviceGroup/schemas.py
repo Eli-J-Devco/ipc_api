@@ -18,7 +18,7 @@ from pydantic.types import conint
 
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-from api.domain.template.schemas import TemplateBase
+# from api.domain.template.schemas import TemplateBase
 from model.schemas import (PointByteOrder, PointDataType, PointOutBase,
                            PointUnit, RegisterListBase)
 
@@ -26,7 +26,8 @@ from model.schemas import (PointByteOrder, PointDataType, PointOutBase,
 class DeviceGroupCreateBase(BaseModel):
     name: Optional[str] = None
     # status: Optional[bool] = None
-    id_template: Optional[int] = None
+    # id_template: Optional[int] = None
+    id_device_type: Optional[int] = None
     class Config:
         orm_mode = True
 class DeviceGroupBase(DeviceGroupCreateBase):
@@ -52,9 +53,9 @@ class DeviceGroupOutBase(BaseModel):
     id: Optional[int] = None 
     name: Optional[str] = None
     status: Optional[bool] = None
-    id_template: Optional[int] = None
+    # id_template: Optional[int] = None
     # templates_library: TemplateOutBase
-    template_list:Optional[list[TemplateBase]] = None 
+    # template_list:Optional[list[TemplateBase]] = None 
     class Config:
         orm_mode = True
 class TemplateGroupDeviceOutBase(BaseModel):
