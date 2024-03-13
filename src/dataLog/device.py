@@ -241,6 +241,7 @@ async def Get_MQTT(host, port, topic, username, password):
                 pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+        
 # Describe Insert_TableDevice_AllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
@@ -252,7 +253,6 @@ async def Get_MQTT(host, port, topic, username, password):
 async def Insert_TableDevice_AllDevice():
     global QUERY_ALL_DEVICES
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    
     tasks = []
     for item in result_all:
         sql_id = item["id"]
@@ -260,7 +260,7 @@ async def Insert_TableDevice_AllDevice():
         tasks.append(task)
     
     await asyncio.gather(*tasks)
-#-------------------------------------------------------------------
+#--------------------------------------------------------------------
 # /**
 # 	 * @description 
 #       - create and write data in file  
@@ -271,27 +271,23 @@ async def Insert_TableDevice_AllDevice():
 # 	 * @return result_list 
 # 	 */ 
 async def Insert_TableDevice(sql_id):
-    print("sql_id",sql_id)
     global result_list
     counter = 0
     sql_queries = {}
     point_id = []
     data = []
 
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    
     DictID = [item for item in result_list if item["id"] == sql_id]
 
     if DictID:
         data = DictID[0]["data"]
         point_id = DictID[0]["point_id"]
-    print("result_list",result_list)
-    print("data",data )
+
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()
         value_insert = (time_insert_dev, sql_id) + tuple(data)
-        print("value_insert",value_insert)
+        
         # Replace 'None' with 'NULL' in the data tuple
         value_insert = tuple(None if x == 'None' else x for x in value_insert)
         
@@ -305,7 +301,6 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
-
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
@@ -316,7 +311,7 @@ async def Insert_TableDevice(sql_id):
             sql_queries[sql_id] = [query, val]
 
         counter += 1
-        if counter == len(result_all) :
+        if query and val :
             MySQL_Insert_v3(sql_queries)
             status = "Data inserted successfully"
         else :
@@ -324,6 +319,7 @@ async def Insert_TableDevice(sql_id):
     except Exception as e:
         
         print(f"Error during file creation is : {e}")
+                
 # Describe monitoring_device_AllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
@@ -425,11 +421,8 @@ async def main():
     number = time_interval[:position]
     int_number = int(number)
     
-    if not result_all :
-        print("None of the devices have been selected in the database")
-        return -1
-    if not int_number :
-        print("Unable to find file creation time in the database")
+    if not time_create_file_insert_data_table_dev or not result_all:
+        print("Error not found data in Database")
         return -1
     
     scheduler = AsyncIOScheduler()

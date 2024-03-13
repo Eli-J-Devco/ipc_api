@@ -913,7 +913,7 @@ async def sync_ServerFile_Database(sql_id):
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     
-    if number_file <= 20 :
+    if number_file <= 2000 :
         multifile = False 
     else :
         multifile = True 
