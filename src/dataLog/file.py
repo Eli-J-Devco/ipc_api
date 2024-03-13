@@ -235,6 +235,26 @@ async def get_mqtt(host, port, topic, username, password):
                 pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe create_filelog_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def create_filelog_AllDevice(base_path,id_device,head_file):
+    global QUERY_ALL_DEVICES_SYNCDATA
+    id_device_fr_sys = id_device[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    tasks = []
+    for item in result_all:
+        sql_id = item["id"]
+        task = create_filelog(sql_id,base_path,id_device,head_file)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 #--------------------------------------------------------------------
 # /**
 # 	 * @description 
@@ -245,7 +265,7 @@ async def get_mqtt(host, port, topic, username, password):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def create_filelog(base_path,id_device,head_file):
+async def create_filelog(sql_id,base_path,id_device,head_file):
 
     # Query Global
     global QUERY_TIME_SYNC_DATA
@@ -285,71 +305,90 @@ async def create_filelog(base_path,id_device,head_file):
     for item in time_sync_data:
         type_file = item["type_protocol"]
     
+    # File creation time 
+    modbus_device = [item['rtu_bus_address'] for item in result_all if item['id'] == sql_id][0]
+    array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(sql_id,))
+    count = array_count_point[0]['COUNT(*)']
+    DictID = [item for item in result_list if item["id"] == sql_id]
+    
+    if DictID:
+        data = DictID[0]["data"]
+        data_to_write = data
+        time_online = DictID[0]["time"]
+        
+    date_folder_path = os.path.join(base_path, f"{id_device_fr_sys}\\{type_file}\\{sql_id}\\{year}\\{month}\\{day}")
+    try:
+        os.makedirs(date_folder_path, exist_ok=True)
+        time_file = get_utc()
+        time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
+        formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
+        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.log'
+        file_path = os.path.join(date_folder_path, file_name)
+        source_file = date_folder_path + "/" + file_name
+    
+        if not data_to_write:
+            data_in_file = ["" for i in range(count)]
+        else:
+            data_in_file = [str(val) for val in data_to_write]
+            
+        with open(file_path, 'w') as file:
+            formatted_time2 = "'" + time_file + "'"
+            file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
+            if countMonitor < 2 :
+                countMonitor += 1 
+            else :
+                pass
+            # code write data in table sync data ------------------------------------------------------------------
+            time_insert = get_utc()
+            if not data_to_write:
+                # Handle when data_to_write value does not exist
+                data_insert = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert,f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
+            else:
+                data_insert = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert,f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
+            
+            for index, item in enumerate(value_many):
+                if item[1] == sql_id:
+                    # Update the SQL query
+                    value_many[index] = data_insert
+                    break
+            else:
+                # Add a new entry to the list
+                value_many.append(data_insert)
+                
+            # code pud data MQTT ----------------------------------------------------------------- 
+            status_file = "Success"
+            ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
+            ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
+            if ts_timestamp - ts_online < 10 :
+                status_device ="NEW"
+            else :
+                status_device ="OLD"
+                pass
+            #----------------------------------------------------------------- 
+    except Exception as e:
+        status_file = "Fault"
+        print(f"Error during file creation is : {e}")
+# Describe monitoring_device_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def monitoring_device_AllDevice(id_device,head_file,host, port,topic, username, password):
+    global QUERY_ALL_DEVICES_SYNCDATA
+    id_device_fr_sys = id_device[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    tasks = []
     for item in result_all:
         sql_id = item["id"]
-        # File creation time 
-        modbus_device = [item['rtu_bus_address'] for item in result_all if item['id'] == sql_id][0]
-        array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(sql_id,))
-        count = array_count_point[0]['COUNT(*)']
-        DictID = [item for item in result_list if item["id"] == sql_id]
-        
-        if DictID:
-            data = DictID[0]["data"]
-            data_to_write = data
-            time_online = DictID[0]["time"]
-            
-        date_folder_path = os.path.join(base_path, f"{id_device_fr_sys}\\{type_file}\\{sql_id}\\{year}\\{month}\\{day}")
-        try:
-            os.makedirs(date_folder_path, exist_ok=True)
-            time_file = get_utc()
-            time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-            formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
-            file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.log'
-            file_path = os.path.join(date_folder_path, file_name)
-            source_file = date_folder_path + "/" + file_name
-        
-            if not data_to_write:
-                data_in_file = ["" for i in range(count)]
-            else:
-                data_in_file = [str(val) for val in data_to_write]
-                
-            with open(file_path, 'w') as file:
-                formatted_time2 = "'" + time_file + "'"
-                file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
-                if countMonitor < 2 :
-                    countMonitor += 1 
-                else :
-                    pass
-                # code write data in table sync data ------------------------------------------------------------------
-                time_insert = get_utc()
-                if not data_to_write:
-                    # Handle when data_to_write value does not exist
-                    data_insert = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert,f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
-                else:
-                    data_insert = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert,f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
-                
-                for index, item in enumerate(value_many):
-                    if item[1] == sql_id:
-                        # Update the SQL query
-                        value_many[index] = data_insert
-                        break
-                else:
-                    # Add a new entry to the list
-                    value_many.append(data_insert)
-                    
-                # code pud data MQTT ----------------------------------------------------------------- 
-                status_file = "Success"
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
-                if ts_timestamp - ts_online < 10 :
-                    status_device ="NEW"
-                else :
-                    status_device ="OLD"
-                    pass
-                #----------------------------------------------------------------- 
-        except Exception as e:
-            status_file = "Fault"
-            print(f"Error during file creation is : {e}")
+        task = monitoring_device(sql_id,id_device,head_file,host, port,topic, username, password)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
+    
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -358,7 +397,8 @@ async def create_filelog(base_path,id_device,head_file):
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(id_device,head_file,host, port,topic, username, password):
+async def monitoring_device(sql_id,id_device,head_file,host, port,topic, username, password):
+    print(" da vao ham monitoring " , sql_id)
     global flag_mqtt
     global data_mqtt
     global count_mqtt
@@ -372,12 +412,10 @@ async def monitoring_device(id_device,head_file,host, port,topic, username, pass
     global countMonitor
     
     current_time = get_utc()
-    result_all = []
     data = []
     time_online = current_time
 
     id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     sql_id_str = ""
     device_name = ""
@@ -385,15 +423,14 @@ async def monitoring_device(id_device,head_file,host, port,topic, username, pass
     for item in time_sync_data:
         type_file = item["type_protocol"]
     
-    for item in result_all:
-        sql_id = item["id"]
-        
+    if sql_id :
         file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
         DictID = [item for item in result_list if item["id"] == sql_id]
-
+        print("result_list MQTT" ,result_list)
         if DictID:
             time_online = DictID[0]["time"]
-            data = DictID[0]["data"]    
+            data = DictID[0]["data"]  
+        print("data",data) 
         try: 
             if formatted_time1 :
                 data_mqtt={
@@ -430,6 +467,8 @@ async def monitoring_device(id_device,head_file,host, port,topic, username, pass
                     data_mqtt)
         except Exception as err:
             print('Error monitoring_device : ',err)
+    else:
+        pass
         
 #--------------------------------------------------------------------
 # /**
@@ -499,11 +538,11 @@ async def main():
 
     #-------------------------------------------------------
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(create_filelog, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
+    scheduler.add_job(create_filelog_AllDevice, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
                                                                                 arr,
                                                                                 HEAD_FILE_LOG,
                                                                                 ])
-    scheduler.add_job(monitoring_device, 'cron',  second = f'*/13' , args=[arr,
+    scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/13' , args=[arr,
                                                                             HEAD_FILE_LOG,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,

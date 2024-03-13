@@ -270,9 +270,7 @@ async def colectDatatoPushMQTT_AllDevice(host,port,topic,username,password):
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-async def colectDatatoPushMQTT(id_device,host,port,topic,username,password):
-    
-    print("sql_id mqtt" ,id_device )
+async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
     global QUERY_TIME_SYNC_DATA
     global QUERY_SYNC_SERVER
     global QUERY_ALL_DEVICES_SYNCDATA
@@ -294,7 +292,6 @@ async def colectDatatoPushMQTT(id_device,host,port,topic,username,password):
     result1 =[]
     number_file = ""
     time_sync = ""
-    id_device = ""
 
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
@@ -303,7 +300,7 @@ async def colectDatatoPushMQTT(id_device,host,port,topic,username,password):
         type_file = item["type_protocol"]
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-        
+    
     class MyVariable1:
         def __init__(self, time_id, file_name, number_time_retry, id_device,id_device_str, device_name, error, result_error, status ):
             self.time_id = time_id
@@ -319,135 +316,137 @@ async def colectDatatoPushMQTT(id_device,host,port,topic,username,password):
     for _ in range(number_device):
         device = MyVariable1("", "", "", "", "", "", "", "", False)
         devices.append(device)
-
-    # Push When Sent data once file 
-    if multifile is False :
-            data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,id_device,))
-            if data_sync_server_mqtt :
-                data_sync_dict = data_sync_server_mqtt[0]
-                if 'id_device' not in data_sync_dict:
-                    return -1 
-                if 'filename' not in data_sync_dict:
-                    return -1 
-                if 'number_of_time_retry' not in data_sync_dict:
-                    return -1 
-                
-                device.id_device = data_sync_dict['id_device']        
-                device.file_name = data_sync_dict['filename']
-                device.number_time_retry = data_sync_dict['number_of_time_retry']
-                device.result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,device.file_name))
-                device.error = device.result_error[0]["error"]
-                # File creation time 
-                device.id_device_str = str(device.id_device)
-                device.device_name = [item['name'] for item in result_all if item['id'] == device.id_device][0]
-                
-                current_time = get_utc()
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
-                date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
-                
-                if status_sync == 1 or isUploadSuccess == True: 
-                    device.status = "Success"
-                else :
-                    device.status = "Fault"
-                if int_number:
-                    if 0 <= time_sentdata <= 24:
-                        time_sync = str(int_number) +" "+ "hour"
-                    elif time_sentdata == 95:
-                        time_sync = "Connect Every 12 hours"
-                    elif time_sentdata == 96:
-                        time_sync = "Connect Every 8 hours"
-                    elif time_sentdata == 97:
-                        time_sync = "Connect Every " + str(int_number) + " minute"
-                    elif time_sentdata == 98:
-                        time_sync = "Connect Every 15 minutes"
-                    elif time_sentdata == 99:
-                        time_sync = "Connect Every Hour"
-                else :
-                    pass
+    if sql_id : 
+        # Push When Sent data once file 
+        if multifile is False :
+                data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,sql_id,))
+                if data_sync_server_mqtt :
+                    data_sync_dict = data_sync_server_mqtt[0]
+                    if 'id_device' not in data_sync_dict:
+                        return -1 
+                    if 'filename' not in data_sync_dict:
+                        return -1 
+                    if 'number_of_time_retry' not in data_sync_dict:
+                        return -1 
                     
-                data_mqtt={
-                    "ID_DEVICE":device.id_device,
-                    "FILE_NAME": device.file_name,
-                    "TIME_STAMP": date_str,
-                    "STATUS_FILE_SERVER": device.status,
-                    "TIME_SYNC": time_sync ,
-                    "REMAINDER_FILE":number_file,
-                    "NUMBER_OF_RETRY":device.number_time_retry,
-                }
-                pushMQTT(host,
-                        port,
-                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
-                        username,
-                        password,
-                        data_mqtt)
-    else :
-        data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device,))
-        if data_sync_server_mqtt :
-            for item in data_sync_server_mqtt :
-                data_sync_dict = item       
-                id_device_temp = data_sync_dict['id_device']
-                filename_temp = data_sync_dict['filename']  
-                number_time_retry_temp = data_sync_dict['number_of_time_retry']
-                error_temp = data_sync_dict['error']
-                
-                data_sent_server_mqtt = { "id_device": id_device_temp , "filename": filename_temp,"number_of_time_retry": number_time_retry_temp , "error":error_temp}
-                data_sent_server_list_mqtt.append(data_sent_server_mqtt)
-        if data_sent_server_list_mqtt and len(data_sent_server_list_mqtt) == number_device :
-            for i in range (number_device):    
-                devices[i].id_device = data_sent_server_list_mqtt[i]['id_device']        
-                devices[i].file_name = data_sent_server_list_mqtt[i]['filename']
-                devices[i].number_time_retry = data_sent_server_list_mqtt[i]['number_of_time_retry']
-                devices[i].result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,devices[i].file_name))
-                
-                # File creation time 
-                devices[i].id_device_str = str( devices[i].id_device)
-                devices[i].device_name = [item['name'] for item in result_all if item['id'] == devices[i].id_device][0]
-                
-                current_time = get_utc()
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
-                date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+                    device.id_device = data_sync_dict['id_device']        
+                    device.file_name = data_sync_dict['filename']
+                    device.number_time_retry = data_sync_dict['number_of_time_retry']
+                    device.result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,device.file_name))
+                    device.error = device.result_error[0]["error"]
+                    # File creation time 
+                    device.id_device_str = str(device.id_device)
+                    device.device_name = [item['name'] for item in result_all if item['id'] == device.id_device][0]
+                    
+                    current_time = get_utc()
+                    ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
+                    datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
+                    date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    if status_sync == 1 or isUploadSuccess == True: 
+                        device.status = "Success"
+                    else :
+                        device.status = "Fault"
+                    if int_number:
+                        if 0 <= time_sentdata <= 24:
+                            time_sync = str(int_number) +" "+ "hour"
+                        elif time_sentdata == 95:
+                            time_sync = "Connect Every 12 hours"
+                        elif time_sentdata == 96:
+                            time_sync = "Connect Every 8 hours"
+                        elif time_sentdata == 97:
+                            time_sync = "Connect Every " + str(int_number) + " minute"
+                        elif time_sentdata == 98:
+                            time_sync = "Connect Every 15 minutes"
+                        elif time_sentdata == 99:
+                            time_sync = "Connect Every Hour"
+                    else :
+                        pass
+                        
+                    data_mqtt={
+                        "ID_DEVICE":device.id_device,
+                        "FILE_NAME": device.file_name,
+                        "TIME_STAMP": date_str,
+                        "STATUS_FILE_SERVER": device.status,
+                        "TIME_SYNC": time_sync ,
+                        "REMAINDER_FILE":number_file,
+                        "NUMBER_OF_RETRY":device.number_time_retry,
+                    }
+                    pushMQTT(host,
+                            port,
+                            topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
+                            username,
+                            password,
+                            data_mqtt)
+        else :
+            data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,sql_id,))
+            if data_sync_server_mqtt :
+                for item in data_sync_server_mqtt :
+                    data_sync_dict = item       
+                    id_device_temp = data_sync_dict['id_device']
+                    filename_temp = data_sync_dict['filename']  
+                    number_time_retry_temp = data_sync_dict['number_of_time_retry']
+                    error_temp = data_sync_dict['error']
+                    
+                    data_sent_server_mqtt = { "id_device": id_device_temp , "filename": filename_temp,"number_of_time_retry": number_time_retry_temp , "error":error_temp}
+                    data_sent_server_list_mqtt.append(data_sent_server_mqtt)
+            if data_sent_server_list_mqtt and len(data_sent_server_list_mqtt) == number_device :
+                for i in range (number_device):    
+                    devices[i].id_device = data_sent_server_list_mqtt[i]['id_device']        
+                    devices[i].file_name = data_sent_server_list_mqtt[i]['filename']
+                    devices[i].number_time_retry = data_sent_server_list_mqtt[i]['number_of_time_retry']
+                    devices[i].result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,devices[i].file_name))
+                    
+                    # File creation time 
+                    devices[i].id_device_str = str( devices[i].id_device)
+                    devices[i].device_name = [item['name'] for item in result_all if item['id'] == devices[i].id_device][0]
+                    
+                    current_time = get_utc()
+                    ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
+                    datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
+                    date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
 
-                if status_sync == 1 or isUploadSuccess == True: 
-                    devices[i].status = "Success"
-                else :
-                    devices[i].status = "Fault"
-                
-                if time_sentdata and int_number:
-                    if 0 <= time_sentdata <= 24:
-                        time_sync = str(time_sentdata) + "hour"
-                    elif time_sentdata == 95:
-                        time_sync = "Connect Every 12 hours"
-                    elif time_sentdata == 96:
-                        time_sync = "Connect Every 8 hours"
-                    elif time_sentdata == 97:
-                        time_sync = "Connect Every " + str(int_number) + " minute"
-                    elif time_sentdata == 98:
-                        time_sync = "Connect Every 15 minutes"
-                    elif time_sentdata == 99:
-                        time_sync = "Connect Every Hour"
-                else :
-                    pass
-                
-                data_mqtt={
-                    "ID_DEVICE":devices[i].id_device,
-                    "FILE_NAME": devices[i].file_name,
-                    "TIME_STAMP": date_str,
-                    "STATUS_FILE_SERVER": devices[i].status,
-                    "TIME_SYNC": time_sync ,
-                    "REMAINDER_FILE":number_file,
-                    "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
-                }
+                    if status_sync == 1 or isUploadSuccess == True: 
+                        devices[i].status = "Success"
+                    else :
+                        devices[i].status = "Fault"
+                    
+                    if time_sentdata and int_number:
+                        if 0 <= time_sentdata <= 24:
+                            time_sync = str(time_sentdata) + "hour"
+                        elif time_sentdata == 95:
+                            time_sync = "Connect Every 12 hours"
+                        elif time_sentdata == 96:
+                            time_sync = "Connect Every 8 hours"
+                        elif time_sentdata == 97:
+                            time_sync = "Connect Every " + str(int_number) + " minute"
+                        elif time_sentdata == 98:
+                            time_sync = "Connect Every 15 minutes"
+                        elif time_sentdata == 99:
+                            time_sync = "Connect Every Hour"
+                    else :
+                        pass
+                    
+                    data_mqtt={
+                        "ID_DEVICE":devices[i].id_device,
+                        "FILE_NAME": devices[i].file_name,
+                        "TIME_STAMP": date_str,
+                        "STATUS_FILE_SERVER": devices[i].status,
+                        "TIME_SYNC": time_sync ,
+                        "REMAINDER_FILE":number_file,
+                        "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
+                    }
 
-                data_mqtts.append(data_mqtt) 
-                
-                pushMQTT(host,
-                        port,
-                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
-                        username,
-                        password,
-                        data_mqtts)
+                    data_mqtts.append(data_mqtt) 
+                    
+                    pushMQTT(host,
+                            port,
+                            topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
+                            username,
+                            password,
+                            data_mqtts)
+    else: 
+        pass
                 
 # Describe sync_Server_Database
 # /**
@@ -1782,8 +1781,7 @@ async def main():
                 scheduler.start()
         
     scheduler = AsyncIOScheduler()
-    sql_id = 296
-    scheduler.add_job(colectDatatoPushMQTT, 'interval', seconds = 10 , args=[ sql_id ,MQTT_BROKER,
+    scheduler.add_job(colectDatatoPushMQTT_AllDevice, 'cron', second = "*/10" , args=[MQTT_BROKER,
                                                                                         MQTT_PORT,
                                                                                         MQTT_TOPIC_PUB,
                                                                                         MQTT_USERNAME,
