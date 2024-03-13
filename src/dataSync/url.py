@@ -1725,7 +1725,7 @@ async def main():
                 scheduler.start()
 
     if time_sentdata and type_file == "LOGFILE":
-            time_sentdata = 100 # test
+            # time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', hour = 1, args=[])

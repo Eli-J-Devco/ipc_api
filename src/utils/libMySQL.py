@@ -178,6 +178,8 @@ def MySQL_Insert_v3(data):
             sql = value[0]
             val = value[1]
             cursor.execute(sql, val)
+            print("query",sql)
+            print("val",val)
             print("Data inserted successfully")
         
         db.commit()
@@ -189,7 +191,7 @@ def MySQL_Insert_v3(data):
     except Exception as err:
         cursor.close()
         db.close()
-        print(f"Error: '{err}'")
+        print(f"Error: '{err}{val}'")
     finally:
         # closing database connection.
         if db.is_connected():

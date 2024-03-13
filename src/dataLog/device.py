@@ -45,6 +45,7 @@ time_interval = ""
 QUERY_TIME_CREATE_FILE = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
+QUERY_SELECT_NAME_DEVICE = ""
     
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
@@ -272,10 +273,13 @@ async def Insert_TableDevice_AllDevice():
 # 	 */ 
 async def Insert_TableDevice(sql_id):
     global result_list
+    global QUERY_SELECT_NAME_DEVICE
     counter = 0
     sql_queries = {}
     point_id = []
     data = []
+    result_all = []
+    filedtable = []
 
     DictID = [item for item in result_list if item["id"] == sql_id]
 
@@ -289,14 +293,20 @@ async def Insert_TableDevice(sql_id):
         value_insert = (time_insert_dev, sql_id) + tuple(data)
         
         # Replace 'None' with 'NULL' in the data tuple
-        value_insert = tuple(None if x == 'None' else x for x in value_insert)
+        value_insert = tuple(None if x == 'NULL' else x for x in value_insert)
         
         # Create Query
         columns = ["time", "id_device"]
-        for i in range(len(point_id)):
-            columns.append(f"pt{i}")
+        filedtable = []
+        result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
+        
+        for item in result_all:
+            filedtable.append(item['id_pointkey'])
 
-        table_name = f"dev_{sql_id:05d}"
+        for itemp in filedtable:
+            columns.append(itemp)
+
+        table_name = f"dev_{sql_id}"
 
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
@@ -309,8 +319,6 @@ async def Insert_TableDevice(sql_id):
         else:
             # Add a new entry to the dictionary
             sql_queries[sql_id] = [query, val]
-
-        counter += 1
         if query and val :
             MySQL_Insert_v3(sql_queries)
             status = "Data inserted successfully"
@@ -397,6 +405,7 @@ async def main():
     global QUERY_TIME_CREATE_FILE
     global QUERY_ALL_DEVICES 
     global QUERY_TIME_SYNC_DATA
+    global QUERY_SELECT_NAME_DEVICE
     
     global time_interval
     
@@ -405,10 +414,11 @@ async def main():
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
+        QUERY_SELECT_NAME_DEVICE = result_mybatis["QUERY_SELECT_NAME_DEVICE"]
     except Exception as e:
             print('An exception occurred',e)
     
-    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA:
+    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_NAME_DEVICE:
         print("Error not found data in file mybatis") 
         return -1
     #------------------------------------------------------------------------

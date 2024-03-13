@@ -161,4 +161,10 @@ SELECT uploadurl
 FROM upload_channel
 WHERE id = %s;
   </select>
+<select id="QUERY_SELECT_NAME_DEVICE">
+SELECT pl.id_pointkey
+FROM device_list dl
+JOIN point_list pl ON dl.id_template = pl.id_template
+WHERE dl.id = %s;
+  </select>
 </mapper>
