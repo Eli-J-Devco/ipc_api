@@ -124,11 +124,11 @@ def create_user(user: user_schemas.UserRoleCreate, db: Session = Depends(get_db)
 # 	 * @param {UserCreate,db}
 # 	 * @return data (new_user)
 # 	 */
-@router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=list[user_schemas.UserRoleOut])
-def get_all_user( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+@router.post("/all_user/", status_code=status.HTTP_201_CREATED, response_model=list[user_schemas.UserRoleOut])
+def get_all_user(page: int, limit: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
         try:
             user_query = db.query(user_models.User).filter(user_models.User.status == 1)
-            result_user=user_query.all()
+            result_user=user_query.offset((page-1)*limit).limit(limit).all()
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"User empty")
