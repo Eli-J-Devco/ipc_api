@@ -770,7 +770,7 @@ async def device(ConfigPara):
                         point_list_device=point_list
                         
                         # 
-                        await asyncio.sleep(2)
+                        await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
                     # print(f'Loi thiet bi')

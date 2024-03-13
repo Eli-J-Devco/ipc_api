@@ -200,7 +200,7 @@ async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Sessi
     try:
         # format id =
         # create table
-        print(f'path: {path}')
+        # print(f'path: {path}')
         async def execute_func():
             try:
                 
@@ -244,6 +244,7 @@ async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Sessi
                     sql_select_device=result_mybatis["select_all_device"]
                     
                     id=new_device.id
+                    
                     id_communication=new_device.id_communication
                     # create table new device
                     name_device=f'dev_{str(id).zfill(5)}'
