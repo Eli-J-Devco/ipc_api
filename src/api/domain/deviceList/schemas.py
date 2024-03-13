@@ -120,13 +120,15 @@ class DeviceCreate(BaseModel):
     device_virtual: Optional[bool] = False
     # Modbus device connected
     id_communication: Optional[int] = Field(...,) 
+    
     # driver_list_name:Optional[str] = None # table driver_list
     
     rtu_bus_address: Optional[int] = None
     tcp_gateway_port: Optional[int] = Field(...,examples=[502])
     tcp_gateway_ip: Optional[str] = None
     id_device_type: Optional[int] = None
-    id_device_group: Optional[int] = None
+    id_template: Optional[int] = None
+    # id_device_group: Optional[int] = None
     
     class Config:
         # allow_population_by_field_name = True
@@ -143,9 +145,10 @@ class MultipleDeviceCreate(BaseModel):
     tcp_gateway_port: Optional[int] = Field(...,examples=[502]) 
     tcp_gateway_ip: Optional[str] = Field(...,) 
     id_device_type: Optional[int] = Field(...,) 
-    id_device_group: Optional[int] = Field(...,) 
-    in_addcount: Optional[int] = Field(...,) 
-    in_addmode: Optional[int] = Field()
+    # id_device_group: Optional[int] = Field(...,) 
+    add_count: Optional[int] = Field(...,) 
+    in_mode: Optional[int] = Field()
+    id_template: Optional[int] = None
     # 
     # in_addmode: Optional[int] = Field(Query(
     #     description="When adding, increment",

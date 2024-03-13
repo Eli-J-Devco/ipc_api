@@ -4,7 +4,7 @@
 
 <mapper namespace="mybatis"> 
 		<select id="add_device">
-			CREATE TABLE #{table_name} (
+			CREATE TABLE ${table_name} (
 			`time` datetime NOT NULL,
 			`id_device` int(11) DEFAULT NULL,
 			`error` int(11) DEFAULT NULL,
@@ -12,7 +12,7 @@
 			`high_alarm` int(11) DEFAULT NULL,
 			`serial_number` varchar(255) DEFAULT NULL,
 			<foreach collection="points" item="point"  separator="">
-			  #{point.name}  double DEFAULT NULL ,
+			  ${point.name}  double DEFAULT NULL ,
 			</foreach>
 			PRIMARY KEY (`time`),
 			KEY `fk_${table_name}` (`id_device`),
@@ -35,7 +35,7 @@
             point_list.high_alarm AS high_alarm
             
             FROM device_list
-            INNER JOIN template_library ON template_library.id=device_list.id_device_template
+            INNER JOIN template_library ON template_library.id=device_list.id_template
             INNER JOIN point_list ON template_library.id=point_list.id_template
             WHERE device_list.id= ${id};
 		</select>
