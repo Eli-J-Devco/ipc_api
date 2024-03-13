@@ -178,8 +178,6 @@ def MySQL_Insert_v3(data):
             sql = value[0]
             val = value[1]
             cursor.execute(sql, val)
-            print("query",sql)
-            print("val",val)
             print("Data inserted successfully")
         
         db.commit()
