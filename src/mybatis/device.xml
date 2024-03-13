@@ -100,24 +100,24 @@
         WHERE device_list.id= :id;
       </select>
 		<select id="insert_device_point_list">
-        INSERT INTO `device_point_list`(id_pointkey,
+        INSERT INTO `device_point_list_map`(
         id_device_list,
-        id_template,
-        id_device_group,
-        id_point_list
+        id_point_list,
+        name,
+        low_alarm,
+        high_alarm
         )
         SELECT 
-        point_list.id_pointkey,
         device_list.id,
-        point_list.id_template,
-        device_list.id_device_group,
-        point_list.id AS id_point_list
+        point_list.id AS id_point_list,
+        point_list.name AS name,
+        point_list.low_alarm AS low_alarm,
+        point_list.high_alarm AS high_alarm
         
         FROM device_list
-        INNER JOIN device_group ON device_group.id=device_list.id_device_group
-        INNER JOIN template_library ON template_library.id=device_group.id_template
+        INNER JOIN template_library ON template_library.id=device_list.id_device_template
         INNER JOIN point_list ON template_library.id=point_list.id_template
-        WHERE device_list.id= :id;
+        WHERE device_list.id=  :id;
       </select>  
 		<select id="somewhere">
         select * from device_list where
@@ -206,92 +206,92 @@
 	  
         CREATE TABLE `table_name` (
         `time` datetime NOT NULL,
-		`id_upload_channel` INT(11) NOT NULL,
-        `id_device` int(11) NOT NULL,
-        `error` int(11) DEFAULT NULL,
-        `low_alarm` int(11) DEFAULT NULL,
-        `high_alarm` int(11) DEFAULT NULL,
-        `serial_number` varchar(255) DEFAULT NULL,
-        `pt0` double DEFAULT NULL,
-        `pt1` double DEFAULT NULL,
-        `pt2` double DEFAULT NULL,
-        `pt3` double DEFAULT NULL,
-        `pt4` double DEFAULT NULL,
-        `pt5` double DEFAULT NULL,
-        `pt6` double DEFAULT NULL,
-        `pt7` double DEFAULT NULL,
-        `pt8` double DEFAULT NULL,
-        `pt9` double DEFAULT NULL,
-        `pt10` double DEFAULT NULL,
-        `pt11` double DEFAULT NULL,
-        `pt12` double DEFAULT NULL,
-        `pt13` double DEFAULT NULL,
-        `pt14` double DEFAULT NULL,
-        `pt15` double DEFAULT NULL,
-        `pt16` double DEFAULT NULL,
-        `pt17` double DEFAULT NULL,
-        `pt18` double DEFAULT NULL,
-        `pt19` double DEFAULT NULL,
-        `pt20` double DEFAULT NULL,
-        `pt21` double DEFAULT NULL,
-        `pt22` double DEFAULT NULL,
-        `pt23` double DEFAULT NULL,
-        `pt24` double DEFAULT NULL,
-        `pt25` double DEFAULT NULL,
-        `pt26` double DEFAULT NULL,
-        `pt27` double DEFAULT NULL,
-        `pt28` double DEFAULT NULL,
-        `pt29` double DEFAULT NULL,
-        `pt30` double DEFAULT NULL,
-        `pt31` double DEFAULT NULL,
-        `pt32` double DEFAULT NULL,
-        `pt33` double DEFAULT NULL,
-        `pt34` double DEFAULT NULL,
-        `pt35` double DEFAULT NULL,
-        `pt36` double DEFAULT NULL,
-        `pt37` double DEFAULT NULL,
-        `pt38` double DEFAULT NULL,
-        `pt39` double DEFAULT NULL,
-        `pt40` double DEFAULT NULL,
-        `pt41` double DEFAULT NULL,
-        `pt42` double DEFAULT NULL,
-        `pt43` double DEFAULT NULL,
-        `pt44` double DEFAULT NULL,
-        `pt45` double DEFAULT NULL,
-        `pt46` double DEFAULT NULL,
-        `pt47` double DEFAULT NULL,
-        `pt48` double DEFAULT NULL,
-        `pt49` double DEFAULT NULL,
-        `pt50` double DEFAULT NULL,
-        `pt51` double DEFAULT NULL,
-        `pt52` double DEFAULT NULL,
-        `pt53` double DEFAULT NULL,
-        `pt54` double DEFAULT NULL,
-        `pt55` double DEFAULT NULL,
-        `pt56` double DEFAULT NULL,
-        `pt57` double DEFAULT NULL,
-        `pt58` double DEFAULT NULL,
-        `pt59` double DEFAULT NULL,
-        `pt60` double DEFAULT NULL,
-        `pt61` double DEFAULT NULL,
-        `pt62` double DEFAULT NULL,
-        PRIMARY KEY (`time`,`id_device`,`id_upload_channel`)
-        KEY `fk_table_name` (`id_device`),
-		KEY `fk_table_name_upload_channel` (`id_upload_channel`),
-        CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-		CONSTRAINT `fk_table_name_upload_channel` FOREIGN KEY (`id_upload_channel`) REFERENCES `upload_channel` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+      `id_upload_channel` INT(11) NOT NULL,
+          `id_device` int(11) NOT NULL,
+          `error` int(11) DEFAULT NULL,
+          `low_alarm` int(11) DEFAULT NULL,
+          `high_alarm` int(11) DEFAULT NULL,
+          `serial_number` varchar(255) DEFAULT NULL,
+          `pt0` double DEFAULT NULL,
+          `pt1` double DEFAULT NULL,
+          `pt2` double DEFAULT NULL,
+          `pt3` double DEFAULT NULL,
+          `pt4` double DEFAULT NULL,
+          `pt5` double DEFAULT NULL,
+          `pt6` double DEFAULT NULL,
+          `pt7` double DEFAULT NULL,
+          `pt8` double DEFAULT NULL,
+          `pt9` double DEFAULT NULL,
+          `pt10` double DEFAULT NULL,
+          `pt11` double DEFAULT NULL,
+          `pt12` double DEFAULT NULL,
+          `pt13` double DEFAULT NULL,
+          `pt14` double DEFAULT NULL,
+          `pt15` double DEFAULT NULL,
+          `pt16` double DEFAULT NULL,
+          `pt17` double DEFAULT NULL,
+          `pt18` double DEFAULT NULL,
+          `pt19` double DEFAULT NULL,
+          `pt20` double DEFAULT NULL,
+          `pt21` double DEFAULT NULL,
+          `pt22` double DEFAULT NULL,
+          `pt23` double DEFAULT NULL,
+          `pt24` double DEFAULT NULL,
+          `pt25` double DEFAULT NULL,
+          `pt26` double DEFAULT NULL,
+          `pt27` double DEFAULT NULL,
+          `pt28` double DEFAULT NULL,
+          `pt29` double DEFAULT NULL,
+          `pt30` double DEFAULT NULL,
+          `pt31` double DEFAULT NULL,
+          `pt32` double DEFAULT NULL,
+          `pt33` double DEFAULT NULL,
+          `pt34` double DEFAULT NULL,
+          `pt35` double DEFAULT NULL,
+          `pt36` double DEFAULT NULL,
+          `pt37` double DEFAULT NULL,
+          `pt38` double DEFAULT NULL,
+          `pt39` double DEFAULT NULL,
+          `pt40` double DEFAULT NULL,
+          `pt41` double DEFAULT NULL,
+          `pt42` double DEFAULT NULL,
+          `pt43` double DEFAULT NULL,
+          `pt44` double DEFAULT NULL,
+          `pt45` double DEFAULT NULL,
+          `pt46` double DEFAULT NULL,
+          `pt47` double DEFAULT NULL,
+          `pt48` double DEFAULT NULL,
+          `pt49` double DEFAULT NULL,
+          `pt50` double DEFAULT NULL,
+          `pt51` double DEFAULT NULL,
+          `pt52` double DEFAULT NULL,
+          `pt53` double DEFAULT NULL,
+          `pt54` double DEFAULT NULL,
+          `pt55` double DEFAULT NULL,
+          `pt56` double DEFAULT NULL,
+          `pt57` double DEFAULT NULL,
+          `pt58` double DEFAULT NULL,
+          `pt59` double DEFAULT NULL,
+          `pt60` double DEFAULT NULL,
+          `pt61` double DEFAULT NULL,
+          `pt62` double DEFAULT NULL,
+          PRIMARY KEY (`time`,`id_device`,`id_upload_channel`)
+          KEY `fk_table_name` (`id_device`),
+      KEY `fk_table_name_upload_channel` (`id_upload_channel`),
+          CONSTRAINT `fk_table_name` FOREIGN KEY (`id_device`) REFERENCES `device_list` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+      CONSTRAINT `fk_table_name_upload_channel` FOREIGN KEY (`id_upload_channel`) REFERENCES `upload_channel` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 		</select>
 		<select id="insert_role_screen">
-			INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,0 FROM `screen`
-		</select>
-		<select id="create_new_table">
-		CREATE TABLE :table_name (
-		
-		name varchar(255),
-		category varchar(255),
-		price varchar(255)
-			);
+        INSERT INTO  `role_screen_map` (id_role, id_screen, auths) SELECT :id_role, `screen`.`id`,0 FROM `screen`
+      </select>
+      <select id="create_new_table">
+      CREATE TABLE :table_name (
+      
+      name varchar(255),
+      category varchar(255),
+      price varchar(255)
+        );
 		</select>
 		<select id="insert_data_fruits">
 			INSERT INTO

@@ -86,7 +86,7 @@ class Device_type(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
-    
+    # 
 # 
 
 class Config_information(Base):
@@ -425,15 +425,18 @@ class Point_list(Base):
 #     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
 #     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
 # # 
-class Device_point_list(Base):
-    __tablename__ = "device_point_list"
+class Device_point_list_map(Base):
+    __tablename__ = "device_point_list_map"
     id = Column(Integer, primary_key=True, nullable=False)
-    id_pointkey = Column(Integer, nullable=False)
+    name = Column(String(255), nullable=True)
+    low_alarm = Column(DOUBLE(), nullable=True, default=0)
+    high_alarm = Column(DOUBLE(), nullable=True, default=0)
+    # id_pointkey = Column(Integer, nullable=False)
     # --------------------------------------------------
-    id_template = Column(Integer, ForeignKey(
-        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    id_device_group = Column(Integer, ForeignKey(
-        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # id_template = Column(Integer, ForeignKey(
+    #     "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # id_device_group = Column(Integer, ForeignKey(
+    #     "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_device_list = Column(Integer, ForeignKey(
         "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_point_list = Column(Integer, ForeignKey(

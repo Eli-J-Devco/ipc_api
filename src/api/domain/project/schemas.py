@@ -66,6 +66,7 @@ class ScreenBase(BaseModel):
 class ProjectBase(BaseModel):
 
     name: Optional[str] = None
+    serial_number: Optional[str] = None
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None

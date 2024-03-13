@@ -23,11 +23,13 @@ class Template_library(Base):
     __tablename__ = "template_library"
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=True)
-    id_template_type = Column(Integer, ForeignKey(
-        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_group = Column(Integer, ForeignKey(
+        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # id_template_type = Column(Integer, ForeignKey(
+    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
     
-    device_group = relationship("Device_group", back_populates='templates_library')
+    # device_group = relationship("Device_group", back_populates='templates_library')
     point_list= relationship("Point_list", back_populates='template_library')
     register_list= relationship("Register_block", back_populates='template_library')
 # 

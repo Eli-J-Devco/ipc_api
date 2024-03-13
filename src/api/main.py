@@ -45,6 +45,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 #                      site_information, template, upload_channel, user)
 # -------------------------------------------------------------
 from routers import auth as auth_router
+from routers import deviceControl as deviceControl_router
 from routers import deviceGroup as deviceGroup_router
 from routers import deviceList as deviceList_router
 from routers import ethernet as ethernet_router
@@ -126,7 +127,7 @@ app.include_router(rs485_router.router)
 app.include_router(siteInfo_router.router)
 app.include_router(uploadChannel_router.router)
 app.include_router(project_router.router)
-# app.include_router(deviceControl_router.router)
+app.include_router(deviceControl_router.router)
 # 
 
 # class CustomException(Exception):

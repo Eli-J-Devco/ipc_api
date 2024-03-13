@@ -643,7 +643,10 @@ async def device(ConfigPara):
         else:           
             print("Error not found data device")
             return -1
-        results_RBlock= MySQL_Select(query_register_block, (id_device,))
+        # print(f'results_device: {results_device}')
+        id_template=results_device[0]["id_template"]
+        # print(f'query_register_block: {query_register_block}')
+        results_RBlock= MySQL_Select(query_register_block, (id_template,))
         results_Plist= MySQL_Select(query_point_list, (id_device,))
         # print(f'results_rblock: {results_RBlock[0]}')
         # print(f'results_plist: {results_Plist}')
@@ -1146,7 +1149,7 @@ async def main():
                                                              MQTT_USERNAME,
                                                              MQTT_PASSWORD
                                                              )))
-    # tasks.append(asyncio.create_task(check_device_control()))
+ 
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':

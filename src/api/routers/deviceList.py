@@ -31,6 +31,7 @@ sys.path.append(path)
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
 import api.domain.deviceList.schemas as deviceList_schemas
+import api.domain.template.models as template_models
 import model.models as models
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
@@ -68,6 +69,7 @@ router = APIRouter(
 @router.post('/', response_model=deviceList_schemas.DeviceListOfPointListOut)
 def get_only_device(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
     # print(f'id: {id}')
+    
     # ----------------------
     Device_list = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id == id).first()
     # Device_list=Device_list.__dict__
@@ -102,7 +104,7 @@ def get_all_device( db: Session = Depends(get_db), current_user: int = Depends(o
     # ----------------------
     if not Device_list:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"User with id: {id} does not exist")
+                            detail=f"Device empty")
     # print(Device_list.all()[0].device_type.__dict__)
     # print(Device_list.all()[0].communication.driver_list.__dict__)
     result_device_list=Device_list.all()
@@ -149,7 +151,9 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     if not device_group_query.all():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Device group does not exist")
-    device_list_query = db.query(deviceList_models.Device_list).order_by(deviceList_models.Device_list.id.asc())
+    # device_list_query = db.query(deviceList_models.Device_list).order_by(deviceList_models.Device_list.id.asc())
+    template_query = db.query(template_models.Template_library).order_by(template_models.Template_library.id.asc())
+    
     communication_query = db.query(models.Communication)
     result_device_type=[]
     for item in device_type_query.all():
@@ -157,25 +161,29 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     result_device_group=[]
     for item in device_group_query.all():
         new_item=item.__dict__
-        new_item["templates_library"]=item.templates_library.__dict__
+        # new_item["templates_library"]=item.templates_library.__dict__
         result_device_group.append(new_item) 
-    result_device_list=[]
-    for item in device_list_query.all():
-        result_device_list.append(item.__dict__)
+    # result_device_list=[]
+    # for item in device_list_query.all():
+    #     result_device_list.append(item.__dict__)
     result_communication=[]
     for item in communication_query.all():
         new_item=item.__dict__
         new_item["driver_list"]=item.driver_list.__dict__
         result_communication.append(new_item) 
-        
-
+    result_template=[]   
+    for item in template_query.all():
+        # new_item=item.__dict__
+        result_template.append({**item.__dict__,
+                                }) 
     # https://docs.sqlalchemy.org/en/14/core/tutorial.html#using-textual-sql
- 
+    
     return {
-        "device_list":result_device_list,
+        # "device_list":result_device_list,
         "device_type":result_device_type,
         "device_group":result_device_group,
-        "communication":result_communication
+        "communication":result_communication,
+        "template":result_template
     }
 # Describe functions before writing code
 # /**
@@ -192,7 +200,7 @@ async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Sessi
     try:
         # format id =
         # create table
-        print(f'path: {path}')
+        # print(f'path: {path}')
         async def execute_func():
             try:
                 
@@ -236,6 +244,7 @@ async def create_device(create_device: deviceList_schemas.DeviceCreate,db: Sessi
                     sql_select_device=result_mybatis["select_all_device"]
                     
                     id=new_device.id
+                    
                     id_communication=new_device.id_communication
                     # create table new device
                     name_device=f'dev_{str(id).zfill(5)}'

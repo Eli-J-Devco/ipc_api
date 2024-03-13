@@ -34,7 +34,12 @@ from api.domain.uploadChannel import models as uploadChannel_models
 # 	 */
 def restart_program_pm2(app_name):
     try:
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -66,7 +71,12 @@ def restart_program_pm2(app_name):
 def restart_program_pm2_many( app_name=[]):
     try:
         print(f'List app pm2: {app_name}')
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -91,7 +101,7 @@ def restart_program_pm2_many( app_name=[]):
                 join_pid=join_pid+ " " +str(item)
             cmd_pm2= cmd_pm2 +join_pid
             print(f'cmd_pm2: {cmd_pm2}')
-            # os.system(f'{cmd_pm2}')
+            os.system(f'{cmd_pm2}')
             app_detect=1
         if app_detect==1:
             return 100
@@ -110,7 +120,12 @@ def restart_program_pm2_many( app_name=[]):
 # 	 */
 def stop_program_pm2_many(app_name):
     try:
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -154,7 +169,12 @@ def stop_program_pm2_many(app_name):
 # 	 */
 def delete_program_pm2(app_name):
     try:
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -206,7 +226,12 @@ def delete_program_pm2(app_name):
 # 	 */
 def stop_program_pm2(app_name):
     try:
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
@@ -334,7 +359,12 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
 # 	 */
 def find_program_pm2(app_name):
     try:
-        shellscript = subprocess.Popen(["pm2", "jlist"],
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
                 
         out, err = shellscript.communicate()
