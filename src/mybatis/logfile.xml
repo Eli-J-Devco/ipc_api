@@ -33,21 +33,7 @@ VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE modbusdevice
   </select>
   
   <select id="QUERY_SELECT_COUNT_POINT_LIST">
-  SELECT COUNT(*) FROM device_point_list WHERE id_device_list = %s
-  </select>
-
-  <select id="QUERY_SELECT_COUNT_POINT_LIST_JOIN">
-  CREATE TEMPORARY TABLE IF NOT EXISTS temp_table
-SELECT 
-    `device_point_list`.`dev_00001` AS id_device,
-    `point_list`.`name` 
-FROM 
-    `device_point_list`
-INNER JOIN 
-    `point_list`  ON `device_point_list`.`id` = `point_list`.`id`;
-
-SELECT COUNT(*) FROM temp_table WHERE id_device = %s;
-
+  SELECT COUNT(*) FROM `device_point_list_map` WHERE id_device_list = %s
   </select>
 
   <select id="QUERY_TIME_CREATE_FILE">
@@ -101,7 +87,8 @@ INNER JOIN
     SELECT * FROM sync_data
     WHERE 
     id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    ORDER BY id ASC, id_device ASC
+    AND id_device = %s
+    ORDER BY id ASC
     LIMIT 1;
   </select>
  <select id="QUERY_NUMER_FILE">
@@ -120,8 +107,11 @@ AND id_upload_channel = %s;
  <select id="QUERY_SYNC_MULTIFILE_SERVER">
     SELECT * FROM sync_data
     WHERE 
-    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    AND id_device >= (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL)
+    id_upload_channel = %s 
+    AND synced = 0 
+    AND updatetime IS NULL 
+    AND error IS NULL 
+    AND id_device = %s
     ORDER BY id_device
     LIMIT 10;
 </select>
@@ -132,7 +122,7 @@ AND id_upload_channel = %s;
     AND synced = 0 
     AND updatetime IS NULL 
     AND error IS NULL 
-    AND id_device = (SELECT MIN(id_device) FROM sync_data WHERE id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL AND id_device >= (SELECT COALESCE(MAX(id_device), 0) FROM sync_data WHERE id_upload_channel = %s AND synced = 1))
+    AND id_device = %s
     ORDER BY id_device
     LIMIT 10;
 </select>
