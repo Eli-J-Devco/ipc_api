@@ -97,13 +97,6 @@ FROM `sync_data`
 WHERE synced = 0 AND error IS NULL
 AND id_upload_channel = %s;
   </select>
- <select id="QUERY_SYNC_MULTIFILE_SERVER1">
-    SELECT * FROM sync_data
-    WHERE 
-    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    ORDER BY id ASC, id_device ASC
-    LIMIT 10;
-</select>
  <select id="QUERY_SYNC_MULTIFILE_SERVER">
     SELECT * FROM sync_data
     WHERE 
@@ -160,5 +153,11 @@ LIMIT 1;
 SELECT uploadurl
 FROM upload_channel
 WHERE id = %s;
+  </select>
+<select id="QUERY_SELECT_NAME_DEVICE">
+SELECT pl.id_pointkey
+FROM device_list dl
+JOIN point_list pl ON dl.id_template = pl.id_template
+WHERE dl.id = %s;
   </select>
 </mapper>

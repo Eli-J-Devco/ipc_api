@@ -8,6 +8,8 @@ import datetime
 import ipaddress
 import json
 import os
+import signal
+import subprocess
 import sys
 from pprint import pprint
 from typing import Annotated, Optional, Union
@@ -437,7 +439,42 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 id_template=create_device.id_template
                 communication_query = db.query(models.Communication)\
                 .filter(models.Communication.id == id_communication).first()
+
+                # db.execute(text(models.create_table_device("inv0111")))
+                # point_list_query = db.query(models.Point_list)\
+                # .filter_by(id_template=3).order_by(models.Point_list.id.asc()).all()
+                # point_list_name=[]
+                # for item in point_list_query:
+                #     # print(f'{item.id}|{item.id_pointkey}')
+                #     point_list_name.append({
+                #         "id":item.id,
+                #         "name":item.id_pointkey})
+                # param={
+                #                 "table_name":f'dev_1111',
+                #                 "points":point_list_name
+                #             }
                 
+                # sql_query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
+                # print(sql_query_add_table_device)
+                # result_create_table = db.execute(text(sql_query_add_table_device))
+
+                
+                # connection = engine.raw_connection()
+                # cursor = connection.cursor()
+                # result = cursor.execute(
+                #     "SELECT * from device_list; SELECT * from driver_list;")
+                # results_one = cursor.fetchall()
+                # print(results_one)
+                # print(len(results_one))
+                # connection.close()
+                # for result in cursor.execute("SELECT * from device_list; SELECT * from driver_list"):
+                #     if result.with_rows:
+                #         print("Rows produced by statement '{}':".format(
+                #         result.statement))
+                #         print(result.fetchall())
+                #     else:
+                #         print("Number of rows affected by statement '{}': {}".format(
+                #         result.statement, result.rowcount))
                 try:                    
                     if communication_query:
                         pass        
@@ -572,12 +609,11 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             sql_query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
                             # print(sql_query_add_table_device)
                             #  
-                            result_create_table = db.execute(text(sql_query_add_table_device))
-                            print(result_create_table.__dict__)
-                            await asyncio.sleep(0.05)
+                            result_create_table = db.execute(text(sql_query_add_table_device).execution_options(autocommit=True))
+                            
                         except exc.SQLAlchemyError as err:
                             # delete device in table device_list
-                            print(err.args[0])
+                            print(f'Error: {err.args[0]}')
                             db.rollback()
                             for items in new_device_list:  
                                 db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
@@ -615,9 +651,9 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             reset_data_new(new_device_list)
 
                         db.commit()
-                        result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
+                        result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
                         if result_find_app_pm2==100:
-                            result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')    
+                            result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|')    
                             # delete success app pm2
                             if result_delete_app_pm2!=100:
                                 reset_data_new(new_device_list)
@@ -645,9 +681,10 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 if not results_device_group_dict:
                                     reset_data_new(new_device_list)                                             
                                 # init restart pm2 app same rs485
-                                create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                                await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                                 # restart pm2 app log
-                                restart_program_pm2(f'Log')
+                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                                await restart_program_pm2_many(pm2_app_list)
                                 return 100    
                         if result_find_app_pm2!=100:
                             print('---------- create group RS485 same com port when list device empty ----------')
@@ -665,10 +702,10 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             if not results_device_group_dict:
                                 reset_data_new(new_device_list)
                             # init restart pm2 app same rs485
-                            create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                             # restart pm2 app log
                             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            result=restart_program_pm2_many(pm2_app_list)
+                            result=await restart_program_pm2_many(pm2_app_list)
                             return 100     
                     except exc.SQLAlchemyError as err:
                             # delete device in table device_list
@@ -679,11 +716,10 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             pass         
                 elif driver_list.name=="Modbus/TCP":              
                 
-                
+                    rowcount_point_list=0
+                    new_device=[]
                     try:
                         # rowcount_register_block=0
-                        rowcount_point_list=0
-                        
                         # insert device_point_list
                         for item in new_device_list:
                             sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
@@ -692,31 +728,33 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             print(f'result_point_list: {result_point_list.__dict__}')
                             if result_point_list.rowcount != 0:
                                 rowcount_point_list +=1
-                        
-                        # if rowcount_register_block  == 0 or rowcount_point_list==0:
+                            new_device.append({
+                                "id":item.id,
+                                "name":item.name,
+                                "connect_type":driver_list.name,
+                                "id_com":id_communication
+                                })
+                        db.commit()
                         if  rowcount_point_list==0:
                             reset_data_new(new_device_list)
-
-                        db.commit()
-                        if rowcount_point_list!=0:
-                            # init start pm2 new app
-                            for item in new_device_list:
-                                name = item.name
-                                connect_type=driver_list.name
-                                pid = f'Dev|{id_communication}|{connect_type}|{item.id}|{name}'
-                                create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item.id)
-                            # restart pm2 app log
-                            # restart_program_pm2(f'Log')
-                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            result=restart_program_pm2_many(pm2_app_list)
-                        return 100 
+                            return 300
+                        else:
+                            db.close()
                     except exc.SQLAlchemyError as err:
                             # delete device in table device_list
                             print(err.args[0])
                             db.rollback()
                             reset_data_new(new_device_list)
                     finally:
-                            pass
+                        if rowcount_point_list!=0:
+                                # init start pm2 new app
+                                for item in new_device:
+                                    pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
+                                    await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
+                                # restart pm2 app log
+                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                                await restart_program_pm2_many(pm2_app_list)
+                                return 100
                 else:
                     return 300 
             except Exception as err:

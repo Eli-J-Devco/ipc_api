@@ -280,14 +280,20 @@ def stop_program_pm2(app_name):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-def create_program_pm2(filename,pid,id):
-    if sys.platform == 'win32':
-        # use run with window      
-        subprocess.Popen(
-        f'pm2 start {filename} -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-    else:               
-        subprocess.Popen(
-        f'sudo pm2 start {filename} --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+async def create_program_pm2(filename,pid,id):
+    try:
+        if sys.platform == 'win32':
+            # use run with window      
+            subprocess.Popen(
+            f'pm2 start {filename} -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+            return 100
+        else:               
+            subprocess.Popen(
+            f'sudo pm2 start {filename} --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+            return 100
+    except Exception as e:
+        print('Error init driver: ',e)
+        return 300
 # Describe functions before writing code
 # /**
 # 	 * @description init app in pm2
