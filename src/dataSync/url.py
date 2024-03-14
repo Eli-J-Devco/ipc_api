@@ -693,7 +693,6 @@ async def sync_ServerURL_Database(id_device):
                     upErr_Database(device.time_id,device.id_device)
                 pass
         else :# There are a lot of files 
-            print("="*40 , "ServerURL Multi" , "="*40)
             try :
                 if id_device_fr_sys :
                     data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device,))

@@ -287,7 +287,7 @@ async def Insert_TableDevice(sql_id):
         data = DictID[0]["data"]
         
         if not data:  # Check data if data empty 
-            data = ["NULL"] * len(result_all)
+            data = [None] * len(result_all)
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()

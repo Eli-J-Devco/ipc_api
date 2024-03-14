@@ -97,13 +97,6 @@ FROM `sync_data`
 WHERE synced = 0 AND error IS NULL
 AND id_upload_channel = %s;
   </select>
- <select id="QUERY_SYNC_MULTIFILE_SERVER1">
-    SELECT * FROM sync_data
-    WHERE 
-    id_upload_channel = %s AND synced = 0 AND updatetime IS NULL AND error IS NULL 
-    ORDER BY id ASC, id_device ASC
-    LIMIT 10;
-</select>
  <select id="QUERY_SYNC_MULTIFILE_SERVER">
     SELECT * FROM sync_data
     WHERE 
