@@ -274,18 +274,20 @@ async def Insert_TableDevice_AllDevice():
 async def Insert_TableDevice(sql_id):
     global result_list
     global QUERY_SELECT_NAME_DEVICE
-    counter = 0
     sql_queries = {}
-    point_id = []
     data = []
     result_all = []
     filedtable = []
 
+    result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
+    
     DictID = [item for item in result_list if item["id"] == sql_id]
 
     if DictID:
         data = DictID[0]["data"]
-        point_id = DictID[0]["point_id"]
+        
+        if not data:  # Check data if data empty 
+            data = ["NULL"] * len(result_all)
 
     try:
         # Write data to corresponding devices in the database
@@ -297,8 +299,6 @@ async def Insert_TableDevice(sql_id):
         
         # Create Query
         columns = ["time", "id_device"]
-        filedtable = []
-        result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
         
         for item in result_all:
             filedtable.append(item['id_pointkey'])
