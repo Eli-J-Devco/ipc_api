@@ -58,7 +58,7 @@ QUERY_UPDATE_NUMBERRETRY = ""
 QUERY_NUMER_FILE = ""
 QUERY_SYNC_MULTIFILE_SERVER = ""
 QUERY_SYNC_ERROR_MQTT = ""
-QUERY_GET_THE_KEY = ""
+QUERY_SELECT_NAME_DEVICE = ""
 QUERY_UPDATE_SERIAL_NUMBER = ""
 QUERY_SELECT_SERIAL_NUMBER = ""
 QUERY_SELECT_URL = ""
@@ -447,7 +447,27 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
                             data_mqtts)
     else: 
         pass
-                
+# Describe sync_ServerFile_Database_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def sync_ServerURL_Database_AllDevice():
+    global id_upload_chanel
+    global QUERY_ALL_DEVICES_SYNCDATA
+    id_device_fr_sys = id_upload_chanel[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    tasks = []
+    for item in result_all:
+        sql_id = item["id"]
+        task = sync_ServerURL_Database(sql_id)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 # Describe sync_Server_Database
 # /**
 # 	 * @description read data from database , send data to server , update data sent in database
@@ -458,7 +478,6 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
 # 	 */
 async def sync_ServerURL_Database(id_device):
     
-    print("="*40 , "ServerURL" , "="*40)
     # Step 1 : Read data from database 
     current_time = get_utc()
     
@@ -478,7 +497,7 @@ async def sync_ServerURL_Database(id_device):
     global QUERY_UPDATE_DATABASE
     global QUERY_NUMER_FILE
     global QUERY_SYNC_MULTIFILE_SERVER
-    global QUERY_GET_THE_KEY
+    global QUERY_SELECT_NAME_DEVICE
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     global QUERY_TIME_SYNC_DATA
@@ -528,9 +547,8 @@ async def sync_ServerURL_Database(id_device):
         
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-    print("="*40 , "number_file" , "="*40)
-    print("number_file" ,number_file )
-    if number_file <= 20 :
+    
+    if number_file <= 20000 :
         multifile = False 
     else :
         multifile = True 
@@ -543,7 +561,6 @@ async def sync_ServerURL_Database(id_device):
     
     if number_file != 0 and url:
         if multifile is False :
-            print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
                 try :
                     data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,id_device,))
@@ -637,28 +654,23 @@ async def sync_ServerURL_Database(id_device):
                             # ==================================Information sent json to server ==================================
                         else :
                             pass
-
-                    template_names = MySQL_Select(QUERY_GET_THE_KEY, (device.id_device,))
+                    template_names = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (device.id_device,))
 
                     if template_names : 
                         for i in range(4, len(array_file)):
                             if i - 4 < len(template_names):
                                 key = template_names[i-4]
                                 value = array_file[i] if array_file[i] else None
-                                json_data["datas"][key['template_name']] = value
+                                json_data["datas"][key['id_pointkey']] = value
                             else:
-                                print(f"Không đủ phần tử trong template_names cho chỉ số {i}")
-                    print("="*40 , "url" ,"="*40 )
-                    print("json" ,url )
+                                print(f"Not enough elements in template_names for number {i}")
                     try:
                         if json_data or files:
                             if type_file == "URL" :
                                 response = requests.post(url, json=json_data) 
-                                print("="*40 , "json" ,"="*40 )
-                                print("json" ,json_data )
-                                print("="*40 , "status_code" ,"="*40 )
-                                print("status_code" ,response.status_code )
+                                
                             if response.status_code == 200:
+                                print(f"Send json {json_data_total} to the path {url} and receive feedback as {response.status_code}") 
                                 # Step 3 : update data error in database
                                 MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
                                 try :
@@ -684,7 +696,7 @@ async def sync_ServerURL_Database(id_device):
             print("="*40 , "ServerURL Multi" , "="*40)
             try :
                 if id_device_fr_sys :
-                    data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,id_device,))
+                    data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device,))
                 if data_sync_server :
                     for item in data_sync_server :
                         data_sync_dict = item 
@@ -766,14 +778,14 @@ async def sync_ServerURL_Database(id_device):
                         else :
                             pass
 
-                        template_names = MySQL_Select(QUERY_GET_THE_KEY, (devices[i].id_device,))
+                        template_names = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (devices[i].id_device,))
 
                         # Add the key to the sent json file
                         for i in range(4, len(array_file)):
                             if i - 4 < len(template_names):
                                 key = template_names[i-4]
                                 value = array_file[i] if array_file[i] else None
-                                json_data_total["datas"][key['template_name']] = value
+                                json_data_total["datas"][key['id_pointkey']] = value
                             else:
                                 # print(f"Not enough elements in template_names for index {i}")
                                 pass
@@ -781,10 +793,7 @@ async def sync_ServerURL_Database(id_device):
                             if json_data_total:
                                 if type_file == "URL" :
                                     response = requests.post(url, json=json_data_total)
-                                    print("="*40, "Json Sent Sever", "="*40)
-                                    print(f"Json: {json_data_total}")
-                                    print("="*40 , "status_code" ,"="*40 )
-                                    print("status_code" ,response.status_code)
+                                    print(f"Send json {json_data_total} to the path {url} and receive feedback as {response.status_code}") 
                                 if response.status_code == 200:
                                     # Step 3 : update data sync in database
                                     MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
@@ -858,7 +867,7 @@ async def sync_ServerFile_Database(sql_id):
     global QUERY_UPDATE_DATABASE
     global QUERY_NUMER_FILE
     global QUERY_SYNC_MULTIFILE_SERVER
-    global QUERY_GET_THE_KEY
+    global QUERY_SELECT_NAME_DEVICE
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     global QUERY_TIME_SYNC_DATA
@@ -1132,8 +1141,7 @@ async def sync_ServerFile_Database(sql_id):
                         # Send the file to the server and wait for a 200 response
                         response = requests.post(url, files=files, data=headers)
                         server_response_text = response.text
-                        print("Reponse from server" ,server_response_text) 
-                        print("File" ,file_name)
+                        print(f"Send file {device.file_name} to the path {url} and receive feedback as {server_response_text}") 
                         
                         if server_response_text == "\nSUCCESS\n":
                             # Step 3 : update data sync in database
@@ -1627,7 +1635,7 @@ async def main():
     global QUERY_NUMER_FILE
     global QUERY_SYNC_MULTIFILE_SERVER
     global QUERY_SYNC_ERROR_MQTT
-    global QUERY_GET_THE_KEY
+    global QUERY_SELECT_NAME_DEVICE
     global QUERY_UPDATE_SERIAL_NUMBER
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
@@ -1648,7 +1656,7 @@ async def main():
         QUERY_NUMER_FILE = result_mybatis["QUERY_NUMER_FILE"]
         QUERY_SYNC_MULTIFILE_SERVER = result_mybatis["QUERY_SYNC_MULTIFILE_SERVER"]
         QUERY_SYNC_ERROR_MQTT = result_mybatis["QUERY_SYNC_ERROR_MQTT"]
-        QUERY_GET_THE_KEY = result_mybatis["QUERY_GET_THE_KEY"]
+        QUERY_SELECT_NAME_DEVICE = result_mybatis["QUERY_SELECT_NAME_DEVICE"]
         QUERY_UPDATE_SERIAL_NUMBER = result_mybatis["QUERY_UPDATE_SERIAL_NUMBER"]
         QUERY_SELECT_SERIAL_NUMBER = result_mybatis["QUERY_SELECT_SERIAL_NUMBER"]
         QUERY_SELECT_URL = result_mybatis["QUERY_SELECT_URL"]
@@ -1657,7 +1665,7 @@ async def main():
         
     except Exception as e:
             print('An exception occurred',e)
-    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_GET_THE_KEY or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER or not QUERY_TIME_CREATE_FILE:
+    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_SELECT_NAME_DEVICE or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER or not QUERY_TIME_CREATE_FILE:
         print("Error not found data in file mybatis")
         return -1
     try: 
@@ -1701,29 +1709,32 @@ async def main():
             time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'cron', hour = 1,  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', hour = 1,  args=[])
                 scheduler.start()
             elif time_sentdata == 95 : # Connect Every 12 hours
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 12,  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', hours = 12,  args=[])
                 scheduler.start()
             elif time_sentdata == 96 : # Connect Every 8 hours
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 8,  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', hours = 8,  args=[])
                 scheduler.start()
             elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = int(int_number),  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', minutes = int(int_number),  args=[])
                 scheduler.start()
             elif time_sentdata == 98 : # Connect Every 15 minutes
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = 15,  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', minutes = 15,  args=[])
                 scheduler.start()
             elif time_sentdata == 99 : # Connect Every Hour
                 scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 1,  args=[])
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', hours = 1,  args=[])
                 scheduler.start()
-
+            elif time_sentdata == 100 : # test cron 
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
+                scheduler.start()
     if time_sentdata and type_file == "LOGFILE":
             # time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
