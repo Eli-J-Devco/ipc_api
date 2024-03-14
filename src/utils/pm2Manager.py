@@ -68,7 +68,7 @@ def restart_program_pm2(app_name):
 # 	 * @param {list app_name of pm2}
 # 	 * @return data ()
 # 	 */
-def restart_program_pm2_many( app_name=[]):
+async def restart_program_pm2_many( app_name=[]):
     try:
         print(f'List app pm2: {app_name}')
         cmd_list=""

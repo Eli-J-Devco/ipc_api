@@ -753,7 +753,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                     await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
                                 # restart pm2 app log
                                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                await restart_program_pm2_many(pm2_app_list)
+                                result=await restart_program_pm2_many(pm2_app_list)
                                 return 100
                 else:
                     return 300 
