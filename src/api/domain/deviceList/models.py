@@ -30,8 +30,11 @@ class Device_list(Base):
         "device_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_communication = Column(Integer, ForeignKey(
         "communication.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    id_device_group = Column(Integer, ForeignKey(
-        "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    # 12/03/2024
+    # id_device_group = Column(Integer, ForeignKey(
+    #     "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_template = Column(Integer, ForeignKey(
+        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     rtu_bus_address = Column(Integer, nullable=True)
     tcp_gateway_ip = Column(String(255), nullable=True)
     tcp_gateway_port = Column(Integer, nullable=True)
@@ -74,10 +77,11 @@ class Device_list(Base):
     
     # 
     communication  = relationship('Communication', foreign_keys=[id_communication]) 
-    point_p_list = relationship('Point_list', foreign_keys=[point_p])
-    point_q_list  = relationship('Point_list', foreign_keys=[point_q])
-    point_pf_list  = relationship('Point_list', foreign_keys=[point_pf])
+    # point_p_list = relationship('Point_list', foreign_keys=[point_p])
+    # point_q_list  = relationship('Point_list', foreign_keys=[point_q])
+    # point_pf_list  = relationship('Point_list', foreign_keys=[point_pf])
     # 
     # # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
-    device_group= relationship("Device_group", back_populates="device_list")
+    # 12/03/2024
+    # device_group= relationship("Device_group", back_populates="device_list")
     device_type = relationship('Device_type', foreign_keys=[id_device_type])

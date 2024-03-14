@@ -241,7 +241,25 @@ async def Get_MQTT(host, port, topic, username, password):
                 pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-            
+        
+# Describe Insert_TableDevice_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def Insert_TableDevice_AllDevice():
+    global QUERY_ALL_DEVICES
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    tasks = []
+    for item in result_all:
+        sql_id = item["id"]
+        task = Insert_TableDevice(sql_id)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 #--------------------------------------------------------------------
 # /**
 # 	 * @description 
@@ -252,61 +270,76 @@ async def Get_MQTT(host, port, topic, username, password):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def Insert_TableDevice():
+async def Insert_TableDevice(sql_id):
     global result_list
     counter = 0
     sql_queries = {}
     point_id = []
     data = []
 
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    DictID = [item for item in result_list if item["id"] == sql_id]
+
+    if DictID:
+        data = DictID[0]["data"]
+        point_id = DictID[0]["point_id"]
+
+    try:
+        # Write data to corresponding devices in the database
+        time_insert_dev = get_utc()
+        value_insert = (time_insert_dev, sql_id) + tuple(data)
+        
+        # Replace 'None' with 'NULL' in the data tuple
+        value_insert = tuple(None if x == 'NULL' else x for x in value_insert)
+        
+        # Create Query
+        columns = ["time", "id_device"]
+        
+        for i in range(len(point_id)):
+            columns.append(f"pt{i}")
+
+        table_name = f"dev_{sql_id:05d}"
+
+        # Create a query with REPLACE INTO syntax
+        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+        val = value_insert
+        # Check if the SQL query exists in the dictionary
+        if sql_id in sql_queries:
+            # Update the SQL query
+            sql_queries[sql_id][0] = query
+            sql_queries[sql_id][1] = val
+        else:
+            # Add a new entry to the dictionary
+            sql_queries[sql_id] = [query, val]
+
+        counter += 1
+        if query and val :
+            MySQL_Insert_v3(sql_queries)
+            status = "Data inserted successfully"
+        else :
+            status = "Waiting for the record to finish"
+    except Exception as e:
+        
+        print(f"Error during file creation is : {e}")
+                
+# Describe monitoring_device_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def monitoring_device_AllDevice(host, port,topic, username, password):
+    global QUERY_ALL_DEVICES
+    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
     
+    tasks = []
     for item in result_all:
         sql_id = item["id"]
-        DictID = [item for item in result_list if item["id"] == sql_id]
-
-        if DictID:
-            data = DictID[0]["data"]
-            point_id = DictID[0]["point_id"]
-
-        try:
-            # Write data to corresponding devices in the database
-            time_insert_dev = get_utc()
-            value_insert = (time_insert_dev, sql_id) + tuple(data)
-            
-            # Replace 'None' with 'NULL' in the data tuple
-            value_insert = tuple(None if x == 'None' else x for x in value_insert)
-            
-            # Create Query
-            columns = ["time", "id_device"]
-            for i in range(len(point_id)):
-                columns.append(f"pt{i}")
-
-            table_name = f"dev_{sql_id:05d}"
-
-            # Create a query with REPLACE INTO syntax
-            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-            val = value_insert
-
-            # Check if the SQL query exists in the dictionary
-            if sql_id in sql_queries:
-                # Update the SQL query
-                sql_queries[sql_id][0] = query
-                sql_queries[sql_id][1] = val
-            else:
-                # Add a new entry to the dictionary
-                sql_queries[sql_id] = [query, val]
-
-            counter += 1
-            if counter == len(result_all) :
-                MySQL_Insert_v3(sql_queries)
-                status = "Data inserted successfully"
-            else :
-                status = "Waiting for the record to finish"
-        except Exception as e:
-            
-            print(f"Error during file creation is : {e}")
-                
+        task = monitoring_device(sql_id,host, port,topic, username, password)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -319,6 +352,7 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
     
     global QUERY_ALL_DEVICES
     global QUERY_TIME_SYNC_DATA
+    
     global status_device 
     global status_file
     global result_list
@@ -331,14 +365,8 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
     sql_id_str = ""
     device_name = ""
     
-    #++++++++++++++++++
-    # id_device_fr_sys = id_device[1]
+
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
-    # time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    
-    # for item in time_sync_data:
-    #     type_file = item["type_protocol"]
-    
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
         data = DictID[0]["data"]
@@ -399,15 +427,12 @@ async def main():
         return -1
     
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(Insert_TableDevice, 'cron', minute = f'*/{int_number}')
-    for item in result_all:
-        sql_id = item["id"]
-        scheduler.add_job(monitoring_device, 'cron',  second = f'*/10' , args=[ sql_id,
-                                                                                MQTT_BROKER,
-                                                                                MQTT_PORT,
-                                                                                MQTT_TOPIC_PUB,
-                                                                                MQTT_USERNAME,
-                                                                                MQTT_PASSWORD])
+    scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')
+    scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_TOPIC_PUB,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
     scheduler.start()
     
     tasks = []

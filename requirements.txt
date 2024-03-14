@@ -44,3 +44,4 @@ psycopg2
 pycryptodomex
 pycryptodome
 netifaces
+pyserial

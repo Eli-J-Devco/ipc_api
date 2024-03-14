@@ -24,10 +24,12 @@ class Device_group(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String(255), nullable=False)
     status = Column(Boolean, nullable=False, default=True)
-    id_template = Column(Integer, ForeignKey(
-        "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_device_type = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    # id_template = Column(Integer, ForeignKey(
+    #     "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     # template= relationship('Template_library', foreign_keys=[id_template])
 
-    templates_library = relationship("Template_library", back_populates="device_group")
-    # 
-    device_list= relationship("Device_list", back_populates="device_group")
+    # templates_library = relationship("Template_library", back_populates="device_group")
+    # 12/03/2024
+    # device_list= relationship("Device_list", back_populates="device_group")

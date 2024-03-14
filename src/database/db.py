@@ -6,6 +6,7 @@ from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime,
                         ForeignKey, Integer, String, Text, create_engine)
 from sqlalchemy.orm import (declarative_base, mapped_column, relationship,
                             sessionmaker)
+from sqlalchemy.pool import QueuePool
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
@@ -33,7 +34,9 @@ SQLALCHEMY_DATABASE_URL = f'mysql+pymysql://{database_username}:{database_passwo
 engine = create_engine(SQLALCHEMY_DATABASE_URL,   
                        isolation_level="READ UNCOMMITTED",
                        pool_size=20, 
-                       max_overflow=100
+                       max_overflow=100,
+                       poolclass=QueuePool,
+                       pool_pre_ping=True,
                         #connect_args: Dict[Any, Any] = ...,
                         # convert_unicode: bool = ...,
                         # creator: Union[_CreatorFnType, _CreatorWRecFnType] = ...,

@@ -7,7 +7,7 @@ import logging
 import os
 import subprocess
 import sys
-
+from functools import partial
 import mqttools
 import mybatis_mapper2sql
 import paho.mqtt.publish as publish
@@ -83,6 +83,7 @@ sync_immediately = 0
 count_FTP_Server = 0
 number_device = 10 
 count = 0 
+int_number = 0
 
 flag_sync_immediately = False 
 flag_end_update = False
@@ -93,6 +94,7 @@ isUploadSuccess = False
 serial_number = ""
 time_retry = ""
 type_file = ""
+time_sentdata = 0
 
 #----------------------------------------
 # /**
@@ -240,6 +242,27 @@ def pushMQTT(host, port,topic, username, password, data_send):
     except Exception as err:
         print(f"Error MQTT public: '{err}'")
         pass
+# Describe sync_ServerFile_Database_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def colectDatatoPushMQTT_AllDevice(host,port,topic,username,password):
+    global id_upload_chanel
+    global QUERY_ALL_DEVICES_SYNCDATA
+    id_device_fr_sys = id_upload_chanel[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    tasks = []
+    for item in result_all:
+        sql_id = item["id"]
+        task = colectDatatoPushMQTT(sql_id,host,port,topic,username,password)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 # /**
 # 	 * @description public data MQTT
 # 	 * @author bnguyen
@@ -247,8 +270,7 @@ def pushMQTT(host, port,topic, username, password, data_send):
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-async def colectDatatoPushMQTT(host, port, topic, username, password):
-    
+async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
     global QUERY_TIME_SYNC_DATA
     global QUERY_SYNC_SERVER
     global QUERY_ALL_DEVICES_SYNCDATA
@@ -258,6 +280,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     global multifile
     global number_device 
     global json_data
+    global time_sentdata
+    global int_number
     
     data_sent_server_mqtt = []
     data_sent_server_list_mqtt = []
@@ -266,7 +290,8 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     devices = []
     data_mqtts = []
     result1 =[]
-    number_file =""
+    number_file = ""
+    time_sync = ""
 
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
@@ -275,7 +300,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
         type_file = item["type_protocol"]
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-        
+    
     class MyVariable1:
         def __init__(self, time_id, file_name, number_time_retry, id_device,id_device_str, device_name, error, result_error, status ):
             self.time_id = time_id
@@ -291,102 +316,137 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
     for _ in range(number_device):
         device = MyVariable1("", "", "", "", "", "", "", "", False)
         devices.append(device)
-
-    # Push When Sent data once file 
-    if multifile is False :
-            data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
+    if sql_id : 
+        # Push When Sent data once file 
+        if multifile is False :
+                data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,sql_id,))
+                if data_sync_server_mqtt :
+                    data_sync_dict = data_sync_server_mqtt[0]
+                    if 'id_device' not in data_sync_dict:
+                        return -1 
+                    if 'filename' not in data_sync_dict:
+                        return -1 
+                    if 'number_of_time_retry' not in data_sync_dict:
+                        return -1 
+                    
+                    device.id_device = data_sync_dict['id_device']        
+                    device.file_name = data_sync_dict['filename']
+                    device.number_time_retry = data_sync_dict['number_of_time_retry']
+                    device.result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,device.file_name))
+                    device.error = device.result_error[0]["error"]
+                    # File creation time 
+                    device.id_device_str = str(device.id_device)
+                    device.device_name = [item['name'] for item in result_all if item['id'] == device.id_device][0]
+                    
+                    current_time = get_utc()
+                    ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
+                    datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
+                    date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+                    
+                    if status_sync == 1 or isUploadSuccess == True: 
+                        device.status = "Success"
+                    else :
+                        device.status = "Fault"
+                    if int_number:
+                        if 0 <= time_sentdata <= 24:
+                            time_sync = str(int_number) +" "+ "hour"
+                        elif time_sentdata == 95:
+                            time_sync = "Connect Every 12 hours"
+                        elif time_sentdata == 96:
+                            time_sync = "Connect Every 8 hours"
+                        elif time_sentdata == 97:
+                            time_sync = "Connect Every " + str(int_number) + " minute"
+                        elif time_sentdata == 98:
+                            time_sync = "Connect Every 15 minutes"
+                        elif time_sentdata == 99:
+                            time_sync = "Connect Every Hour"
+                    else :
+                        pass
+                        
+                    data_mqtt={
+                        "ID_DEVICE":device.id_device,
+                        "FILE_NAME": device.file_name,
+                        "TIME_STAMP": date_str,
+                        "STATUS_FILE_SERVER": device.status,
+                        "TIME_SYNC": time_sync ,
+                        "REMAINDER_FILE":number_file,
+                        "NUMBER_OF_RETRY":device.number_time_retry,
+                    }
+                    pushMQTT(host,
+                            port,
+                            topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
+                            username,
+                            password,
+                            data_mqtt)
+        else :
+            data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,sql_id,))
             if data_sync_server_mqtt :
-                data_sync_dict = data_sync_server_mqtt[0]
-                if 'id_device' not in data_sync_dict:
-                    return -1 
-                if 'filename' not in data_sync_dict:
-                    return -1 
-                if 'number_of_time_retry' not in data_sync_dict:
-                    return -1 
-                
-                device.id_device = data_sync_dict['id_device']        
-                device.file_name = data_sync_dict['filename']
-                device.number_time_retry = data_sync_dict['number_of_time_retry']
-                device.result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,device.file_name))
-                device.error = device.result_error[0]["error"]
-                # File creation time 
-                device.id_device_str = str(device.id_device)
-                device.device_name = [item['name'] for item in result_all if item['id'] == device.id_device][0]
-                
-                current_time = get_utc()
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
-                date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
-                
-                if status_sync == 1 or isUploadSuccess == True: 
-                    device.status = "Success"
-                else :
-                    device.status = "Fault"
-                data_mqtt={
-                    "ID_DEVICE":device.id_device,
-                    "FILE_NAME": device.file_name,
-                    "TIME_STAMP": date_str,
-                    "STATUS_FILE_SERVER": device.status,
-                    "REMAINDER_FILE":number_file,
-                    "NUMBER_OF_RETRY":device.number_time_retry,
-                }
-                pushMQTT(host,
-                        port,
-                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
-                        username,
-                        password,
-                        data_mqtt)
-    else :
-        data_sync_server_mqtt = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,))
-        if data_sync_server_mqtt :
-            for item in data_sync_server_mqtt :
-                data_sync_dict = item       
-                id_device_temp = data_sync_dict['id_device']
-                filename_temp = data_sync_dict['filename']  
-                number_time_retry_temp = data_sync_dict['number_of_time_retry']
-                error_temp = data_sync_dict['error']
-                
-                data_sent_server_mqtt = { "id_device": id_device_temp , "filename": filename_temp,"number_of_time_retry": number_time_retry_temp , "error":error_temp}
-                data_sent_server_list_mqtt.append(data_sent_server_mqtt)
-        if data_sent_server_list_mqtt and len(data_sent_server_list_mqtt) == number_device :
-            for i in range (number_device):    
-                devices[i].id_device = data_sent_server_list_mqtt[i]['id_device']        
-                devices[i].file_name = data_sent_server_list_mqtt[i]['filename']
-                devices[i].number_time_retry = data_sent_server_list_mqtt[i]['number_of_time_retry']
-                devices[i].result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,devices[i].file_name))
-                # devices[0].error = devices[0].result_error[0]["error"]
-                
-                # File creation time 
-                devices[i].id_device_str = str( devices[i].id_device)
-                devices[i].device_name = [item['name'] for item in result_all if item['id'] == devices[i].id_device][0]
-                
-                current_time = get_utc()
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
-                date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
+                for item in data_sync_server_mqtt :
+                    data_sync_dict = item       
+                    id_device_temp = data_sync_dict['id_device']
+                    filename_temp = data_sync_dict['filename']  
+                    number_time_retry_temp = data_sync_dict['number_of_time_retry']
+                    error_temp = data_sync_dict['error']
+                    
+                    data_sent_server_mqtt = { "id_device": id_device_temp , "filename": filename_temp,"number_of_time_retry": number_time_retry_temp , "error":error_temp}
+                    data_sent_server_list_mqtt.append(data_sent_server_mqtt)
+            if data_sent_server_list_mqtt and len(data_sent_server_list_mqtt) == number_device :
+                for i in range (number_device):    
+                    devices[i].id_device = data_sent_server_list_mqtt[i]['id_device']        
+                    devices[i].file_name = data_sent_server_list_mqtt[i]['filename']
+                    devices[i].number_time_retry = data_sent_server_list_mqtt[i]['number_of_time_retry']
+                    devices[i].result_error = MySQL_Select(QUERY_SYNC_ERROR_MQTT,(id_device_fr_sys,devices[i].file_name))
+                    
+                    # File creation time 
+                    devices[i].id_device_str = str( devices[i].id_device)
+                    devices[i].device_name = [item['name'] for item in result_all if item['id'] == devices[i].id_device][0]
+                    
+                    current_time = get_utc()
+                    ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
+                    datetime_obj = datetime.datetime.fromtimestamp(ts_timestamp)
+                    date_str = datetime_obj.strftime("%Y-%m-%d %H:%M:%S")
 
-                if status_sync == 1 or isUploadSuccess == True: 
-                    devices[i].status = "Success"
-                else :
-                    devices[i].status = "Fault"
-                
-                data_mqtt={
-                    "ID_DEVICE":devices[i].id_device,
-                    "FILE_NAME": devices[i].file_name,
-                    "TIME_STAMP": date_str,
-                    "STATUS_FILE_SERVER": devices[i].status,
-                    "REMAINDER_FILE":number_file,
-                    "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
-                }
+                    if status_sync == 1 or isUploadSuccess == True: 
+                        devices[i].status = "Success"
+                    else :
+                        devices[i].status = "Fault"
+                    
+                    if time_sentdata and int_number:
+                        if 0 <= time_sentdata <= 24:
+                            time_sync = str(time_sentdata) + "hour"
+                        elif time_sentdata == 95:
+                            time_sync = "Connect Every 12 hours"
+                        elif time_sentdata == 96:
+                            time_sync = "Connect Every 8 hours"
+                        elif time_sentdata == 97:
+                            time_sync = "Connect Every " + str(int_number) + " minute"
+                        elif time_sentdata == 98:
+                            time_sync = "Connect Every 15 minutes"
+                        elif time_sentdata == 99:
+                            time_sync = "Connect Every Hour"
+                    else :
+                        pass
+                    
+                    data_mqtt={
+                        "ID_DEVICE":devices[i].id_device,
+                        "FILE_NAME": devices[i].file_name,
+                        "TIME_STAMP": date_str,
+                        "STATUS_FILE_SERVER": devices[i].status,
+                        "TIME_SYNC": time_sync ,
+                        "REMAINDER_FILE":number_file,
+                        "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
+                    }
 
-                data_mqtts.append(data_mqtt) 
-                
-                pushMQTT(host,
-                        port,
-                        topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
-                        username,
-                        password,
-                        data_mqtts)
+                    data_mqtts.append(data_mqtt) 
+                    
+                    pushMQTT(host,
+                            port,
+                            topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
+                            username,
+                            password,
+                            data_mqtts)
+    else: 
+        pass
                 
 # Describe sync_Server_Database
 # /**
@@ -396,7 +456,7 @@ async def colectDatatoPushMQTT(host, port, topic, username, password):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def sync_ServerURL_Database():
+async def sync_ServerURL_Database(id_device):
     
     print("="*40 , "ServerURL" , "="*40)
     # Step 1 : Read data from database 
@@ -486,7 +546,7 @@ async def sync_ServerURL_Database():
             print("="*40 , "ServerURL Sigle" , "="*40)
             if count == 0 :
                 try :
-                    data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
+                    data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,id_device,))
                     if data_sync_server :
                         data_sync_dict = data_sync_server[0]
                         if 'id' not in data_sync_dict:
@@ -624,7 +684,7 @@ async def sync_ServerURL_Database():
             print("="*40 , "ServerURL Multi" , "="*40)
             try :
                 if id_device_fr_sys :
-                    data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,))
+                    data_sync_server = MySQL_Select(QUERY_SYNC_MULTIFILE_SERVER,(id_device_fr_sys,id_device_fr_sys,id_device,))
                 if data_sync_server :
                     for item in data_sync_server :
                         data_sync_dict = item 
@@ -750,6 +810,27 @@ async def sync_ServerURL_Database():
                             pass
     else : 
         pass
+# Describe sync_ServerFile_Database_AllDevice
+# /**
+# 	 * @description Multi-threaded running of devices in the database
+# 	 * @author bnguyen
+# 	 * @since 12/3/2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */
+async def sync_ServerFile_Database_AllDevice():
+    global id_upload_chanel
+    global QUERY_ALL_DEVICES_SYNCDATA
+    id_device_fr_sys = id_upload_chanel[1]
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    
+    tasks = []
+    for item in result_all:
+        sql_id = item["id"]
+        task = sync_ServerFile_Database(sql_id)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 # Describe sync_Server_Database
 # /**
 # 	 * @description read data from database , send data to server , update data sent in database
@@ -758,10 +839,9 @@ async def sync_ServerURL_Database():
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def sync_ServerFile_Database():
+async def sync_ServerFile_Database(sql_id):
     # Step 1 : Read data from database 
     current_time = get_utc()
-    
     global id_upload_chanel
     global data_sent_server
     global status_sync
@@ -783,6 +863,7 @@ async def sync_ServerFile_Database():
     global QUERY_SELECT_URL
     global QUERY_TIME_SYNC_DATA
     global QUERY_SYNC_FILELOG_SERVER
+    global QUERY_ALL_DEVICES_SYNCDATA
     
     id_device_fr_sys = id_upload_chanel[1]
     data_sync_server = []
@@ -831,9 +912,8 @@ async def sync_ServerFile_Database():
         
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-    print("="*40 , "number_file" , "="*40)
-    print("number_file" ,number_file )
-    if number_file <= 40 :
+    
+    if number_file <= 2000 :
         multifile = False 
     else :
         multifile = True 
@@ -843,14 +923,14 @@ async def sync_ServerFile_Database():
     
     result3 = MySQL_Select(QUERY_SELECT_URL,(id_device_fr_sys,))
     url = result3[0]["uploadurl"]
-    print("="*40 , "url" , "="*40)
-    print("url" ,url )
     
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    # execute devices in the list simultaneously
     if number_file != 0 and url:
-        if multifile is False and number_file != 0:
+        if multifile is False :
             if count == 0 :
                 try :
-                    data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,))
+                    data_sync_server = MySQL_Select(QUERY_SYNC_SERVER,(id_device_fr_sys,sql_id,))
                     if data_sync_server :
                         data_sync_dict = data_sync_server[0]
                         if 'id' not in data_sync_dict:
@@ -940,8 +1020,7 @@ async def sync_ServerFile_Database():
                         if json_data or files:
                             response = requests.post(url, files=files , data=headers)
                             server_response_text = response.text
-                            print("Reponse from server" ,server_response_text , "="*40) 
-                            print("File" ,device.file_name)
+                            print(f"Send file {device.file_name} to the path {url} and receive feedback as {server_response_text}") 
                             # print("repr(server_response_text)", repr(server_response_text))
                         if response.text == "\nSUCCESS\n":
                             # Step 3 : update data error in database
@@ -962,7 +1041,7 @@ async def sync_ServerFile_Database():
         else :# There are a lot of files 
             try :
                 if id_device_fr_sys :
-                    data_sync_server = MySQL_Select(QUERY_SYNC_FILELOG_SERVER,(id_device_fr_sys,id_device_fr_sys,id_device_fr_sys,))
+                    data_sync_server = MySQL_Select(QUERY_SYNC_FILELOG_SERVER,(id_device_fr_sys,sql_id,))
                 if data_sync_server :
                     for item in data_sync_server :
                         data_sync_dict = item 
@@ -1534,6 +1613,9 @@ async def main():
     global time_retry
     global type_file
     global serial_number
+    global time_sentdata
+    global int_number
+    
     global QUERY_ALL_DEVICES_SYNCDATA
     global QUERY_GETDATA_SERVER
     global QUERY_SYNC_SERVER
@@ -1590,12 +1672,12 @@ async def main():
         position = time_interval.rfind("minute")
         number = time_interval[:position]
         int_number = int(number)
-        
         id_device_fr_sys = id_upload_chanel[1]
         result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
         time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
         for item in time_sync_data:
             type_file = item["type_protocol"]
+        
     except Exception as e:
             print('An exception occurred',e)
     if not result_all :
@@ -1607,104 +1689,103 @@ async def main():
     if type_file != "URL" and type_file != "LOGFILE" and type_file != "FTP":
         print("Unable to select file type in the database.")
         return -1
-    
-    if result_all and time_data_server :
+    if time_data_server and isinstance(time_data_server[0].get("time_log_data_server"), int):
         time_sentdata = time_data_server[0]["time_log_data_server"]
-        # time_sentdata = 100 # test 
-        if time_sentdata and type_file == "URL":
-                if 0 <= time_sentdata <= 24: #
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', hour = time_sentdata,  args=[])
-                    scheduler.start()
-                elif time_sentdata == 95 : # Connect Every 12 hours
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "12",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 96 : # Connect Every 8 hours
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "8",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = f"{int_number}",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 98 : # Connect Every 15 minutes
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = "15",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 99 : # Connect Every Hour
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'interval', hours = "1",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 100 : # test cron 
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerURL_Database, 'cron', second = "*/10",  args=[])
-                    scheduler.start()
-        if time_sentdata and type_file == "LOGFILE":
-                if 0 <= time_sentdata <= 24:
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'cron', hour = time_sentdata,  args=[])
-                    scheduler.start()
-                elif time_sentdata == 95 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "12",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 96 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "8",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 97 and int_number :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = f"{int_number}",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 98 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', minutes = "15",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 99 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'interval', hours = "1",  args=[])
-                    scheduler.start()
-                elif time_sentdata == 100 : # test cron 
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFile_Database, 'cron', second = "*/10",  args=[])
-                    scheduler.start()
-        if time_sentdata and count <= 1 and type_file == "FTP":
-                if 0 <= time_sentdata <= 24:
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'cron', hour = time_sentdata,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 95 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "12",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 96 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "8",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 97 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = f"{time_sentdata}",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 98 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = "15",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                elif time_sentdata == 99 :
-                    scheduler = AsyncIOScheduler()
-                    scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = "1",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                    scheduler.start()
-                # elif time_sentdata == 100 : # test cron 
-                #     scheduler = AsyncIOScheduler()
-                #     scheduler.add_job(sync_ServerFTP_Database, 'cron', second = "*/10",  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
-                #     scheduler.start()
+        time_sentdata = int(time_sentdata)
+    else:
+        print("Cannot be converted to an integer.")
+        return -1
+
+    # time_sentdata = 100 # test 
+    if time_sentdata and type_file == "URL":
+            time_sentdata = 100 # test
+            if 0 <= time_sentdata <= 24: # Connect by timestamp
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'cron', hour = 1,  args=[])
+                scheduler.start()
+            elif time_sentdata == 95 : # Connect Every 12 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 12,  args=[])
+                scheduler.start()
+            elif time_sentdata == 96 : # Connect Every 8 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 8,  args=[])
+                scheduler.start()
+            elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = int(int_number),  args=[])
+                scheduler.start()
+            elif time_sentdata == 98 : # Connect Every 15 minutes
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', minutes = 15,  args=[])
+                scheduler.start()
+            elif time_sentdata == 99 : # Connect Every Hour
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerURL_Database, 'interval', hours = 1,  args=[])
+                scheduler.start()
+
+    if time_sentdata and type_file == "LOGFILE":
+            # time_sentdata = 100 # test
+            if 0 <= time_sentdata <= 24: # Connect by timestamp
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', hour = 1, args=[])
+                scheduler.start()
+            elif time_sentdata == 95 : # Connect Every 12 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'interval', hours = 12, args=[])
+                scheduler.start()
+            elif time_sentdata == 96 : # Connect Every 8 hours
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'interval', hours = 8, args=[])
+                scheduler.start()
+            elif time_sentdata == 97 and int_number : # Connect Every Log Cycle
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'interval', minutes=int(int_number), args=[])
+                scheduler.start()
+            elif time_sentdata == 98 : # Connect Every 15 minutes
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'interval', minutes = 15, args=[])
+                scheduler.start()
+            elif time_sentdata == 99 : # Connect Every Hour
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'interval', hours = 1, args=[])
+                scheduler.start()
+            elif time_sentdata == 100 : # test cron 
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', second="*/10", args=[])
+                scheduler.start()
+    if time_sentdata and count <= 1 and type_file == "FTP":
+            if 0 <= time_sentdata <= 24:
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'cron', hour = 1,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 95 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = 12,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 96 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = 8,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 97 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = int(int_number),  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 98 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', minutes = 15,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
+            elif time_sentdata == 99 :
+                scheduler = AsyncIOScheduler()
+                scheduler.add_job(sync_ServerFTP_Database, 'interval', hours = 1,  args=[FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD])
+                scheduler.start()
         
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(colectDatatoPushMQTT, 'cron', second = "*/10" , args=[MQTT_BROKER,
-                                                                            MQTT_PORT,
-                                                                            MQTT_TOPIC_PUB,
-                                                                            MQTT_USERNAME,
-                                                                            MQTT_PASSWORD] )
+    scheduler.add_job(colectDatatoPushMQTT_AllDevice, 'cron', second = "*/10" , args=[MQTT_BROKER,
+                                                                                        MQTT_PORT,
+                                                                                        MQTT_TOPIC_PUB,
+                                                                                        MQTT_USERNAME,
+                                                                                        MQTT_PASSWORD] )
     scheduler.start()
     tasks = []
     tasks.append(asyncio.create_task(subMQTT(MQTT_BROKER,
@@ -1720,4 +1801,5 @@ if __name__ == "__main__":
     loop.run_forever()
     asyncio.run(main())
     
+
 
