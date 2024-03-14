@@ -288,15 +288,13 @@ async def Insert_TableDevice(sql_id):
         
         if not data:  # Check data if data empty 
             data = ["NULL"] * len(result_all)
-
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()
         value_insert = (time_insert_dev, sql_id) + tuple(data)
         
-        # Replace 'None' with 'NULL' in the data tuple
-        value_insert = tuple(None if x == 'NULL' else x for x in value_insert)
-        
+        # Replace '0.0' with '' in the data tuple
+        value_insert = tuple("0.0" if x == "" else x for x in value_insert)
         # Create Query
         columns = ["time", "id_device"]
         
