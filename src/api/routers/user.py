@@ -685,7 +685,7 @@ def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Dep
                 "id_role":item.id_role,
                 "id_screen":item.id_role,
                 "auth":item.auths,
-                "name_screen":item.screen.screen_name,
+                "screen_name":item.screen.screen_name,
             }
             result.append(new_item)
         

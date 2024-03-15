@@ -70,7 +70,7 @@ class RoleScreenOut(BaseModel):
     id_role:Optional[int] = None
     id_screen:Optional[int] = None
     auth:Optional[int] = None
-    name_screen: Optional[str] = None
+    screen_name: Optional[str] = None
     class Config:
         orm_mode = True
 class RoleScreenState(BaseModel):
