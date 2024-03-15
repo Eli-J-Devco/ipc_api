@@ -20,6 +20,7 @@ import mybatis_mapper2sql
 from async_timeout import timeout
 from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
                      Response, status)
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
@@ -439,7 +440,10 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 id_template=create_device.id_template
                 communication_query = db.query(models.Communication)\
                 .filter(models.Communication.id == id_communication).first()
-
+                query_1 = db.select(models.Point_list).filter(models.Point_list.id == 1)
+                query_1 = db.select(models.Register_block).filter(models.Register_block.id == 2)
+                
+                
                 # db.execute(text(models.create_table_device("inv0111")))
                 # point_list_query = db.query(models.Point_list)\
                 # .filter_by(id_template=3).order_by(models.Point_list.id.asc()).all()
@@ -522,6 +526,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 # "in_mode": 0,
                 # "id_template": 6
                 # }
+                # ----------------------------------------
                 for item in range(add_count):                       
                         pv=16
                         model=0
@@ -1015,67 +1020,79 @@ async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase
         async def execute_func():
             try:
                 id=update_device.id
-                id_device_group=update_device.id_device_group
+                # id_device_group=update_device.id_device_group
                 name = update_device.name
                 # id_communication
-                device_list_query = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id == id)
+                device_list_query = db.query(deviceList_models.Device_list).filter_by(id = id)
                 result_device_list = device_list_query.first()
                 
                 if not result_device_list:
-                    return 300               
-                id_communication=result_device_list.id_communication
-                connect_type=result_device_list.communication.driver_list.name
-                # 
-                result_mybatis=get_mybatis(path+'/mybatis/device.xml')
-                sql_register_block=result_mybatis["insert_device_register_block"]
-                sql_point_list=result_mybatis["insert_device_point_list"]
-                sql_select_device=result_mybatis["select_all_device"]
-                # check changed id_device_group, If it changed Re-initialize --> device_point_list and device_register_block
-                result_check_id_device_group=db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id 
-                                                                                == id).filter(deviceList_models.Device_list.id_device_group 
-                                                                                == id_device_group).first()
-                if not result_check_id_device_group: #Re-initialize
-                    try:
-                        print(f'Re-initialize --> id: {id}| id_device_group: {id_device_group}|')
-                        result_del_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
-                        result_del_device_register_block=db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
-                        db.flush()
-                        update_data=update_device.dict()
-                        device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
-                        result_register_block = db.execute(text(sql_register_block), params={'id': id})
-                        result_point_list = db.execute(text(sql_point_list), params={'id': id})
-                        db.flush()                          
-                        if (result_del_device_point_list and 
-                            result_del_device_register_block 
-                            and result_register_block.rowcount > 0 
-                            and  result_point_list.rowcount>0):
-                            print(f'Delete all point and register block of Device')
-                            db.commit()
-                            # app pm2
-                            if connect_type=="Modbus/TCP":
-                                init_pm2_dev_tcp(id,name,id_communication,connect_type)
-                                restart_program_pm2(f'Log')
-                            elif connect_type=="RS485":
-                                init_pm2_dev_rs485(id_communication,sql_select_device)
-                            else:
-                                return 300   
+                    return 300
+                # check device have data
+                have_table_query=f'SELECT * FROM dev_{id}'
+                result=db.execute(text(have_table_query)).first()
+                
+                if result==None :
+                    print('not have data')
+                else:
+                    
+                    print('Have data')
+                # print(result)
+                # for r in result:
+                #     print(r)
+                # id_communication=result_device_list.id_communication
+                # connect_type=result_device_list.communication.driver_list.name
+                # # 
+                # # result_mybatis=get_mybatis(path+'/mybatis/device.xml')
+                # # sql_register_block=result_mybatis["insert_device_register_block"]
+                # # sql_point_list=result_mybatis["insert_device_point_list"]
+                # # sql_select_device=result_mybatis["select_all_device"]
+                # # check changed id_device_group, If it changed Re-initialize --> device_point_list and device_register_block
+                # result_check_id_device_group=db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id 
+                #                                                                 == id).filter(deviceList_models.Device_list.id_device_group 
+                #                                                                 == id_device_group).first()
+                # if not result_check_id_device_group: #Re-initialize
+                #     try:
+                #         print(f'Re-initialize --> id: {id}| id_device_group: {id_device_group}|')
+                #         result_del_device_point_list =db.query(models.Device_point_list).filter_by(id_device_list=id).delete()
+                #         result_del_device_register_block=db.query(models.Device_register_block).filter_by(id_device_list=id).delete()
+                #         db.flush()
+                #         update_data=update_device.dict()
+                #         device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
+                #         result_register_block = db.execute(text(sql_register_block), params={'id': id})
+                #         result_point_list = db.execute(text(sql_point_list), params={'id': id})
+                #         db.flush()                          
+                #         if (result_del_device_point_list and 
+                #             result_del_device_register_block 
+                #             and result_register_block.rowcount > 0 
+                #             and  result_point_list.rowcount>0):
+                #             print(f'Delete all point and register block of Device')
+                #             db.commit()
+                #             # app pm2
+                #             if connect_type=="Modbus/TCP":
+                #                 init_pm2_dev_tcp(id,name,id_communication,connect_type)
+                #                 restart_program_pm2(f'Log')
+                #             elif connect_type=="RS485":
+                #                 init_pm2_dev_rs485(id_communication,sql_select_device)
+                #             else:
+                #                 return 300   
                                 
-                    except Exception as err:
-                        print(err)
-                        db.rollback()
+                #     except Exception as err:
+                #         print(err)
+                #         db.rollback()
 
-                else: # keep
-                    print(f'Update --> id: {id}| id_device_group: {id_device_group}|')
-                    update_data=update_device.dict()
-                    device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
-                    db.commit()
-                    if connect_type=="Modbus/TCP":
-                        init_pm2_dev_tcp(id,name,id_communication,connect_type)
-                        restart_program_pm2(f'Log')
-                    elif connect_type=="RS485":
-                        init_pm2_dev_rs485(id_communication,sql_select_device)
-                    else:
-                        return 300 
+                # else: # keep
+                #     print(f'Update --> id: {id}| id_device_group: {id_device_group}|')
+                #     update_data=update_device.dict()
+                #     device_list_query.filter(deviceList_models.Device_list.id == id).update(update_data, synchronize_session=False)
+                #     db.commit()
+                #     if connect_type=="Modbus/TCP":
+                #         init_pm2_dev_tcp(id,name,id_communication,connect_type)
+                #         restart_program_pm2(f'Log')
+                #     elif connect_type=="RS485":
+                #         init_pm2_dev_rs485(id_communication,sql_select_device)
+                #     else:
+                #         return 300 
 
             except Exception as err: 
                 print('Error update device : ',err)
@@ -1093,3 +1110,35 @@ async def update_device_basic(update_device: deviceList_schemas.DeviceUpdateBase
         
     except asyncio.TimeoutError:
         raise HTTPException(status_code=408, detail="Request timeout")
+
+# Describe functions before writing code
+# /**
+# 	 * @description check device have data
+# 	 * @author vnguyen
+# 	 * @since 15-03-2024
+# 	 * @param {DeviceUpdateBase,db}
+# 	 * @return data (DeviceState)
+# 	 */
+@router.post("/exists_data/", response_model=deviceList_schemas.DeviceState)
+async def check_device_data(update_device: deviceList_schemas.DeviceUpdateBase,
+                              db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    
+    try:
+        id=update_device.id
+        name = update_device.name
+        # id_communication
+        device_list_query = db.query(deviceList_models.Device_list).filter_by(id = id)
+        result_device_list = device_list_query.first()
+        
+        if not result_device_list:
+            return JSONResponse(content={"detail": f"Device with id: {id} does not exist"}, status_code=status.HTTP_404_NOT_FOUND)
+        # check device have data
+        have_table_query=f'SELECT * FROM dev_{id}'
+        result=db.execute(text(have_table_query)).first()
+        
+        if result==None :
+            print('not have data')
+        else:
+            print('Have data')
+    except Exception as err:
+        raise HTTPException(status_code=500, detail="Internal server error")

@@ -669,7 +669,8 @@ def update_role_screen(update_role_screen: user_schemas.RoleScreenUpdate, db: Se
 # 	 * @return data (RoleScreenState)
 # 	 */
 @router.post("/get/role_screen/", response_model=list[user_schemas.RoleScreenOut])
-def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  current_user: int = Depends(oauth2.get_current_user) ):
+def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Depends(get_db),  
+                    current_user: int = Depends(oauth2.get_current_user) ):
     try:
         role_screen_query = db.query(user_models.Role_screen_map).filter(
         user_models.Role_screen_map.id_role ==id_role).filter(
@@ -684,13 +685,13 @@ def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Dep
                 "id_role":item.id_role,
                 "id_screen":item.id_role,
                 "auth":item.auths,
-                "name_screen":item.screen.name,
+                "name_screen":item.screen.screen_name,
             }
             result.append(new_item)
         
         return result
     except Exception as err:
-        print(err)
+        # print(err)
         return      {
                     "status": "error",
                     "code": "300",
