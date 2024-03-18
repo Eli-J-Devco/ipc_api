@@ -167,7 +167,7 @@ def stop_program_pm2_many(app_name):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-def delete_program_pm2(app_name):
+async def delete_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
@@ -183,13 +183,13 @@ def delete_program_pm2(app_name):
         app_detect=0
         for item in result:
             name = item['name']
-            namespace = item['pm2_env']['namespace']
-            mode = item['pm2_env']['exec_mode']
-            pid = item['pid']
-            uptime = item['pm2_env']['pm_uptime']
-            status = item['pm2_env']['status']
-            cpu = item['monit']['cpu']
-            mem = item['monit']['memory'] / 1000000
+            # namespace = item['pm2_env']['namespace']
+            # mode = item['pm2_env']['exec_mode']
+            # pid = item['pid']
+            # uptime = item['pm2_env']['pm_uptime']
+            # status = item['pm2_env']['status']
+            # cpu = item['monit']['cpu']
+            # mem = item['monit']['memory'] / 1000000
             # print(f'namespace: {namespace}')
             # print(f'mode: {mode}')
             # print(f'pid: {pid}')

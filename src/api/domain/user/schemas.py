@@ -176,6 +176,12 @@ class UserRoleOut(UserOut):
     role: list[RoleOut]
     class Config:
         orm_mode = True
+class RoleCreateState(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
+    class Config:
+        orm_mode = True
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

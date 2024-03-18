@@ -125,10 +125,11 @@ def create_user(user: user_schemas.UserRoleCreate, db: Session = Depends(get_db)
 # 	 * @return data (new_user)
 # 	 */
 @router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=list[user_schemas.UserRoleOut])
-def get_all_user( db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+def get_all_user(page:int,limit:int, db: Session = Depends(get_db), 
+                current_user: int = Depends(oauth2.get_current_user)):
         try:
             user_query = db.query(user_models.User).filter(user_models.User.status == 1)
-            result_user=user_query.all()
+            result_user=user_query.offset(page*limit).limit(limit).all()
             if not result_user:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                     detail=f"User empty")
@@ -413,8 +414,9 @@ def active_user( updated_user: user_schemas.UserActive, db: Session = Depends(ge
 # 	 * @param {}
 # 	 * @return data (RoleOut)
 # 	 */
-@router.post("/create/role/", response_model=user_schemas.RoleOut)
-def create_role(create_role: user_schemas.RoleCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+@router.post("/create/role/", response_model=user_schemas.RoleCreateState)
+def create_role(create_role: user_schemas.RoleCreate, db: Session = Depends(get_db), 
+                current_user: int = Depends(oauth2.get_current_user) ):
     
     try:
         new_role = user_models.Role( name=create_role.name,
@@ -433,7 +435,7 @@ def create_role(create_role: user_schemas.RoleCreate, db: Session = Depends(get_
         # result_insert =db.execute(text(stmt),{"id_role": id,"auths":0})
         param={
             "id_role":id,
-            "auths":1
+            "auths":8
         }
         query_sql= cov_xml_sql("device.xml","add_role_screen",param)
         # print(f'query_sql: {query_sql}')

@@ -174,14 +174,14 @@ class DeviceDeleteMulti(BaseModel):
 class DeviceUpdateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
-    # Modbus device connected
+    # ModBus device connected
     id_communication: Optional[int] = Field(...,) 
-    rtu_bus_address: Optional[int] = Field(...,) 
+    rtu_bus_address: Optional[int] = Field(...,examples=[1]) 
     tcp_gateway_port: Optional[int] = Field(...,examples=[502]) 
-    tcp_gateway_ip: Optional[str] = Field(...,) 
+    tcp_gateway_ip: Optional[str] = Field(...,examples=["192.168.xxx.xx"]) 
     id_device_type: Optional[int] = Field(...,) 
     id_template: Optional[int] = None
-    
+    mode_update : Optional[int] = None
     # id_device_group: Optional[int] = None
     class Config:
         allow_population_by_field_name = True
@@ -218,5 +218,11 @@ class DeviceConfigOut(BaseModel):
     device_group:list[DeviceGroupBase]= None
     communication:list[CommunicationCreate]= None
     template:list[TemplateBase]= None 
+    class Config:
+        orm_mode = True
+class DeviceExistDataOut(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
     class Config:
         orm_mode = True
