@@ -649,7 +649,7 @@ def update_role_screen(update_role_screen: user_schemas.RoleScreenUpdate, db: Se
             role_screen_query.filter(user_models.Role_screen_map.id_role == 
                                          update_role_screen.id_role).filter(user_models.Role_screen_map.id_screen == 
                                          item.id_screen).update(dict(auths=item.auth))
-            db.commit()
+        db.commit()
         return {
                     "status": "success",
                     "code": "100",
@@ -685,7 +685,7 @@ def get_role_screen(id_role: Optional[int] = Body(embed=True), db: Session = Dep
         for item in result_role:
             new_item={
                 "id_role":item.id_role,
-                "id_screen":item.id_role,
+                "id_screen":item.id_screen,
                 "auth":item.auths,
                 "screen_name":item.screen.screen_name,
             }
