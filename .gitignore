@@ -38,3 +38,4 @@ src/utils/__pycache__/passwordHasher.cpython-311.pyc
 __pycache__
 .env.development
 src/utils/libcom.py
+.env.development
