@@ -172,9 +172,19 @@ class Config_information(Base):
 #     register_list= relationship("Register_block", back_populates='template_library')
 # # 
 # # 
+class Pointclass_type(Base):
+    __tablename__ = "pointclass_type"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+# 
+# 
 class Point_list(Base):
     __tablename__ = "point_list"
     id = Column(Integer, primary_key=True, nullable=False)
+    parent= Column(Integer, nullable=False)
+    id_pointclass_type = Column(Integer, ForeignKey(
+        "pointclass_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_pointkey = Column(Integer, nullable=False)
     id_template = Column(Integer, ForeignKey(
         "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
@@ -184,9 +194,9 @@ class Point_list(Base):
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     unitsedit = Column(Boolean, nullable=False, default=True)
     
-    equation = Column(Integer,  ForeignKey(
+    id_pointtype = Column(Integer,  ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    config = Column(Integer,  ForeignKey(
+    id_config_information = Column(Integer,  ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     
     register = Column(Integer, nullable=False)
@@ -213,8 +223,10 @@ class Point_list(Base):
     type_units  = relationship('Config_information', foreign_keys=[id_type_units])
     type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
     type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
-    type_point= relationship('Config_information', foreign_keys=[equation])
-    type_class= relationship('Config_information', foreign_keys=[config])
+    type_point= relationship('Config_information', foreign_keys=[id_pointtype])
+    type_class= relationship('Pointclass_type', foreign_keys=[id_pointclass_type])
+    type_config_information= relationship('Config_information', foreign_keys=[id_config_information])
+    
     # 
     template_library=relationship("Template_library", back_populates='point_list')
     # # 
@@ -224,206 +236,8 @@ class Point_list(Base):
     #     "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
     # id_alarmcondition= Column(Integer, ForeignKey(
     #     "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
-    # # 
-    
-    
 
-# class Device_group(Base):
-#     __tablename__ = "device_group"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     status = Column(Boolean, nullable=False, default=True)
-#     id_template = Column(Integer, ForeignKey(
-#         "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     # template= relationship('Template_library', foreign_keys=[id_template])
-
-#     templates_library = relationship("Template_library", back_populates="device_group")
-#     # 
-#     device_list= relationship("Device_list", back_populates="device_group")
     
-# # -----------------------------------------------------
-# class Screen(Base):
-#     __tablename__ = "screen"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     description = Column(Text, nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-# # 
-# class Role(Base):
-#     __tablename__ = "role"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=False)
-#     description = Column(Text, nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-#     role_map=relationship("Role_screen_map", back_populates='role')
-# # 
-# class Role_screen_map(Base):
-#     __tablename__ = "role_screen_map"
-#     id_role = Column(Integer, ForeignKey(
-#         "role.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
-#     id_screen = Column(Integer, ForeignKey(
-#         "screen.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
-#     auths = Column(Integer, nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-
-#     ## role  = relationship('Role', foreign_keys=[id_role])
-#     screen  = relationship('Screen', foreign_keys=[id_screen])
-    
-#     role=relationship("Role", back_populates='role_map')
-# # 
-# class User(Base):
-#     __tablename__ = "user"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     first_name = Column(String(255), nullable=True)
-#     last_name = Column(String(255), nullable=True)
-#     # fullname = Column(String(255), nullable=True)
-    
-#     email = Column(String(100), nullable=False, unique=True)
-#     password = Column(String(255), nullable=False)
-#     salt = Column(String(255), nullable=False)
-#     phone = Column(String(50), nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-    
-#     create_date = Column(TIMESTAMP(timezone=True),
-#                         nullable=True)
-    
-#     last_login = Column(TIMESTAMP(timezone=True),
-#                         nullable=True)
-#     create_by = Column(String(200), nullable=False)
-    
-#     updated_date = Column(TIMESTAMP(timezone=True),
-#                         nullable=True)
-#     updated_by = Column(String(200), nullable=False)
-    
-#     # date_joined = Column(TIMESTAMP(timezone=True),
-#                         # nullable=True)
-#     # id_language = Column(Integer, ForeignKey(
-#     #     "language_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     # is_active = Column(Boolean, nullable=False, default=False)
-    
-#     # language  = relationship('Language_list', foreign_keys=[id_language])
-    
-    
-# # 
-# class User_role_map(Base):
-#     __tablename__ = "user_role_map"
-#     id_user = Column(Integer, ForeignKey(
-#         "user.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
-#     id_role = Column(Integer, ForeignKey(
-#         "role.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key=True)
-    
-#     status = Column(Boolean, nullable=False, default=True)
-#     ## user  = relationship('User', foreign_keys=[id_user])
-#     ## role  = relationship('Role', foreign_keys=[id_role])
-#     ## role_screen=relationship("Role_screen_map", back_populates='user_role')
-#     user  = relationship('User')
-#     role  = relationship('Role')
-    
-    
-    
-#     # id_user = mapped_column(ForeignKey("user.id"), primary_key=True)
-#     # id_role = mapped_column(ForeignKey("role.id"), primary_key=True)
-    
-# #  -----------------------------------------------------
-# # 
-# class Device_list(Base):
-#     __tablename__ = "device_list"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=True)
-#     device_virtual= Column(Boolean, nullable=True, default=True)
-#     id_project_setup = Column(Integer, ForeignKey(
-#         "project_setup.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_device_type = Column(Integer, ForeignKey(
-#         "device_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_communication = Column(Integer, ForeignKey(
-#         "communication.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     id_device_group = Column(Integer, ForeignKey(
-#         "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-#     rtu_bus_address = Column(Integer, nullable=True)
-#     tcp_gateway_ip = Column(String(255), nullable=True)
-#     tcp_gateway_port = Column(Integer, nullable=True)
-#     enable = Column(Boolean, nullable=True, default=True)
-    
-#     max_watt= Column(DOUBLE, nullable=True)
-#     min_watt_in_percent= Column(DOUBLE, nullable=True)
-#     compensate_watt_factor= Column(DOUBLE, nullable=True)
-#     battery_mode= Column(Boolean, nullable=True, default=True)
-#     battery_normal_watt= Column(DOUBLE, nullable=True)
-#     battery_reduce_watt= Column(DOUBLE, nullable=True)
-#     battery_threshold_off_limit_in_v= Column(DOUBLE, nullable=True)
-#     battery_threshold_reduce_limit_in_v= Column(DOUBLE, nullable=True)
-#     battery_threshold_normal_limit_in_v= Column(DOUBLE, nullable=True)
-#     battery_threshold_on_limit_in_v= Column(DOUBLE, nullable=True)
-#     battery_priority= Column(Integer, nullable=True)
-    
-#     point = Column(Integer, nullable=True)
-#     pv = Column(Integer, nullable=True)
-#     model = Column(Integer, nullable=True)
-#     function = Column(Integer, nullable=True)
-#     point_p = Column(Integer, ForeignKey(
-#         "point_list.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True) #id
-#     value_p = Column(DOUBLE, nullable=True)
-#     send_p = Column(Boolean, nullable=True, default=True)
-#     point_q= Column(Integer, ForeignKey(
-#         "point_list.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True) #id
-#     value_q = Column(DOUBLE, nullable=True)
-#     send_q = Column(Boolean, nullable=True, default=True)
-#     point_pf = Column(Integer, ForeignKey(
-#         "point_list.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True) #id
-#     value_pf = Column(DOUBLE, nullable=True)
-#     send_pf = Column(Boolean, nullable=True, default=True)
-#     max = Column(DOUBLE, nullable=True)
-#     allow_error = Column(DOUBLE, nullable=True)
-#     enable_poweroff = Column(Boolean, nullable=True, default=True)
-#     inverter_shutdown = Column(TIMESTAMP(timezone=True),
-#                                nullable=True)
-#     status = Column(Boolean, nullable=True, default=True)
-    
-#     # 
-#     communication  = relationship('Communication', foreign_keys=[id_communication]) 
-#     point_p_list = relationship('Point_list', foreign_keys=[point_p])
-#     point_q_list  = relationship('Point_list', foreign_keys=[point_q])
-#     point_pf_list  = relationship('Point_list', foreign_keys=[point_pf])
-#     # 
-#     # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
-#     device_group= relationship("Device_group", back_populates="device_list")
-
-# # 
-# class Ethernet(Base):
-#     __tablename__ = "ethernet"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     id_project_setup = Column(Integer, ForeignKey(
-#         "project_setup.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     name = Column(String(255), nullable=False)
-#     namekey = Column(String(255), nullable=False)
-#     id_type_ethernet = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     allow_dns = Column(Boolean, nullable=True, default=False)
-#     ip_address = Column(String(255), nullable=True)
-#     subnet_mask = Column(String(255), nullable=True)
-#     gateway= Column(String(255), nullable=True)
-#     mtu = Column(String(255), nullable=True)
-#     dns1 = Column(String(255), nullable=True)
-#     dns2 = Column(String(255), nullable=True)
-#     status = Column(Boolean, nullable=False, default=True)
-#     type_ethernet  = relationship('Config_information', foreign_keys=[id_type_ethernet])
-# # 
-# class Upload_channel(Base):
-#     __tablename__ = "upload_channel"
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     name = Column(String(255), nullable=True)
-#     id_type_protocol = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     uploadurl = Column(String(255), nullable=True)
-#     password = Column(String(255), nullable=True)
-#     selected_upload = Column(String(255), nullable=True)
-#     id_type_logging_interval = Column(Integer, ForeignKey(
-#         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-#     enable = Column(Boolean, nullable=False, default=True)
-#     allow_remote_configuration = Column(Boolean, nullable=False, default=True)
-#     status = Column(Boolean, nullable=False, default=True)
-#     type_protocol  = relationship('Config_information', foreign_keys=[id_type_protocol])
-#     type_logging_interval= relationship('Config_information', foreign_keys=[id_type_logging_interval])
 # # 
 class Device_point_list_map(Base):
     __tablename__ = "device_point_list_map"
@@ -431,51 +245,10 @@ class Device_point_list_map(Base):
     name = Column(String(255), nullable=True)
     low_alarm = Column(DOUBLE(), nullable=True, default=0)
     high_alarm = Column(DOUBLE(), nullable=True, default=0)
-    # id_pointkey = Column(Integer, nullable=False)
-    # --------------------------------------------------
-    # id_template = Column(Integer, ForeignKey(
-    #     "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    # id_device_group = Column(Integer, ForeignKey(
-    #     "device_group.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_device_list = Column(Integer, ForeignKey(
         "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_point_list = Column(Integer, ForeignKey(
         "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    # # ------ delete -------------------------------------------- 
-    # name = Column(String(255), nullable=False)
-    # nameedit = Column(Boolean, nullable=False, default=True)
-    # id_type_units = Column(Integer, ForeignKey(
-    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
-    # unitsedit = Column(Boolean, nullable=False, default=True)
-    # equation = Column(Integer, nullable=False, default=True)
-    # config = Column(Integer, nullable=False)
-    # register = Column(Integer, nullable=False)
-    # id_type_datatype = Column(Integer, ForeignKey(
-    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    # id_type_byteorder = Column(Integer, ForeignKey(
-    #     "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
-    # slope = Column(DOUBLE, nullable=False)
-    # slopeenabled = Column(Boolean, nullable=False, default=True)
-    # offset = Column(DOUBLE, nullable=False)
-    # offsetenabled = Column(Boolean, nullable=False, default=True)
-    # multreg = Column(Integer, nullable=False)
-    # multregenabled = Column(Boolean, nullable=True, default=True)
-    # userscaleenabled = Column(Boolean, nullable=False, default=True)
-    # invalidvalue = Column(Integer, nullable=False)
-    # invalidvalueenabled = Column(Boolean, nullable=False, default=True)
-    # extendednumpoints = Column(Integer, nullable=True)
-    # extendedregblocks = Column(Integer, nullable=True)
-    # status = Column(Boolean, nullable=False, default=True)
-    # # 
-    # template_library  = relationship('Template_library', foreign_keys=[id_template])
-    # device_group  = relationship('Device_group', foreign_keys=[id_device_group])
-    # device_list  = relationship('Device_list', foreign_keys=[id_device_list])
-    # point_list  = relationship('Point_list', foreign_keys=[id_point_list])
-    
-    # type_units  = relationship('Config_information', foreign_keys=[id_type_units])
-    # type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
-    # type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
-    # 
 # 
 class Register_block(Base):
     __tablename__ = "register_block"

@@ -471,3 +471,20 @@ call file
 sudo pm2 start /sources/python/api_python/src/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f   -- 296  --restart-delay=10000
 sudo pm2 start /sources/python/api_python/src/api/main.py --interpreter /usr/bin/python3 -f  --name "API"  --restart-delay=10000
 <!--  -->
+  #     new_point.append({
+                        #         "Config":point_item["Config"],
+                        #         "IDPoint":point_item["IDPoint"],
+                        #         "Parent":point_item["Parent"],
+                        #         "ItemID": point_item["ItemID"],
+                        #         "PointKey":point_item["PointKey"],
+                        #         "Name": point_item["Name"],
+                        #         "Units": point_item["Units"],
+                        #         "Value": point_item["Value"],
+                        #         "Timestamp": point_item["Timestamp"],
+                        #         "Quality": point_item["Quality"],
+                        #         "MsgError": point_item["MsgError"],
+                        #         "PointType": point_item["PointType"]
+                                
+                        #         }
+                        # )
+<!--  -->
