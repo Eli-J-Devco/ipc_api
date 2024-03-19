@@ -16,6 +16,7 @@ from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException,
                      Response, status)
 # from psycopg2 import sql
 # from sqlalchemy.sql import text
+from fastapi.responses import JSONResponse
 from sqlalchemy import (Integer, MetaData, String, Table, and_, bindparam, exc,
                         func, insert, join, literal_column, select, text,
                         union, union_all)
@@ -131,8 +132,8 @@ def get_all_user(page:int, limit:int, db: Session = Depends(get_db),
             user_query = db.query(user_models.User).filter(user_models.User.status == 1)
             result_user=user_query.offset(page).limit(limit).all()
             if not result_user:
-                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                    detail=f"User empty")
+                return JSONResponse(status_code=status.HTTP_204_NO_CONTENT,
+                                    content=f"User empty")
             user_list=user_schemas.UserRoleOut(total=user_query.count(), data=[])
             for item_user in result_user:
                 result_user_role = db.query(user_models.User_role_map).filter(
@@ -568,12 +569,17 @@ def delete_role(id: Optional[int] = Body(embed=True), db: Session = Depends(get_
     
 
     try:
+        is_role_in_user_query = db.query(user_models.User_role_map).filter(user_models.User_role_map.id_role == id)
+        result_role_in_user=is_role_in_user_query.first()
+        if result_role_in_user:
+            return JSONResponse(status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+                                content=f"Role with id: {id} is in use")
         role_query = db.query(user_models.Role).filter(
         user_models.Role.id == id).filter(
         user_models.Role.status == 1)
         result_role=role_query.first()
         if not result_role:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role with id: {id} does not exist")
             
         role_query.delete(synchronize_session=False)
