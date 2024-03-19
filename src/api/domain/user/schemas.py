@@ -47,6 +47,8 @@ class RoleBase(BaseModel):
         orm_mode = True
 class RoleOut(RoleBase):
     id: Optional[int] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     class Config:
         orm_mode = True
 class RoleCreate(BaseModel):
@@ -119,7 +121,7 @@ class UserOut(BaseModel):
 
     status: bool = True
     # is_active: bool = False
-
+    role: Optional[list[RoleOut]] = None
     class Config:
         orm_mode = True
 class UserLoginOut(BaseModel):
@@ -172,8 +174,9 @@ class UserRoleCreate(UserBase):
     role: list[Role]
     class Config:
         orm_mode = True
-class UserRoleOut(UserOut):
-    role: list[RoleOut]
+class UserRoleOut(BaseModel):
+    total: Optional[int] = None
+    data: Optional[list[UserOut]] = None
     class Config:
         orm_mode = True
 class RoleCreateState(BaseModel):
