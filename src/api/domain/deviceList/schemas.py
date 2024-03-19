@@ -120,13 +120,15 @@ class DeviceCreate(BaseModel):
     device_virtual: Optional[bool] = False
     # Modbus device connected
     id_communication: Optional[int] = Field(...,) 
+    
     # driver_list_name:Optional[str] = None # table driver_list
     
     rtu_bus_address: Optional[int] = None
     tcp_gateway_port: Optional[int] = Field(...,examples=[502])
     tcp_gateway_ip: Optional[str] = None
     id_device_type: Optional[int] = None
-    id_device_group: Optional[int] = None
+    id_template: Optional[int] = None
+    # id_device_group: Optional[int] = None
     
     class Config:
         # allow_population_by_field_name = True
@@ -134,7 +136,6 @@ class DeviceCreate(BaseModel):
         # from_attributes = True
         orm_mode = True
 class MultipleDeviceCreate(BaseModel):
-    # id: Optional[int] = None # Device number
     name: Optional[str]  = Field(...,description="") 
     device_virtual: Optional[bool] =  Field(...,examples=[False],description="") 
     # Modbus device connected
@@ -143,13 +144,10 @@ class MultipleDeviceCreate(BaseModel):
     tcp_gateway_port: Optional[int] = Field(...,examples=[502]) 
     tcp_gateway_ip: Optional[str] = Field(...,) 
     id_device_type: Optional[int] = Field(...,) 
-    id_device_group: Optional[int] = Field(...,) 
-    in_addcount: Optional[int] = Field(...,) 
-    in_addmode: Optional[int] = Field()
+    add_count: Optional[int] = Field(...,) 
+    in_mode: Optional[int] = Field()
+    id_template: Optional[int] = None
     # 
-    # in_addmode: Optional[int] = Field(Query(
-    #     description="When adding, increment",
-    # ))
     class Config:
         orm_mode = True
         # allow_population_by_field_name = True
@@ -162,24 +160,33 @@ class MultipleDeviceCreate(BaseModel):
                 
         #     }
         # }
+
 class DeviceDelete(BaseModel):
-    id: Optional[int] =  Field(...)
-    mode:Optional[int] =  Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    id: Optional[int] = None
+    class Config:
+        orm_mode = True
+class DeviceDeleteMulti(BaseModel):
+    device: list[DeviceDelete]= None
+    delete_mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    
     class Config:
         orm_mode = True
 class DeviceUpdateBase(BaseModel):
-    id: Optional[int] = None # Device number
+    id: Optional[int] = None
     name: Optional[str] = None
-    
-    rtu_bus_address: Optional[int] = None
-    tcp_gateway_port: Optional[int] = None
-    tcp_gateway_ip: Optional[str] = None
-    id_device_type: Optional[int] = None
-    id_device_group: Optional[int] = None
+    # ModBus device connected
+    id_communication: Optional[int] = Field(...,) 
+    rtu_bus_address: Optional[int] = Field(...,examples=[1]) 
+    tcp_gateway_port: Optional[int] = Field(...,examples=[502]) 
+    tcp_gateway_ip: Optional[str] = Field(...,examples=["192.168.xxx.xx"]) 
+    id_device_type: Optional[int] = Field(...,) 
+    id_template: Optional[int] = None
+    mode_update : Optional[int] = None
+    # id_device_group: Optional[int] = None
     class Config:
-        # allow_population_by_field_name = True
-        # populate_by_name = True
-        # from_attributes = True
+        allow_population_by_field_name = True
+        populate_by_name = True
+        from_attributes = True
         orm_mode = True
         
 class DevicePointListBase(BaseModel):
@@ -211,5 +218,11 @@ class DeviceConfigOut(BaseModel):
     device_group:list[DeviceGroupBase]= None
     communication:list[CommunicationCreate]= None
     template:list[TemplateBase]= None 
+    class Config:
+        orm_mode = True
+class DeviceExistDataOut(BaseModel):
+    status: Optional[str] = None
+    code: Optional[str] = None
+    desc: Optional[str] = None
     class Config:
         orm_mode = True

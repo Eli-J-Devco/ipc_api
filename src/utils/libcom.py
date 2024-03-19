@@ -170,10 +170,27 @@ def cov_xml_sql(fileName,id_mybatis,param):
     # Run the Node.js script using subprocess
     # print(f'id_mybatis: {id_mybatis}')
     # print(f'param: {param}')
-    result = subprocess.run(['node', node_script_path, 
-                            'convert_mybatis',path+"/mybatis/"+fileName,"mybatis",id_mybatis,str(param)], 
+    
+    # cmd=""
+    result=""
+    if sys.platform == 'win32':
+        # cmd=f'node {node_script_path} convert_mybatis {path+"/mybatis/"+fileName} "mybatis" {id_mybatis} {str(param)}'
+        result = subprocess.run([   'node', 
+                                    node_script_path, 
+                                    'convert_mybatis',
+                                    path+"/mybatis/"+fileName,
+                                    "mybatis",id_mybatis,str(param)], 
                             capture_output=True, text=True)
+    else:
+        # cmd=f'sudo node {node_script_path} convert_mybatis {path+"/mybatis/"+fileName} "mybatis" {id_mybatis} {str(param)}'
+        result = subprocess.run(['sudo','node', node_script_path, 'convert_mybatis',path+"/mybatis/"+fileName,"mybatis",id_mybatis,str(param)], 
+                            capture_output=True, text=True)
+    
+    # result = subprocess.run(['node', node_script_path, 
+    #                         'convert_mybatis',path+"/mybatis/"+fileName,"mybatis",id_mybatis,str(param)], 
+    #                         capture_output=True, text=True)
     # Check the result
+    
     if result.returncode == 0:
         # print("Node.js script executed successfully.")
         # print("Output:\n", result.stdout)
