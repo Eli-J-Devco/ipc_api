@@ -685,10 +685,10 @@ async def device(ConfigPara):
                             
                             for item in data_write_device:
                                 result_write_device= write_modbus_tcp(client,slave_ID,
-                                                 item["datatype"],
-                                                 item["register"],
-                                                 item["value"]
-                                                 )
+                                                item["datatype"],
+                                                item["register"],
+                                                item["value"]
+                                                )
                                 if result_write_device["value"]==0:
                                     sql=f'UPDATE device_list SET {item["point"]} = 0 Where id ={id_device}'
                                     MySQL_Update(sql)
@@ -754,9 +754,9 @@ async def device(ConfigPara):
                                         print(f'This Slave {device_name} - [{slave_ip}] was not found')
                                         status_device="OFFLINE"
                                         status_rb.append({"ADDR":ADDR,
-                                                              "ERROR_CODE":139,
-                                                               "Timestamp": getUTC(),
-                                                              })      
+                                                        "ERROR_CODE":139,
+                                                        "Timestamp": getUTC(),
+                                                        })      
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
                         # print(f"Register Block {slave_ip}: {new_Data}")  
                         point_list = []
@@ -781,7 +781,7 @@ async def device(ConfigPara):
                     # set value Quality of Point =1 when disconnect
                     point_list_error=[]
                     for item in point_list_device:
-                       point_list_error.append(point_object(
+                        point_list_error.append(point_object(
                                             item['ItemID'], 
                                             item['Name'], 
                                             item['Units'], 

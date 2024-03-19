@@ -35,7 +35,7 @@ import api.domain.template.models as template_models
 import model.models as models
 import utils.oauth2 as oauth2
 from database.db import engine, get_db
-from utils.libCom import get_mybatis
+from utils.libcom import get_mybatis
 # from model import schemas
 # from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
 #                    delete_program_pm2, find_program_pm2, get_mybatis, path,
