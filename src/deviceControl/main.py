@@ -21,12 +21,12 @@ sys.path.append(path)
 print(path)
 from configs.config import Config
 from utils.libMySQL import *
-
+from database.db import get_db
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
-
+from sqlalchemy.orm import Session
 from typing import Union
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -66,7 +66,10 @@ Mode = Limit ->
 """
 class ControlRequest(BaseModel):
     bit_control: int
-    id_device: int
+    p_out :int
+    p_out : int
+    s_out :int
+    cosphi : int
 #----------------------------------------
 # /**
 # 	 * @description take time 
@@ -105,6 +108,47 @@ def get_mybatis(file_name):
     except Exception as e:
         print('An exception occurred:',e)
         return -1 
+# Describe functions before writing code
+# /**
+# 	 * @description Modbus Function Codes
+# 	 * @author vnguyen
+# 	 * @since 10-11-2023
+# 	 * @param {client, FUNCTION, ADDRs, COUNT, slave_ID}
+# 	 * @return data (registers)
+# 	 */
+def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
+    try:
+        match FUNCTION:
+            case 0:# not used           
+                return []
+            case 1:# Read Coils
+                ADDR = ADDRs                        
+                result_rb = client.read_coils(
+                                ADDR, COUNT, unit=slave_ID)
+                return result_rb
+
+            case 2:# Read Discrete Inputs      
+                ADDR = ADDRs
+                result_rb = client.read_discrete_inputs(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+            
+            case 3:# Read Holding Registers
+                ADDR = ADDRs
+                result_rb = client.read_holding_registers(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+
+            case 4:# Read Input Registers
+                ADDR = ADDRs
+                result_rb = client.read_input_registers(
+                                    ADDR, COUNT, unit=slave_ID)
+                return result_rb
+            case _:
+                return []
+    except Exception as err:
+        print(f'Error select_function {err}')
+        return []
 # Describe funtion wwrite in device modbus TCP 
 # /**
 # 	 * @description MQTT public status of device
@@ -234,10 +278,10 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
 # 	 * @param {id_device}
 # 	 * @return status device 
 # 	 */
-@app.post('/man_control/')
-async def control_man(request: Request, control_request: ControlRequest , current_user: int = Depends(oauth2.get_current_user)):
+@app.post("/man_INV/{id_device}")
+# async def control_man(request: Request, control_request: ControlRequest ,current_user: int = Depends(oauth2.get_current_user)):
+async def control_man(request: Request,id_device:int ,control_request: ControlRequest ):
     
-    id_device = control_request.id_device
     bit_control = control_request.bit_control
     global bit_return
 
@@ -258,6 +302,7 @@ async def control_man(request: Request, control_request: ControlRequest , curren
     type_datatype = ""
     datatype = ""
     register = ""
+    max_watt = 0
     
     result_mybatis = get_mybatis('/mybatis/control.xml')
     try:
@@ -289,6 +334,7 @@ async def control_man(request: Request, control_request: ControlRequest , curren
                 slave_ip = results_device_modbus[0]["tcp_gateway_ip"]
                 slave_port = results_device_modbus[0]['tcp_gateway_port']
                 unit = results_device_modbus[0]['rtu_bus_address']
+                max_watt = results_device_modbus[0]['max_watt']
             else :
                 pass
             if results_register:
@@ -302,27 +348,127 @@ async def control_man(request: Request, control_request: ControlRequest , curren
                 print("No data found in results_register")
             
             results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
-            
             if results_datatype :
                 datatype = results_datatype[0]["value"]
             else :
                 pass
             try:
-                with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype) as client:
+                with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype ,value=max_watt) as client:
                     if bit_control == 1:
-                        write_modbus_tcp(client, unit, datatype, register, value=333)
+                        write_modbus_tcp(client, unit, datatype, register, value=max_watt)
                         bit_return = "INV Running"
+                        
                     elif bit_control == 0:
                         write_modbus_tcp(client, unit, datatype, register, value=0)
                         bit_return = "INV Shutdown"
+                        
             except ConnectionException as conn_err:
                 print('Modbus Connection Error:', conn_err)
                 return {"error": "Unable to connect to the device."}
             except ModbusException as modbus_err:
                 print('Modbus Error:', modbus_err)
                 return {"error": "Error communicating with the device."}
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
             
             return {"message": "Control command sent successfully", "status_INV": bit_return}
+        #-------------------------------------------------------
+        else:
+            return print("device can not control")
+    else :
+        return print("device does not exist")
+
+@app.post("/input_P/{id_device}")
+async def control_P(request: Request, control_request: ControlRequest ,current_user: int = Depends(oauth2.get_current_user)):
+# async def control_man(request: Request,id_device:int ,control_request: ControlRequest ):
+    
+    p_out = control_request.p_out
+    global bit_return
+
+    global QUERY_INFORMATION_CONNECT_MODBUSTCP
+    global QUERY_ALL_DEVICES
+    global QUERY_TYPE_DEVICE
+    global QUERY_REGISTER_DATATYPE
+    global QUERY_DATATYPE
+    
+    
+    results_device_type = []
+    results_device_modbus = []
+    results_register = []
+    results_datatype = []
+    
+    slave_ip =""
+    slave_port = ""
+    unit = ""
+    type_datatype = ""
+    datatype = ""
+    register = ""
+    max_watt = 0
+        
+    result_mybatis = get_mybatis('/mybatis/control.xml')
+    try:
+        QUERY_INFORMATION_CONNECT_MODBUSTCP = result_mybatis["QUERY_INFORMATION_CONNECT_MODBUSTCP"]
+        QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
+        QUERY_TYPE_DEVICE = result_mybatis["QUERY_TYPE_DEVICE"]
+        QUERY_REGISTER_DATATYPE = result_mybatis["QUERY_REGISTER_DATATYPE"]
+        QUERY_DATATYPE = result_mybatis["QUERY_DATATYPE"]
+
+    except Exception as e:
+            print('An exception occurred',e)
+    
+    if not QUERY_INFORMATION_CONNECT_MODBUSTCP or not QUERY_ALL_DEVICES or not QUERY_TYPE_DEVICE or not QUERY_REGISTER_DATATYPE or not QUERY_DATATYPE:
+        print("Error not found data in file mybatis") 
+        return -1
+    
+    # truyeenf them so chay thiet bij vao
+    if id_device :
+        results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (id_device,))
+    else :
+        return print("No devices selected")
+    
+    if results_device_type :
+        if results_device_type[0]["name"] == "PV System Inverter" :
+            results_device_modbus = MySQL_Select(QUERY_INFORMATION_CONNECT_MODBUSTCP, (id_device,))
+            results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (id_device,))
+    
+            if results_device_modbus :
+                slave_ip = results_device_modbus[0]["tcp_gateway_ip"]
+                slave_port = results_device_modbus[0]['tcp_gateway_port']
+                unit = results_device_modbus[0]['rtu_bus_address']
+                max_watt = results_device_modbus[0]['max_watt']
+            else :
+                pass
+            if results_register:
+                for item in results_register:
+                    if item['id_pointkey'] == 'WMax':
+                        register = item['register']
+                        type_datatype = item['id_type_datatype']
+                    else :
+                        pass 
+            else:
+                print("No data found in results_register")
+            
+            results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+            if results_datatype :
+                datatype = results_datatype[0]["value"]
+            else :
+                pass
+            try:
+                with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype ,value=p_out) as client:
+                        write_modbus_tcp(client, unit, datatype, register, value=p_out)
+                        
+            except ConnectionException as conn_err:
+                print('Modbus Connection Error:', conn_err)
+                return {"error": "Unable to connect to the device."}
+            except ModbusException as modbus_err:
+                print('Modbus Error:', modbus_err)
+                return {"error": "Error communicating with the device."}
+            except Exception as e:
+                print(f"An error occurred: {e}")
+                return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+            
+            return {"message": "write the value down successfully ", "with capacity": p_out}
         #-------------------------------------------------------
         else:
             return print("device can not control")
@@ -331,6 +477,6 @@ async def control_man(request: Request, control_request: ControlRequest , curren
     
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
     
 # uvicorn src.deviceControl.main:app --reload

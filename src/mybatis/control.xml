@@ -8,6 +8,7 @@
 		device_list.id_template,
         device_list.value_p, device_list.send_p,
         device_list.rtu_bus_address AS rtu_bus_address,
+        device_list.max_watt AS max_watt,
         device_list.tcp_gateway_ip AS tcp_gateway_ip,
         device_list.tcp_gateway_port AS tcp_gateway_port,
         device_list.point_p,device_list.value_p,device_list.send_p,
