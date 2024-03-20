@@ -637,7 +637,7 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
         payload = json.dumps(data_send)
       
         publish.single(topic, payload, hostname=host,
-                       retain=False, port=port,
+                       retain=True, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
@@ -857,7 +857,7 @@ async def device(ConfigPara):
                     # set value Quality of Point =1 when disconnect
                     point_list_error=[]
                     for item in point_list_device:
-                       point_list_error.append(point_object(
+                        point_list_error.append(point_object(
                                         item['config_information'],
                                         item['id_point'],
                                         item['parent'],
