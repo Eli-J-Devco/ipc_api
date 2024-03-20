@@ -58,6 +58,16 @@
  SELECT  
 
     device_point_list_map.id,
+    point_list.id_pointkey AS pointkey,
+    table_pointtype.name AS pointtype,
+    point_list.id_pointclass_type AS id_pointclass,
+    point_list.id_config_information AS id_config_infor,
+    point_list.id_pointtype AS id_pointtype,
+    
+    table_pointclass_type.name AS class,
+    table_config_information.namekey AS config_information,
+    point_list.id AS id_point,
+    point_list.parent AS parent,
     device_point_list_map.name,
     device_point_list_map.low_alarm,
     device_point_list_map.high_alarm,
@@ -77,7 +87,7 @@
     point_list.id_type_units,
     point_list.nameedit,
     point_list.unitsedit,
-    point_list.equation,
+
     point_list.register,
     point_list.id_type_datatype,
     point_list.id_type_byteorder,
@@ -114,25 +124,28 @@
     INNER JOIN config_information table_byteorder ON point_list.id_type_byteorder=table_byteorder.id
     INNER JOIN config_information table_datatype ON point_list.id_type_datatype=table_datatype.id
     LEFT JOIN config_information table_units ON point_list.id_type_units=table_units.id
+    LEFT JOIN pointclass_type table_pointclass_type ON point_list.id_pointclass_type=table_pointclass_type.id
+    LEFT JOIN config_information table_config_information ON point_list.id_config_information=table_config_information.id
+    LEFT JOIN config_information table_pointtype ON point_list.id_pointtype=table_pointtype.id
     
     WHERE point_list.status=1 AND
                 device_point_list_map.id_device_list=%s ORDER BY device_point_list_map.id ASC;
   </select>
   <select id="select_register_block">
-SELECT 
-      register_block.id,
-      register_block.id_template,
-      template_library.name AS template_name,
-      register_block.addr AS addr,
-      register_block.count AS `count`,
-      config_information.namekey AS namekey,
-      config_information.value AS Functions
-      FROM register_block
-      INNER JOIN template_library ON register_block.id_template=template_library.id
-      INNER JOIN config_information ON register_block.id_type_function=config_information.id
-      
-      WHERE register_block.status=1 AND
-                register_block.id_template=%s ORDER BY register_block.id ASC;
+    SELECT 
+          register_block.id,
+          register_block.id_template,
+          template_library.name AS template_name,
+          register_block.addr AS addr,
+          register_block.count AS `count`,
+          config_information.namekey AS namekey,
+          config_information.value AS Functions
+          FROM register_block
+          INNER JOIN template_library ON register_block.id_template=template_library.id
+          INNER JOIN config_information ON register_block.id_type_function=config_information.id
+          
+          WHERE register_block.status=1 AND
+                    register_block.id_template=%s ORDER BY register_block.id ASC;
   </select>
   <select id="select_device_control"> 
                   SELECT device_list.id, device_list.name,  
