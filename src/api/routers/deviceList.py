@@ -158,6 +158,8 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     template_query = db.query(template_models.Template_library).order_by(template_models.Template_library.id.asc())
     
     communication_query = db.query(models.Communication)
+    
+    
     result_device_type=[]
     for item in device_type_query.all():
         result_device_type.append(item.__dict__)
@@ -177,16 +179,19 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     result_template=[]   
     for item in template_query.all():
         # new_item=item.__dict__
-        result_template.append({**item.__dict__,
-                                }) 
-    # https://docs.sqlalchemy.org/en/14/core/tutorial.html#using-textual-sql
+        template_item={**item.__dict__,
+                                }
+        id_template=item.id
+        result_template.append(template_item)
+        
+       
     
     return {
         # "device_list":result_device_list,
         "device_type":result_device_type,
         "device_group":result_device_group,
         "communication":result_communication,
-        "template":result_template
+        "template":result_template,
     }
 
 # Describe functions before writing code
@@ -202,6 +207,14 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                  db: Session = Depends(get_db), 
                                  current_user: int = Depends(oauth2.get_current_user)):
     try:
+        data={
+            "mppt":2,
+            "value":[
+                {"string":2,
+                 "value":[{}]
+                 }
+            ]
+        }
         def reset_data_new(new_device_list):
             # delete device in table device_list
             for items in new_device_list:  
@@ -225,8 +238,8 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 id_template=create_device.id_template
                 communication_query = db.query(models.Communication)\
                 .filter(models.Communication.id == id_communication).first()
-                query_1 = db.select(models.Point_list).filter(models.Point_list.id == 1)
-                query_1 = db.select(models.Register_block).filter(models.Register_block.id == 2)
+                # query_1 = db.select(models.Point_list).filter(models.Point_list.id == 1)
+                # query_1 = db.select(models.Register_block).filter(models.Register_block.id == 2)
                 
                 
                 # db.execute(text(models.create_table_device("inv0111")))

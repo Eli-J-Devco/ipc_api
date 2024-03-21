@@ -26,11 +26,42 @@ from model.schemas import (DataTypeBase, PointByteOrder, PointDataType,
 
 
 # <- template_library ->
+class MPPTSTRINGPANEL(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    class Config:
+        orm_mode = True
+class MPPTSTRING(BaseModel):
+    
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    panel: list[MPPTSTRINGPANEL] = None
+    class Config:
+        orm_mode = True
+ 
+class MPPT(BaseModel):
+    # String: list[MPPTSTRING] = None
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    string: list[MPPTSTRING] =  None
+    class Config:
+        orm_mode = True
+class TemplateMPPTBase(BaseModel):
+    id: Optional[int] = None
+    mppt: Optional[list[MPPT]] = None
+    class Config:
+        orm_mode = True
+    
 class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
     id_device_group: Optional[int] = None
+    # device_mppt : list[MPPT] = None
+    
     class Config:
         orm_mode = True
 # <-  -> 
