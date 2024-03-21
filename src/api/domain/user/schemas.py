@@ -146,14 +146,15 @@ class UserUpdate(BaseModel):
         class Config:
             orm_mode = True
     id:Optional[int] = None
-    email: EmailStr
+    # email: EmailStr = Field(exclude=True)
     # fullname: Optional[str] = None
     first_name:Optional[str] = None
     last_name:Optional[str] = None
     phone: Optional[str] = None
+    status: Optional[int] = None
     # id_language: Optional[int] = None
     
-    role: list[Role]
+    role: list[Role] = Field(exclude=True)
     class Config:
         orm_mode = True
 class UserChangePassword(BaseModel):

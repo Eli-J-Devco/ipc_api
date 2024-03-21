@@ -8,6 +8,7 @@ import datetime
 import json
 import os
 import random
+import secrets
 import string
 import sys
 from typing import Optional
@@ -41,6 +42,10 @@ router = APIRouter(
     tags=['Users']
 )
 
+account_status = {
+     "active": 1,
+     "inactive": 0,
+}
 # /users/
 # /users
 
@@ -126,10 +131,13 @@ def create_user(user: user_schemas.UserRoleCreate, db: Session = Depends(get_db)
 # 	 * @return data (new_user)
 # 	 */
 @router.post("/all_user", status_code=status.HTTP_201_CREATED, response_model=user_schemas.UserRoleOut)
-def get_all_user(page:int, limit:int, db: Session = Depends(get_db), 
+def get_all_user(page:int, limit:int, status: int | None = None, db: Session = Depends(get_db), 
                 current_user: int = Depends(oauth2.get_current_user)):
         try:
-            user_query = db.query(user_models.User).filter(user_models.User.status == 1)
+            if status is not None:
+                user_query = db.query(user_models.User).filter(user_models.User.status == status)
+            else:
+                user_query = db.query(user_models.User)
             result_user=user_query.offset(page).limit(limit).all()
             if not result_user:
                 return JSONResponse(status_code=status.HTTP_204_NO_CONTENT,
@@ -214,7 +222,8 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
  
             # using random.choices()
             # generating random strings
-            new_password = ''.join(random.choices(string.ascii_letters, k=10))
+            required_letters = string.ascii_letters + string.digits + string.punctuation + string.ascii_uppercase + string.ascii_lowercase
+            new_password = ''.join(secrets.choice(required_letters) for i in range(20))
             
             hashed_password = hash(new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
@@ -246,8 +255,7 @@ def delete_user(id: Optional[int] = Body(embed=True), db: Session = Depends(get_
 
     try:
         user_query = db.query(user_models.User).filter(
-        user_models.User.id == id).filter(
-        user_models.User.status == 1)
+        user_models.User.id == id)
         result_role=user_query.first()
         if not result_role:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -334,9 +342,8 @@ def update_user( updated_user: user_schemas.UserUpdate, db: Session = Depends(ge
         if not result_user:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                         detail=f"User with id: { updated_user.id} does not exist")
-        user_query.update(dict( fullname=updated_user.fullname,
-                                phone=updated_user.phone,
-                                id_language=updated_user.id_language), synchronize_session=False)
+        
+        user_query.update(updated_user.model_dump(), synchronize_session=False)
         user_role_query= db.query(user_models.User_role_map).filter(user_models.User_role_map.id_user == id)
         result_delete=user_role_query.delete(synchronize_session=False)
         new_user_role_list=[]
@@ -617,7 +624,7 @@ def update_role(update_role: user_schemas.RoleUpdate, db: Session = Depends(get_
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f"Role with id: {id} does not exist")
             
-        role_query.update(update_role.dict(),synchronize_session=False)
+        role_query.update(update_role.model_dump(),synchronize_session=False)
         db.commit()
         return {
                     "status": "success",

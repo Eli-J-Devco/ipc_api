@@ -73,8 +73,14 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         
         if not result_user:
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN, 
+                status_code=status.HTTP_404_NOT_FOUND, 
                 content={"detail": "Invalid Credentials"}
+                )
+        
+        if result_user.status==0:
+            return JSONResponse(
+                status_code=status.HTTP_403_FORBIDDEN, 
+                content={"detail": "User is not active"}
                 )
         
         now = datetime.datetime.now(
