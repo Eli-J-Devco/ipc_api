@@ -225,11 +225,12 @@ async def Get_MQTT(host, port, topic, username, password):
                 status_register = mqtt_result['STATUS_REGISTER']
                 
                 for item in mqtt_result['POINT_LIST']:
-                    value = str(item["Value"])
-                    point_id = str(item["ItemID"])
-                                
-                    result_value.append(value)
-                    result_point_id.append(point_id)
+                    if item['Config'] != 'MPPT':
+                        value = str(item["Value"])
+                        point_id = str(item["ItemID"])
+                                    
+                        result_value.append(value)
+                        result_point_id.append(point_id)
                                 
                 result_values_dict[device_id] = result_value, result_point_id
                 result_list = [
@@ -281,13 +282,17 @@ async def Insert_TableDevice(sql_id):
 
     result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
     
+    for item in result_all:
+            if item['namekey'] != 'MPPT':
+                filedtable.append(item['id_pointkey'])
+        
     DictID = [item for item in result_list if item["id"] == sql_id]
-
+    
     if DictID:
         data = DictID[0]["data"]
+    if not data:  # Check data if data empty 
+        data = [None] * len(filedtable)
         
-        if not data:  # Check data if data empty 
-            data = ["NULL"] * len(result_all)
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()
@@ -298,12 +303,9 @@ async def Insert_TableDevice(sql_id):
         # Create Query
         columns = ["time", "id_device"]
         
-        for item in result_all:
-            filedtable.append(item['id_pointkey'])
-
         for itemp in filedtable:
             columns.append(itemp)
-
+        
         table_name = f"dev_{sql_id}"
 
         # Create a query with REPLACE INTO syntax

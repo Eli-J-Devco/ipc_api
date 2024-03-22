@@ -155,9 +155,10 @@ FROM upload_channel
 WHERE id = %s;
   </select>
 <select id="QUERY_SELECT_NAME_DEVICE">
-SELECT pl.id_pointkey
+SELECT pl.id_pointkey,config_information.namekey
 FROM device_list dl
 JOIN point_list pl ON dl.id_template = pl.id_template
+JOIN config_information ON config_information.id = pl.`id_config_information`
 WHERE dl.id = %s;
   </select>
 </mapper>

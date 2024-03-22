@@ -207,14 +207,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                  db: Session = Depends(get_db), 
                                  current_user: int = Depends(oauth2.get_current_user)):
     try:
-        data={
-            "mppt":2,
-            "value":[
-                {"string":2,
-                 "value":[{}]
-                 }
-            ]
-        }
+     
         def reset_data_new(new_device_list):
             # delete device in table device_list
             for items in new_device_list:  
@@ -238,10 +231,15 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 id_template=create_device.id_template
                 communication_query = db.query(models.Communication)\
                 .filter(models.Communication.id == id_communication).first()
-                # query_1 = db.select(models.Point_list).filter(models.Point_list.id == 1)
-                # query_1 = db.select(models.Register_block).filter(models.Register_block.id == 2)
+
+                # mppt=create_device.mppt.mppt_number
+                # print(f'mppt: {mppt}')
                 
                 
+                point_list_query= db.query(models.Point_list)\
+                .filter(models.Point_list.id_template == id_template)\
+                    .all()
+
                 # db.execute(text(models.create_table_device("inv0111")))
                 # point_list_query = db.query(models.Point_list)\
                 # .filter_by(id_template=3).order_by(models.Point_list.id.asc()).all()
@@ -368,6 +366,8 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                         #     pass
                         new_device = deviceList_models.Device_list(
                                                         id_project_setup=id_project_setup,
+                                                        table_name="",
+                                                        view_table="",
                                                         pv=pv,
                                                         model=model,
                                                         send_p=send_p,
@@ -388,178 +388,218 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                                         )
                         new_device_list.append(new_device)
                 db.add_all(new_device_list)
-                db.flush()           
+                db.flush()
+                # update value of field table_name and view_table
+                for i, items in enumerate(new_device_list):
+                    device_query = db.query(deviceList_models.Device_list).filter_by(id = items.id)
+                    device_query.update(    {
+                                            "table_name":f'dev_{str(items.id)}',
+                                            "view_table":f'dev_{str(items.id)}',
+                    }
+                                            )
+                # Get all point
                 point_list_query = db.query(models.Point_list)\
                 .filter_by(id_template=id_template).order_by(models.Point_list.id.asc()).all()
                 point_list_name=[]
                 for item in point_list_query:
-                    # print(f'{item.id}|{item.id_pointkey}')
                     point_list_name.append({
                         "id":item.id,
                         "name":item.id_pointkey})
+                # add mppt, string, panel 
+                for i,items in enumerate(new_device_list): 
+                    id_device_list=items.id
+                    for i,mppt_item in enumerate(create_device.mppt):
+                        mppt_name=[item for item in point_list_query if item.id == mppt_item.id][0].name
+                        new_mppt = deviceList_models.Device_mppt(
+                                                                id_device_list=id_device_list,
+                                                                name=mppt_name, 
+                                                                namekey=mppt_item.id_pointkey
+                                                            )
+                        db.add(new_mppt)
+                        db.flush()
+                        print(f'MPPT ---------------------')
+                        for i,string_item in enumerate(mppt_item.string):
+                            string_name=[item for item in point_list_query if item.id == string_item.id][0].name
+                            panel_number=len(string_item.panel)
+                            new_string = deviceList_models.Device_mppt_string(
+                                                                    id_device_mppt=new_mppt.id,
+                                                                    name=string_name, 
+                                                                    namekey=string_item.id_pointkey,
+                                                                    panel=panel_number
+                                                            )
+                            db.add(new_string)
+                            db.flush()
+                            print(f'STRING ---------------------')
+                            for i,panel_item in enumerate(string_item.panel):
+                                panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
+                                new_panel = deviceList_models.Device_panel(
+                                                                    id_device_string=new_string.id,
+                                                                    name=panel_name
+                                                            )
+                                db.add(new_panel)
+                                db.flush()     
 
-                
-                for idd,item in enumerate(new_device_list):
-                        try:
+
+                # for idd,item in enumerate(new_device_list):
+                #         try:
                             
-                            # name_device=f'dev_{str(item.id).zfill(5)}'
-                            # sql = sql_query.replace("table_name",name_device)
-                            print(f'Device :{item.id} -------------------')
-                            param={
-                                "table_name":f'dev_{str(item.id)}',
-                                "points":point_list_name
-                            }
-                            sql_query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
-                            # print(sql_query_add_table_device)
-                            #  
-                            result_create_table = db.execute(text(sql_query_add_table_device).execution_options(autocommit=True))
+                #             # name_device=f'dev_{str(item.id).zfill(5)}'
+                #             # sql = sql_query.replace("table_name",name_device)
+                #             print(f'Device :{item.id} -------------------')
+                #             param={
+                #                 "table_name":f'dev_{str(item.id)}',
+                #                 "points":point_list_name
+                #             }
+                #             sql_query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
+                #             # print(sql_query_add_table_device)
+                #             #  
+                #             result_create_table = db.execute(text(sql_query_add_table_device).execution_options(autocommit=True))
                             
-                        except exc.SQLAlchemyError as err:
-                            # delete device in table device_list
-                            print(f'Error: {err.args[0]}')
-                            db.rollback()
-                            for items in new_device_list:  
-                                db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
-                                db.commit()
-                                print(f'Delete device: {items.id}')
-                            # delete all table created
-                            for i,items in enumerate(new_device_list): 
-                                if i<idd:                                
-                                    # name_device=f'dev_{str(items.id).zfill(5)}'
-                                    name_device=f'dev_{str(items.id)}'
-                                    db.execute(text(f'DROP TABLE {name_device}'))
-                                else:
-                                    break                              
-                            return 300
-                        finally:
-                            pass
-                if driver_list.name=="RS485":
+                #         except exc.SQLAlchemyError as err:
+                #             # delete device in table device_list
+                #             print(f'Error: {err.args[0]}')
+                #             db.rollback()
+                #             for items in new_device_list:  
+                #                 db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
+                #                 db.commit()
+                #                 print(f'Delete device: {items.id}')
+                #             # delete all table created
+                #             for i,items in enumerate(new_device_list): 
+                #                 if i<idd:                                
+                #                     name_device=f'dev_{str(items.id)}'
+                #                     db.execute(text(f'DROP TABLE {name_device}'))
+                #                 else:
+                #                     break                              
+                #             return 300
+                #         finally:
+                #             pass
+                # if driver_list.name=="RS485":
                     
-                    try:
-                        # rowcount_register_block=0
-                        rowcount_point_list=0
-                        # insert device_point_list
-                        param={
-                                "id":item.id
-                            }
-                        sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
-                        for item in new_device_list:
-                            result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
-                            print(f'result_point_list: {result_point_list.__dict__}')
-                            if result_point_list.rowcount != 0:
-                                rowcount_point_list +=1
+                #     try:
+                #         # rowcount_register_block=0
+                #         rowcount_point_list=0
+                #         # insert device_point_list
+                #         param={
+                #                 "id":item.id
+                #             }
+                #         sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
+                #         for item in new_device_list:
+                #             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
+                #             print(f'result_point_list: {result_point_list.__dict__}')
+                #             if result_point_list.rowcount != 0:
+                #                 rowcount_point_list +=1
                         
-                        # if rowcount_register_block  == 0 or rowcount_point_list==0:
-                        if  rowcount_point_list==0:
-                            reset_data_new(new_device_list)
+                #         # if rowcount_register_block  == 0 or rowcount_point_list==0:
+                #         if  rowcount_point_list==0:
+                #             reset_data_new(new_device_list)
 
-                        db.commit()
-                        result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
-                        if result_find_app_pm2==100:
-                            result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|')    
-                            # delete success app pm2
-                            if result_delete_app_pm2!=100:
-                                reset_data_new(new_device_list)
-                            # check list device and Exclusions device new
-                            device_list_query = db.query(
-                                    deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==
-                                                                id_communication).filter(
-                                    deviceList_models.Device_list.status == 1).order_by(
-                                                                deviceList_models.Device_list.id.asc()).all()
-                            # check device same group rs485 com port   
-                            item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                                            id_communication]
-                            # find device in group rs485
-                            if not item_rs485:
-                                reset_data_new(new_device_list) 
-                            if item_rs485:
-                                # check group rs485 same com port
+                #         db.commit()
+                #         result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
+                #         if result_find_app_pm2==100:
+                #             result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|')    
+                #             # delete success app pm2
+                #             if result_delete_app_pm2!=100:
+                #                 reset_data_new(new_device_list)
+                #             # check list device and Exclusions device new
+                #             device_list_query = db.query(
+                #                     deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==
+                #                                                 id_communication).filter(
+                #                     deviceList_models.Device_list.status == 1).order_by(
+                #                                                 deviceList_models.Device_list.id.asc()).all()
+                #             # check device same group rs485 com port   
+                #             item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                #                             id_communication]
+                #             # find device in group rs485
+                #             if not item_rs485:
+                #                 reset_data_new(new_device_list) 
+                #             if item_rs485:
+                #                 # check group rs485 same com port
 
-                                sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                        {"id_communication":id_communication})
-                                result_device_group_rs485 = db.execute(
-                                                                    text(sql_query_select_device), 
-                                                                        ).all()
-                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
-                                if not results_device_group_dict:
-                                    reset_data_new(new_device_list)                                             
-                                # init restart pm2 app same rs485
-                                await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                # restart pm2 app log
-                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                await restart_program_pm2_many(pm2_app_list)
-                                return 100    
-                        if result_find_app_pm2!=100:
-                            print('---------- create group RS485 same com port when list device empty ----------')
-                            # check group rs485 same com port
-                            sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                    {"id_communication":id_communication})
-                            # result_device_group_rs485 = db.execute(
-                            #                                             text(sql_select_device), 
-                            #                                             params={'id_communication': 
-                            #                                             id_communication}).all()
-                            result_device_group_rs485 = db.execute(
-                                                                    text(sql_query_select_device), 
-                                                                        ).all()
-                            results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
-                            if not results_device_group_dict:
-                                reset_data_new(new_device_list)
-                            # init restart pm2 app same rs485
-                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                            # restart pm2 app log
-                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            result=await restart_program_pm2_many(pm2_app_list)
-                            return 100     
-                    except exc.SQLAlchemyError as err:
-                            # delete device in table device_list
-                            print(err.args[0])
-                            db.rollback()
-                            reset_data_new(new_device_list)
-                    finally:
-                            pass         
-                elif driver_list.name=="Modbus/TCP":              
+                #                 sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                #                                                         {"id_communication":id_communication})
+                #                 result_device_group_rs485 = db.execute(
+                #                                                     text(sql_query_select_device), 
+                #                                                         ).all()
+                #                 results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                #                 if not results_device_group_dict:
+                #                     reset_data_new(new_device_list)                                             
+                #                 # init restart pm2 app same rs485
+                #                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                #                 # restart pm2 app log
+                #                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                #                 await restart_program_pm2_many(pm2_app_list)
+                #                 return 100    
+                #         if result_find_app_pm2!=100:
+                #             print('---------- create group RS485 same com port when list device empty ----------')
+                #             # check group rs485 same com port
+                #             sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                #                                                     {"id_communication":id_communication})
+                #             # result_device_group_rs485 = db.execute(
+                #             #                                             text(sql_select_device), 
+                #             #                                             params={'id_communication': 
+                #             #                                             id_communication}).all()
+                #             result_device_group_rs485 = db.execute(
+                #                                                     text(sql_query_select_device), 
+                #                                                         ).all()
+                #             results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
+                #             if not results_device_group_dict:
+                #                 reset_data_new(new_device_list)
+                #             # init restart pm2 app same rs485
+                #             await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                #             # restart pm2 app log
+                #             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                #             result=await restart_program_pm2_many(pm2_app_list)
+                #             return 100     
+                #     except exc.SQLAlchemyError as err:
+                #             # delete device in table device_list
+                #             print(err.args[0])
+                #             db.rollback()
+                #             reset_data_new(new_device_list)
+                #     finally:
+                #             pass         
+                # elif driver_list.name=="Modbus/TCP":              
                 
-                    rowcount_point_list=0
-                    new_device=[]
-                    try:
-                        # rowcount_register_block=0
-                        # insert device_point_list
-                        for item in new_device_list:
-                            sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
-                                                                            "insert_device_point_list",{"id":item.id})
-                            result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
-                            print(f'result_point_list: {result_point_list.__dict__}')
-                            if result_point_list.rowcount != 0:
-                                rowcount_point_list +=1
-                            new_device.append({
-                                "id":item.id,
-                                "name":item.name,
-                                "connect_type":driver_list.name,
-                                "id_com":id_communication
-                                })
-                        db.commit()
-                        if  rowcount_point_list==0:
-                            reset_data_new(new_device_list)
-                            return 300
-                        else:
-                            db.close()
-                    except exc.SQLAlchemyError as err:
-                            # delete device in table device_list
-                            print(err.args[0])
-                            db.rollback()
-                            reset_data_new(new_device_list)
-                    finally:
-                        if rowcount_point_list!=0:
-                                # init start pm2 new app
-                                for item in new_device:
-                                    pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
-                                    await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
-                                # restart pm2 app log
-                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                result=await restart_program_pm2_many(pm2_app_list)
-                                return 100
-                else:
-                    return 300 
+                #     rowcount_point_list=0
+                #     new_device=[]
+                #     try:
+                #         # rowcount_register_block=0
+                #         # insert device_point_list
+                #         for item in new_device_list:
+                #             sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
+                #                                                             "insert_device_point_list",{"id":item.id})
+                #             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
+                #             print(f'result_point_list: {result_point_list.__dict__}')
+                #             if result_point_list.rowcount != 0:
+                #                 rowcount_point_list +=1
+                #             new_device.append({
+                #                 "id":item.id,
+                #                 "name":item.name,
+                #                 "connect_type":driver_list.name,
+                #                 "id_com":id_communication
+                #                 })
+                #         db.commit()
+                #         if  rowcount_point_list==0:
+                #             reset_data_new(new_device_list)
+                #             return 300
+                #         else:
+                #             db.close()
+                #     except exc.SQLAlchemyError as err:
+                #             # delete device in table device_list
+                #             print(err.args[0])
+                #             db.rollback()
+                #             reset_data_new(new_device_list)
+                #     finally:
+                #         if rowcount_point_list!=0:
+                #                 # init start pm2 new app
+                #                 for item in new_device:
+                #                     pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
+                #                     await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
+                #                 # restart pm2 app log
+                #                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                #                 result=await restart_program_pm2_many(pm2_app_list)
+                #                 return 100
+                # else:
+                #     return 300 
             except Exception as err:
                 print('Error create table : ',err)
                 return 300

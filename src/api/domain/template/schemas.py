@@ -40,8 +40,7 @@ class MPPTSTRING(BaseModel):
     panel: list[MPPTSTRINGPANEL] = None
     class Config:
         orm_mode = True
- 
-class MPPT(BaseModel):
+class MPPTBase(BaseModel):
     # String: list[MPPTSTRING] = None
     id: Optional[int] = None
     name: Optional[str] = None
@@ -51,7 +50,7 @@ class MPPT(BaseModel):
         orm_mode = True
 class TemplateMPPTBase(BaseModel):
     id: Optional[int] = None
-    mppt: Optional[list[MPPT]] = None
+    mppt: Optional[list[MPPTBase]] = None
     class Config:
         orm_mode = True
     

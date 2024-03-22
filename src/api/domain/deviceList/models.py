@@ -94,7 +94,7 @@ class Device_mppt(Base):
     id_device_list = Column(Integer, ForeignKey(
         "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
-    
+    namekey = Column(String(255), nullable=True)
     voltage= Column(DOUBLE, nullable=True)
     current= Column(DOUBLE, nullable=True)
     device_list  = relationship('Device_list', foreign_keys=[id_device_list]) 
@@ -104,6 +104,7 @@ class Device_mppt_string(Base):
     id_device_mppt = Column(Integer, ForeignKey(
         "device_mppt.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
+    namekey = Column(String(255), nullable=True)
     panel= Column(Integer, nullable=True)
     current= Column(DOUBLE, nullable=True)
     device_mptt  = relationship('Device_mppt', foreign_keys=[id_device_mppt]) 
@@ -113,9 +114,16 @@ class Device_panel(Base):
     id_device_string = Column(Integer, ForeignKey(
         "device_mppt_string.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
-    panel= Column(Integer, nullable=True)
-    current= Column(DOUBLE, nullable=True)
+    serial_number = Column(String(255), nullable=True)
+    pmax = Column(DOUBLE, nullable=True)
+    vmpp = Column(DOUBLE, nullable=True)
+    impp = Column(DOUBLE, nullable=True)
+    voc= Column(DOUBLE, nullable=True)
+    isc= Column(DOUBLE, nullable=True)
+    weight= Column(DOUBLE, nullable=True)
+    
     device_mppt_string = relationship('Device_mppt_string', foreign_keys=[id_device_string])
+    
 class Data_panel(Base):
     __tablename__ = "data_panel"
     time =Column(TIMESTAMP(timezone=True), primary_key=True,
