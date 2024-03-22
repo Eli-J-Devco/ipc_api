@@ -31,6 +31,7 @@ class TemplateBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
     id_device_group: Optional[int] = None
+    type: Optional[int] = None
     class Config:
         orm_mode = True
 # <-  -> 
@@ -39,6 +40,8 @@ class TemplateCreateBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
     id_template_type:Optional[int] = None
+    id_device_group: Optional[int] = None
+    type: Optional[int] = None
     class Config:
         orm_mode = True
 class TemplateOutBase(TemplateCreateBase):
