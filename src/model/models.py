@@ -182,7 +182,7 @@ class Pointclass_type(Base):
 class Point_list(Base):
     __tablename__ = "point_list"
     id = Column(Integer, primary_key=True, nullable=False)
-    parent= Column(Integer, nullable=False)
+    # parent= Column(Integer, nullable=False)
     id_pointclass_type = Column(Integer, ForeignKey(
         "pointclass_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_pointkey = Column(Integer, nullable=False)
@@ -236,7 +236,9 @@ class Point_list(Base):
     #     "error.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
     # id_alarmcondition= Column(Integer, ForeignKey(
     #     "config_information.id", ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
-
+    # 20/03/2024 
+    parent =  Column(Integer ,ForeignKey("point_list.id"),nullable=False)  
+    reply_to_point =relationship("Point_list",  remote_side=[parent]) 
     
 # # 
 class Device_point_list_map(Base):

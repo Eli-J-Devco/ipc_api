@@ -851,3 +851,53 @@ async def charting(db: Session = Depends(get_db)
     except (Exception) as err:
         print(f'Error: {err}')
         # LOGGER.error(f'--- {err} ---')
+# Describe functions before writing code
+# /**
+# 	 * @description get MPPT, STRING, PANEL of Template
+# 	 * @author vnguyen
+# 	 * @since 16-01-2024
+# 	 * @param {id,db}
+# 	 * @return data (TemplateMPPTBase)
+# 	 */
+@router.post('/get_mppt_template/', response_model=template_schemas.TemplateMPPTBase, 
+             response_model_by_alias=False)
+def get_mppt_template(id_template: Optional[int] = Body(embed=True), 
+                      db: Session = Depends(get_db) 
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
+    try:
+        point_list_query= db.query(models.Point_list)\
+            .filter(models.Point_list.id_template == id_template)\
+                .all()
+        if point_list_query:
+            MPPT=[item for item in point_list_query if item.id_config_information == 277]
+            mppt=[]
+            if MPPT:
+                for mppt_item in MPPT:
+                    MPPT_STRING=[item for item in point_list_query if item.parent == mppt_item.id 
+                                and item.id_config_information == 276 ]
+                    String=[]
+                    if MPPT_STRING:
+                        for string_item in MPPT_STRING:
+                            MPPT_STRING_PANEL=[item for item in point_list_query if item.parent == string_item.id 
+                                    and item.id_config_information == 278 ]
+                            Panel=[]
+                            if MPPT_STRING_PANEL:
+                                Panel=[item.__dict__ for item in MPPT_STRING_PANEL ]
+                            String.append({**string_item.__dict__,
+                                        "panel":Panel
+                                        })
+
+                    mppt.append({**mppt_item.__dict__,
+                                        "string":String
+                                        })
+
+        return {
+            "id":id_template,
+            "mppt": mppt
+        }
+    except (Exception) as err:
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, 
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

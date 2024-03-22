@@ -64,8 +64,8 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='
         username=(decrypt(user_credentials.username, PASSWORD_SECRET_KEY.encode())).decode()
         password=(decrypt(user_credentials.password, PASSWORD_SECRET_KEY.encode())).decode()
-        # pprint(f'username: {username}')
-        # pprint(f'password: {password}')
+        pprint(f'username: {username}')
+        pprint(f'password: {password}')
 
         user_query = db.query(user_models.User).filter(
             user_models.User.email == username)

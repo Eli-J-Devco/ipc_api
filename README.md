@@ -123,7 +123,8 @@ edit file mosquitto.conf
 allow_anonymous false
 listener 1883 0.0.0.0
 password_file C:\Program Files\mosquitto\passwd
-
+sudo systemctl restart mosquitto
+systemctl status mosquitto.service
 create file no txt
 mosquitto_passwd -U passwd
 net stop mosquitto

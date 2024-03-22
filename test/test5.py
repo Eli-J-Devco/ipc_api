@@ -150,12 +150,15 @@ def decrypt(encrypted, passphrase):
 
 
 password = "4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a".encode()
+password = '4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89903a740e1ee172da793a6e79d560e5f7f9bd058a12a280433ed6fa46510a'.encode()
 # ct_b64 = "U2FsdGVkX1+ATH716DgsfPGjzmvhr+7+pzYfUzR+25u0D7Z5Lw04IJ+LmvPXJMpz"
 ct_b64 = "U2FsdGVkX1+LKFFEChpO6bcHGHDwJ+yMm0ts1c2Lnik="
 pt = decrypt(ct_b64, password)
 print("pt", pt)
-username=encrypt(b"nguyenvudtd@gmail.com",password)
+username=encrypt(b"vnguyen@nwemon.com",password)
 print("username", username)
 passwords=encrypt(b"Admin123@",password)
 print("passwords", passwords)
+# U2FsdGVkX19sYWoqlb25V72A5cv0c+DtuOuCwsMAElf8H8mFVCM5axSwCrtIDov7
+# U2FsdGVkX1+Qa9nSY40sNrk2RUibhpFvp8L+pm7UZLU=
 # print("pt", decrypt(encrypt(pt, password), password))

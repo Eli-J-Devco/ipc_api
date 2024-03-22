@@ -158,6 +158,8 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     template_query = db.query(template_models.Template_library).order_by(template_models.Template_library.id.asc())
     
     communication_query = db.query(models.Communication)
+    
+    
     result_device_type=[]
     for item in device_type_query.all():
         result_device_type.append(item.__dict__)
@@ -177,16 +179,19 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
     result_template=[]   
     for item in template_query.all():
         # new_item=item.__dict__
-        result_template.append({**item.__dict__,
-                                }) 
-    # https://docs.sqlalchemy.org/en/14/core/tutorial.html#using-textual-sql
+        template_item={**item.__dict__,
+                                }
+        id_template=item.id
+        result_template.append(template_item)
+        
+       
     
     return {
         # "device_list":result_device_list,
         "device_type":result_device_type,
         "device_group":result_device_group,
         "communication":result_communication,
-        "template":result_template
+        "template":result_template,
     }
 
 # Describe functions before writing code
@@ -202,6 +207,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                  db: Session = Depends(get_db), 
                                  current_user: int = Depends(oauth2.get_current_user)):
     try:
+     
         def reset_data_new(new_device_list):
             # delete device in table device_list
             for items in new_device_list:  
@@ -225,10 +231,15 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 id_template=create_device.id_template
                 communication_query = db.query(models.Communication)\
                 .filter(models.Communication.id == id_communication).first()
-                query_1 = db.select(models.Point_list).filter(models.Point_list.id == 1)
-                query_1 = db.select(models.Register_block).filter(models.Register_block.id == 2)
+
+                # mppt=create_device.mppt.mppt_number
+                # print(f'mppt: {mppt}')
                 
                 
+                point_list_query= db.query(models.Point_list)\
+                .filter(models.Point_list.id_template == id_template)\
+                    .all()
+
                 # db.execute(text(models.create_table_device("inv0111")))
                 # point_list_query = db.query(models.Point_list)\
                 # .filter_by(id_template=3).order_by(models.Point_list.id.asc()).all()
@@ -355,6 +366,8 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                         #     pass
                         new_device = deviceList_models.Device_list(
                                                         id_project_setup=id_project_setup,
+                                                        table_name="",
+                                                        view_table="",
                                                         pv=pv,
                                                         model=model,
                                                         send_p=send_p,
@@ -375,17 +388,58 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                                         )
                         new_device_list.append(new_device)
                 db.add_all(new_device_list)
-                db.flush()           
+                db.flush()
+                # update value of field table_name and view_table
+                for i, items in enumerate(new_device_list):
+                    device_query = db.query(deviceList_models.Device_list).filter_by(id = items.id)
+                    device_query.update(    {
+                                            "table_name":f'dev_{str(items.id)}',
+                                            "view_table":f'dev_{str(items.id)}',
+                    }
+                                            )
+                # Get all point
                 point_list_query = db.query(models.Point_list)\
                 .filter_by(id_template=id_template).order_by(models.Point_list.id.asc()).all()
                 point_list_name=[]
                 for item in point_list_query:
-                    # print(f'{item.id}|{item.id_pointkey}')
                     point_list_name.append({
                         "id":item.id,
                         "name":item.id_pointkey})
+                # add mppt, string, panel 
+                for i,items in enumerate(new_device_list): 
+                    id_device_list=items.id
+                    for i,mppt_item in enumerate(create_device.mppt):
+                        mppt_name=[item for item in point_list_query if item.id == mppt_item.id][0].name
+                        new_mppt = deviceList_models.Device_mppt(
+                                                                id_device_list=id_device_list,
+                                                                name=mppt_name, 
+                                                                namekey=mppt_item.id_pointkey
+                                                            )
+                        db.add(new_mppt)
+                        db.flush()
+                        print(f'MPPT ---------------------')
+                        for i,string_item in enumerate(mppt_item.string):
+                            string_name=[item for item in point_list_query if item.id == string_item.id][0].name
+                            panel_number=len(string_item.panel)
+                            new_string = deviceList_models.Device_mppt_string(
+                                                                    id_device_mppt=new_mppt.id,
+                                                                    name=string_name, 
+                                                                    namekey=string_item.id_pointkey,
+                                                                    panel=panel_number
+                                                            )
+                            db.add(new_string)
+                            db.flush()
+                            print(f'STRING ---------------------')
+                            for i,panel_item in enumerate(string_item.panel):
+                                panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
+                                new_panel = deviceList_models.Device_panel(
+                                                                    id_device_string=new_string.id,
+                                                                    name=panel_name
+                                                            )
+                                db.add(new_panel)
+                                db.flush()     
 
-                
+
                 for idd,item in enumerate(new_device_list):
                         try:
                             
@@ -412,7 +466,6 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                             # delete all table created
                             for i,items in enumerate(new_device_list): 
                                 if i<idd:                                
-                                    # name_device=f'dev_{str(items.id).zfill(5)}'
                                     name_device=f'dev_{str(items.id)}'
                                     db.execute(text(f'DROP TABLE {name_device}'))
                                 else:
