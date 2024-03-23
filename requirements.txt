@@ -40,7 +40,6 @@ passlib
 APScheduler
 pyinstaller
 tk
-psycopg2
 pycryptodomex
 pycryptodome
 netifaces
