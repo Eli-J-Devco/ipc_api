@@ -33,7 +33,7 @@ import api.domain.user.schemas as user_schemas
 import utils.oauth2 as oauth2
 from configs.config import *
 from database.db import engine, get_db
-from utils.libcom import cov_xml_sql
+from utils.libCom import cov_xml_sql
 from utils.passwordHasher import convert_binary_auth, hash, verify
 
 router = APIRouter(

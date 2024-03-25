@@ -217,13 +217,14 @@ async def get_mqtt(host, port, topic, username, password):
                 status_register = mqtt_result['STATUS_REGISTER']
                 
                 for item in mqtt_result['POINT_LIST']:
-                    value = str(item["Value"])
-                    point_id = str(item["ItemID"])
-                    if countMonitor :
-                        result_value.append(value)
-                        result_point_id.append(point_id)
-                    else :
-                        pass
+                    if item['Config'] != 'MPPT':
+                        value = str(item["Value"])
+                        point_id = str(item["ItemID"])
+                        if countMonitor :
+                            result_value.append(value)
+                            result_point_id.append(point_id)
+                        else :
+                            pass
                 result_values_dict[device_id] = result_value, result_point_id
                 result_list = [
                     {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
