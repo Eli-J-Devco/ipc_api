@@ -390,13 +390,14 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 db.add_all(new_device_list)
                 db.flush()
                 # update value of field table_name and view_table
-                for i, items in enumerate(new_device_list):
-                    device_query = db.query(deviceList_models.Device_list).filter_by(id = items.id)
-                    device_query.update(    {
-                                            "table_name":f'dev_{str(items.id)}',
-                                            "view_table":f'dev_{str(items.id)}',
-                    }
-                                            )
+                # for i, items in enumerate(new_device_list):
+                #     device_query = db.query(deviceList_models.Device_list).filter_by(id = items.id)
+                    
+                #     device_query.update(    {
+                #                             "table_name":f'dev_{str(items.id)}',
+                #                             "view_table":f'dev_{str(items.id)}',
+                #     }
+                #                             )
                 # Get all point
                 point_list_query = db.query(models.Point_list)\
                 .filter_by(id_template=id_template).order_by(models.Point_list.id.asc()).all()
@@ -439,21 +440,36 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 db.add(new_panel)
                                 db.flush()     
 
-
+                # add table of device
                 for idd,item in enumerate(new_device_list):
                         try:
-                            
-                            # name_device=f'dev_{str(item.id).zfill(5)}'
-                            # sql = sql_query.replace("table_name",name_device)
+                            # add table of device
                             print(f'Device :{item.id} -------------------')
                             param={
                                 "table_name":f'dev_{str(item.id)}',
                                 "points":point_list_name
                             }
-                            sql_query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
-                            # print(sql_query_add_table_device)
-                            #  
-                            result_create_table = db.execute(text(sql_query_add_table_device).execution_options(autocommit=True))
+                            query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
+                            db.execute(text(query_add_table_device).execution_options(autocommit=True))
+                            # add view table of device
+                            tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+                            view_table=f'dev_{str(item.id)}_{tg}'
+                            param={
+                                "table_name":f'dev_{str(item.id)}',
+                                "view_table":view_table
+                            }
+                            query_add_view_table_device= cov_xml_sql("deviceConfig.xml","add_device_view_table",param)
+                            db.execute(text(query_add_view_table_device))
+                            
+                            device_query = db.query(deviceList_models.Device_list).filter_by(id = items.id)
+                            device_query.update({
+                                                    "table_name":f'dev_{str(item.id)}',
+                                                    "view_table":view_table,
+                                                    }
+                                                    )
+                            print(device_query[0].__dict__)
+                            db.commit()
+                            
                             
                         except exc.SQLAlchemyError as err:
                             # delete device in table device_list
