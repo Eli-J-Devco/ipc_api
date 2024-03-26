@@ -653,7 +653,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
                                 .filter(models.Device_point_list_map.id==int(item["id"]))\
                                 .update({"status":item["status"]})
-                            db.commit()
+                        db.commit()
                         if  rowcount_point_list==0:
                             reset_data_new(new_device_list)
                             return 300
