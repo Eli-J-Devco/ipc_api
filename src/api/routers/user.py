@@ -63,11 +63,8 @@ def create_user(user: user_schemas.UserRoleCreate, db: Session = Depends(get_db)
     
     user_query = db.query(user_models.User).filter(user_models.User.email == user.email).first()
     if user_query:
-        return {
-            "status": "success",
-            "code": "100",
-            "desc":"User already created"
-        }
+        return JSONResponse(status_code=HTTPStatus.HTTP_409_CONFLICT,
+                            content=f"User with email: {user.email} already exists")
     else:
         hashed_password = hash(user.password)
         user.password = hashed_password
