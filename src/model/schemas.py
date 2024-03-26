@@ -86,7 +86,7 @@ class TypePointBase(BaseModel):
         from_attributes = True
 class TypeClassBase(BaseModel):
     id:  Optional[int] = Field(..., alias='id')
-    namekey:  Optional[str] = Field(...,alias='TypeClass')
+    name:  Optional[str] = Field(...,alias='TypeClass')
     
     class Config:
         allow_population_by_field_name = True
@@ -94,16 +94,46 @@ class TypeClassBase(BaseModel):
         from_attributes = True
 class PointBase(BaseModel):
     id : Optional[int] = None
-    id_pointkey : Optional[int] = None
+    id_pointkey : Optional[str] = None
     # --------------------------------------------------
     id_template : Optional[int] = None
     # 
+    id_pointclass_type : Optional[int] = None
+    id_config_information : Optional[int] = None
     name : Optional[str] = None
     nameedit : Optional[bool] = None
     id_type_units : Optional[int] = None
     unitsedit : Optional[bool] = None
-    equation : Optional[int] = None
-    config : Optional[int] = None
+    register : Optional[int] = None
+    id_type_datatype : Optional[int] = None
+    id_type_byteorder : Optional[int] = None
+    slope : Optional[float] = None
+    slopeenabled : Optional[int] = None
+    offset : Optional[float] = None
+    offsetenabled : Optional[bool] = None
+    multreg : Optional[int] = None
+    multregenabled : Optional[bool] = None
+    userscaleenabled : Optional[bool] = None
+    invalidvalue : Optional[int] = None
+    invalidvalueenabled : Optional[bool] = None
+    extendednumpoints : Optional[int] = None
+    extendedregblocks : Optional[int] = None
+    status : Optional[bool] = None
+    function : Optional[str] = None
+    constants : Optional[float] = None
+    class Config:
+        orm_mode = True
+
+class ManualPointBase(BaseModel):
+    id : Optional[int] = None
+    id_device_type : Optional[int] = None
+    id_pointclass_type : Optional[int] = None
+    id_config_information : Optional[int] = None
+    id_pointkey : Optional[str] = None
+    name : Optional[str] = None
+    nameedit : Optional[bool] = None
+    id_type_units : Optional[int] = None
+    unitsedit : Optional[bool] = None
     register : Optional[int] = None
     id_type_datatype : Optional[int] = None
     id_type_byteorder : Optional[int] = None
