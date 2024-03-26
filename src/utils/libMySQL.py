@@ -178,8 +178,6 @@ def MySQL_Insert_v3(data):
             sql = value[0]
             val = value[1]
             cursor.execute(sql, val)
-            print("sql",sql)
-            print("val",val)
             print("Data inserted successfully")
         
         db.commit()
@@ -205,6 +203,8 @@ def MySQL_Insert_v4(query,val):
     result = None
     try:
         cursor.executemany(query,val)
+        print("query", query)
+        print("val", val)
         db.commit()
         result = cursor.rowcount
         print("Sync data successfully---> ")

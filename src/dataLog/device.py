@@ -274,6 +274,7 @@ async def Insert_TableDevice_AllDevice():
 # 	 */ 
 async def Insert_TableDevice(sql_id):
     global result_list
+    global status
     global QUERY_SELECT_NAME_DEVICE
     sql_queries = {}
     data = []
@@ -300,6 +301,7 @@ async def Insert_TableDevice(sql_id):
         
         # Replace '0.0' with '' in the data tuple
         value_insert = tuple("0.0" if x == "" else x for x in value_insert)
+        
         # Create Query
         columns = ["time", "id_device"]
         
@@ -311,6 +313,7 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
+
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query

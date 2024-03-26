@@ -43,7 +43,7 @@ device_list.id=%s;
 </select>
 ####################################
 <select id="QUERY_REGISTER_DATATYPE">
-SELECT point_list.`register`, point_list.id_type_datatype,point_list.id_pointkey
+SELECT point_list.id_pointkey , point_list.`register`, point_list.id_type_datatype
 FROM `point_list`
 INNER JOIN `device_list` ON device_list.id_template = point_list.id_template
 WHERE device_list.id = %s;

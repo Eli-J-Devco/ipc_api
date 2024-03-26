@@ -16,7 +16,7 @@ import mqttools
 import psutil
 # import schemas
 from fastapi import (APIRouter, Depends, FastAPI, HTTPException, Response,
-                     status)
+                    status)
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
@@ -121,6 +121,10 @@ async def device_control(id_device : int , bitcontrol : bool ):
     results_device_modbus = []
     
     # information Modbus 
+    required_pointkeys = ['ControlINV']
+    filtered_results_register = []
+    
+    # information Modbus 
     register = ""
     device_name = ""
     status_device = ""
@@ -144,7 +148,8 @@ async def device_control(id_device : int , bitcontrol : bool ):
     if id_device :
         results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (id_device,))
     else :
-        comment = print("No devices selected")
+        print("No devices selected")
+        comment = "No devices selected"
     
     # if device is INV 
     if results_device_type :
@@ -157,13 +162,16 @@ async def device_control(id_device : int , bitcontrol : bool ):
             else :
                 pass
             
-            if results_register:
-                for item in results_register:
+            # Create a new list to store elements that satisfy the condition
+            if results_register :
+                
+                filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
+                # Iterate through the new list to assign values from the corresponding variables
+                for item in filtered_results_register:
                     if item['id_pointkey'] == 'ControlINV':
-                        register = item['register']
-                        comment = "pushlid successfully to MQTT"
-                    else :
-                        pass 
+                        item['value'] = bitcontrol
+                    
+                    comment = "pushlid successfully to MQTT" 
             else:
                 print("No data found in results_register")
                 comment = "No data found in results_register"
@@ -178,8 +186,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
             "ID_DEVICE":sql_id_str,
             "DEVICE_NAME":device_name,
             "TIME_STAMP" :current_time,
-            "STATUS_CONTROL_REQUEST": bitcontrol,
-            "REGISTER" : register,
+            "PARAMETTER" : filtered_results_register,
             "COMMENT":comment,
             }
         push_data_to_mqtt(mqtt_host,
@@ -237,10 +244,11 @@ async def device_control(id_device : int , bitcontrol : bool ):
 # 	 * @param {id,db}
 # 	 * @return data (device_control)
 # 	 */  
-@router.post('/Setup_Control /{id_device}', )
+@router.post('/setup_control /{id_device}', )
 # def device_control(id_device : int ,bitcontrol : bool,db: Session = Depends(get_db), 
 #                 current_user: int = Depends(oauth2.get_current_user) ):
-async def device_control(id_device : int , bitcontrol : bool ):
+async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPercentEnable : bool 
+                        ,PFSet : int ,PFSetEnable : bool ,VarMaxPercent : int ,VarMaxPercentEnable : bool ):
     
     # query sql 
     global QUERY_INFORMATION_CONNECT_MODBUSTCP
@@ -271,9 +279,11 @@ async def device_control(id_device : int , bitcontrol : bool ):
     results_device_modbus = []
     
     # information Modbus 
-    register = ""
+    required_pointkeys = ['WMax', 'WMaxPercent', 'WMaxPercentEnable', 'PFSet', 'PFSetEnable', 'VarMaxPercent', 'VarMaxPercentEnable']
+    filtered_results_register = []
+    
     device_name = ""
-    status_device = ""
+    status_write_inv = ""
     id_device_return = ""
     token = ""
     
@@ -294,7 +304,8 @@ async def device_control(id_device : int , bitcontrol : bool ):
     if id_device :
         results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (id_device,))
     else :
-        comment = print("No devices selected")
+        print("No devices selected")
+        comment = "No devices selected"
     
     # if device is INV 
     if results_device_type :
@@ -307,13 +318,29 @@ async def device_control(id_device : int , bitcontrol : bool ):
             else :
                 pass
             
-            if results_register:
-                for item in results_register:
-                    if item['id_pointkey'] == 'ControlINV':
-                        register = item['register']
-                        comment = "pushlid successfully to MQTT"
-                    else :
-                        pass 
+            # Create a new list to store elements that satisfy the condition
+            if results_register :
+                filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
+
+                # Iterate through the new list to assign values from the corresponding variables
+                for item in filtered_results_register:
+                    if item['id_pointkey'] == 'WMax':
+                        item['value'] = WMax
+                    elif item['id_pointkey'] == 'WMaxPercent':
+                        item['value'] = WMaxPercent
+                    elif item['id_pointkey'] == 'WMaxPercentEnable':
+                        item['value'] = WMaxPercentEnable
+                    elif item['id_pointkey'] == 'PFSet':
+                        item['value'] = PFSet
+                    elif item['id_pointkey'] == 'PFSetEnable':
+                        item['value'] = PFSetEnable
+                    elif item['id_pointkey'] == 'VarMaxPercent':
+                        item['value'] = VarMaxPercent
+                    elif item['id_pointkey'] == 'VarMaxPercentEnable':
+                        item['value'] = VarMaxPercentEnable
+                    
+                    comment = "pushlid successfully to MQTT"
+
             else:
                 print("No data found in results_register")
                 comment = "No data found in results_register"
@@ -328,8 +355,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
             "ID_DEVICE":sql_id_str,
             "DEVICE_NAME":device_name,
             "TIME_STAMP" :current_time,
-            "STATUS_CONTROL_REQUEST": bitcontrol,
-            "REGISTER" : register,
+            "PARAMETTER" : filtered_results_register,
             "COMMENT":comment,
             }
         push_data_to_mqtt(mqtt_host,
@@ -350,7 +376,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
             try:
                 message = await client.messages.get()
             except asyncio.TimeoutError:
-                if time.time() - start_time > 15:
+                if time.time() - start_time > 10:
                     print("MQTT connection timed out")
                     return JSONResponse(status_code=500, content={"error": "MQTT Connection Timeout"})
                 continue
@@ -361,15 +387,15 @@ async def device_control(id_device : int , bitcontrol : bool ):
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result and all(key in mqtt_result for key in ['ID_DEVICE', 'DEVICE_NAME', 'STATUS_DEVICE', 'TOKEN']):
+            if mqtt_result and all(key in mqtt_result for key in ['ID_DEVICE', 'DEVICE_NAME', 'STATUS_WRITE_INV', 'TOKEN']):
                 device_name = mqtt_result['DEVICE_NAME']
-                status_device = mqtt_result['STATUS_DEVICE']
+                status_write_inv = mqtt_result['STATUS_WRITE_INV']
                 id_device_return = mqtt_result['ID_DEVICE']
                 token = mqtt_result['TOKEN']
                 
                 return {
                     'device_name': device_name,
-                    'status_device': status_device,
+                    'status_device': status_write_inv,
                     'id_device_return': id_device_return,
                     'token': token
                 }

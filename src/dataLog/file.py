@@ -232,6 +232,7 @@ async def get_mqtt(host, port, topic, username, password):
                 ]
                 for item in result_list:
                     item['data'] = [val if val != 'None' else '' for val in item['data']]
+                    
             else: 
                 pass
     except Exception as err:
