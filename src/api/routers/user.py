@@ -209,8 +209,8 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
                 user_models.User.email == username)
             result_user=user_query.first()
             if not result_user:
-                raise HTTPException(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
-                                    detail=f"user with email: { username} does not exist")
+                return JSONResponse(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
+                                    content=f"User with email: { username} does not exist")
  
             # using random.choices()
             # generating random strings
