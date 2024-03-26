@@ -91,8 +91,8 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         db.commit()
         if not verify(password, result_user.password):
             return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                content={"detail": "Invalid Credentials"}
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                content="Incorrect username or password"
                 )
         
         result_user_role = db.query(user_models.User_role_map).filter(
