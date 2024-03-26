@@ -32,7 +32,7 @@ from api.domain.uploadChannel import models as uploadChannel_models
 # 	 * @param {app_name of pm2}
 # 	 * @return data ()
 # 	 */
-def restart_program_pm2(app_name):
+async def restart_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
@@ -118,7 +118,7 @@ async def restart_program_pm2_many( app_name=[]):
 # 	 * @param {list app_name of pm2}
 # 	 * @return data ()
 # 	 */
-def stop_program_pm2_many(app_name):
+async def stop_program_pm2_many(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
@@ -224,7 +224,7 @@ async def delete_program_pm2(app_name):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-def stop_program_pm2(app_name):
+async def stop_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
@@ -302,7 +302,7 @@ async def create_program_pm2(filename,pid,id):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
+async def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
     try:
  # Initialize the device RS485 RTU
         if len(result_rs485_group)>0:
@@ -344,12 +344,10 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
                     
                         if sys.platform == 'win32':
                             # use run with window
-                          
                             subprocess.Popen(
-                                f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
+                                f'pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
-                           
                             subprocess.Popen(
                                 f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
             
@@ -363,7 +361,7 @@ def create_device_group_rs485_run_pm2(absDirname,result_rs485_group):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-def find_program_pm2(app_name):
+async def find_program_pm2(app_name):
     try:
         cmd_list=""
         if sys.platform == 'win32':
@@ -403,7 +401,7 @@ def find_program_pm2(app_name):
 # 	 * @param {id_template,db}
 # 	 * @return data ()
 # 	 */
-def restart_pm2_change_template(id_template:int,db:Session):
+async def restart_pm2_change_template(id_template:int,db:Session):
     try:
         
         # --------------------------------------
@@ -466,7 +464,7 @@ def restart_pm2_change_template(id_template:int,db:Session):
 # 	 * @param {id_template,db}
 # 	 * @return data ()
 # 	 */
-def restart_pm2_update_template(device_lists,db:Session):
+async def restart_pm2_update_template(device_lists,db:Session):
     try:
                 
         # --------------------------------------

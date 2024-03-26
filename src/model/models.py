@@ -251,6 +251,7 @@ class Device_point_list_map(Base):
         "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     id_point_list = Column(Integer, ForeignKey(
         "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    status = Column(Boolean, nullable=False, default=True)
 # 
 class Register_block(Base):
     __tablename__ = "register_block"

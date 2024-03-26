@@ -150,6 +150,7 @@ docker kill CONTAINER_ID
 https://www.redhat.com/sysadmin/vnc-screen-sharing-linux
 https://vinasupport.com/huong-dan-cai-dat-vnc-server-tren-ubuntu-20-04/
 <!-- ssh -->
+sudo apt install ufw
 https://www.youtube.com/watch?v=S1FPCY8W420
 sudo apt install openssh-server
 sudo systemctl start ssh
@@ -471,6 +472,8 @@ When Change device
 call file 
 sudo pm2 start /sources/python/api_python/src/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f   -- 296  --restart-delay=10000
 sudo pm2 start /sources/python/api_python/src/api/main.py --interpreter /usr/bin/python3 -f  --name "API"  --restart-delay=10000
+sudo python3 /sources/python/api_python/src/dataSync/url.py 2
+sudo python3 /sources/python/api_python/src/dataLog/file.py 2
 <!-- jenkins install package app -->
 You can use Python's venv like described here.
 However if you really want to install packages that way, then there are a couple of solutions:

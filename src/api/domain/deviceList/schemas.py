@@ -154,6 +154,7 @@ class MPPTSTRINGPANEL(BaseModel):
     id: Optional[int] = None
     # name: Optional[str] = None
     id_pointkey: Optional[str] = None
+    status : Optional[bool] = None
     class Config:
         orm_mode = True
 class MPPTSTRING(BaseModel):
@@ -161,15 +162,19 @@ class MPPTSTRING(BaseModel):
     id: Optional[int] = None
     # name: Optional[str] = None
     id_pointkey: Optional[str] = None
+    status : Optional[bool] = None
     panel: list[MPPTSTRINGPANEL] = None
+    
     class Config:
         orm_mode = True
 class MPPTBase(BaseModel):
   
     id: Optional[int] = None
+    status : Optional[bool] = None
     # name: Optional[str] = None
     id_pointkey: Optional[str] = None
     string: list[MPPTSTRING] =  None
+    
     class Config:
         orm_mode = True
 class MultipleDeviceCreate(BaseModel):

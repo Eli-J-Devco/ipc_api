@@ -97,6 +97,7 @@ class Device_mppt(Base):
     namekey = Column(String(255), nullable=True)
     voltage= Column(DOUBLE, nullable=True)
     current= Column(DOUBLE, nullable=True)
+    status = Column(Boolean, nullable=True, default=True)
     device_list  = relationship('Device_list', foreign_keys=[id_device_list]) 
 class Device_mppt_string(Base):
     __tablename__ = "device_mppt_string"
@@ -107,6 +108,7 @@ class Device_mppt_string(Base):
     namekey = Column(String(255), nullable=True)
     panel= Column(Integer, nullable=True)
     current= Column(DOUBLE, nullable=True)
+    status = Column(Boolean, nullable=True, default=True)
     device_mptt  = relationship('Device_mppt', foreign_keys=[id_device_mppt]) 
 class Device_panel(Base):
     __tablename__ = "device_panel"
@@ -121,7 +123,7 @@ class Device_panel(Base):
     voc= Column(DOUBLE, nullable=True)
     isc= Column(DOUBLE, nullable=True)
     weight= Column(DOUBLE, nullable=True)
-    
+    status = Column(Boolean, nullable=True, default=True)
     device_mppt_string = relationship('Device_mppt_string', foreign_keys=[id_device_string])
     
 class Data_panel(Base):
