@@ -637,7 +637,7 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
         payload = json.dumps(data_send)
       
         publish.single(topic, payload, hostname=host,
-                       retain=True, port=port,
+                       retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
