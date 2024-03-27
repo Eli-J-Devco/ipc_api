@@ -35,7 +35,7 @@ import utils.oauth2 as oauth2
 from configs.config import *
 from database.db import engine, get_db
 from utils.libCom import cov_xml_sql
-from utils.passwordHasher import convert_binary_auth, hash, verify
+from utils.passwordHasher import convert_binary_auth, decrypt, hash, verify
 
 router = APIRouter(
     prefix="/users",
@@ -169,34 +169,30 @@ def get_all_user(page:int, limit:int, status: int | None = None, db: Session = D
 # 	 */
 @router.post("/change_password", response_model=user_schemas.UserStateOut)
 def change_password(user_credentials: user_schemas.UserChangePassword, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    
+
         try:
             print(f'current_user.id: {current_user.id}')
             user_query = db.query(user_models.User).filter(
                 user_models.User.id == current_user.id)
             result_user=user_query.first()
             if not result_user:
-                raise HTTPException(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
-                                    detail=f"user with id: { current_user.id} does not exist")
-            if not verify(user_credentials.old_password, result_user.password):
-                raise HTTPException(
-                        status_code=HTTPStatus.HTTP_403_FORBIDDEN, detail=f"Invalid Credentials")
+                return JSONResponse(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
+                                    content=f"User with id: { current_user.id} does not exist")
+            
+            PASSWORD_SECRET_KEY= Config.PASSWORD_SECRET_KEY 
+            old_password = (decrypt(user_credentials.old_password, PASSWORD_SECRET_KEY.encode())).decode()
+            if not verify(old_password, result_user.password):
+                return JSONResponse(status_code=HTTPStatus.HTTP_424_FAILED_DEPENDENCY,
+                                    content="Old password is incorrect")
             hashed_password = hash(user_credentials.new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
             db.commit()
             # db.refresh(new_user)
-            return {
-                "status": "success",
-                "code": "100",
-                "desc":""
-            }
+            return JSONResponse(status_code=HTTPStatus.HTTP_200_OK, content="Password changed successfully")
         except exc.SQLAlchemyError as err:
             db.rollback()
-            return {
-                "status": "error",
-                "code": "300",
-                "desc":""
-                }
+            return JSONResponse(status_code=HTTPStatus.HTTP_500_INTERNAL_SERVER_ERROR,
+                                content="An error occurred while processing your request")
 # Describe functions before writing code
 # /**
 # 	 * @description reset password
@@ -206,16 +202,15 @@ def change_password(user_credentials: user_schemas.UserChangePassword, db: Sessi
 # 	 * @return data (UserStateOut)
 # 	 */
 @router.post("/reset_password", response_model=user_schemas.UserResetPassword)
-def reset_password(username: Optional[str] = Body(embed=True), db: Session = Depends(get_db),current_user: int = Depends(oauth2.get_current_user)):
-    
+def reset_password(username: Optional[str] = Body(embed=True), db: Session = Depends(get_db)):
         try:
             # print(f'current_user.id: {current_user.id}')
             user_query = db.query(user_models.User).filter(
                 user_models.User.email == username)
             result_user=user_query.first()
             if not result_user:
-                raise HTTPException(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
-                                    detail=f"user with email: { username} does not exist")
+                return JSONResponse(status_code=HTTPStatus.HTTP_404_NOT_FOUND,
+                                    content=f"User with email: { username} does not exist")
  
             # using random.choices()
             # generating random strings
@@ -225,12 +220,7 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
             hashed_password = hash(new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
             db.commit()
-            return {
-                "status": "success",
-                "code": "100",
-                "desc":"",
-                "password":new_password
-            }
+            return JSONResponse(status_code=HTTPStatus.HTTP_200_OK, content={"password": new_password})
         except exc.SQLAlchemyError as err:
             db.rollback()
             return {

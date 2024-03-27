@@ -76,13 +76,19 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
         if not result_user:
             return JSONResponse(
                 status_code=status.HTTP_404_NOT_FOUND, 
-                content={"detail": "Invalid Credentials"}
+                content="User with this email not found"
+                )
+        
+        if not verify(password, result_user.password):
+            return JSONResponse(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                content="Incorrect password"
                 )
         
         if result_user.status==0:
             return JSONResponse(
                 status_code=status.HTTP_403_FORBIDDEN, 
-                content={"detail": "User is not active"}
+                content="User is inactive. Please contact the administrator to activate the account"
                 )
         
         now = datetime.datetime.now(
@@ -91,11 +97,6 @@ def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depe
                                 last_login=now,    
                             ), synchronize_session=False)
         db.commit()
-        if not verify(password, result_user.password):
-            return JSONResponse(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                content={"detail": "Invalid Credentials"}
-                )
         
         result_user_role = db.query(user_models.User_role_map).filter(
             user_models.User_role_map.id_user == result_user.id).all()

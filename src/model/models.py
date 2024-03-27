@@ -239,6 +239,54 @@ class Point_list(Base):
     # 20/03/2024 
     parent =  Column(Integer ,ForeignKey("point_list.id"),nullable=False)  
     reply_to_point =relationship("Point_list",  remote_side=[parent]) 
+class ManualPointList(Base):
+    __tablename__ = "manual_point_list"
+    id = Column(Integer, primary_key=True, nullable=False)
+    id_device_type = Column(Integer, ForeignKey(
+        "device_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_pointclass_type = Column(Integer, ForeignKey(
+        "pointclass_type.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_pointkey = Column(Integer, nullable=False)
+    name = Column(String(255), nullable=False)
+    nameedit = Column(Boolean, nullable=False, default=True)
+    id_type_units = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    unitsedit = Column(Boolean, nullable=False, default=True)
+    
+    id_pointtype = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_config_information = Column(Integer,  ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    
+    register = Column(Integer, nullable=False)
+    id_type_datatype = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    id_type_byteorder = Column(Integer, ForeignKey(
+        "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    slope = Column(DOUBLE, nullable=False)
+    slopeenabled = Column(Boolean, nullable=False, default=True)
+    offset = Column(DOUBLE, nullable=False)
+    offsetenabled = Column(Boolean, nullable=False, default=True)
+    multreg = Column(Integer, nullable=False)
+    multregenabled = Column(Boolean, nullable=True, default=True)
+    userscaleenabled = Column(Boolean, nullable=False, default=True)
+    invalidvalue = Column(Integer, nullable=False)
+    invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    extendednumpoints = Column(Integer, nullable=True)
+    extendedregblocks = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+    function= Column(Text, nullable=True)
+    constants=Column(DOUBLE(), nullable=True, default=0)
+    # 
+    # template_library  = relationship('Template_library', foreign_keys=[id_template])
+    type_units  = relationship('Config_information', foreign_keys=[id_type_units])
+    type_datatype  = relationship('Config_information', foreign_keys=[id_type_datatype])
+    type_byteorder  = relationship('Config_information', foreign_keys=[id_type_byteorder])
+    type_point= relationship('Config_information', foreign_keys=[id_pointtype])
+    type_class= relationship('Pointclass_type', foreign_keys=[id_pointclass_type])
+    type_config_information= relationship('Config_information', foreign_keys=[id_config_information])
+    device_type = relationship('Device_type', foreign_keys=[id_device_type])
+    
     
 # # 
 class Device_point_list_map(Base):
