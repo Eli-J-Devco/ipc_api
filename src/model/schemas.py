@@ -104,6 +104,7 @@ class PointBase(BaseModel):
     nameedit : Optional[bool] = None
     id_type_units : Optional[int] = None
     unitsedit : Optional[bool] = None
+    id_pointtype: Optional[int] = None
     register : Optional[int] = None
     id_type_datatype : Optional[int] = None
     id_type_byteorder : Optional[int] = None
@@ -134,6 +135,7 @@ class ManualPointBase(BaseModel):
     nameedit : Optional[bool] = None
     id_type_units : Optional[int] = None
     unitsedit : Optional[bool] = None
+    id_pointtype: Optional[int] = None
     register : Optional[int] = None
     id_type_datatype : Optional[int] = None
     id_type_byteorder : Optional[int] = None
