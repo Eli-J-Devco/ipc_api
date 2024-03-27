@@ -5,11 +5,15 @@
 # *********************************************************/
 import os
 import sys
+import warnings
 from datetime import datetime
 
+# with warnings.catch_warnings():
+#     warnings.simplefilter("ignore", category=sa_exc.SAWarning)
 from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime, Float,
                         ForeignKey, Integer, MetaData, String, Table, Text,
                         create_engine)
+from sqlalchemy import exc as sa_exc
 from sqlalchemy.orm import (Mapped, declarative_base, mapped_column,
                             relationship, sessionmaker)
 from sqlalchemy.schema import CreateTable, DropTable
@@ -18,10 +22,22 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 
 sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
-from sqlalchemy_utils.view import CreateView
+# from sqlalchemy_utils.view import CreateView
+
+# from sqlalchemy.orm.context import _ColumnEntity
+# from sqlalchemy_views import CreateView, DropView
+
+import warnings
+
+# from sqlalchemy_utils.compat import _select_args
+# from sqlalchemy_utils.view import CreateView
+from sqlalchemy import Table
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.expression import ClauseElement, Executable
 
 from database.db import Base, engine
 
+warnings.filterwarnings("ignore", ".*Class SelectOfScalar will not make use of SQL compilation caching.*")
 
 class Device_list(Base):
     __tablename__ = "device_list"
@@ -138,31 +154,65 @@ class Data_panel(Base):
         "device_panel.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
    
     device_panel = relationship('Device_panel', foreign_keys=[id_device_panel])
+class CreateView(Executable, ClauseElement):
+    def __init__(self, name, select):
+        self.name = name
+        self.select = select
 
-def create_table_device(table_name):
-    TABLE_SPEC = [
-                    ('id', BigInteger),
-                    ('name', String(255)),
-                    ('time',DateTime),
-                    ('whatever', String(255)),
-                    ("employee_dept", Integer, ForeignKey("departments.department_id"))
-                ]
+@compiles(CreateView)
+def visit_create_view(element, compiler, **kw):
+    return "CREATE VIEW %s AS %s" % (
+         element.name,
+         compiler.process(element.select, literal_binds=True)
+         )
+def create_table_device(table_name,pointList=[]):
+    # TABLE_SPEC = [
+    #                 ('id', Integer),
+    #                 ('name', String(255)),
+    #                 ('time',DateTime),
+    #                 ('whatever', String(255)),
+    #                 ("employee_dept", Integer,ForeignKey(
+    #     "point_list.id", ondelete="SET NULL", onupdate="SET NULL"))
+    #             ]
 
-    TABLE_NAME = 'sample_table'
+    # TABLE_NAME = 'sample_table'
 
-    columns = [Column(n, t,t1) for n, t,t1 in TABLE_SPEC]
-    table = Table(TABLE_NAME, MetaData(), *columns)
-    table_creation_sql = CreateTable(table)
+    # columns = [Column(n, t,t1) for n, t,t1 in TABLE_SPEC]
+    # table = Table(TABLE_NAME, MetaData(), *columns)
+    meta = MetaData()
+
+    new_table_device = Table(table_name, meta,
+    Column('time',TIMESTAMP(timezone=True), primary_key=True, nullable=False),
+    Column('id_device',Integer, ForeignKey(Device_list.id)),
+    Column('error', Integer, nullable=True),
+    Column('low_alarm', Integer, nullable=True),
+    Column('high_alarm', Integer, nullable=True),
+    Column('serial_number', String(255), nullable=True)
+   
+    )
+    for i,item in enumerate(pointList):
+        new_table_device.append_column(Column(str(item['name']), DOUBLE, nullable=True))
+    # table_creation_sql = CreateTable(new_table_device)
+    
+    return new_table_device
+
 def create_table(tbl_name, number=10):
     print("create_table")
     class CreateTables(Base):
         __table_args__ = {'extend_existing': True} 
         __tablename__ = f"{tbl_name}"
-        id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-        name: Mapped[str] = mapped_column(String(16), unique=True)
+        time : Mapped[TIMESTAMP] = mapped_column(TIMESTAMP(timezone=True), primary_key=True, nullable=False)
+        # id_device: Mapped[str] = mapped_column(Integer, ForeignKey(
+        #     Device_list.id, ondelete="SET NULL", onupdate="SET NULL"), nullable=True)
+        # error = Column(Integer, nullable=True)
+        # low_alarm = Column(Integer, nullable=True)
+        # high_alarm = Column(Integer, nullable=True)
+        # serial_number = Column(String(255), nullable=True)
+        
     tbl = CreateTables.__table__
     for col in range(number):
         tbl._columns.add(Column(f"pt{col}", Integer))
-    result=CreateView(tbl)
-    return result
+    result=CreateTable(tbl)
+    return tbl
     # return CreateTable.__table__
+

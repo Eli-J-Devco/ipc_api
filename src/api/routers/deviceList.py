@@ -29,11 +29,8 @@ from sqlalchemy.sql import func, insert, join, literal_column, text
 
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-# import models
-# import utils
 
-
-from contextlib import asynccontextmanager
+# from contextlib import asynccontextmanager
 
 from sqlalchemy import (BigInteger, Column, DateTime, Float, ForeignKey,
                         Integer, MetaData, String, Table, create_engine)
@@ -68,7 +65,13 @@ router = APIRouter(
 
 # /device_list/
 # /device_list
+import warnings
 
+warnings.filterwarnings("ignore", ".*Class SelectOfScalar will not make use of SQL compilation caching.*")
+from sqlalchemy import exc as sa_exc
+
+# with warnings.catch_warnings():
+#     warnings.simplefilter("ignore", category=sa_exc.SAWarning)
 
 # Describe functions before writing code
 # /**
@@ -212,7 +215,7 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
 # 	 * @param {DeviceCreate,db}
 # 	 * @return data (DeviceState)
 # 	 */
-@asynccontextmanager
+
 @router.post("/create_multiple/", response_model=deviceList_schemas.DeviceState)
 async def create_multiple_device(create_device: deviceList_schemas.MultipleDeviceCreate ,
                                  db: Session = Depends(get_db), 
@@ -237,462 +240,449 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
             
         async def execute_func():
             try:
-                pass
-                # result = db.execute(text("SELECT * FROM `device_group`")).all()
-                # print(models.create_table('test',3))
-                # print(models.create_table('test',3))
-                result = db.execute(deviceList_models.create_table('test',3))
-                # result = db.execute(deviceList_models.create_table_device())
-                # result = db.execute(text(models.create_table_device("test")))
-                
-                # print("------------")                                   
-                # id_communication=create_device.id_communication
-                # id_template=create_device.id_template
-                # communication_query = db.query(models.Communication)\
-                # .filter(models.Communication.id == id_communication).first()
+                print("------------")                                   
+                id_communication=create_device.id_communication
+                id_template=create_device.id_template
+                communication_query = db.query(models.Communication)\
+                .filter(models.Communication.id == id_communication).first()
 
-                # # mppt=create_device.mppt.mppt_number
-                # # print(f'mppt: {mppt}')
+                # mppt=create_device.mppt.mppt_number
+                # print(f'mppt: {mppt}')
                 
                 
-                # point_list_query= db.query(models.Point_list)\
-                # .filter(models.Point_list.id_template == id_template)\
-                #     .all()
-                # try:                    
-                #     if communication_query:
-                #         pass        
-                #     if communication_query.driver_list:
-                #         pass
-                # except Exception as err:
-                #     print(err)             
-                #     return 300
-                # finally:
-                #     pass              
-                # driver_list=communication_query.driver_list
-                # # insert new device to table
-                # new_device_list=[]
-                # add_count=create_device.add_count # == 0 mode add only one
-                # in_mode=create_device.in_mode
-                # # {
-                # # "name": "ABB-2",
-                # # "device_virtual": false,
-                # # "id_communication": 3,
-                # # "rtu_bus_address":1,
-                # # "tcp_gateway_port": 502,
-                # # "tcp_gateway_ip": "192.168.80.101",
-                # # "id_device_type": 1,
-                # # "add_count": 2,
-                # # "in_mode": 1,
-                # # "id_template": 3
-                # # }
-                # # {
-                # # "name": "MFM383A",
-                # # "device_virtual": false,
-                # # "id_communication": 1,
-                # # "rtu_bus_address":1,
-                # # "tcp_gateway_port": 502,
-                # # "tcp_gateway_ip": "",
-                # # "id_device_type": 6,
-                # # "add_count": 1,
-                # # "in_mode": 0,
-                # # "id_template": 6
-                # # }
-                # # ----------------------------------------
-                # for item in range(add_count):                       
-                #         pv=16
-                #         model=0
-                #         send_p=0
-                #         send_q=0
-                #         send_pf=0
-                #         value_pf=1       
-                #         max=100
-                #         enable_poweroff=0
-                #         # tcp_gateway_ip=create_device.tcp_gateway_ip
-                #         name=create_device.name
-                #         device_virtual=create_device.device_virtual
-                #         id_communication=create_device.id_communication
-                #         rtu_bus_address=create_device.rtu_bus_address
-                #         tcp_gateway_port=create_device.tcp_gateway_port
-                #         tcp_gateway_ip=create_device.tcp_gateway_ip
-                #         id_device_type=create_device.id_device_type
-                #         id_project_setup=1
-                #         # id_device_group=create_device.id_device_group
+                point_list_query= db.query(models.Point_list)\
+                .filter(models.Point_list.id_template == id_template)\
+                    .all()
+                try:                    
+                    if communication_query:
+                        pass        
+                    if communication_query.driver_list:
+                        pass
+                except Exception as err:
+                    print(err)             
+                    return 300
+                finally:
+                    pass              
+                driver_list=communication_query.driver_list
+                # insert new device to table
+                new_device_list=[]
+                add_count=create_device.add_count # == 0 mode add only one
+                in_mode=create_device.in_mode
+                # {
+                # "name": "ABB-2",
+                # "device_virtual": false,
+                # "id_communication": 3,
+                # "rtu_bus_address":1,
+                # "tcp_gateway_port": 502,
+                # "tcp_gateway_ip": "192.168.80.101",
+                # "id_device_type": 1,
+                # "add_count": 2,
+                # "in_mode": 1,
+                # "id_template": 3
+                # }
+                # {
+                # "name": "MFM383A",
+                # "device_virtual": false,
+                # "id_communication": 1,
+                # "rtu_bus_address":1,
+                # "tcp_gateway_port": 502,
+                # "tcp_gateway_ip": "",
+                # "id_device_type": 6,
+                # "add_count": 1,
+                # "in_mode": 0,
+                # "id_template": 6
+                # }
+                # ----------------------------------------
+                for item in range(add_count):                       
+                        pv=16
+                        model=0
+                        send_p=0
+                        send_q=0
+                        send_pf=0
+                        value_pf=1       
+                        max=100
+                        enable_poweroff=0
+                        # tcp_gateway_ip=create_device.tcp_gateway_ip
+                        name=create_device.name
+                        device_virtual=create_device.device_virtual
+                        id_communication=create_device.id_communication
+                        rtu_bus_address=create_device.rtu_bus_address
+                        tcp_gateway_port=create_device.tcp_gateway_port
+                        tcp_gateway_ip=create_device.tcp_gateway_ip
+                        id_device_type=create_device.id_device_type
+                        id_project_setup=1
+                        # id_device_group=create_device.id_device_group
                         
-                #         # network address
-                #         if in_mode==1:                          
-                #             ip = create_device.tcp_gateway_ip.split(".")
-                #             host_id=int(ip[3])+item
-                #             if  host_id>=255 :
-                #                 host_id=254
-                #             tcp_gateway_ip=f'{ip[0]}.{ip[1]}.{ip[2]}.{host_id}'
-                #         # bus-address
-                #         elif in_mode==2:
-                #             rtu_bus_address=int(create_device.rtu_bus_address) + item
-                #         elif in_mode==0:
-                #             pass
-                #         else:
-                #             return 300 
-                #         if driver_list.name=="RS485":
-                #             tcp_gateway_ip=None
-                #             tcp_gateway_port=None
-                #         # elif driver_list.name=="Modbus/TCP":
-                #         #     pass
-                #         # else:
-                #         #     pass
-                #         new_device = deviceList_models.Device_list(
-                #                                         id_project_setup=id_project_setup,
-                #                                         table_name="",
-                #                                         view_table="",
-                #                                         pv=pv,
-                #                                         model=model,
-                #                                         send_p=send_p,
-                #                                         send_q=send_q,
-                #                                         send_pf=send_pf,
-                #                                         value_pf=value_pf,
-                #                                         max=max,
-                #                                         enable_poweroff=enable_poweroff,
-                #                                         name=name,
-                #                                         device_virtual=device_virtual,
-                #                                         id_communication=id_communication,
-                #                                         rtu_bus_address=rtu_bus_address,
-                #                                         tcp_gateway_port=tcp_gateway_port,
-                #                                         tcp_gateway_ip=tcp_gateway_ip,
-                #                                         id_device_type=id_device_type,
-                #                                         id_template=id_template
-                #                                         # id_device_group=id_device_group                                                                                                                                                                                                                                                               # **create_device.dict()
-                #                                         )
-                #         new_device_list.append(new_device)
-                # db.add_all(new_device_list)
-                # db.flush()
-                # # Get all point
-                # point_list_query = db.query(models.Point_list)\
-                # .filter_by(id_template=id_template).order_by(models.Point_list.id.asc()).all()
-                # point_list_name=[]
-                # for item in point_list_query:
-                #     point_list_name.append({
-                #         "id":item.id,
-                #         "name":item.id_pointkey})
-                # # Update status table `device_point_list_map`
-                # ## add mppt, string, panel 
-                # if create_device.mppt:
-                #     for i,items in enumerate(new_device_list): 
-                #         id_device_list=items.id
-                #         for i,mppt_item in enumerate(create_device.mppt):
-                #             mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
+                        # network address
+                        if in_mode==1:                          
+                            ip = create_device.tcp_gateway_ip.split(".")
+                            host_id=int(ip[3])+item
+                            if  host_id>=255 :
+                                host_id=254
+                            tcp_gateway_ip=f'{ip[0]}.{ip[1]}.{ip[2]}.{host_id}'
+                        # bus-address
+                        elif in_mode==2:
+                            rtu_bus_address=int(create_device.rtu_bus_address) + item
+                        elif in_mode==0:
+                            pass
+                        else:
+                            return 300 
+                        if driver_list.name=="RS485":
+                            tcp_gateway_ip=None
+                            tcp_gateway_port=None
+                        # elif driver_list.name=="Modbus/TCP":
+                        #     pass
+                        # else:
+                        #     pass
+                        new_device = deviceList_models.Device_list(
+                                                        id_project_setup=id_project_setup,
+                                                        table_name="",
+                                                        view_table="",
+                                                        pv=pv,
+                                                        model=model,
+                                                        send_p=send_p,
+                                                        send_q=send_q,
+                                                        send_pf=send_pf,
+                                                        value_pf=value_pf,
+                                                        max=max,
+                                                        enable_poweroff=enable_poweroff,
+                                                        name=name,
+                                                        device_virtual=device_virtual,
+                                                        id_communication=id_communication,
+                                                        rtu_bus_address=rtu_bus_address,
+                                                        tcp_gateway_port=tcp_gateway_port,
+                                                        tcp_gateway_ip=tcp_gateway_ip,
+                                                        id_device_type=id_device_type,
+                                                        id_template=id_template
+                                                        # id_device_group=id_device_group                                                                                                                                                                                                                                                               # **create_device.dict()
+                                                        )
+                        new_device_list.append(new_device)
+                db.add_all(new_device_list)
+                db.flush()
+                # Get all point
+                point_list_query = db.query(models.Point_list)\
+                .filter_by(id_template=id_template).order_by(models.Point_list.id.asc()).all()
+                point_list_name=[]
+                for item in point_list_query:
+                    point_list_name.append({
+                        "id":item.id,
+                        "name":item.id_pointkey})
+                # Update status table `device_point_list_map`
+                ## add mppt, string, panel 
+                if create_device.mppt:
+                    for i,items in enumerate(new_device_list): 
+                        id_device_list=items.id
+                        for i,mppt_item in enumerate(create_device.mppt):
+                            mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
                             
-                #             new_mppt = deviceList_models.Device_mppt(
-                #                                                     id_device_list=id_device_list,
-                #                                                     name=mppt_object.name,
-                #                                                     status= mppt_item.status,
-                #                                                     namekey=mppt_item.id_pointkey
-                #                                                 )
-                #             db.add(new_mppt)
-                #             db.flush()
-                #             print(f'MPPT ---------------------')
-                #             for i,string_item in enumerate(mppt_item.string):
-                #                 string_name=[item for item in point_list_query if item.id == string_item.id][0].name
-                #                 panel_number=len(string_item.panel)
-                #                 new_string = deviceList_models.Device_mppt_string(
-                #                                                         id_device_mppt=new_mppt.id,
-                #                                                         name=string_name, 
-                #                                                         status= string_item.status,
-                #                                                         namekey=string_item.id_pointkey,
-                #                                                         panel=panel_number
-                #                                                 )
-                #                 db.add(new_string)
-                #                 db.flush()
-                #                 print(f'STRING ---------------------')
-                #                 for i,panel_item in enumerate(string_item.panel):
-                #                     print(f'PANEL ---------------------')
-                #                     panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
-                #                     new_panel = deviceList_models.Device_panel(
-                #                                                         id_device_string=new_string.id,
-                #                                                         status= panel_item.status,
-                #                                                         name=panel_name
-                #                                                 )
-                #                     db.add(new_panel)
-                #                     db.flush()   
-                # # 
-                # # add table of device
-                # for idd,item in enumerate(new_device_list):
-                #         try:
-                #             # add table of device
-                #             print(f'Device :{item.id} -------------------')
-                #             param={
-                #                 "table_name":f'dev_{str(item.id)}',
-                #                 "points":point_list_name
-                #             }
-                #             query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
-                #             await db.execute(text(query_add_table_device).execution_options(autocommit=True))
-                #             # add view table of device
-                #             tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
-                #             view_table=f'dev_{str(item.id)}_{tg}'
-                #             param={
-                #                 "table_name":f'dev_{str(item.id)}',
-                #                 "view_table":view_table
-                #             }
-                #             print(f'param: {param}')
-                #             query_add_view_table_device= cov_xml_sql("deviceConfig.xml","add_device_view_table",param)
-                #             result = db.execute(text(query_add_view_table_device))
-                #             print(f'id -------------:{item.id}')
-                #             device_query = db.query(deviceList_models.Device_list).filter_by(id = item.id)
-                #             device_query.update({
-                #                                     "table_name":f'dev_{str(item.id)}',
-                #                                     "view_table":view_table,
-                #                                     }
-                #                                     )
-                #             db.flush()
+                            new_mppt = deviceList_models.Device_mppt(
+                                                                    id_device_list=id_device_list,
+                                                                    name=mppt_object.name,
+                                                                    status= mppt_item.status,
+                                                                    namekey=mppt_item.id_pointkey
+                                                                )
+                            db.add(new_mppt)
+                            db.flush()
+                            print(f'MPPT ---------------------')
+                            for i,string_item in enumerate(mppt_item.string):
+                                string_name=[item for item in point_list_query if item.id == string_item.id][0].name
+                                panel_number=len(string_item.panel)
+                                new_string = deviceList_models.Device_mppt_string(
+                                                                        id_device_mppt=new_mppt.id,
+                                                                        name=string_name, 
+                                                                        status= string_item.status,
+                                                                        namekey=string_item.id_pointkey,
+                                                                        panel=panel_number
+                                                                )
+                                db.add(new_string)
+                                db.flush()
+                                print(f'STRING ---------------------')
+                                for i,panel_item in enumerate(string_item.panel):
+                                    print(f'PANEL ---------------------')
+                                    panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
+                                    new_panel = deviceList_models.Device_panel(
+                                                                        id_device_string=new_string.id,
+                                                                        status= panel_item.status,
+                                                                        name=panel_name
+                                                                )
+                                    db.add(new_panel)
+                                    db.flush()   
+                # 
+                # add table of device
+                for idd,item in enumerate(new_device_list):
+                        try:
+                            # add table of device
+                            table_name=f'dev_{str(item.id)}'
+                            query_add_table_device= deviceList_models.create_table_device(table_name,point_list_name)
+                            print(f'query_add_table_device: {query_add_table_device}')
+                            db.execute(CreateTable(query_add_table_device))
+                            # add view table of device
+                            tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+                            view_table=f'dev_{str(item.id)}_{tg}'
+                            # createview = deviceList_models.CreateView(f'dev_{str(item.id)}_{tg}',select(query_add_table_device))
+                            # query_add_view_table_device=text(str(createview))
+                            query_add_view_table_device=text(f'CREATE VIEW {view_table}  AS SELECT * from {table_name}')
+                            print(f'query_add_view_table_device: {query_add_view_table_device}')
+                            db.execute(query_add_view_table_device)
+                            device_query = db.query(deviceList_models.Device_list).filter_by(id = item.id)
+                            device_query.update({
+                                                    "table_name":f'dev_{str(item.id)}',
+                                                    "view_table":view_table,
+                                                    }
+                                                    )
+                            db.flush()
                             
-                #         except exc.SQLAlchemyError as err:
-                #             # delete device in table device_list
-                #             print(f'Error: {err.args[0]}')
-                #             db.rollback()
-                #             for items in new_device_list:  
-                #                 db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
-                #                 db.commit()
-                #                 print(f'Delete device: {items.id}')
-                #             # delete all table created
-                #             for i,items in enumerate(new_device_list): 
-                #                 if i<idd:
-                #                     tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
-                #                     view_table=f'dev_{str(items.id)}_{tg}'
-                #                     db.execute(text(f'DROP VIEW IF EXISTS {view_table}'))
-                #                     name_device=f'dev_{str(items.id)}'
-                #                     db.execute(text(f'DROP TABLE IF EXISTS {name_device}'))
-                #                 else:
-                #                     break                              
-                #             return 300
-                #         finally:
-                #             pass
-                # db.commit()
-                # if driver_list.name=="RS485":
+                        except exc.SQLAlchemyError as err:
+                            # delete device in table device_list
+                            print(f'Error: {err.args[0]}')
+                            db.rollback()
+                            for items in new_device_list:  
+                                db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
+                                db.commit()
+                                print(f'Delete device: {items.id}')
+                            # delete all table created
+                            for i,items in enumerate(new_device_list):
+                                # if i<idd:
+                                name_device=f'dev_{str(items.id)}'
+                                print(f'Delete table device: {name_device}')
+                                db.execute(text(f'DROP TABLE IF EXISTS {name_device}'))
+                                
+                                tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+                                view_table=f'dev_{str(items.id)}_{tg}'
+                                print(f'Delete view table device: {view_table}')
+                                db.execute(text(f'DROP VIEW IF EXISTS {view_table}'))                            
+                            return 300
+                        finally:
+                            pass
+                db.commit()
+                if driver_list.name=="RS485":
                     
-                #     try:
-                #         # rowcount_register_block=0
-                #         rowcount_point_list=0
-                #         # insert device_point_list
-                #         param={
-                #                 "id":item.id
-                #             }
-                #         sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
-                #         for item in new_device_list:
-                #             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
-                #             print(f'result_point_list: {result_point_list.__dict__}')
-                #             if result_point_list.rowcount != 0:
-                #                 rowcount_point_list +=1
-                #         if  rowcount_point_list==0:
-                #             reset_data_new(new_device_list)
-                #         db.commit()
-                #         point_list_mppt_update=[]
-                #         if create_device.mppt:
-                #             for i,items in enumerate(new_device_list): 
-                #                 id_device_list=items.id
-                #                 for i,mppt_item in enumerate(create_device.mppt):
-                #                     mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
-                #                     id_parent=mppt_object.id
-                #                     if id_parent:
-                #                         result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
+                    try:
+                        # rowcount_register_block=0
+                        rowcount_point_list=0
+                        # insert device_point_list
+                        param={
+                                "id":item.id
+                            }
+                        sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
+                        for item in new_device_list:
+                            result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
+                            print(f'result_point_list: {result_point_list.__dict__}')
+                            if result_point_list.rowcount != 0:
+                                rowcount_point_list +=1
+                        if  rowcount_point_list==0:
+                            reset_data_new(new_device_list)
+                        db.commit()
+                        point_list_mppt_update=[]
+                        if create_device.mppt:
+                            for i,items in enumerate(new_device_list): 
+                                id_device_list=items.id
+                                for i,mppt_item in enumerate(create_device.mppt):
+                                    mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
+                                    id_parent=mppt_object.id
+                                    if id_parent:
+                                        result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
                                                 
-                #                                 models.Device_point_list_map.status
+                                                models.Device_point_list_map.status
 
-                #                         ).select_from(models.Device_point_list_map)\
-                #                         .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                         .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                         .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                         .filter( models.Point_list.parent== id_parent)\
-                #                         .filter(models.Config_information.namekey.like('MPPT%')).all()
+                                        ).select_from(models.Device_point_list_map)\
+                                        .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                        .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                        .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                        .filter( models.Point_list.parent== id_parent)\
+                                        .filter(models.Config_information.namekey.like('MPPT%')).all()
 
-                #                         point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=mppt_item.status) for item in result ]
-                #                         # print(point_list_mppt)
-                #                         for item in point_list_mppt:
-                #                             point_list_mppt_update.append(item)
+                                        point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=mppt_item.status) for item in result ]
+                                        # print(point_list_mppt)
+                                        for item in point_list_mppt:
+                                            point_list_mppt_update.append(item)
                                             
-                #                         for i,string_item in enumerate(mppt_item.string):
-                #                             string_object=[item for item in point_list_query if item.id == string_item.id][0]
-                #                             id_parent=mppt_object.id
-                #                             panel_number=len(string_item.panel)
-                #                             result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
-                #                                 models.Device_point_list_map.status
-                #                             ).select_from(models.Device_point_list_map)\
-                #                             .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                             .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                             .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                             .filter( models.Point_list.parent== id_parent)\
-                #                             .filter(models.Config_information.namekey.like('StringAmps%')).all()
+                                        for i,string_item in enumerate(mppt_item.string):
+                                            string_object=[item for item in point_list_query if item.id == string_item.id][0]
+                                            id_parent=mppt_object.id
+                                            panel_number=len(string_item.panel)
+                                            result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
+                                                models.Device_point_list_map.status
+                                            ).select_from(models.Device_point_list_map)\
+                                            .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                            .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                            .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                            .filter( models.Point_list.parent== id_parent)\
+                                            .filter(models.Config_information.namekey.like('StringAmps%')).all()
                                             
-                #                             point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=string_item.status) for item in result ]
-                #                             for item in point_list_mppt:
-                #                                 point_list_mppt_update.append(item)
-                #                             for i,panel_item in enumerate(string_item.panel):
-                #                                 id_parent=string_item.id
-                #                                 # print(f'id_parent: {id_parent}')
-                #                                 result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
-                #                                 models.Device_point_list_map.status
-                #                                 ).select_from(models.Device_point_list_map)\
-                #                                 .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                                 .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                                 .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                                 .filter( models.Point_list.parent== id_parent)\
-                #                                 .filter( models.Point_list.id== panel_item.id)\
-                #                                 .filter(models.Config_information.namekey.like('Panel%')).all()
+                                            point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=string_item.status) for item in result ]
+                                            for item in point_list_mppt:
+                                                point_list_mppt_update.append(item)
+                                            for i,panel_item in enumerate(string_item.panel):
+                                                id_parent=string_item.id
+                                                # print(f'id_parent: {id_parent}')
+                                                result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
+                                                models.Device_point_list_map.status
+                                                ).select_from(models.Device_point_list_map)\
+                                                .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                                .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                                .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                                .filter( models.Point_list.parent== id_parent)\
+                                                .filter( models.Point_list.id== panel_item.id)\
+                                                .filter(models.Config_information.namekey.like('Panel%')).all()
                                             
-                #                                 point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=panel_item.status) for item in result ]
-                #                                 for item in point_list_mppt:
-                #                                     point_list_mppt_update.append(item)
+                                                point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=panel_item.status) for item in result ]
+                                                for item in point_list_mppt:
+                                                    point_list_mppt_update.append(item)
  
-                #         for item in point_list_mppt_update:
-                #             result=db.query(models.Device_point_list_map)\
-                #                 .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
-                #                 .filter(models.Device_point_list_map.id==int(item["id"]))\
-                #                 .update({"status":item["status"]})
-                #             db.commit()
-                #         # 
-                #         param={
-                #                     "CODE":"CreateRS485Dev",
-                #                     "PAYLOAD":id_communication
-                #                 }
-                #         mqtt_public("/Init/API/Requests",param)
-                #         return 100 
-                #     except exc.SQLAlchemyError as err:
-                #             # delete device in table device_list
-                #             print(err.args[0])
-                #             db.rollback()
-                #             reset_data_new(new_device_list)
-                #     finally:
-                #             pass         
-                # elif driver_list.name=="Modbus/TCP":              
-                #     rowcount_point_list=0
-                #     new_device=[]
-                #     try:
-                #         # insert device_point_list
-                #         for item in new_device_list:
-                #             sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
-                #                                                             "insert_device_point_list",{"id":item.id})
-                #             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
-                #             print(f'result_point_list: {result_point_list.__dict__}')
-                #             if result_point_list.rowcount != 0:
-                #                 rowcount_point_list +=1
-                #             new_device.append({
-                #                 "id":item.id,
-                #                 "name":item.name,
-                #                 "connect_type":driver_list.name,
-                #                 "id_com":id_communication
-                #                 })
-                #         db.commit()
-                #         point_list_mppt_update=[]
-                #         if create_device.mppt:
-                #             for i,items in enumerate(new_device_list): 
-                #                 id_device_list=items.id
-                #                 for i,mppt_item in enumerate(create_device.mppt):
-                #                     mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
-                #                     id_parent=mppt_object.id
-                #                     if id_parent:
-                #                         result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
+                        for item in point_list_mppt_update:
+                            result=db.query(models.Device_point_list_map)\
+                                .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
+                                .filter(models.Device_point_list_map.id==int(item["id"]))\
+                                .update({"status":item["status"]})
+                            db.commit()
+                        # 
+                        param={
+                                    "CODE":"CreateRS485Dev",
+                                    "PAYLOAD":id_communication
+                                }
+                        mqtt_public("/Init/API/Requests",param)
+                        return 100 
+                    except exc.SQLAlchemyError as err:
+                            # delete device in table device_list
+                            print(err.args[0])
+                            db.rollback()
+                            reset_data_new(new_device_list)
+                    finally:
+                            pass         
+                elif driver_list.name=="Modbus/TCP":              
+                    rowcount_point_list=0
+                    new_device=[]
+                    try:
+                        # insert device_point_list
+                        for item in new_device_list:
+                            sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
+                                                                            "insert_device_point_list",{"id":item.id})
+                            result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
+                            print(f'result_point_list: {result_point_list.__dict__}')
+                            if result_point_list.rowcount != 0:
+                                rowcount_point_list +=1
+                            new_device.append({
+                                "id":item.id,
+                                "name":item.name,
+                                "connect_type":driver_list.name,
+                                "id_com":id_communication
+                                })
+                        db.commit()
+                        point_list_mppt_update=[]
+                        if create_device.mppt:
+                            for i,items in enumerate(new_device_list): 
+                                id_device_list=items.id
+                                for i,mppt_item in enumerate(create_device.mppt):
+                                    mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
+                                    id_parent=mppt_object.id
+                                    if id_parent:
+                                        result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
                                                 
-                #                                 models.Device_point_list_map.status
+                                                models.Device_point_list_map.status
 
-                #                         ).select_from(models.Device_point_list_map)\
-                #                         .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                         .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                         .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                         .filter( models.Point_list.parent== id_parent)\
-                #                         .filter(models.Config_information.namekey.like('MPPT%')).all()
+                                        ).select_from(models.Device_point_list_map)\
+                                        .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                        .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                        .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                        .filter( models.Point_list.parent== id_parent)\
+                                        .filter(models.Config_information.namekey.like('MPPT%')).all()
 
-                #                         point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=mppt_item.status) for item in result ]
-                #                         # print(point_list_mppt)
-                #                         for item in point_list_mppt:
-                #                             point_list_mppt_update.append(item)
+                                        point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=mppt_item.status) for item in result ]
+                                        # print(point_list_mppt)
+                                        for item in point_list_mppt:
+                                            point_list_mppt_update.append(item)
                                             
-                #                         for i,string_item in enumerate(mppt_item.string):
-                #                             string_object=[item for item in point_list_query if item.id == string_item.id][0]
-                #                             id_parent=mppt_object.id
-                #                             panel_number=len(string_item.panel)
-                #                             result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
-                #                                 models.Device_point_list_map.status
-                #                             ).select_from(models.Device_point_list_map)\
-                #                             .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                             .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                             .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                             .filter( models.Point_list.parent== id_parent)\
-                #                             .filter(models.Config_information.namekey.like('StringAmps%')).all()
+                                        for i,string_item in enumerate(mppt_item.string):
+                                            string_object=[item for item in point_list_query if item.id == string_item.id][0]
+                                            id_parent=mppt_object.id
+                                            panel_number=len(string_item.panel)
+                                            result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
+                                                models.Device_point_list_map.status
+                                            ).select_from(models.Device_point_list_map)\
+                                            .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                            .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                            .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                            .filter( models.Point_list.parent== id_parent)\
+                                            .filter(models.Config_information.namekey.like('StringAmps%')).all()
                                             
-                #                             point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=string_item.status) for item in result ]
-                #                             for item in point_list_mppt:
-                #                                 point_list_mppt_update.append(item)
-                #                             for i,panel_item in enumerate(string_item.panel):
-                #                                 id_parent=string_item.id
-                #                                 # print(f'id_parent: {id_parent}')
-                #                                 result = db.query(
-                #                                 models.Device_point_list_map.id,
-                #                                 models.Device_point_list_map.id_device_list,
-                #                                 models.Device_point_list_map.name,
-                #                                 models.Config_information.namekey,
-                #                                 models.Device_point_list_map.status
-                #                                 ).select_from(models.Device_point_list_map)\
-                #                                 .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
-                #                                 .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
-                #                                 .filter( models.Device_point_list_map.id_device_list == id_device_list) \
-                #                                 .filter( models.Point_list.parent== id_parent)\
-                #                                 .filter( models.Point_list.id== panel_item.id)\
-                #                                 .filter(models.Config_information.namekey.like('Panel%')).all()
+                                            point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=string_item.status) for item in result ]
+                                            for item in point_list_mppt:
+                                                point_list_mppt_update.append(item)
+                                            for i,panel_item in enumerate(string_item.panel):
+                                                id_parent=string_item.id
+                                                # print(f'id_parent: {id_parent}')
+                                                result = db.query(
+                                                models.Device_point_list_map.id,
+                                                models.Device_point_list_map.id_device_list,
+                                                models.Device_point_list_map.name,
+                                                models.Config_information.namekey,
+                                                models.Device_point_list_map.status
+                                                ).select_from(models.Device_point_list_map)\
+                                                .join(models.Point_list,models.Point_list.id==models.Device_point_list_map.id_point_list )\
+                                                .join(models.Config_information,models.Config_information.id==models.Point_list.id_config_information )\
+                                                .filter( models.Device_point_list_map.id_device_list == id_device_list) \
+                                                .filter( models.Point_list.parent== id_parent)\
+                                                .filter( models.Point_list.id== panel_item.id)\
+                                                .filter(models.Config_information.namekey.like('Panel%')).all()
                                             
-                #                                 point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
-                #                                     namekey=item[3],status=panel_item.status) for item in result ]
-                #                                 for item in point_list_mppt:
-                #                                     point_list_mppt_update.append(item)
+                                                point_list_mppt=[dict(id=item[0], id_device_list=item[1], name=item[2],
+                                                    namekey=item[3],status=panel_item.status) for item in result ]
+                                                for item in point_list_mppt:
+                                                    point_list_mppt_update.append(item)
  
-                #         for item in point_list_mppt_update:
-                #             result=db.query(models.Device_point_list_map)\
-                #                 .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
-                #                 .filter(models.Device_point_list_map.id==int(item["id"]))\
-                #                 .update({"status":item["status"]})
-                #         db.commit()
-                #         if  rowcount_point_list==0:
-                #             reset_data_new(new_device_list)
-                #             return 300
-                #         else:
-                #             db.close()
-                #     except exc.SQLAlchemyError as err:
-                #             # delete device in table device_list
-                #             print(err.args[0])
-                #             db.rollback()
-                #             reset_data_new(new_device_list)
-                #     finally:
-                #         if rowcount_point_list!=0:
-                #                 param={
-                #                     "CODE":"CreateTCPDev",
-                #                     "PAYLOAD":new_device
-                #                 }
-                #                 mqtt_public("/Init/API/Requests",param)
-                #         return 100        
-                # else:
-                #     return 300 
-                return 100 
+                        for item in point_list_mppt_update:
+                            result=db.query(models.Device_point_list_map)\
+                                .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
+                                .filter(models.Device_point_list_map.id==int(item["id"]))\
+                                .update({"status":item["status"]})
+                        db.commit()
+                        if  rowcount_point_list==0:
+                            reset_data_new(new_device_list)
+                            return 300
+                        else:
+                            db.close()
+                    except exc.SQLAlchemyError as err:
+                            # delete device in table device_list
+                            print(err.args[0])
+                            db.rollback()
+                            reset_data_new(new_device_list)
+                    finally:
+                        if rowcount_point_list!=0:
+                                param={
+                                    "CODE":"CreateTCPDev",
+                                    "PAYLOAD":new_device
+                                }
+                                mqtt_public("/Init/API/Requests",param)
+                        return 100        
+                else:
+                    return 300 
+                # return 100 
             except Exception as err:
                 print('Error create table : ',err)
                 return 300
