@@ -123,6 +123,8 @@ class TemplateConfigBase(BaseModel):
     data_type:list[PointDataType]=None
     byte_order:list[PointByteOrder]=None
     point_unit:list[PointUnit]=None
+    type_point:list[TypePointBase]=None
+    type_class:list[TypeClassBase]=None
 
     class Config:
         orm_mode = True
