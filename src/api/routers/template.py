@@ -284,11 +284,11 @@ def get_each_template(id_template: Optional[int] = Body(embed=True),
         register_list=[]
         point_list=[]
         register_query = db.query(models.Register_block).filter(
-        models.Register_block.id_template == id_template)
+        models.Register_block.id_template == id_template).filter(models.Register_block.status == 1)
         register_list=register_query.all()
         # 
         point_query = db.query(models.Point_list).filter(
-        models.Point_list.id_template == id_template)
+        models.Point_list.id_template == id_template).filter(models.Point_list.status == 1)
         point_list=point_query.all()
         
         return {
@@ -312,17 +312,20 @@ def get_template_config(db: Session = Depends(get_db), current_user: int = Depen
     try:
         config_point = db.query(models.Config_information).filter(models.Config_information.status 
                                                                                 == 1).all()
-        data_type=[]
+        type_class = db.query(models.Pointclass_type).all()
         data_type = [item.__dict__ for item in config_point if item.id_type == 1]
-        byte_order=[]
         byte_order = [item.__dict__ for item in config_point if item.id_type == 2]
-        point_unit=[]
         point_unit = [item.__dict__ for item in config_point if item.id_type == 3]
+        type_point = [item.__dict__ for item in config_point if item.id_type == 15]
+
+
         
         return {
             "data_type":data_type,
             "byte_order":byte_order,
             "point_unit":point_unit,
+            "type_point":type_point,
+            "type_class":type_class
         }
     except (Exception) as err:
         print('Error : ',err)
