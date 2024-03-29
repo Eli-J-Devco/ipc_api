@@ -29,8 +29,13 @@ from sqlalchemy.sql import func, insert, join, literal_column, text
 
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-# import models
-# import utils
+
+# from contextlib import asynccontextmanager
+
+from sqlalchemy import (BigInteger, Column, DateTime, Float, ForeignKey,
+                        Integer, MetaData, String, Table, create_engine)
+# from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.schema import CreateTable, DropTable
 
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
@@ -38,7 +43,7 @@ import api.domain.deviceList.schemas as deviceList_schemas
 import api.domain.template.models as template_models
 import model.models as models
 import utils.oauth2 as oauth2
-from database.db import engine, get_db
+from database.db import Base, engine, get_db
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.mqttManager import mqtt_public
 # from model import schemas
@@ -60,7 +65,13 @@ router = APIRouter(
 
 # /device_list/
 # /device_list
+import warnings
 
+warnings.filterwarnings("ignore", ".*Class SelectOfScalar will not make use of SQL compilation caching.*")
+from sqlalchemy import exc as sa_exc
+
+# with warnings.catch_warnings():
+#     warnings.simplefilter("ignore", category=sa_exc.SAWarning)
 
 # Describe functions before writing code
 # /**
@@ -204,6 +215,7 @@ def get_device_config( db: Session = Depends(get_db), current_user: int = Depend
 # 	 * @param {DeviceCreate,db}
 # 	 * @return data (DeviceState)
 # 	 */
+
 @router.post("/create_multiple/", response_model=deviceList_schemas.DeviceState)
 async def create_multiple_device(create_device: deviceList_schemas.MultipleDeviceCreate ,
                                  db: Session = Depends(get_db), 
@@ -211,6 +223,30 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
     try:
      
         def reset_data_new(new_device_list):
+            # {
+                # "name": "ABB-2",
+                # "device_virtual": false,
+                # "id_communication": 3,
+                # "rtu_bus_address":1,
+                # "tcp_gateway_port": 502,
+                # "tcp_gateway_ip": "192.168.80.101",
+                # "id_device_type": 1,
+                # "add_count": 2,
+                # "in_mode": 1,
+                # "id_template": 3
+                # }
+                # {
+                # "name": "MFM383A",
+                # "device_virtual": false,
+                # "id_communication": 1,
+                # "rtu_bus_address":1,
+                # "tcp_gateway_port": 502,
+                # "tcp_gateway_ip": "",
+                # "id_device_type": 6,
+                # "add_count": 1,
+                # "in_mode": 0,
+                # "id_template": 6
+                # }
             # delete device in table device_list
             for items in new_device_list:  
                 db.query(deviceList_models.Device_list).filter_by(id=items.id).delete()
@@ -225,7 +261,8 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 name_device=f'dev_{str(items.id)}'
                 db.execute(text(f'DROP TABLE {name_device}'))                                                                                        
             return 300
-            
+        def filter_group_mppt_string_panel():
+            pass
         async def execute_func():
             try:
                 print("------------")                                   
@@ -256,30 +293,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                 new_device_list=[]
                 add_count=create_device.add_count # == 0 mode add only one
                 in_mode=create_device.in_mode
-                # {
-                # "name": "ABB-2",
-                # "device_virtual": false,
-                # "id_communication": 3,
-                # "rtu_bus_address":1,
-                # "tcp_gateway_port": 502,
-                # "tcp_gateway_ip": "192.168.80.101",
-                # "id_device_type": 1,
-                # "add_count": 2,
-                # "in_mode": 1,
-                # "id_template": 3
-                # }
-                # {
-                # "name": "MFM383A",
-                # "device_virtual": false,
-                # "id_communication": 1,
-                # "rtu_bus_address":1,
-                # "tcp_gateway_port": 502,
-                # "tcp_gateway_ip": "",
-                # "id_device_type": 6,
-                # "add_count": 1,
-                # "in_mode": 0,
-                # "id_template": 6
-                # }
+                
                 # ----------------------------------------
                 for item in range(add_count):                       
                         pv=16
@@ -395,28 +409,23 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                                                 )
                                     db.add(new_panel)
                                     db.flush()   
+                # 
                 # add table of device
                 for idd,item in enumerate(new_device_list):
                         try:
                             # add table of device
-                            print(f'Device :{item.id} -------------------')
-                            param={
-                                "table_name":f'dev_{str(item.id)}',
-                                "points":point_list_name
-                            }
-                            query_add_table_device= cov_xml_sql("deviceConfig.xml","add_device",param)
-                            db.execute(text(query_add_table_device).execution_options(autocommit=True))
+                            table_name=f'dev_{str(item.id)}'
+                            query_add_table_device= deviceList_models.create_table_device(table_name,point_list_name)
+                            print(f'query_add_table_device: {query_add_table_device}')
+                            db.execute(CreateTable(query_add_table_device))
                             # add view table of device
                             tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
                             view_table=f'dev_{str(item.id)}_{tg}'
-                            param={
-                                "table_name":f'dev_{str(item.id)}',
-                                "view_table":view_table
-                            }
-                            print(f'param: {param}')
-                            query_add_view_table_device= cov_xml_sql("deviceConfig.xml","add_device_view_table",param)
-                            db.execute(text(query_add_view_table_device))
-                            print(f'id -------------:{item.id}')
+                            # createview = deviceList_models.CreateView(f'dev_{str(item.id)}_{tg}',select(query_add_table_device))
+                            # query_add_view_table_device=text(str(createview))
+                            query_add_view_table_device=text(f'CREATE VIEW {view_table}  AS SELECT * from {table_name}')
+                            print(f'query_add_view_table_device: {query_add_view_table_device}')
+                            db.execute(query_add_view_table_device)
                             device_query = db.query(deviceList_models.Device_list).filter_by(id = item.id)
                             device_query.update({
                                                     "table_name":f'dev_{str(item.id)}',
@@ -434,15 +443,16 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 db.commit()
                                 print(f'Delete device: {items.id}')
                             # delete all table created
-                            for i,items in enumerate(new_device_list): 
-                                if i<idd:
-                                    tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
-                                    view_table=f'dev_{str(items.id)}_{tg}'
-                                    db.execute(text(f'DROP VIEW IF EXISTS {view_table}'))
-                                    name_device=f'dev_{str(items.id)}'
-                                    db.execute(text(f'DROP TABLE IF EXISTS {name_device}'))
-                                else:
-                                    break                              
+                            for i,items in enumerate(new_device_list):
+                                # if i<idd:
+                                name_device=f'dev_{str(items.id)}'
+                                print(f'Delete table device: {name_device}')
+                                db.execute(text(f'DROP TABLE IF EXISTS {name_device}'))
+                                
+                                tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+                                view_table=f'dev_{str(items.id)}_{tg}'
+                                print(f'Delete view table device: {view_table}')
+                                db.execute(text(f'DROP VIEW IF EXISTS {view_table}'))                            
                             return 300
                         finally:
                             pass
@@ -453,11 +463,29 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                         # rowcount_register_block=0
                         rowcount_point_list=0
                         # insert device_point_list
-                        param={
-                                "id":item.id
-                            }
-                        sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
+                       
                         for item in new_device_list:
+                            # param={
+                            #     "id":item.id
+                            # }
+                            # sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml","insert_device_point_list",param)
+                            sql_query_insert_device_point_list=f"INSERT INTO `device_point_list_map`( \
+                            id_device_list,\
+                            id_point_list,\
+                            name,\
+                            low_alarm,\
+                            high_alarm\
+                            )\
+                            SELECT \
+                            device_list.id,\
+                            point_list.id AS id_point_list,\
+                            point_list.name AS name,\
+                            point_list.low_alarm AS low_alarm,\
+                            point_list.high_alarm AS high_alarm\
+                            FROM device_list \
+                            INNER JOIN template_library ON template_library.id=device_list.id_template \
+                            INNER JOIN point_list ON template_library.id=point_list.id_template \
+                            WHERE device_list.id= {item.id}  ORDER BY point_list.id ASC;"
                             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
                             print(f'result_point_list: {result_point_list.__dict__}')
                             if result_point_list.rowcount != 0:
@@ -563,8 +591,25 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                     try:
                         # insert device_point_list
                         for item in new_device_list:
-                            sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
-                                                                            "insert_device_point_list",{"id":item.id})
+                            # sql_query_insert_device_point_list= cov_xml_sql("deviceConfig.xml",
+                            #                                                 "insert_device_point_list",{"id":item.id})
+                            sql_query_insert_device_point_list=f"INSERT INTO `device_point_list_map`( \
+                            id_device_list,\
+                            id_point_list,\
+                            name,\
+                            low_alarm,\
+                            high_alarm\
+                            )\
+                            SELECT \
+                            device_list.id,\
+                            point_list.id AS id_point_list,\
+                            point_list.name AS name,\
+                            point_list.low_alarm AS low_alarm,\
+                            point_list.high_alarm AS high_alarm\
+                            FROM device_list \
+                            INNER JOIN template_library ON template_library.id=device_list.id_template \
+                            INNER JOIN point_list ON template_library.id=point_list.id_template \
+                            WHERE device_list.id= {item.id}  ORDER BY point_list.id ASC;"
                             result_point_list = db.execute(text(sql_query_insert_device_point_list))                        
                             print(f'result_point_list: {result_point_list.__dict__}')
                             if result_point_list.rowcount != 0:
@@ -654,6 +699,8 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 .filter(models.Device_point_list_map.id==int(item["id"]))\
                                 .update({"status":item["status"]})
                         db.commit()
+                        # 
+                        # 
                         if  rowcount_point_list==0:
                             reset_data_new(new_device_list)
                             return 300
@@ -674,6 +721,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                         return 100        
                 else:
                     return 300 
+                return 100 
             except Exception as err:
                 print('Error create table : ',err)
                 return 300
@@ -727,9 +775,25 @@ async def delete_device(
                         current_user: int = Depends(oauth2.get_current_user)):
     try:
         
-        if not delete_device.delete_mode in [1,2] :
+        if not delete_device.mode in [1,2] :
             return {"status": "error","code": str(300)}
-        id=delete_device.id
+        device_list=delete_device.device
+        mode=delete_device.mode
+        delete_list=[]
+        for i,item in enumerate(device_list):
+            if mode==1: # Disable
+                pass
+                # status =0 of device in table device_list
+                # 
+            elif mode==2: # delete
+                pass
+                # Delete table and view of device
+                # Delete device in table device_list
+                # Delete pm2 send list to api gateway
+            else:
+                pass
+            
+        
         device_list_query = db.query(deviceList_models.Device_list).filter(
         deviceList_models.Device_list.id == id).filter(
         deviceList_models.Device_list.status == 1)
@@ -738,7 +802,7 @@ async def delete_device(
         if not result:
             return {"status": "error","code": str(300)}
         result_communication=None
-        mode=delete_device.mode
+        
         try:
             result_communication=result.communication # accessing a non-existing attribute communication
         except AttributeError as e:

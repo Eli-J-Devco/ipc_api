@@ -35,20 +35,22 @@ from utils.pm2Manager import (create_device_group_rs485_run_pm2,
 
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC = Config.MQTT_TOPIC +"/Init"
+MQTT_TOPIC = Config.MQTT_TOPIC 
 # IPC/Init/API/Requests
 # IPC/Init/API/Responses
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
+import api.domain.project.models as project_models
 import api.domain.template.models as template_models
+import api.domain.user.models as user_models
 import model.models as models
 
 
 async def managerApplicationsWithPM2(host, port,topic, username, password):
     try:
-        Topic=f'{topic}/API/Requests'
+        Topic=f'{topic}/Init/API/Requests'
         client = mqttools.Client(host=host, 
                         port=port,
                         username= username, 
@@ -152,7 +154,11 @@ async def managerApplicationsWithPM2(host, port,topic, username, password):
 
 async def main():
     tasks = []
-    managerApplicationsWithPM2
+    db=get_db()
+    result_project=db.query(project_models.Project_setup).first()
+    db.close()
+    MQTT_TOPIC=result_project.serial_number
+    print(f'MQTT_TOPIC: {MQTT_TOPIC}')
     tasks.append(asyncio.create_task(
         managerApplicationsWithPM2(MQTT_BROKER,MQTT_PORT,
                                 MQTT_TOPIC,MQTT_USERNAME,MQTT_PASSWORD)))

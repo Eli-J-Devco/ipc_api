@@ -88,9 +88,14 @@ https://www.instructables.com/How-to-Use-MQTT-With-the-Raspberry-Pi-and-ESP8266/
 sudo apt update 
 sudo apt install -y mosquitto
 <!-- set user and pass MQTT -->
+
 sudo mosquitto_passwd -c /etc/mosquitto/pwfile nextwave
 mosquitto_pub -d -u nextwave -P 123654789 -t IPC -m "Hello, World!"
 mosquitto_sub -d -u nextwave -P 123654789  -t IPC
+<!-- Deleting Mosquitto MQTT retained messages -->
+sudo service mosquitto stop
+sudo rm /var/lib/mosquitto/mosquitto.db
+sudo service mosquitto start
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/

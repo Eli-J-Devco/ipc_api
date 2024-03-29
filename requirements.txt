@@ -44,3 +44,5 @@ pycryptodomex
 pycryptodome
 netifaces
 pyserial
+SQLAlchemy-Utils
+sqlalchemy-views

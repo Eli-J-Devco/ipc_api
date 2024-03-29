@@ -42,6 +42,8 @@ router = APIRouter(tags=['Authentication'])
 # from api.domain.user import models as user_models
 # from api.domain.user import models, schemas
 
+# from sqlalchemy.ext.asyncio import AsyncSession
+
 import api.domain.project.models as project_models
 import api.domain.user.models as user_models
 import api.domain.user.schemas as user_schemas
@@ -58,7 +60,7 @@ from utils.passwordHasher import convert_binary_auth, decrypt, encrypt, verify
 # 	 * @return data (Token)
 # 	 */ 
 @router.post('/login/', response_model=user_schemas.Token)
-def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(response: Response, user_credentials: OAuth2PasswordRequestForm = Depends(), db:Session = Depends(get_db)):
     try:
         # username b'U2FsdGVkX19ZDkZuu1l7LGxevbTdWIgvCUD9KE6dVVTgTFVhFvfxvxBrIR65e0aa'
         # password b'U2FsdGVkX18mv2nMwFhaD0yvWSFRmIzFrxbTaSMcWyI='

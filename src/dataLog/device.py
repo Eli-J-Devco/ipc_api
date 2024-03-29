@@ -185,8 +185,9 @@ async def Get_MQTT(host, port, topic, username, password):
     global result_list
     global status_file
     result_values_dict = {}
-    result_value = []
-    result_point_id = []
+    device_id = 0
+    start_index = "" 
+    end_index = ""
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client :
@@ -201,8 +202,11 @@ async def Get_MQTT(host, port, topic, username, password):
                 print("Not find message from MQTT")
                 return -1 
             # cut string get device id value from sud mqtt
-            cut_topic1 = message.topic[8:]
-            device_id = cut_topic1.split("|")[0]
+            start_index = topic.find("/Dev/") + len("/Dev/")
+            end_index = topic.find("|")
+
+            if start_index != -1 and end_index != -1:
+                device_id = topic[start_index:end_index]
             
             if status_file == "Success" :
                 result_value = []
@@ -274,6 +278,7 @@ async def Insert_TableDevice_AllDevice():
 # 	 */ 
 async def Insert_TableDevice(sql_id):
     global result_list
+    global status
     global QUERY_SELECT_NAME_DEVICE
     sql_queries = {}
     data = []
@@ -300,6 +305,7 @@ async def Insert_TableDevice(sql_id):
         
         # Replace '0.0' with '' in the data tuple
         value_insert = tuple("0.0" if x == "" else x for x in value_insert)
+        
         # Create Query
         columns = ["time", "id_device"]
         
@@ -311,6 +317,7 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
+
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
@@ -430,10 +437,14 @@ async def main():
     position = time_interval.rfind("minute")
     number = time_interval[:position]
     int_number = int(number)
-    
-    if not time_create_file_insert_data_table_dev or not result_all:
-        print("Error not found data in Database")
+
+    if not result_all :
+        print("None of the devices have been selected in the database")
         return -1
+    if not time_create_file_insert_data_table_dev :
+        print("Unable to select synchronization time for data in the database.")
+        return -1
+    
     
     scheduler = AsyncIOScheduler()
     scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')

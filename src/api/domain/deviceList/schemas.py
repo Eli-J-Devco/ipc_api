@@ -210,7 +210,7 @@ class DeviceDelete(BaseModel):
         orm_mode = True
 class DeviceDeleteMulti(BaseModel):
     device: list[DeviceDelete]= None
-    delete_mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
     
     class Config:
         orm_mode = True

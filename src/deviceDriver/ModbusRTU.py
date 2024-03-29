@@ -826,7 +826,7 @@ async def device(ConfigPara):
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(host, port,topic, username, password
+async def monitoring_device(serial_number_project,host, port,topic, username, password
                        
                        ):
     try:
@@ -848,21 +848,29 @@ async def monitoring_device(host, port,topic, username, password
                 "STATUS_REGISTER":item['STATUS_REGISTER'],
                 "POINT_LIST":item['POINT_LIST'],
                             }
+                # func_mqtt_public(   host,
+                #                     port,
+                #                     topic+""+device_id+"|"+device_name,
+                #                     username,
+                #                     password,
+                #                     data_mqtt)
                 func_mqtt_public(   host,
                                     port,
-                                    topic+""+device_id+"|"+device_name,
+                                    serial_number_project+"/"+"Devices/"+""+device_id,
                                     username,
                                     password,
                                     data_mqtt)
-             
             await asyncio.sleep(2)
         
     except Exception as err:
         print('Error monitoring_device : ',err)
 async def main():
     tasks = []
+    results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
+    serial_number_project=results_project[0]["serial_number"]
     tasks.append(asyncio.create_task(device(arr)))
-    tasks.append(asyncio.create_task(monitoring_device( MQTT_BROKER,
+    tasks.append(asyncio.create_task(monitoring_device( serial_number_project,
+                                                    MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC,
                                                     MQTT_USERNAME,
