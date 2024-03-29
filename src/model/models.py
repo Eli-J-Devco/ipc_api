@@ -287,6 +287,8 @@ class ManualPointList(Base):
     type_config_information= relationship('Config_information', foreign_keys=[id_config_information])
     device_type = relationship('Device_type', foreign_keys=[id_device_type])
     
+    parent =  Column(Integer, ForeignKey("point_list.id"), nullable=False)  
+    reply_to_point =relationship("Point_list",  remote_side=[parent]) 
     
 # # 
 class Device_point_list_map(Base):
