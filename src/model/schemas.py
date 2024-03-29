@@ -96,6 +96,7 @@ class TypeClassBase(BaseModel):
 class PointBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[str] = None
+    parent: Optional[int] = None
     # --------------------------------------------------
     id_template : Optional[int] = None
     # 
@@ -128,6 +129,7 @@ class PointBase(BaseModel):
 
 class ManualPointBase(BaseModel):
     id : Optional[int] = None
+    parent: Optional[int] = None
     id_device_type : Optional[int] = None
     id_pointclass_type : Optional[int] = None
     id_config_information : Optional[int] = None

@@ -85,9 +85,43 @@ def create_template(template: template_schemas.TemplateCreateBase,
 
         # create device point list
         id_device_type = db.query(deviceGroup_models.Device_group).filter(deviceGroup_models.Device_group.id == template.id_device_group).first().id_device_type
-        device_point_list_query = db.query(models.ManualPointList).filter(models.ManualPointList.id_device_type == id_device_type)
+        device_point_list_query = db.query(models.ManualPointList).filter(models.ManualPointList.id_device_type == id_device_type).filter(models.ManualPointList.id_config_information == 266)
         result_device_point_list= device_point_list_query.all()
         db.add_all([models.Point_list(**schemas.ManualPointBase(**item.__dict__).model_dump(exclude=["id", "id_device_type"]), id_template = new_template.id) for item in result_device_point_list])
+
+        # create device mppt list
+        mppt_list_query = db.query(models.ManualPointList).filter(models.ManualPointList.id_device_type == id_device_type).filter(models.ManualPointList.id_config_information > 266)
+        result_mppt_list= mppt_list_query.all()
+        mppt_dict = {}
+        for item in result_mppt_list:
+            if item.parent == None:
+                mppt_dict[item.id] = item.__dict__
+                mppt_dict[item.id]["children"] = []
+            else:
+                for key in mppt_dict.keys():
+                    if item.parent == key:
+                        mppt_dict[item.parent]["children"].append(item.__dict__)
+                    else:
+                        for child in range(len(mppt_dict[key]["children"])):
+                            if item.parent == mppt_dict[key]["children"][child]["id"]:
+                                if "children" not in mppt_dict[key]["children"][child]:
+                                    mppt_dict[key]["children"][child]["children"] = []
+                                mppt_dict[key]["children"][child]["children"].append(item.__dict__)
+        
+        for key in mppt_dict.keys():
+            mppt = models.Point_list(**schemas.ManualPointBase(**mppt_dict[key]).model_dump(exclude=["id", "id_device_type"]), id_template = new_template.id)
+            db.add(mppt)
+            db.flush()
+            for child in mppt_dict[key]["children"]:
+                mppt_string = models.Point_list(**schemas.ManualPointBase(**child).model_dump(exclude=["id", "id_device_type", "parent"]), parent = mppt.id, id_template = new_template.id)
+                db.add(mppt_string)
+                db.flush()
+                if "children" in child:
+                    for panel in child["children"]:
+                        mppt_string_panel = models.Point_list(**schemas.ManualPointBase(**panel).model_dump(exclude=["id", "id_device_type", "parent"]), parent = mppt_string.id, id_template = new_template.id)
+                        db.add(mppt_string_panel)
+                        db.flush()
+        
         db.commit()
         db.refresh(new_template)
         return new_template
@@ -98,6 +132,9 @@ def create_template(template: template_schemas.TemplateCreateBase,
         # raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
         #                     detail=f"Not have data")
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+                            
 # Describe functions before writing code
 # /**
 # 	 * @description delete template
@@ -281,19 +318,26 @@ def get_each_template(id_template: Optional[int] = Body(embed=True),
                                 content={"detail": f"Template with id: {id_template} does not exist"}
                                 )
         
-        register_list=[]
-        point_list=[]
+        register_list = []
+        point_list = []
+        mppt_list = []
+
         register_query = db.query(models.Register_block).filter(
         models.Register_block.id_template == id_template).filter(models.Register_block.status == 1)
         register_list=register_query.all()
         # 
         point_query = db.query(models.Point_list).filter(
-        models.Point_list.id_template == id_template).filter(models.Point_list.status == 1)
+        models.Point_list.id_template == id_template).filter(models.Point_list.id_config_information == 266).filter(models.Point_list.status == 1)
         point_list=point_query.all()
+
+        mppt_query = db.query(models.Point_list).filter(
+        models.Point_list.id_template == id_template).filter(models.Point_list.id_config_information > 266).filter(models.Point_list.status == 1)
+        mppt_list=mppt_query.all()
         
         return {
-            "point_list":point_list,
-            "register_list":register_list
+            "point_list": point_list,
+            "mppt_list": mppt_list,
+            "register_list": register_list
         }
     except (Exception) as err:
         print('Error : ',err)
@@ -301,7 +345,7 @@ def get_each_template(id_template: Optional[int] = Body(embed=True),
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
-# 	 * @description get each template
+# 	 * @description get tempalte config information
 # 	 * @author vnguyen
 # 	 * @since 28-12-2023
 # 	 * @param {id_template,db}
@@ -317,15 +361,15 @@ def get_template_config(db: Session = Depends(get_db), current_user: int = Depen
         byte_order = [item.__dict__ for item in config_point if item.id_type == 2]
         point_unit = [item.__dict__ for item in config_point if item.id_type == 3]
         type_point = [item.__dict__ for item in config_point if item.id_type == 15]
+        type_function = [item.__dict__ for item in config_point if item.id_type == 5]
 
-
-        
         return {
             "data_type":data_type,
             "byte_order":byte_order,
             "point_unit":point_unit,
             "type_point":type_point,
-            "type_class":type_class
+            "type_class":type_class,
+            "type_function":type_function
         }
     except (Exception) as err:
         print('Error : ',err)
@@ -527,21 +571,20 @@ def change_number_point(change_number_point: schemas.PointChangeNumberBase,
     try:
         number_point=change_number_point.number_point
         id_template=change_number_point.id_template
-        point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
+        point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template).filter(models.Point_list.status == 1)
         result_point=point_query.all()
         if result_point and len(result_point)>0 :
             count_point=len(result_point)
             if number_point<count_point:
-                print(f'----- Delete point -----')
+                print(f'----- Disable point -----')
                 # delete
                 array_delete=result_point[number_point:count_point]
                 for item in array_delete:
-                    print(f'Delete Id: {item.id}')
-                    result=point_query.filter(
-                                models.Point_list.id == item.id).delete(synchronize_session=False)
-                    db.flush()
-                    restart_pm2_change_template(id_template,db)
-                    db.commit()
+                    print(f'Disable Id: {item.id}')
+                    point_query.filter(models.Point_list.id == item.id).update({"status": 0})
+                db.flush()
+                # restart_pm2_change_template(id_template,db)
+                db.commit()
                 point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template)
                 result_point=point_query.all()
                 return result_point
