@@ -871,20 +871,22 @@ async def device(ConfigPara,mqtt_host,
                                     filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
                                     # Iterate through the new list to assign values from the corresponding variables
                                     for item in filtered_results_register:
-                                        if item['id_pointkey'] == 'ControlINV':
-                                            register = filtered_results_register["register"]
-                                            type_datatype  = filtered_results_register["id_type_datatype"]
+                                        if item['id_pointkey'] == 'ControlINV' and filtered_results_register :
+                                            register = filtered_results_register[0]["register"]
+                                            type_datatype  = filtered_results_register[0]["id_type_datatype"]
                                 
-                                enable_write_control = parametter[0]["value"]
-                                print("enable_write_control",enable_write_control)
+                                for parameter in parametter:
+                                    enable_write_control = parameter["value"]
+
+                                
                                 # Find datatype register (int16,int32, float,...)
                                 results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
-                                print("results_datatype",results_datatype)
+
                                 if results_datatype :
                                     datatype = results_datatype[0]["value"]
                                 else :
                                     pass
-                                    
+                                
                                 try:
                                     if slave_ip and slave_port and unit and datatype:
                                         with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype, value=enable_write_control) as client:
@@ -1391,16 +1393,11 @@ async def mqtt_subscribe_controlsV2(host, port, topic, username, password):
             
             mqtt_result = json.loads(message.message.decode())
             
-            print("mqtt result" , mqtt_result)
-            
             if mqtt_result:
                 if 'id_device' not in mqtt_result or 'parametter' not in mqtt_result :
                     continue
                 device_control = mqtt_result['id_device']
                 parametter = mqtt_result['parametter']
-                
-                print("device_control" , device_control)
-                print("parametter",parametter)
 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
