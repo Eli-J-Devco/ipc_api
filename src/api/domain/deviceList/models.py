@@ -193,7 +193,7 @@ def create_table_device(table_name,pointList=[]):
     for i,item in enumerate(pointList):
         new_table_device.append_column(Column(str(item['name']), DOUBLE, nullable=True))
     # table_creation_sql = CreateTable(new_table_device)
-    
+    # return new_table_device.create(engine)
     return new_table_device
 
 def create_table(tbl_name, number=10):

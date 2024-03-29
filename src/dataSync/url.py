@@ -461,6 +461,7 @@ async def sync_ServerURL_Database_AllDevice():
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
     
+    print("result================================" , result_all)
     tasks = []
     for item in result_all:
         sql_id = item["id"]
@@ -501,6 +502,7 @@ async def sync_ServerURL_Database(id_device):
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     global QUERY_TIME_SYNC_DATA
+    global QUERY_ALL_DEVICES_SYNCDATA
     
     id_device_fr_sys = id_upload_chanel[1]
     data_sync_server = []
@@ -513,6 +515,7 @@ async def sync_ServerURL_Database(id_device):
     data_insert_many_temp = []
     data_insert_many = []
     val = []
+    result =[]
     result1 =[]
     result2 =[]
     result3 =[]
@@ -523,6 +526,7 @@ async def sync_ServerURL_Database(id_device):
     url = ""
     response =""
     number_file =""
+    json_data_total = ""
 
     class MyVariable2:
         def __init__(self, time_id, id_device, modbusdevice, source, ensuredir, file_name, file_content, file_size, datasql, data_file):
@@ -544,11 +548,13 @@ async def sync_ServerURL_Database(id_device):
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     for item in time_sync_data:
         type_file = item["type_protocol"]
-        
+    
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     
-    if number_file <= 20000 :
+    if number_file <= len(result_all) :
         multifile = False 
     else :
         multifile = True 
@@ -671,6 +677,7 @@ async def sync_ServerURL_Database(id_device):
                                 
                             if response.status_code == 200:
                                 print(f"Send json {json_data_total} to the path {url} and receive feedback as {response.status_code}") 
+                                print("="*40 , json_data , "="*40)
                                 # Step 3 : update data error in database
                                 MySQL_Update_V1(QUERY_UPDATE_DATABASE,( current_time, device.time_id, id_device_fr_sys ,device.id_device))
                                 try :
@@ -883,6 +890,7 @@ async def sync_ServerFile_Database(sql_id):
     data_insert_many_temp = []
     data_insert_many = []
     val = []
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     result1 =[]
     result2 =[]
     result3 =[]
@@ -921,7 +929,9 @@ async def sync_ServerFile_Database(sql_id):
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     
-    if number_file <= 2000 :
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    
+    if number_file <= len(result_all)*2 :
         multifile = False 
     else :
         multifile = True 
@@ -1221,7 +1231,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
 
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-    if number_file <= 20 :
+    if number_file <= 400 :
         multifile = False 
     else :
         multifile = True 
@@ -1703,9 +1713,7 @@ async def main():
         print("Cannot be converted to an integer.")
         return -1
 
-    # time_sentdata = 100 # test 
     if time_sentdata and type_file == "URL":
-            time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', hour = 1,  args=[])
@@ -1735,7 +1743,6 @@ async def main():
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
                 scheduler.start()
     if time_sentdata and type_file == "LOGFILE":
-            # time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', hour = 1, args=[])
