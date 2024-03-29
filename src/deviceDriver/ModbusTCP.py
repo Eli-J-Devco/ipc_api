@@ -49,9 +49,9 @@ MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
 # Subscribe -> IPC|device_id|device_name|control
 MQTT_TOPIC = Config.MQTT_TOPIC +"/Dev/"
-MQTT_TOPIC_SUD_CONTROL = "IPC/Control/#"
-MQTT_TOPIC_SUD_PARAMETTER = "IPC/Control/#"
-MQTT_TOPIC_PUB_CONTROL = "IPC/Control"
+MQTT_TOPIC_SUD_CONTROL = "G83VZT33/Control/#"
+MQTT_TOPIC_SUD_PARAMETTER = "G83VZT33/Control/#"
+MQTT_TOPIC_PUB_CONTROL = "G83VZT33/Control"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 
@@ -784,6 +784,7 @@ async def device(ConfigPara,mqtt_host,
                 results_device_type = []
                 results_device_modbus = []
                 results_write_modbus = []
+                results_register = []
                 
                 # information Modbus 
                 device_name = ""
@@ -795,6 +796,10 @@ async def device(ConfigPara,mqtt_host,
                 type_datatype = ""
                 status_device = ""
                 comment = ""
+                
+                
+                filtered_results_register = []
+                required_pointkeys = ['ControlINV']
                 Token = secrets.token_urlsafe(16)
                 
                 device_name = results_device[0]["name"]
@@ -841,8 +846,10 @@ async def device(ConfigPara,mqtt_host,
                         
                         # 
                         # print("---------- read data from Device ----------")
+                        ###############################################################################################
                         if device_control :
                             results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
+                            results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (id_device,))
                         else :
                             pass
                         
@@ -850,7 +857,8 @@ async def device(ConfigPara,mqtt_host,
                         if results_device_type :
                             if results_device_type[0]["name"] == "PV System Inverter" :
                                 results_device_modbus = MySQL_Select(QUERY_INFORMATION_CONNECT_MODBUSTCP, (device_control,))
-                        
+                                results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
+                                
                                 if results_device_modbus :
                                     slave_ip = results_device_modbus[0]["tcp_gateway_ip"]
                                     slave_port = results_device_modbus[0]['tcp_gateway_port']
@@ -859,75 +867,81 @@ async def device(ConfigPara,mqtt_host,
                                 else :
                                     pass
                                 
-                                for parameter in parametter:
-                                    register = parameter["register"]
-                                    type_datatype = parameter["id_type_datatype"]
-                                    enable_write_control = parameter["value"]
+                                if results_register :
+                                    filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
+                                    # Iterate through the new list to assign values from the corresponding variables
+                                    for item in filtered_results_register:
+                                        if item['id_pointkey'] == 'ControlINV':
+                                            register = filtered_results_register["register"]
+                                            type_datatype  = filtered_results_register["id_type_datatype"]
+                                
+                                enable_write_control = parametter[0]["value"]
+                                print("enable_write_control",enable_write_control)
+                                # Find datatype register (int16,int32, float,...)
+                                results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+                                print("results_datatype",results_datatype)
+                                if results_datatype :
+                                    datatype = results_datatype[0]["value"]
+                                else :
+                                    pass
                                     
-                                    # Find datatype register (int16,int32, float,...)
-                                    results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
-                                    if results_datatype :
-                                        datatype = results_datatype[0]["value"]
+                                try:
+                                    if slave_ip and slave_port and unit and datatype:
+                                        with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype, value=enable_write_control) as client:
+                                            if len(parametter) == 1:
+                                                if enable_write_control == True :
+                                                    results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=1)
+                                                elif enable_write_control == False :
+                                                    results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=0)
+                                            elif len(parametter) >= 1:
+                                                results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=enable_write_control)
+                                            
+                                except Exception as e:
+                                    print(f"Error writing to Modbus: {e}")
+                                        
+                            # get status INV 
+                            if results_write_modbus:
+                                code_value = results_write_modbus['code']
+                                if code_value == 16 :
+                                    comment = "successfully written to the inverter"
+                                elif code_value == 144 :
+                                    comment = "Writing to the inverter failed "
+                                
+                                if code_value == 16 and enable_write_control == True :
+                                    status_device = "INV Running"
+                                else : 
+                                    status_device = "INV Shutdown"
+                                    
+                                try:
+                                    if len(parametter) == 1 :
+                                        current_time = get_utc()
+                                        data_send = {
+                                            "ID_DEVICE":device_control,
+                                            "DEVICE_NAME":device_name,
+                                            "TIME_STAMP" :current_time,
+                                            "STATUS_DEVICE":status_device,
+                                            "STATUS_WRITE_INV": comment,
+                                            "TOKEN" : Token 
+                                            }
                                     else :
-                                        pass
+                                        data_send = {
+                                            "ID_DEVICE":device_control,
+                                            "DEVICE_NAME":device_name,
+                                            "TIME_STAMP" :current_time,
+                                            "STATUS_WRITE_INV": comment,
+                                            "TOKEN" : Token 
+                                            }
                                         
-                                    try:
-                                        if slave_ip and slave_port and unit and datatype:
-                                            with ModbusTcpClient(slave_ip, port=slave_port, unit=unit, register=register, datatype=datatype, value=enable_write_control) as client:
-                                                if len(parametter) == 1:
-                                                    if enable_write_control == True :
-                                                        results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=1)
-                                                    elif enable_write_control == False :
-                                                        results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=0)
-                                                elif len(parametter) >= 1:
-                                                    results_write_modbus = write_modbus_tcp(client, unit, datatype, register, value=enable_write_control)
-                                                
-                                    except Exception as e:
-                                        print(f"Error writing to Modbus: {e}")
-                                            
-                                # get status INV 
-                                if results_write_modbus:
-                                    code_value = results_write_modbus['code']
-                                    if code_value == 16 :
-                                        comment = "successfully written to the inverter"
-                                    elif code_value == 144 :
-                                        comment = "Writing to the inverter failed "
-                                    
-                                    if code_value == 16 and enable_write_control == True :
-                                        status_device = "INV Running"
-                                    else : 
-                                        status_device = "INV Shutdown"
-                                        
-                                    try:
-                                        if len(parametter) == 1 :
-                                            current_time = get_utc()
-                                            data_send = {
-                                                "ID_DEVICE":device_control,
-                                                "DEVICE_NAME":device_name,
-                                                "TIME_STAMP" :current_time,
-                                                "STATUS_DEVICE":status_device,
-                                                "STATUS_WRITE_INV": comment,
-                                                "TOKEN" : Token 
-                                                }
-                                        else :
-                                            data_send = {
-                                                "ID_DEVICE":device_control,
-                                                "DEVICE_NAME":device_name,
-                                                "TIME_STAMP" :current_time,
-                                                "STATUS_WRITE_INV": comment,
-                                                "TOKEN" : Token 
-                                                }
-                                            
-                                        push_data_to_mqtt(mqtt_host,
-                                                mqtt_port,
-                                                topicPublic + "/" + device_control +  "/" + "Feedback" ,
-                                                mqtt_username,
-                                                mqtt_password,
-                                                data_send)
-                                    
-                                    except Exception as e:
-                                        print(f"An error occurred: {e}")
-                                        return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
+                                    push_data_to_mqtt(mqtt_host,
+                                            mqtt_port,
+                                            topicPublic + "/" + device_control +  "/" + "Feedback" ,
+                                            mqtt_username,
+                                            mqtt_password,
+                                            data_send)
+                                
+                                except Exception as e:
+                                    print(f"An error occurred: {e}")
+                                    return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
                             else:
                                 pass
                         else :
@@ -1350,6 +1364,7 @@ async def mqtt_subscribe_controlsV1(host, port,topic, username, password):
        
         print(f"Error MQTT subscribe: '{err}'")
 async def mqtt_subscribe_controlsV2(host, port, topic, username, password):
+    
     global device_control
     global device_name
     global enable_write_control
@@ -1376,14 +1391,17 @@ async def mqtt_subscribe_controlsV2(host, port, topic, username, password):
             
             mqtt_result = json.loads(message.message.decode())
             
+            print("mqtt result" , mqtt_result)
+            
             if mqtt_result:
-                if 'ID_DEVICE' not in mqtt_result or 'DEVICE_NAME' not in mqtt_result or 'PARAMETTER' not in mqtt_result or 'TIME_STAMP' not in mqtt_result :
+                if 'id_device' not in mqtt_result or 'parametter' not in mqtt_result :
                     continue
-                device_control = mqtt_result['ID_DEVICE']
-                device_name = mqtt_result['DEVICE_NAME']
-                parametter = mqtt_result['PARAMETTER']
-                last_message_time = mqtt_result['TIME_STAMP']
+                device_control = mqtt_result['id_device']
+                parametter = mqtt_result['parametter']
                 
+                print("device_control" , device_control)
+                print("parametter",parametter)
+
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 # Describe functions before writing code

@@ -41,7 +41,8 @@ URL_SERVER_SYNC_FILE = Config.URL_SERVER_SYNC_FILE
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/UpData" 
+# MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/UpData" 
+MQTT_TOPIC_PUB = ""
 MQTT_TOPIC_SUB = "Control"
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
@@ -64,6 +65,7 @@ QUERY_SELECT_SERIAL_NUMBER = ""
 QUERY_SELECT_URL = ""
 QUERY_SYNC_FILELOG_SERVER = ""
 QUERY_TIME_CREATE_FILE = ""
+QUERY_SELECT_TOPIC = ""
 
 # Declare Variable 
 data_sent_server_list = []
@@ -253,9 +255,15 @@ def pushMQTT(host, port,topic, username, password, data_send):
 async def colectDatatoPushMQTT_AllDevice(host,port,topic,username,password):
     global id_upload_chanel
     global QUERY_ALL_DEVICES_SYNCDATA
+    global QUERY_SELECT_TOPIC
+    result_topic = ""
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
     
+    result_topic = await MySQL_Select_v1 (QUERY_SELECT_TOPIC)
+    topic = result_topic[0]["serial_number"]
+    topic = topic + "/UpData" 
+
     tasks = []
     for item in result_all:
         sql_id = item["id"]
@@ -502,6 +510,7 @@ async def sync_ServerURL_Database(id_device):
     global QUERY_SELECT_SERIAL_NUMBER
     global QUERY_SELECT_URL
     global QUERY_TIME_SYNC_DATA
+    global QUERY_ALL_DEVICES_SYNCDATA
     
     id_device_fr_sys = id_upload_chanel[1]
     data_sync_server = []
@@ -514,6 +523,7 @@ async def sync_ServerURL_Database(id_device):
     data_insert_many_temp = []
     data_insert_many = []
     val = []
+    result =[]
     result1 =[]
     result2 =[]
     result3 =[]
@@ -546,11 +556,13 @@ async def sync_ServerURL_Database(id_device):
     time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
     for item in time_sync_data:
         type_file = item["type_protocol"]
-        
+    
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     
-    if number_file <= 20000 :
+    if number_file <= len(result_all) :
         multifile = False 
     else :
         multifile = True 
@@ -886,6 +898,7 @@ async def sync_ServerFile_Database(sql_id):
     data_insert_many_temp = []
     data_insert_many = []
     val = []
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
     result1 =[]
     result2 =[]
     result3 =[]
@@ -924,7 +937,9 @@ async def sync_ServerFile_Database(sql_id):
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
     
-    if number_file <= 2000 :
+    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    
+    if number_file <= len(result_all)*2 :
         multifile = False 
     else :
         multifile = True 
@@ -1224,7 +1239,7 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
 
     result1 = MySQL_Select(QUERY_NUMER_FILE,(id_device_fr_sys,))
     number_file = result1[0]["remaining_files"]
-    if number_file <= 20 :
+    if number_file <= 400 :
         multifile = False 
     else :
         multifile = True 
@@ -1643,6 +1658,7 @@ async def main():
     global QUERY_SELECT_URL
     global QUERY_SYNC_FILELOG_SERVER
     global QUERY_TIME_CREATE_FILE
+    global QUERY_SELECT_TOPIC
     
     result_all =[]
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
@@ -1664,10 +1680,11 @@ async def main():
         QUERY_SELECT_URL = result_mybatis["QUERY_SELECT_URL"]
         QUERY_SYNC_FILELOG_SERVER = result_mybatis["QUERY_SYNC_FILELOG_SERVER"]
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
+        QUERY_SELECT_TOPIC = result_mybatis["QUERY_SELECT_TOPIC"]
         
     except Exception as e:
             print('An exception occurred',e)
-    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_SELECT_NAME_DEVICE or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER or not QUERY_TIME_CREATE_FILE:
+    if not QUERY_GETDATA_SERVER or not QUERY_ALL_DEVICES_SYNCDATA or not QUERY_SYNC_SERVER or not QUERY_UPDATE_DATABASE or not QUERY_TIME_SYNC_DATA or not QUERY_UPDATE_ERR_DATABASE or not QUERY_TIME_RETRY or not QUERY_UPDATE_NUMBERRETRY or not QUERY_NUMER_FILE or not QUERY_SYNC_MULTIFILE_SERVER or not QUERY_SYNC_ERROR_MQTT or not QUERY_SELECT_NAME_DEVICE or not QUERY_UPDATE_SERIAL_NUMBER or not QUERY_SELECT_SERIAL_NUMBER or not QUERY_SELECT_URL or not QUERY_SYNC_FILELOG_SERVER or not QUERY_TIME_CREATE_FILE or not QUERY_SELECT_TOPIC:
         print("Error not found data in file mybatis")
         return -1
     try: 
@@ -1706,9 +1723,7 @@ async def main():
         print("Cannot be converted to an integer.")
         return -1
 
-    # time_sentdata = 100 # test 
     if time_sentdata and type_file == "URL":
-            time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', hour = 1,  args=[])
@@ -1738,7 +1753,6 @@ async def main():
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
                 scheduler.start()
     if time_sentdata and type_file == "LOGFILE":
-            # time_sentdata = 100 # test
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', hour = 1, args=[])

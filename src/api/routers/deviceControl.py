@@ -107,8 +107,8 @@ async def device_control(id_device : int , bitcontrol : bool ):
     sql_id_str = str(id_device)
     
     # information MQTT 
-    topicPublic="IPC/Control/" + sql_id_str +  "/" + "Write" 
-    topicSud="IPC/Control/" + sql_id_str +  "/" + "Feedback" 
+    topicPublic= "G83VZT33" + "/Control/" + sql_id_str +  "/" + "Write" 
+    topicSud= "G83VZT33" + "/Control/" + sql_id_str +  "/" + "Feedback" 
     mqtt_host=MQTT_BROKER 
     mqtt_port=MQTT_PORT
     mqtt_username=MQTT_USERNAME
@@ -123,6 +123,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
     # information Modbus 
     required_pointkeys = ['ControlINV']
     filtered_results_register = []
+    parametter = []
     
     # information Modbus 
     register = ""
@@ -164,10 +165,11 @@ async def device_control(id_device : int , bitcontrol : bool ):
             
             # Create a new list to store elements that satisfy the condition
             if results_register :
-                
                 filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
+                parametter = [{'id_pointkey': item['id_pointkey']} for item in filtered_results_register]
+                print("parametter",parametter)
                 # Iterate through the new list to assign values from the corresponding variables
-                for item in filtered_results_register:
+                for item in parametter:
                     if item['id_pointkey'] == 'ControlINV':
                         item['value'] = bitcontrol
                     
@@ -183,12 +185,10 @@ async def device_control(id_device : int , bitcontrol : bool ):
         comment = "device does not exist"
     try:
         data_send = {
-            "ID_DEVICE":sql_id_str,
-            "DEVICE_NAME":device_name,
-            "TIME_STAMP" :current_time,
-            "PARAMETTER" : filtered_results_register,
-            "COMMENT":comment,
+            "id_device":sql_id_str,
+            "parametter" : parametter,
             }
+        
         push_data_to_mqtt(mqtt_host,
                 mqtt_port,
                 topicPublic,
