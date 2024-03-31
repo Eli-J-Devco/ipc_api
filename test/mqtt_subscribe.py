@@ -63,9 +63,11 @@ MQTT_PASSWORD = "123654789"
 
 import mqttools
 
-MQTT_BROKER = '192.168.80.161' 
-# MQTT_BROKER = 'test.mosquitto.org'
-MQTT_PORT = 1883
+# MQTT_BROKER = '115.78.133.129' 
+# MQTT_PORT = 1883
+
+MQTT_BROKER = '192.168.1.103' 
+MQTT_PORT = 1885
 
 # Publish   -> IPC@device_name
 # Subscribe -> IPC@device_name@control
@@ -79,13 +81,14 @@ async def subscriber():
     print(f'MQTT_USERNAME: {MQTT_USERNAME}')
     print(f'MQTT_PASSWORD: {MQTT_PASSWORD}')
     client = mqttools.Client(host=MQTT_BROKER, 
-                             port=MQTT_PORT,
-                             username= MQTT_USERNAME, 
-                             password=bytes(MQTT_PASSWORD, 'utf-8'))
+                             port=MQTT_PORT
+                            #  username= MQTT_USERNAME, 
+                            #  password=bytes(MQTT_PASSWORD, 'utf-8')
+                             )
     # client = mqttools.Client(host=MQTT_BROKER, 
     #                          port=MQTT_PORT
     #                         )
-    Topic="IPC@UNO-DM-3.3-TL-PLUS"
+    Topic="python/mqtt/#"
     await client.start()
     await client.subscribe(Topic)
 
@@ -100,7 +103,7 @@ async def subscriber():
         print(f'Message: {message.message.decode()}')
         print()
 
-# asyncio.run(subscriber())
+asyncio.run(subscriber())
 # async def publisher():
 #     Topic="IPC@UNO-DM-3.3-TL-PLUS"
 #     async with mqttools.Client(host=MQTT_BROKER, 

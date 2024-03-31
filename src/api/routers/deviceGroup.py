@@ -28,6 +28,8 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
 import utils.oauth2 as oauth2
 # LOGGER = setup_logger(module_name='API')
 from api.domain.deviceGroup import models, schemas
+from model.models import Device_type
+from model.schemas import DeviceTypeBase
 from database.db import engine, get_db
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
@@ -58,6 +60,24 @@ def get_all_group( db: Session = Depends(get_db) ,  current_user: int = Depends(
                                 detail=f"Not have Device group")
         return result_device_group
         
+    except Exception as err: 
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Not have data")
+# Describe functions before writing code
+# /**
+# 	 * @description get device type
+# 	 * @author vnguyen
+# 	 * @since 09-01-2024
+# 	 * @param {db}
+# 	 * @return data (DeviceGroupOutBase)
+# 	 */
+@router.post('/get_type/', response_model=list[DeviceTypeBase])
+def get_type( db: Session = Depends(get_db) ,  current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        device_type = db.query(Device_type).filter(Device_type.status == True).all()
+        return device_type
     except Exception as err: 
         print('Error : ',err)
         # LOGGER.error(f'--- {err} ---')

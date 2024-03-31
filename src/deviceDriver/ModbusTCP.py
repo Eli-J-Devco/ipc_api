@@ -650,7 +650,7 @@ def func_mqtt_public(host, port,topic, username, password, data_send):
         payload = json.dumps(data_send)
       
         publish.single(topic, payload, hostname=host,
-                       retain=True, port=port,
+                       retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
@@ -703,7 +703,7 @@ async def device(ConfigPara,mqtt_host,
         else:
             return -1
         global query_device_control,query_only_device
-        global data_control
+        # global data_control
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
         global QUERY_INFORMATION_CONNECT_MODBUSTCP
@@ -1008,37 +1008,39 @@ async def device(ConfigPara,mqtt_host,
                         # 
                 except (ConnectionException, ModbusException) as e:
                     # print(f'Loi thiet bi')
-
                     status_device="OFFLINE"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"
                     # set value Quality of Point =1 when disconnect
                     point_list_error=[]
+                    # if point_list_device:
+                    #     print(point_list_device[0])
                     for item in point_list_device:
                         point_list_error.append(point_object(
-                                        item['config_information'],
-                                        item['id_point'],
-                                        item['parent'],
+                                        item['Config'],
+                                        item['IDPoint'],
+                                        item['Parent'],
                                         
                                             item['ItemID'], 
-                                            item['pointkey'],
+                                            item['PointKey'],
                                             item['Name'], 
                                             item['Units'], 
                                             item['Value'], 
-                                            1,
                                             item['Timestamp'], 
+                                            1,
                                             MsgError="Error Device"
                                             ))
                     point_list_device=point_list_error
                     await asyncio.sleep(5)
                 except AttributeError as ae:
                     print("AE ERROR", ae)
-                    await asyncio.sleep(3)
+                    await asyncio.sleep(5)
 
     except Exception as err:
-        
-        print('Error device : ',err)
-        
+        print('Exception device : ', type(err).__name__)
+        # raise Exception("Runtime Error!!!") 
+    finally:
+        print ("--Finally--")      
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -1047,7 +1049,7 @@ async def device(ConfigPara,mqtt_host,
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(host, port,topic, username, password
+async def monitoring_device(serial_number_project,host, port,topic, username, password
                        
                        ):
     try:
@@ -1134,14 +1136,20 @@ async def monitoring_device(host, port,topic, username, password
                 "POINT_LIST":new_point,
                 "MPPT":mppt
             }
-            if device_name !="":
+            if device_name !="" and serial_number_project!= None:
+                # func_mqtt_public(   host,
+                #                     port,
+                #                     topic+""+device_id+"|"+device_name,
+                #                     username,
+                #                     password,
+                #                     data_mqtt)
                 func_mqtt_public(   host,
                                     port,
-                                    topic+""+device_id+"|"+device_name,
+                                    serial_number_project+"/"+"Devices/"+""+device_id,
                                     username,
                                     password,
                                     data_mqtt)
-            await asyncio.sleep(5)
+            await asyncio.sleep(2)
         
     except Exception as err:
         print('Error monitoring_device : ',err)
@@ -1477,16 +1485,13 @@ async def check_device_control():
 async def main():
     tasks = []
     
-    tasks.append(asyncio.create_task(device(arr,MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_PUB_CONTROL,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD )))
+    tasks.append(asyncio.create_task(device(arr)))
     tasks.append(asyncio.create_task(monitoring_device( MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
+                                                                                        
                                                     )))
     tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(MQTT_BROKER,
                                                             MQTT_PORT,

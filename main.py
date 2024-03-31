@@ -298,12 +298,33 @@ def init_api_web():
         # use run with ubuntu/linux
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/api/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run api gateway
+# 	 * @author vnguyen
+# 	 * @since 26-03-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_api_gateway():
+    absDirname=path
+    pid=f'APIGateway'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/apiGateway/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/apiGateway/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
 init_driver()
-# init_api_web()
-# init_log_file()
-# init_sync_file()
-# init_log_data()
+init_api_web()
+init_api_gateway()
+init_log_file()
+init_sync_file()
+init_log_data()
+
 
 
 

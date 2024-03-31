@@ -22,15 +22,44 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 from model.schemas import (DataTypeBase, PointByteOrder, PointDataType,
                            PointOutBase, PointUnit, RegisterListBase,
                            TypeByteOrderBase, TypeClassBase, TypePointBase,
-                           TypeUnitsBase)
+                           TypeUnitsBase, ManualPointBase)
 
 
 # <- template_library ->
+class MPPTSTRINGPANEL(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    class Config:
+        orm_mode = True
+class MPPTSTRING(BaseModel):
+    
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    panel: list[MPPTSTRINGPANEL] = None
+    class Config:
+        orm_mode = True
+class MPPTBase(BaseModel):
+    # String: list[MPPTSTRING] = None
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    string: list[MPPTSTRING] =  None
+    class Config:
+        orm_mode = True
+class TemplateMPPTBase(BaseModel):
+    id: Optional[int] = None
+    mppt: Optional[list[MPPTBase]] = None
+    class Config:
+        orm_mode = True
+    
 class TemplateBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     status: Optional[bool] = None
     id_device_group: Optional[int] = None
+    type: Optional[int] = None
     class Config:
         orm_mode = True
 # <-  -> 
@@ -38,7 +67,8 @@ class TemplateBase(BaseModel):
 class TemplateCreateBase(BaseModel):
     name: Optional[str] = None
     status: Optional[bool] = None
-    id_template_type:Optional[int] = None
+    id_device_group: Optional[int] = None
+    type: Optional[int] = None
     class Config:
         orm_mode = True
 class TemplateOutBase(TemplateCreateBase):
@@ -73,7 +103,12 @@ class TemplateDelete(BaseModel):
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-# <-  ->       
+# <-  ->     
+class ManualPointOutBase(BaseModel):
+    manual_list: Optional[list[ManualPointBase]] = None
+    class Config:
+        orm_mode = True  
+
 class PointTemplateOutBase(PointOutBase):
     type_units_list: Optional[list[TypeUnitsBase]] = None
     type_datatype_list: Optional[list[DataTypeBase]] = None
@@ -83,10 +118,18 @@ class PointTemplateOutBase(PointOutBase):
     type_class_list: Optional[list[TypeClassBase]] = None
     class Config:
         orm_mode = True
-class TemplateListBase(BaseModel):
+
+class TemplateConfigBase(BaseModel):
     data_type:list[PointDataType]=None
     byte_order:list[PointByteOrder]=None
     point_unit:list[PointUnit]=None
+
+    class Config:
+        orm_mode = True
+class TemplateListBase(BaseModel):
+    # data_type:list[PointDataType]=None
+    # byte_order:list[PointByteOrder]=None
+    # point_unit:list[PointUnit]=None
     point_list : list[PointOutBase]=None
     register_list : list[RegisterListBase]=None
     

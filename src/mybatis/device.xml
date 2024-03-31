@@ -100,24 +100,24 @@
         WHERE device_list.id= :id;
       </select>
 		<select id="insert_device_point_list">
-        INSERT INTO `device_point_list_map`(
+  INSERT INTO `device_point_list_map`(
         id_device_list,
         id_point_list,
-        name,
+        `name`,
         low_alarm,
         high_alarm
         )
         SELECT 
         device_list.id,
         point_list.id AS id_point_list,
-        point_list.name AS name,
+        point_list.name AS `name`,
         point_list.low_alarm AS low_alarm,
-        point_list.high_alarm AS high_alarm
+        point_list.high_alarm AS high_alarm 
         
         FROM device_list
-        INNER JOIN template_library ON template_library.id=device_list.id_device_template
+        INNER JOIN template_library ON template_library.id=device_list.id_template
         INNER JOIN point_list ON template_library.id=point_list.id_template
-        WHERE device_list.id=  :id;
+        WHERE device_list.id=  :id  ORDER BY point_list.id ASC;
       </select>  
 		<select id="somewhere">
         select * from device_list where

@@ -37,7 +37,10 @@
             FROM device_list
             INNER JOIN template_library ON template_library.id=device_list.id_template
             INNER JOIN point_list ON template_library.id=point_list.id_template
-            WHERE device_list.id= ${id};
+            WHERE device_list.id= ${id}  ORDER BY point_list.id ASC;
+		</select>
+		<select id="add_device_view_table">
+			CREATE VIEW ${view_table}  AS SELECT * from ${table_name};
 		</select>
         <select id="select_all_device">
 			SELECT device_list.id, device_list.name, 

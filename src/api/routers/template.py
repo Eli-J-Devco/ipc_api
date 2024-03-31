@@ -29,6 +29,7 @@ sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_nam
                 ("src"))
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceGroup.schemas as deviceGroup_schemas
+import api.domain.deviceList.models as deviceList_models
 import api.domain.template.models as template_models
 import api.domain.template.schemas as template_schemas
 import model.models as models
@@ -77,73 +78,18 @@ def create_template(template: template_schemas.TemplateCreateBase,
         template_query = db.query(template_models.Template_library).filter(
         template_models.Template_library.name == name).first()
         if template_query:
-            return  JSONResponse(content={"detail": "Template name already exists"}, status_code=status.HTTP_404_NOT_FOUND)
-        
-        new_template = template_models.Template_library(**template.dict())
+            return  JSONResponse(content="Template name already exists", status_code=status.HTTP_409_CONFLICT)
+        new_template = template_models.Template_library(**template.model_dump())
         db.add(new_template)
         db.flush()
-        
-        id_template=new_template.id
-        id_template_type=new_template.id_template_type
-        config_info = db.query(models.Config_information).filter(models.Config_information.status 
-                                                                                == 1).all()
-        type_function=[]
-        type_function = [item.__dict__ for item in config_info if item.id_type == 5 and item.namekey == "Read Holding Registers" ]
-        
-        point_unit=[]
-        point_unit = [item.__dict__ for item in config_info if item.id_type == 3 and item.namekey =="(No units)"]
-        type_point=[]
-        type_point = [item.__dict__ for item in config_info if item.id_type == 15 and item.namekey == "Modbus register"]   # equation
-        type_class=[]
-        type_class = [item.__dict__ for item in config_info if item.id_type == 15 and item.namekey == "Input"]   # config
-        data_type=[]
-        data_type = [item.__dict__ for item in config_info if item.id_type == 1 and item.namekey =="Short"]
-        byte_order=[]
-        byte_order = [item.__dict__ for item in config_info if item.id_type == 2 and item.namekey =="normal"]
-        template_type=[]
-        template_type=[item.__dict__ for item in config_info if item.id_type == 16 and item.id==id_template_type]
-        
-        
-        # Register
-        if type_function and  template_type:
-            if template_type[0]["namekey"]=="Modbus":
-                new_register = models.Register_block(id_template=id_template,addr=0,count=10,id_type_function=type_function[0]["id"], status=False)
-                db.add(new_register)
-            else:
-                pass
-        # Point
-        if point_unit and type_point and type_class and data_type and byte_order:
-            new_point=models.Point_list(
-                                id_template=id_template,
-                                name="",
-                                nameedit=False,
-                                id_type_units=point_unit[0]["id"],
-                                unitsedit=False,
-                                equation=type_point[0]["id"],
-                                config=type_class[0]["id"],
-                                register=0,
-                                id_type_datatype=data_type[0]["id"],
-                                id_type_byteorder = byte_order[0]["id"],
-                                slope =1,
-                                slopeenabled = False,
-                                offset = 0,
-                                offsetenabled = False,
-                                multreg = 0,
-                                multregenabled =False ,
-                                userscaleenabled = False,
-                                invalidvalue = 65535,
-                                invalidvalueenabled = False,
-                                # extendednumpoints = extendednumpoints,
-                                # extendedregblocks =extendedregblocks ,
-                                status = False,
-                                # function=function ,
-                                # constants=constants
-            )
-            db.add(new_point)
-        
+
+        # create device point list
+        id_device_type = db.query(deviceGroup_models.Device_group).filter(deviceGroup_models.Device_group.id == template.id_device_group).first().id_device_type
+        device_point_list_query = db.query(models.ManualPointList).filter(models.ManualPointList.id_device_type == id_device_type)
+        result_device_point_list= device_point_list_query.all()
+        db.add_all([models.Point_list(**schemas.ManualPointBase(**item.__dict__).model_dump(exclude=["id", "id_device_type"]), id_template = new_template.id) for item in result_device_point_list])
         db.commit()
         db.refresh(new_template)
-        
         return new_template
     except (Exception) as err:
         print('Error : ',err)
@@ -166,29 +112,43 @@ def delete_template(id_template: Optional[int] = Body(embed=True),
                     , current_user: int = Depends(oauth2.get_current_user)
                     ):
     try:
-        
         template_query = db.query(template_models.Template_library).filter(template_models.Template_library.id == id_template)
         result_template=template_query.first()
         if not result_template:
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 content=f"Template with id: {id_template} does not exist")
-        result_device_list=[]
-        if result_template.device_group:
-            if hasattr(result_template.device_group[0], 'device_list'):
-                result_device_list=[item for item in result_template.device_group[0].device_list if item.status == True]
-        result=template_query.filter(
-                                template_models.Template_library.id == id_template).delete(synchronize_session=False)
-        restart_pm2_update_template(result_device_list,db)
+        
+        # verify template is being used by device
+        device_list = db.query(deviceList_models.Device_list).filter(deviceList_models.Device_list.id_template == id_template).all()
+        if device_list:
+            return  JSONResponse(status_code=status.HTTP_406_NOT_ACCEPTABLE,
+                                content="Template is being used by device")
+        
+        # delete point list
+        point_query = db.query(models.Point_list).filter(models.Point_list.id_template == id_template).\
+                                                filter(models.Point_list.status == 1)
+        result_point=point_query.all()        
+        for item in result_point:
+            point_query.filter(
+                                models.Point_list.id == item.id).delete(synchronize_session=False)
+        
+        # delete register list
+        register_query = db.query(models.Register_block).filter(models.Register_block.id_template == id_template)
+        result_register=register_query.all()
+        for item in result_register:
+            register_query.filter(
+                                models.Register_block.id == item.id).delete(synchronize_session=False)
+        
+        template_query.delete(synchronize_session=False)
+        db.flush()
+        # restart_pm2_update_template(result_device_list,db)
         db.commit()
-        return {
-                "status": "success",
-                "code": "100",
-                "desc":""
-            }
+        return JSONResponse(content="Delete template success", status_code=status.HTTP_200_OK)
     except (Exception) as err:
         print(f'Error: {err}')
         # LOGGER.error(f'--- {err} ---')
-        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        db.rollback()
+        return JSONResponse(content="Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get template type
@@ -276,6 +236,30 @@ def get_list( db: Session = Depends(get_db), current_user: int = Depends(oauth2.
         print('Error : ',err)
         # LOGGER.error(f'--- {err} ---')
         return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Describe functions before writing code
+# /**
+# 	 * @description get template list by type
+# 	 * @author vnguyen
+# 	 * @since 10-01-2024
+# 	 * @param {db}
+# 	 * @return data (TemplateBase)
+# 	 */
+@router.post('/get_all_by_type/', response_model=list[template_schemas.TemplateBase])
+def get_list_by_type( type: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user) ):
+    try:
+        template_query = db.query(template_models.Template_library).filter(template_models.Template_library.type == type)
+        result_template=template_query.all()
+        if not result_template:
+            return  JSONResponse(
+                                status_code=status.HTTP_404_NOT_FOUND,
+                                content="Template list empty"
+                                )
+        return result_template
+    except (Exception) as err:
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # Describe functions before writing code
 # /**
 # 	 * @description get each template
@@ -296,15 +280,6 @@ def get_each_template(id_template: Optional[int] = Body(embed=True),
             return  JSONResponse(status_code=status.HTTP_404_NOT_FOUND,
                                 content={"detail": f"Template with id: {id_template} does not exist"}
                                 )
-        # print(device_group_query.__dict__)
-        config_point = db.query(models.Config_information).filter(models.Config_information.status 
-                                                                                == 1).all()
-        data_type=[]
-        data_type = [item.__dict__ for item in config_point if item.id_type == 1]
-        byte_order=[]
-        byte_order = [item.__dict__ for item in config_point if item.id_type == 2]
-        point_unit=[]
-        point_unit = [item.__dict__ for item in config_point if item.id_type == 3]
         
         register_list=[]
         point_list=[]
@@ -317,11 +292,57 @@ def get_each_template(id_template: Optional[int] = Body(embed=True),
         point_list=point_query.all()
         
         return {
+            "point_list":point_list,
+            "register_list":register_list
+        }
+    except (Exception) as err:
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Describe functions before writing code
+# /**
+# 	 * @description get each template
+# 	 * @author vnguyen
+# 	 * @since 28-12-2023
+# 	 * @param {id_template,db}
+# 	 * @return data (TemplateListBase)
+# 	 */
+@router.post('/get_template_config/', response_model=template_schemas.TemplateConfigBase)
+def get_template_config(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        config_point = db.query(models.Config_information).filter(models.Config_information.status 
+                                                                                == 1).all()
+        data_type=[]
+        data_type = [item.__dict__ for item in config_point if item.id_type == 1]
+        byte_order=[]
+        byte_order = [item.__dict__ for item in config_point if item.id_type == 2]
+        point_unit=[]
+        point_unit = [item.__dict__ for item in config_point if item.id_type == 3]
+        
+        return {
             "data_type":data_type,
             "byte_order":byte_order,
             "point_unit":point_unit,
-            "point_list":point_list,
-            "register_list":register_list
+        }
+    except (Exception) as err:
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+# Describe functions before writing code
+# /**
+# 	 * @description get manual point list by device type id
+# 	 * @author vnguyen
+# 	 * @since 28-12-2023
+# 	 * @param {id_template,db}
+# 	 * @return data (TemplateListBase)
+# 	 */
+@router.post('/get_manual_point_list/', response_model=template_schemas.ManualPointOutBase)
+def get_manual_point_list(id_device_type: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    try:
+        manual_point_list = db.query(models.ManualPointList).filter(models.ManualPointList.id_device_type == id_device_type).all() 
+        
+        return {
+            "manual_list":manual_point_list
         }
     except (Exception) as err:
         print('Error : ',err)
@@ -851,3 +872,53 @@ async def charting(db: Session = Depends(get_db)
     except (Exception) as err:
         print(f'Error: {err}')
         # LOGGER.error(f'--- {err} ---')
+# Describe functions before writing code
+# /**
+# 	 * @description get MPPT, STRING, PANEL of Template
+# 	 * @author vnguyen
+# 	 * @since 16-01-2024
+# 	 * @param {id,db}
+# 	 * @return data (TemplateMPPTBase)
+# 	 */
+@router.post('/get_mppt_template/', response_model=template_schemas.TemplateMPPTBase, 
+             response_model_by_alias=False)
+def get_mppt_template(id_template: Optional[int] = Body(embed=True), 
+                      db: Session = Depends(get_db) 
+                      , current_user: int = Depends(oauth2.get_current_user)
+                      ):
+    try:
+        point_list_query= db.query(models.Point_list)\
+            .filter(models.Point_list.id_template == id_template)\
+                .all()
+        if point_list_query:
+            MPPT=[item for item in point_list_query if item.id_config_information == 277]
+            mppt=[]
+            if MPPT:
+                for mppt_item in MPPT:
+                    MPPT_STRING=[item for item in point_list_query if item.parent == mppt_item.id 
+                                and item.id_config_information == 276 ]
+                    String=[]
+                    if MPPT_STRING:
+                        for string_item in MPPT_STRING:
+                            MPPT_STRING_PANEL=[item for item in point_list_query if item.parent == string_item.id 
+                                    and item.id_config_information == 278 ]
+                            Panel=[]
+                            if MPPT_STRING_PANEL:
+                                Panel=[item.__dict__ for item in MPPT_STRING_PANEL ]
+                            String.append({**string_item.__dict__,
+                                        "panel":Panel
+                                        })
+
+                    mppt.append({**mppt_item.__dict__,
+                                        "string":String
+                                        })
+
+        return {
+            "id":id_template,
+            "mppt": mppt
+        }
+    except (Exception) as err:
+        print('Error : ',err)
+        # LOGGER.error(f'--- {err} ---')
+        return JSONResponse(content={"detail": "Internal Server Error"}, 
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

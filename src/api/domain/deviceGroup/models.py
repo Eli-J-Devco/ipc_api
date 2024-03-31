@@ -26,6 +26,7 @@ class Device_group(Base):
     status = Column(Boolean, nullable=False, default=True)
     id_device_type = Column(Integer, ForeignKey(
         "config_information.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
+    type = Column(Integer, nullable=False, default=0)
     # id_template = Column(Integer, ForeignKey(
     #     "template_library.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=False)
     # template= relationship('Template_library', foreign_keys=[id_template])

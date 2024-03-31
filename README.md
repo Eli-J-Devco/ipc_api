@@ -88,9 +88,14 @@ https://www.instructables.com/How-to-Use-MQTT-With-the-Raspberry-Pi-and-ESP8266/
 sudo apt update 
 sudo apt install -y mosquitto
 <!-- set user and pass MQTT -->
+
 sudo mosquitto_passwd -c /etc/mosquitto/pwfile nextwave
 mosquitto_pub -d -u nextwave -P 123654789 -t IPC -m "Hello, World!"
 mosquitto_sub -d -u nextwave -P 123654789  -t IPC
+<!-- Deleting Mosquitto MQTT retained messages -->
+sudo service mosquitto stop
+sudo rm /var/lib/mosquitto/mosquitto.db
+sudo service mosquitto start
 <!-- Secure the Mosquitto Server -->
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
@@ -123,7 +128,8 @@ edit file mosquitto.conf
 allow_anonymous false
 listener 1883 0.0.0.0
 password_file C:\Program Files\mosquitto\passwd
-
+sudo systemctl restart mosquitto
+systemctl status mosquitto.service
 create file no txt
 mosquitto_passwd -U passwd
 net stop mosquitto
@@ -149,6 +155,7 @@ docker kill CONTAINER_ID
 https://www.redhat.com/sysadmin/vnc-screen-sharing-linux
 https://vinasupport.com/huong-dan-cai-dat-vnc-server-tren-ubuntu-20-04/
 <!-- ssh -->
+sudo apt install ufw
 https://www.youtube.com/watch?v=S1FPCY8W420
 sudo apt install openssh-server
 sudo systemctl start ssh
@@ -470,21 +477,13 @@ When Change device
 call file 
 sudo pm2 start /sources/python/api_python/src/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f   -- 296  --restart-delay=10000
 sudo pm2 start /sources/python/api_python/src/api/main.py --interpreter /usr/bin/python3 -f  --name "API"  --restart-delay=10000
-<!--  -->
-  #     new_point.append({
-                        #         "Config":point_item["Config"],
-                        #         "IDPoint":point_item["IDPoint"],
-                        #         "Parent":point_item["Parent"],
-                        #         "ItemID": point_item["ItemID"],
-                        #         "PointKey":point_item["PointKey"],
-                        #         "Name": point_item["Name"],
-                        #         "Units": point_item["Units"],
-                        #         "Value": point_item["Value"],
-                        #         "Timestamp": point_item["Timestamp"],
-                        #         "Quality": point_item["Quality"],
-                        #         "MsgError": point_item["MsgError"],
-                        #         "PointType": point_item["PointType"]
-                                
-                        #         }
-                        # )
+sudo python3 /sources/python/api_python/src/dataSync/url.py 2
+sudo python3 /sources/python/api_python/src/dataLog/file.py 2
+<!-- jenkins install package app -->
+You can use Python's venv like described here.
+However if you really want to install packages that way, then there are a couple of solutions:
+use pip's argument --break-system-packages,
+add following lines to ~/.config/pip/pip.conf:
+[global]
+break-system-packages = true
 <!--  -->

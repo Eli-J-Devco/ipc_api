@@ -28,6 +28,7 @@ class DeviceGroupCreateBase(BaseModel):
     # status: Optional[bool] = None
     # id_template: Optional[int] = None
     id_device_type: Optional[int] = None
+    type: Optional[int] = None
     class Config:
         orm_mode = True
 class DeviceGroupBase(DeviceGroupCreateBase):
@@ -53,6 +54,8 @@ class DeviceGroupOutBase(BaseModel):
     id: Optional[int] = None 
     name: Optional[str] = None
     status: Optional[bool] = None
+    id_device_type: Optional[int] = None
+    type: Optional[int] = None
     # id_template: Optional[int] = None
     # templates_library: TemplateOutBase
     # template_list:Optional[list[TemplateBase]] = None 

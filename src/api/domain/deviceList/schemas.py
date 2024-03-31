@@ -135,6 +135,48 @@ class DeviceCreate(BaseModel):
         # populate_by_name = True
         # from_attributes = True
         orm_mode = True
+
+# class DevicePanel(BaseModel):
+#     panel:Optional[int] = None
+#     class Config:
+#         orm_mode = True
+# class DeviceString(BaseModel):
+#     string_number: Optional[int] = None
+#     string: list[DevicePanel]= None
+#     class Config:
+#         orm_mode = True
+# class DeviceMPTT(BaseModel):
+#     mppt_number:Optional[int] = None
+#     mppt: list[DeviceString] = None
+#     class Config:
+#         orm_mode = True
+class MPPTSTRINGPANEL(BaseModel):
+    id: Optional[int] = None
+    # name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    status : Optional[bool] = None
+    class Config:
+        orm_mode = True
+class MPPTSTRING(BaseModel):
+    
+    id: Optional[int] = None
+    # name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    status : Optional[bool] = None
+    panel: list[MPPTSTRINGPANEL] = None
+    
+    class Config:
+        orm_mode = True
+class MPPTBase(BaseModel):
+  
+    id: Optional[int] = None
+    status : Optional[bool] = None
+    # name: Optional[str] = None
+    id_pointkey: Optional[str] = None
+    string: list[MPPTSTRING] =  None
+    
+    class Config:
+        orm_mode = True
 class MultipleDeviceCreate(BaseModel):
     name: Optional[str]  = Field(...,description="") 
     device_virtual: Optional[bool] =  Field(...,examples=[False],description="") 
@@ -147,6 +189,7 @@ class MultipleDeviceCreate(BaseModel):
     add_count: Optional[int] = Field(...,) 
     in_mode: Optional[int] = Field()
     id_template: Optional[int] = None
+    mppt: Optional[list[MPPTBase]] = None
     # 
     class Config:
         orm_mode = True
@@ -167,7 +210,7 @@ class DeviceDelete(BaseModel):
         orm_mode = True
 class DeviceDeleteMulti(BaseModel):
     device: list[DeviceDelete]= None
-    delete_mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
+    mode: Optional[int] =   Field(...,examples=[1],description="=1 Deactivate | =2 Delete")
     
     class Config:
         orm_mode = True
@@ -226,3 +269,5 @@ class DeviceExistDataOut(BaseModel):
     desc: Optional[str] = None
     class Config:
         orm_mode = True
+        
+        
