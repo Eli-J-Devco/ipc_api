@@ -390,17 +390,15 @@ async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPe
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result and all(key in mqtt_result for key in ['id_device', 'device_name', 'status' ,'token']):
+            if mqtt_result and all(key in mqtt_result for key in ['id_device', 'device_name', 'status']):
                 device_name = mqtt_result['device_name']
                 status_write_inv = mqtt_result['status']
                 id_device_return = mqtt_result['id_device']
-                token = mqtt_result['token']
                 
                 return {
                     'id_device_return': id_device_return,
                     'device_name': device_name,
                     'status_device': status_write_inv,
-                    'token': token,
                 }
 
                 

@@ -379,13 +379,13 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
     global status 
     global time_interval
     
-    current_time = get_utc()
+    current_time = ""
     result_all = []
     data = []
     sql_id_str = ""
     device_name = ""
     
-
+    current_time = get_utc()
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
