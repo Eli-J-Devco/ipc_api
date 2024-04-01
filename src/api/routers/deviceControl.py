@@ -130,6 +130,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
     device_name = ""
     status_device = ""
     id_device_return = ""
+    mode = ""
     token = ""
     
     result_mybatis = get_mybatis('/mybatis/control.xml')
@@ -186,6 +187,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
         
     try:
         data_send = {
+            "mode":"Man",
             "id_device":sql_id_str,
             "parametter" : parametter,
             }
@@ -230,6 +232,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
                     'id_device_return': id_device_return,
                     'device_name': device_name,
                     'status_device': status_device,
+                    'mode': mode,
                     # 'token': token,
                 }
 
@@ -325,8 +328,6 @@ async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPe
             if results_register :
                 filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
                 parametter = [{'id_pointkey': item['id_pointkey']} for item in filtered_results_register]
-
-
                 # Iterate through the new list to assign values from the corresponding variables
                 for item in parametter:
                     if item['id_pointkey'] == 'WMax':
