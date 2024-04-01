@@ -183,6 +183,7 @@ async def device_control(id_device : int , bitcontrol : bool ):
     else :
         comment = print("device does not exist")
         comment = "device does not exist"
+        
     try:
         data_send = {
             "id_device":sql_id_str,
@@ -218,17 +219,18 @@ async def device_control(id_device : int , bitcontrol : bool ):
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result and all(key in mqtt_result for key in ['ID_DEVICE', 'DEVICE_NAME', 'STATUS_DEVICE', 'TOKEN']):
-                device_name = mqtt_result['DEVICE_NAME']
-                status_device = mqtt_result['STATUS_DEVICE']
-                id_device_return = mqtt_result['ID_DEVICE']
-                token = mqtt_result['TOKEN']
+            # if mqtt_result and all(key in mqtt_result for key in ['id_device', 'device_name', 'status' ,'token' ]):
+            if mqtt_result and all(key in mqtt_result for key in ['id_device', 'device_name', 'status' ]):
+                device_name = mqtt_result['device_name']
+                status_device = mqtt_result['status']
+                id_device_return = mqtt_result['id_device']
+                # token = mqtt_result['token']
                 
                 return {
+                    'id_device_return': id_device_return,
                     'device_name': device_name,
                     'status_device': status_device,
-                    'id_device_return': id_device_return,
-                    'token': token
+                    # 'token': token,
                 }
 
                 
@@ -324,6 +326,7 @@ async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPe
                 filtered_results_register = [item for item in results_register if item['id_pointkey'] in required_pointkeys]
                 parametter = [{'id_pointkey': item['id_pointkey']} for item in filtered_results_register]
 
+
                 # Iterate through the new list to assign values from the corresponding variables
                 for item in parametter:
                     if item['id_pointkey'] == 'WMax':
@@ -354,8 +357,8 @@ async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPe
         comment = "device does not exist"
     try:
         data_send = {
-            "ID_DEVICE":sql_id_str,
-            "PARAMETTER" : filtered_results_register,
+            "id_device":sql_id_str,
+            "parametter" : parametter,
             }
         push_data_to_mqtt(mqtt_host,
                 mqtt_port,
@@ -386,17 +389,17 @@ async def setup_control(id_device : int , WMax : int , WMaxPercent : int ,WMaxPe
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result and all(key in mqtt_result for key in ['ID_DEVICE', 'DEVICE_NAME', 'STATUS_WRITE_INV', 'TOKEN']):
-                device_name = mqtt_result['DEVICE_NAME']
-                status_write_inv = mqtt_result['STATUS_WRITE_INV']
-                id_device_return = mqtt_result['ID_DEVICE']
-                token = mqtt_result['TOKEN']
+            if mqtt_result and all(key in mqtt_result for key in ['id_device', 'device_name', 'status' ,'token']):
+                device_name = mqtt_result['device_name']
+                status_write_inv = mqtt_result['status']
+                id_device_return = mqtt_result['id_device']
+                token = mqtt_result['token']
                 
                 return {
+                    'id_device_return': id_device_return,
                     'device_name': device_name,
                     'status_device': status_write_inv,
-                    'id_device_return': id_device_return,
-                    'token': token
+                    'token': token,
                 }
 
                 
