@@ -754,6 +754,7 @@ async def device(ConfigPara):
                 slave_port = results_device[0]['tcp_gateway_port']
                 slave_ID =  results_device[0]['rtu_bus_address']
                 try:
+                    print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         #
                         # if enable_write_control ==True:
@@ -892,9 +893,9 @@ async def device(ConfigPara):
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(serial_number_project,host, port,topic, username, password
-                       
-                       ):
+async def monitoring_device(serial_number_project,host=[], port=[], username=[], password=[]
+
+                        ):
     try:
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
@@ -986,12 +987,19 @@ async def monitoring_device(serial_number_project,host, port,topic, username, pa
                 #                     username,
                 #                     password,
                 #                     data_mqtt)
-                func_mqtt_public(   host,
-                                    port,
+                func_mqtt_public(   host[0],
+                                    port[0],
                                     serial_number_project+"/"+"Devices/"+""+device_id,
-                                    username,
-                                    password,
+                                    username[0],
+                                    password[0],
                                     data_mqtt)
+                func_mqtt_public(   host[1],
+                                    port[1],
+                                    serial_number_project+"/"+"Devices/"+""+device_id,
+                                    username[1],
+                                    password[1],
+                                    data_mqtt)
+            
             await asyncio.sleep(2)
         
     except Exception as err:
@@ -1289,18 +1297,38 @@ async def check_device_control():
             await asyncio.sleep(5)
 
     except Exception as err:
-      print(f"Error check_device_control: '{err}'")
+        print(f"Error check_device_control: '{err}'")
+
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     serial_number_project=results_project[0]["serial_number"]
     tasks.append(asyncio.create_task(device(arr)))
+    # 
+    MQTT_BROKER_CLOUD="mqtt.nextwavemonitoring.com"
+    MQTT_PORT_CLOUD=1883
+    MQTT_USERNAME_CLOUD="admin"
+    MQTT_PASSWORD_CLOUD="123654789"
+    # 
+    MQTT_BROKER_LIST=[]
+    MQTT_PORT_LIST=[]
+    MQTT_USERNAME_LIST=[]
+    MQTT_PASSWORD_LIST=[]
+    MQTT_BROKER_LIST.append(MQTT_BROKER)
+    MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
+    MQTT_PORT_LIST.append(MQTT_PORT)
+    MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
+    MQTT_USERNAME_LIST.append(MQTT_USERNAME)
+    MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
+    MQTT_PASSWORD_LIST.append(MQTT_PASSWORD)
+    MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
+    
+    # 
     tasks.append(asyncio.create_task(monitoring_device(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
+                                                    MQTT_BROKER_LIST,
+                                                    MQTT_PORT_LIST,
+                                                    MQTT_USERNAME_LIST,
+                                                    MQTT_PASSWORD_LIST
                                                                                    
                                                     )))
     tasks.append(asyncio.create_task(mqtt_subscribe_controls(MQTT_BROKER,
@@ -1309,7 +1337,7 @@ async def main():
                                                              MQTT_USERNAME,
                                                              MQTT_PASSWORD
                                                              )))
- 
+    
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':

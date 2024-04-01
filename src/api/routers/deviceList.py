@@ -698,6 +698,7 @@ async def create_multiple_device(create_device: deviceList_schemas.MultipleDevic
                                 .filter(models.Device_point_list_map.id_device_list==int(item["id_device_list"]))\
                                 .filter(models.Device_point_list_map.id==int(item["id"]))\
                                 .update({"status":item["status"]})
+                                
                         db.commit()
                         # 
                         # 
@@ -776,122 +777,65 @@ async def delete_device(
     try:
         
         if not delete_device.mode in [1,2] :
-            return {"status": "error","code": str(300)}
+            return JSONResponse(content={"detail": "Mode does not exist"}, status_code=404)
         device_list=delete_device.device
         mode=delete_device.mode
         delete_list=[]
-        for i,item in enumerate(device_list):
-            if mode==1: # Disable
-                pass
-                # status =0 of device in table device_list
-                # 
-            elif mode==2: # delete
-                pass
-                # Delete table and view of device
-                # Delete device in table device_list
-                # Delete pm2 send list to api gateway
-            else:
-                pass
-            
-        
-        device_list_query = db.query(deviceList_models.Device_list).filter(
-        deviceList_models.Device_list.id == id).filter(
-        deviceList_models.Device_list.status == 1)
-        
-        result=device_list_query.first()
-        if not result:
-            return {"status": "error","code": str(300)}
-        result_communication=None
-        
         try:
-            result_communication=result.communication # accessing a non-existing attribute communication
-        except AttributeError as e:
-            print(f"AttributeError: {e}")
-            return {"status": "error","code": str(300)}
-        # print(f'result_communication: {result_communication.__dict__}')
-        result_driver=None
-        try:
-            result_driver=result_communication.driver_list # accessing a non-existing attribute communication
-        except AttributeError as e:
-            print(f"AttributeError: {e}")
-            return {"status": "error","code": str(300)}
-        # print(f'result_driver: {result_driver.__dict__}')
-        # id_communication=result.id_communication
-        # if result_driver.name == "Modbus/TCP":
-        #     print('delete device TCP ------')
-        #     # Deactivate/delete device TCP ------
-        #     connect_type=result_driver.name
-        #     if mode ==1:
-        #         # Deactivate device in table device_list -----
-        #         device_list_query.filter(deviceList_models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
-        #         db.commit()
-        #         # delete app running in pm2
-        #         result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
-        #         print(f'result_pm2: {result_pm2}')
-        #         restart_program_pm2(f'Log')
-        #         return {"status": "success","code": str(100)}
-        #     if mode ==2:
-        #         # Delete data device in table device_list -----
-        #         result_delete_device_list =db.query(deviceList_models.Device_list).filter_by(id=id).delete()
-        #         db.commit()
-        #         result_pm2=delete_program_pm2(f'Dev|{id_communication}|{connect_type}|{id}')
-        #         print(f'result_pm2: {result_pm2}')
-        #         restart_program_pm2(f'Log')
-        #         return {"status": "success","code": str(100)}
-            
-        # elif result_driver.name == "RS485":
-        #     result_mybatis=get_mybatis(path+'/mybatis/device.xml')
-        #     sql_query=result_mybatis["create_device"]
-        #     sql_register_block=result_mybatis["insert_device_register_block"]
-        #     sql_point_list=result_mybatis["insert_device_point_list"]
-        #     sql_select_device=result_mybatis["select_all_device"]
-            
-        #     if mode ==1:
-        #         # Deactivate device in table device_list -----
-        #         device_list_query.filter(deviceList_models.Device_list.id == id).update({"status": 0}, synchronize_session=False)
-        #         db.commit()
-        #     if mode ==2:   
-        #         # Delete data device in table device_list -----
-        #         result_delete_device_list =db.query(deviceList_models.Device_list).filter_by(id=id).delete()
-        #         db.commit()
-        #     result_find_app_pm2=find_program_pm2(f'Dev|{str(id_communication)}|')
-        #     if result_find_app_pm2==100:
-        #         result_delete_app_pm2=delete_program_pm2(f'Dev|{str(id_communication)}|')
-        #         if result_delete_app_pm2!=100:
-        #             return {"status": "error","code": str(300)}
-        #         all_device_list_query = db.query(
-        #                         deviceList_models.Device_list).filter(deviceList_models.Device_list.id_communication ==id_communication
-        #                                                     ).filter(
-        #                         deviceList_models.Device_list.status == 1).order_by(
-        #                                                     deviceList_models.Device_list.id.asc()).all()
-        #         item_rs485 = [item.__dict__ for item in all_device_list_query if item.id_communication == 
-        #                                     id_communication]
-                
-        #         # find device in group rs485
-        #         if item_rs485:                                 
-        #             # check group rs485 same com port
-        #             result_device_group_rs485 = db.execute(
-        #                                                     text(sql_select_device), 
-        #                                                     params={'id_communication': 
-        #                                                     id_communication}).all()
-        #             results_device_group_dict = [row._asdict() for row in result_device_group_rs485]                                                        
-        #             if results_device_group_dict:
-        #                 # init restart pm2 app same rs485
-        #                 create_device_group_rs485_run_pm2(path,results_device_group_dict)
-        #                 restart_program_pm2(f'Log')
-        #                 return {"status": "success","code": str(100)}
-        #             else:
-        #                 pass
-        #         else:
-        #             return {"status": "success","code": str(100)} 
-        #     else:                                                                         
-        #         return {"status": "success","code": str(100)}
-                
+            for i,item in enumerate(device_list):
+                result_device=db.query(deviceList_models.Device_list).filter_by(id=item.id)
+                if result_device.first():
+                    device=result_device.first()
+                    view_table=device.view_table
+                    table_name=device.table_name
+                    id_communication=device.id_communication
+                    # 
+                    driver_list=""
+                    if hasattr(device.communication, 'driver_list'):
+                        if hasattr(device.communication.driver_list, 'name'):
+                            driver_list=device.communication.driver_list.name
+                    
+                    delete_list.append({
+                        "mode":mode,
+                        "id":item.id,
+                        "name":device.name,
+                        "id_communication":id_communication,
+                        "driver_name":driver_list
+                    })
+                    if mode==1: # Disable
+                        result_device.update({"status":0})
+                        # status =0 of device in table device_list
+                        # Disable pm2 send list to api gateway
+                        # Delete app device running
+                        # Restart pm2: LogDevice, LogFile, UpData
+                    elif mode==2: # delete
+                        # Delete table and view of device
+                        db.execute(text(f'DROP TABLE IF EXISTS {table_name}'))
+                        db.execute(text(f'DROP VIEW IF EXISTS {view_table}'))
+                        result_device.delete()
+                        # Delete device in table device_list
+                        # Delete pm2 send list to api gateway
+                        # Delete app device running
+                        # Restart pm2: LogDevice, LogFile, UpData
+                    else:
+                        pass
+            db.commit()
+            print(f'delete_list: {delete_list}')
+        except exc.SQLAlchemyError as err:
+            db.rollback()
+            print('Error delete the device : ',err)
+            return JSONResponse(content={"detail": "HTTP_404_NOT_FOUND"}, status_code=404)
+        finally:
+            if delete_list:
+                param={
+                    "CODE":"DeleteDev",
+                    "PAYLOAD":delete_list
+                }
+                mqtt_public("/Init/API/Requests",param)
+            return {"status": "success","code": str(100)}
+    except Exception as err:
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-        else: 
-            return {"status": "success","code": str(100)}        
-    except asyncio.TimeoutError:
-        raise HTTPException(status_code=408, detail="Request timeout")
 # Describe functions before writing code
 # /**
 # 	 * @description update device

@@ -48,109 +48,131 @@ import api.domain.user.models as user_models
 import model.models as models
 
 
-async def managerApplicationsWithPM2(host, port,topic, username, password):
-    try:
-        Topic=f'{topic}/Init/API/Requests'
-        client = mqttools.Client(host=host, 
-                        port=port,
-                        username= username, 
-                        password=bytes(password, 'utf-8'))
-        await client.start()
-        await client.subscribe(Topic)
-        while True:
-            message = await client.messages.get()
+class apiGateway:
+    def __init__(self,MQTT_BROKER="127.0.0.1",
+                        MQTT_PORT=1883,
+                        MQTT_TOPIC="",
+                        MQTT_USERNAME="",
+                        MQTT_PASSWORD=""
+                        ):
+        self.MQTT_BROKER = MQTT_BROKER
+        self.MQTT_PORT = MQTT_PORT
+        self.MQTT_TOPIC = MQTT_TOPIC
+        self.MQTT_USERNAME = MQTT_USERNAME
+        self.MQTT_PASSWORD = MQTT_PASSWORD
+    async def managerApplicationsWithPM2(self):
+        try:
+            
+            Topic=f'{self.MQTT_TOPIC}/Init/API/Requests'
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                            port=self.MQTT_PORT,
+                            username= self.MQTT_USERNAME, 
+                            password=bytes(self.MQTT_PASSWORD, 'utf-8'))
+            await client.start()
+            await client.subscribe(Topic)
+            while True:
+                message = await client.messages.get()
 
-            if message is None:
-                print('Broker connection lost!')
-                break
-            print(f'Topic:   {message.topic}')
-            result=json.loads(message.message.decode())
-            print(f'Message: {result}')
-            if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                db=get_db()
-                match result['CODE']:
-                    case "CreateTCPDev":
-                        new_device=result['PAYLOAD']
-                        print(new_device[0])
-                        #  init start pm2 new app
-                        for item in new_device:
-                            
-                            pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
-                            await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
-                        # restart pm2 app log
-                        pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                        result=await restart_program_pm2_many(pm2_app_list)
-                        # 
-                        now = datetime.datetime.now(
-                        datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                        param=  {
-                                    "CODE":"CreateTCPDev",
-                                    "PAYLOAD":new_device,
-                                    "TIME_STAMP":now
-                                }
-                        mqtt_public("/Init/API/Responses",param)
-                    case "CreateRS485Dev":
-                        id_communication=result['PAYLOAD']
-                        result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
-                        if result_find_app_pm2==100:
-                            result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
-                            device_list_query = db.query(
-                                        deviceList_models.Device_list).filter(
-                                        deviceList_models.Device_list.id_communication ==
-                                                                    id_communication).filter(
-                                        deviceList_models.Device_list.status == 1).order_by(
-                                                                    deviceList_models.Device_list.id.asc()).all()
-                            db.commit()
-                            # check device same group rs485 com port   
-                            item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                                            id_communication]
-                            if item_rs485:
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                print(f'Topic:   {message.topic}')
+                result=json.loads(message.message.decode())
+                print(f'Message: {result}')
+                if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
+                    db=get_db()
+                    match result['CODE']:
+                        case "CreateTCPDev":
+                            new_device=result['PAYLOAD']
+                            print(new_device[0])
+                            #  init start pm2 new app
+                            for item in new_device:
+                                
+                                pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
+                                await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
+                            # restart pm2 app log
+                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                            result=await restart_program_pm2_many(pm2_app_list)
+                            # 
+                            now = datetime.datetime.now(
+                            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                            param=  {
+                                        "CODE":"CreateTCPDev",
+                                        "PAYLOAD":new_device,
+                                        "TIME_STAMP":now
+                                    }
+                            mqtt_public("/Init/API/Responses",param)
+                        case "CreateRS485Dev":
+                            id_communication=result['PAYLOAD']
+                            result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
+                            if result_find_app_pm2==100:
+                                result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
+                                device_list_query = db.query(
+                                            deviceList_models.Device_list).filter(
+                                            deviceList_models.Device_list.id_communication ==
+                                                                        id_communication).filter(
+                                            deviceList_models.Device_list.status == 1).order_by(
+                                                                        deviceList_models.Device_list.id.asc()).all()
+                                db.commit()
+                                # check device same group rs485 com port   
+                                item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                                                id_communication]
+                                if item_rs485:
+                                    # check group rs485 same com port
+
+                                    sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                                                                            {"id_communication":id_communication})
+                                    result_device_group_rs485 = db.execute(
+                                                                        text(sql_query_select_device), 
+                                                                            ).all()
+                                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
+                                    db.close()                                          
+                                    # init restart pm2 app same rs485
+                                    await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                                    # restart pm2 app log
+                                    pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                                    await restart_program_pm2_many(pm2_app_list) 
+                            elif result_find_app_pm2!=100:
+                                print('---------- create group RS485 same com port when list device empty ----------')
                                 # check group rs485 same com port
-
                                 sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
                                                                         {"id_communication":id_communication})
-                                result_device_group_rs485 = db.execute(
-                                                                    text(sql_query_select_device), 
-                                                                        ).all()
-                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                                db.close()                                          
+                                result_device_group_rs485 =  db.execute(
+                                                                        text(sql_query_select_device), 
+                                                                            ).all()
+                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
+                                db.close()                                                       
                                 # init restart pm2 app same rs485
                                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                                 # restart pm2 app log
                                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                await restart_program_pm2_many(pm2_app_list) 
-                        elif result_find_app_pm2!=100:
-                            print('---------- create group RS485 same com port when list device empty ----------')
-                            # check group rs485 same com port
-                            sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                    {"id_communication":id_communication})
-                            result_device_group_rs485 =  db.execute(
-                                                                    text(sql_query_select_device), 
-                                                                        ).all()
-                            results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
-                            db.close()                                                       
-                            # init restart pm2 app same rs485
-                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                            # restart pm2 app log
-                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            result=await restart_program_pm2_many(pm2_app_list)
-                        else:
-                            pass
-                        now = datetime.datetime.now(
-                        datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                        param=  {
-                                    "CODE":"CreateRS485Dev",
-                                    "PAYLOAD":id_communication,
-                                    "TIME_STAMP":now
-                                }
-                        mqtt_public("/Init/API/Responses",param)
-                    case "DeleteDev":
-                        pass
-            
-            
-            
-    except Exception as err:
-        print(f"Error PM2: '{err}'")
+                                result=await restart_program_pm2_many(pm2_app_list)
+                            else:
+                                pass
+                            now = datetime.datetime.now(
+                            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+                            param=  {
+                                        "CODE":"CreateRS485Dev",
+                                        "PAYLOAD":id_communication,
+                                        "TIME_STAMP":now
+                                    }
+                            mqtt_public("/Init/API/Responses",param)
+                        case "DeleteDev":
+                            device=result['PAYLOAD']
+                            device_tcp=[]
+                            device_rs485=[]
+                            
+                            for item in device:
+                                if item["driver_name"]=="RS485":
+                                    pass
+                                elif item["driver_name"]=="Modbus/TCP":
+                                    pass
+                            
+                
+                
+                
+        except Exception as err:
+            print(f"Error PM2: '{err}'")
 
 async def main():
     tasks = []
@@ -159,9 +181,14 @@ async def main():
     db.close()
     MQTT_TOPIC=result_project.serial_number
     print(f'MQTT_TOPIC: {MQTT_TOPIC}')
+    api_gateway=apiGateway(MQTT_BROKER,
+                            MQTT_PORT,
+                            MQTT_TOPIC,
+                            MQTT_USERNAME,
+                            MQTT_PASSWORD
+                            )
     tasks.append(asyncio.create_task(
-        managerApplicationsWithPM2(MQTT_BROKER,MQTT_PORT,
-                                MQTT_TOPIC,MQTT_USERNAME,MQTT_PASSWORD)))
+        api_gateway.managerApplicationsWithPM2()))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
