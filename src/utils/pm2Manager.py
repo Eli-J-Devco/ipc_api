@@ -544,9 +544,9 @@ async def delete_program_pm2_many(app_name=[]):
         print(f'list {pid_list}')
         cmd_pm2=""
         if sys.platform == 'win32':
-            cmd_pm2=f'pm2 stop '
+            cmd_pm2=f'pm2 delete '
         else:
-            cmd_pm2=f'sudo pm2 stop '
+            cmd_pm2=f'sudo pm2 delete '
         join_pid=""
         if pid_list:
             for item in pid_list:
