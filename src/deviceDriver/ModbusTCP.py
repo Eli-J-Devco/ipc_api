@@ -68,7 +68,7 @@ enable_write_control=False
 query_device_control=""
 query_only_device=""
 data_write_device=[]
-parametter = []
+parameter = []
 bit_feedback = 0
 count = 0 
 # Set time shutdown of inverter
@@ -76,7 +76,7 @@ inv_shutdown_enable=False
 inv_shutdown_datetime=""
 inv_shutdown_point=[]
 
-QUERY_INFORMATION_CONNECT_MODBUSTCP = ""
+QUERY_INFORMATION_CONNECT_MODBUS_TCP = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TYPE_DEVICE = ""
 QUERY_REGISTER_DATATYPE = ""
@@ -684,8 +684,8 @@ def path_directory_relative(project_name):
 # db=get_db()
 async def write_device(client,slave_ID,device_control,
                     serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global parametter
-    if parametter :
+    global parameter
+    if parameter :
         print("---------- write data from Device ----------")
         topicPublic = serial_number_project + topicPublic
         pathSource=path
@@ -696,13 +696,13 @@ async def write_device(client,slave_ID,device_control,
         statement = mybatis_mapper2sql.get_statement(
         mapper, result_type='list', reindent=True, strip_comments=True) 
         # 
-        QUERY_INFORMATION_CONNECT_MODBUSTCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+        QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
         QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
         QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
         QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
         
         # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUSTCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
             pass
         else:           
             print("Error not found data in file mybatis")
@@ -742,11 +742,11 @@ async def write_device(client,slave_ID,device_control,
             if results_device_type :
                 if results_device_type[0]["name"] == "PV System Inverter" :
                     if results_register :
-                        filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parametter]]
+                        filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
                         
                         # Iterate through the new list to assign values from the corresponding variables
                         for item in filtered_results_register:
-                            for p in parametter:
+                            for p in parameter:
                                 if item['id_pointkey'] == p['id_pointkey']:
                                     item['value'] = p['value']
                     
@@ -813,7 +813,7 @@ async def write_device(client,slave_ID,device_control,
                         data_send)
                 bit_feedback == 0
             
-            parametter = []
+            parameter = []
         except Exception as err:
             print(f"Error MQTT subscribe: '{err}'")
     else:
@@ -1384,7 +1384,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global device_control
     global device_name
     global enable_write_control
-    global parametter
+    global parameter
     global bit_feedback
     mqtt_result = ""
     topic = serial_number_project + topic
@@ -1410,10 +1410,10 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             mqtt_result = json.loads(message.message.decode())
             
             if mqtt_result:
-                if 'id_device' not in mqtt_result or 'parametter' not in mqtt_result :
+                if 'id_device' not in mqtt_result or 'parameter' not in mqtt_result :
                     continue
                 device_control = mqtt_result['id_device']
-                parametter = mqtt_result['parametter']
+                parameter = mqtt_result['parameter']
                 bit_feedback = 1
 
     except Exception as err:
