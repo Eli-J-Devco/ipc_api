@@ -207,22 +207,22 @@ async def get_mqtt(host, port, topic, username, password):
                 
             mqtt_result = json.loads(message.message.decode())
             if mqtt_result:
-                if 'STATUS_DEVICE' not in mqtt_result:
+                if 'status_device' not in mqtt_result:
                     return -1 
-                if 'MSG_DEVICE' not in mqtt_result:
+                if 'message' not in mqtt_result:
                     return -1 
-                if 'STATUS_REGISTER' not in mqtt_result:
+                if 'status_register' not in mqtt_result:
                     return -1 
-                if 'POINT_LIST' not in mqtt_result:
+                if 'fields' not in mqtt_result:
                     return -1        
                 
-                msg_device = mqtt_result['MSG_DEVICE']
-                status_register = mqtt_result['STATUS_REGISTER']
+                msg_device = mqtt_result['message']
+                status_register = mqtt_result['status_register']
                 
-                for item in mqtt_result['POINT_LIST']:
-                    if item['Config'] != 'MPPT':
-                        value = str(item["Value"])
-                        point_id = str(item["ItemID"])
+                for item in mqtt_result['fields']:
+                    if item['config'] != 'mppt':
+                        value = str(item["value"])
+                        point_id = str(item["id_point"])
                         if countMonitor :
                             result_value.append(value)
                             result_point_id.append(point_id)
@@ -428,26 +428,26 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
         try: 
             if formatted_time1 :
                 data_mqtt={
-                    "ID_DEVICE":sql_id,
-                    "STATUS_DATA":status_device,
-                    "STATUS_CHANNEL":status_file,
-                    "FILE_NAME":file_name,
-                    "TIME_STAMP" :current_time,
-                    "TIME_ONLINE" :time_online,
-                    "TIME_LOG": time_interval,
-                    "DATA_LOG":data,
+                    "id_device":sql_id,
+                    "status_data":status_device,
+                    "status_chanel":status_file,
+                    "file_name":file_name,
+                    "time_stamp" :current_time,
+                    "time_online" :time_online,
+                    "time_log": time_interval,
+                    "data_log":data,
                     }
             else :
-                status_file = "Fault"
+                status_file = "fault"
                 data_mqtt={
-                    "ID_DEVICE":sql_id,
-                    "STATUS_DATA":"OLD",
-                    "STATUS_CHANNEL":"No files yet",
-                    "FILE_NAME":"No files yet",
-                    "TIME_STAMP" :current_time,
-                    "TIME_ONLINE" :time_online,
-                    "TIME_LOG": time_interval,
-                    "DATA_LOG":"No files yet",
+                    "id_device":sql_id,
+                    "status_data":"old",
+                    "status_chanel":"no_files_yet",
+                    "file_name":"No files yet",
+                    "time_stamp" :current_time,
+                    "time_online" :time_online,
+                    "time_log": time_interval,
+                    "data_log":"No files yet",
                     }
 
             # File creation time 

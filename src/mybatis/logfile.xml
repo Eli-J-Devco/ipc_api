@@ -20,6 +20,15 @@ WHERE
   <select id="QUERY_ALL_DEVICES">
 SELECT device_list.id, device_list.name , device_list.rtu_bus_address FROM device_list WHERE status = 1
   </select>
+
+  <select id="QUERY_ALL_DEVICES_INV">
+SELECT device_list.id 
+FROM device_list 
+JOIN `device_type` ON `device_type`.`id` = `device_list`.`id_device_type`
+
+WHERE `device_type`.`name` = "PV System Inverter" AND `device_list`.`status` = 1 
+  </select>
+
   <select id="QUERY_ALL_DEVICES_SYNCDATA">
 SELECT device_list.id, device_list.name, device_list.rtu_bus_address
 FROM device_list
@@ -164,5 +173,12 @@ WHERE device_list.id = %s AND device_point_list_map.status = 1 AND `device_list`
   </select>
 <select id="QUERY_SELECT_TOPIC">
 SELECT `project_setup`.`serial_number` FROM `project_setup`
+  </select>
+<select id="QUERY_UPDATE_DEVICE_MPPT">
+UPDATE device_mppt
+SET voltage = %s,
+    current = %s
+WHERE id_device_list = %s
+    AND namekey = %s;
   </select>
 </mapper>

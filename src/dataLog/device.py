@@ -214,22 +214,22 @@ async def Get_MQTT(host, port, topic, username, password):
                 
             mqtt_result = json.loads(message.message.decode())
             if mqtt_result:
-                if 'STATUS_DEVICE' not in mqtt_result:
+                if 'status_device' not in mqtt_result:
                     return -1 
-                if 'MSG_DEVICE' not in mqtt_result:
+                if 'message' not in mqtt_result:
                     return -1 
-                if 'STATUS_REGISTER' not in mqtt_result:
+                if 'status_register' not in mqtt_result:
                     return -1 
-                if 'POINT_LIST' not in mqtt_result:
-                    return -1 
-                status_device = mqtt_result['STATUS_DEVICE']        
-                msg_device = mqtt_result['MSG_DEVICE']
-                status_register = mqtt_result['STATUS_REGISTER']
+                if 'fields' not in mqtt_result:
+                    return -1       
+                status_device = mqtt_result['status_device']        
+                msg_device = mqtt_result['message']
+                status_register = mqtt_result['status_register']
                 
-                for item in mqtt_result['POINT_LIST']:
-                    if item['Config'] != 'MPPT':
-                        value = str(item["Value"])
-                        point_id = str(item["ItemID"])
+                for item in mqtt_result['fields']:
+                    if item['config'] != 'mppt':
+                        value = str(item["value"])
+                        point_id = str(item["id_point"])
                                     
                         result_value.append(value)
                         result_point_id.append(point_id)
@@ -393,11 +393,11 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
                 
     try:
         data_mqtt={
-            "ID_DEVICE":sql_id,
-            "STATUS_CHANNEL":status,
-            "TIME_STAMP" :current_time,
-            "TIME_LOG": time_interval ,
-            "DATA_LOG":data,
+            "id_device":sql_id,
+            "status_chanel":status,
+            "time_stamp" :current_time,
+            "time_log": time_interval ,
+            "data_log":data,
             }
         
         # File creation time 

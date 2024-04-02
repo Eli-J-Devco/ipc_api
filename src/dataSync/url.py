@@ -372,13 +372,13 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
                         pass
                         
                     data_mqtt={
-                        "ID_DEVICE":device.id_device,
-                        "FILE_NAME": device.file_name,
-                        "TIME_STAMP": date_str,
-                        "STATUS_FILE_SERVER": device.status,
-                        "TIME_SYNC": time_sync ,
-                        "REMAINDER_FILE":number_file,
-                        "NUMBER_OF_RETRY":device.number_time_retry,
+                        "id_device":device.id_device,
+                        "file_name": device.file_name,
+                        "time_stamp": date_str,
+                        "status_file_sever": device.status,
+                        "time_sync": time_sync ,
+                        "remainder_file":number_file,
+                        "number_of_retry":device.number_time_retry,
                     }
                     pushMQTT(host,
                             port,
@@ -436,13 +436,13 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
                         pass
                     
                     data_mqtt={
-                        "ID_DEVICE":devices[i].id_device,
-                        "FILE_NAME": devices[i].file_name,
-                        "TIME_STAMP": date_str,
-                        "STATUS_FILE_SERVER": devices[i].status,
-                        "TIME_SYNC": time_sync ,
-                        "REMAINDER_FILE":number_file,
-                        "NUMBER_TIME_RETRY": devices[i].number_time_retry, 
+                        "id_device":devices[i].id_device,
+                        "file_name": devices[i].file_name,
+                        "time_stamp": date_str,
+                        "status_file_sever": devices[i].status,
+                        "time_sync": time_sync ,
+                        "remainder_file":number_file,
+                        "number_of_retry": devices[i].number_time_retry, 
                     }
 
                     data_mqtts.append(data_mqtt) 
