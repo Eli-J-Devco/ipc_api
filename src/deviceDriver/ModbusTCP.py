@@ -30,6 +30,7 @@ from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 from fastapi.responses import JSONResponse
+
 sys.stdout.reconfigure(encoding='utf-8')
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 # sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
@@ -703,7 +704,7 @@ async def write_device(client,slave_ID,device_control,
         QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
         
         # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if QUERY_TYPE_DEVICE != -1 and query_device_control != -1 and QUERY_INFORMATION_CONNECT_MODBUSTCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUSTCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
             pass
         else:           
             print("Error not found data in file mybatis")
@@ -775,9 +776,9 @@ async def write_device(client,slave_ID,device_control,
                                 if results_write_modbus:
                                     code_value = results_write_modbus['code']
                                     if code_value == 16 :
-                                        comment = f"Sent {value} Successfully"
+                                        comment = f"Sent Successfully"
                                     elif code_value == 144 :
-                                        comment = f"Sent {value} Failure "
+                                        comment = f"Sent Failure "
                             
                             elif len(filtered_results_register) >= 1:
                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
@@ -794,8 +795,6 @@ async def write_device(client,slave_ID,device_control,
                             print(f"An error occurred: {e}")
                             return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
                             
-                    else:
-                        comment = "There are no registers for this device"
                 else:
                     comment = "device cannot be controlled"
             else :
@@ -845,7 +844,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         # global data_control
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
-        
         pathSource=path
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
@@ -861,7 +859,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
         query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
         # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1 :
+        if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
             pass
         else:           
             print("Error not found data in file mybatis")
@@ -911,9 +909,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 slave_port = results_device[0]['tcp_gateway_port']
                 slave_ID =  results_device[0]['rtu_bus_address']
                 try:
-                    # print(f'-----{getUTC()} Read data from Device -----')
+                    print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
-                        
                         #
                         # if enable_write_control ==True:
                         #     print("---------- write data from Device ----------")
@@ -951,6 +948,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         
                         # 
                         await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+
+                        # print("---------- read data from Device ----------")
 
                         msg_device=""
                         # 
@@ -1005,7 +1004,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         point_list_device=point_list
                         
                         # 
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
                     # print(f'Loi thiet bi')
@@ -1382,6 +1381,7 @@ async def mqtt_subscribe_controlsV1(host, port,topic, username, password):
     except Exception as err:
        
         print(f"Error MQTT subscribe: '{err}'")
+
 async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, username, password):
     
     global device_control
@@ -1389,7 +1389,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global enable_write_control
     global parametter
     global bit_feedback
-    
+    mqtt_result = ""
     topic = serial_number_project + topic
     
     try:
@@ -1411,6 +1411,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
                 continue
             
             mqtt_result = json.loads(message.message.decode())
+            
             if mqtt_result:
                 if 'id_device' not in mqtt_result or 'parametter' not in mqtt_result :
                     continue
