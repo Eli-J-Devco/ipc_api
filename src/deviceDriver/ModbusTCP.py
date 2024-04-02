@@ -29,7 +29,6 @@ from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
-from fastapi.responses import JSONResponse
 
 sys.stdout.reconfigure(encoding='utf-8')
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -698,7 +697,6 @@ async def write_device(client,slave_ID,device_control,
         mapper, result_type='list', reindent=True, strip_comments=True) 
         # 
         QUERY_INFORMATION_CONNECT_MODBUSTCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
-        QUERY_ALL_DEVICES = func_check_data_mybatis(statement,10,"QUERY_ALL_DEVICES")
         QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
         QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
         QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
@@ -793,7 +791,6 @@ async def write_device(client,slave_ID,device_control,
                             
                         except Exception as e:
                             print(f"An error occurred: {e}")
-                            return JSONResponse(status_code=500, content={"error": "Internal Server Error"})
                             
                 else:
                     comment = "device cannot be controlled"
