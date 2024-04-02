@@ -912,41 +912,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
-                        #
-                        # if enable_write_control ==True:
-                        #     print("---------- write data from Device ----------")
-                            
-                        #     for item in data_write_device:
-                        #         result_write_device= write_modbus_tcp(client,slave_ID,
-                        #                          item["datatype"],
-                        #                          item["register"],
-                        #                          item["value"]
-                        #                          )
-                        #         if result_write_device["value"]==0:
-                        #             sql=f'UPDATE device_list SET {item["point"]} = 0 Where id ={id_device}'
-                        #             MySQL_Update(sql)
-                        #         await asyncio.sleep(1)
-                        #     data_write_device=[]
-                        #     enable_write_control = False
-                        # if inv_shutdown_enable == 1 and inv_shutdown_datetime!="":
-                        #     print("---------- Control shutdown Inverter ----------")
-                        #     # Check today = time set
-                        #     today = DT.now(
-                        #     datetime.timezone.utc).strftime("%Y-%m-%d")
-                        #     datetime_shutdown = DT.strptime(str(inv_shutdown_datetime), "%Y-%m-%d").date()
-                        #     if str(today)==str(datetime_shutdown) :
-                        #         for item in inv_shutdown_point:
-                        #             result_write_device= write_modbus_tcp(client,slave_ID,
-                        #                             item["datatype"],
-                        #                             item["register"],
-                        #                             item["value"]
-                        #                             )
-                        #             if result_write_device["value"]==0:
-                        #                 sql=f'UPDATE device_list SET {item["point"]} = 0 Where id ={id_device}'
-                        #                 MySQL_Update(sql)
-                        #             await asyncio.sleep(1)
-                        #             inv_shutdown_enable=0
-                        
                         # 
                         await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
 
