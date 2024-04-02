@@ -10,7 +10,7 @@ import time
 import mysql.connector
 import pandas as pd
 from mysql.connector import Error
-
+import mybatis_mapper2sql
 # sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
 #                 ("src"))
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")+"/"
@@ -189,7 +189,7 @@ def MySQL_Insert_v3(data):
     except Exception as err:
         cursor.close()
         db.close()
-        print(f"Error: '{err}'")
+        print(f"Error: '{err}{val}'")
     finally:
         # closing database connection.
         if db.is_connected():
@@ -203,6 +203,8 @@ def MySQL_Insert_v4(query,val):
     result = None
     try:
         cursor.executemany(query,val)
+        print("query", query)
+        print("val", val)
         db.commit()
         result = cursor.rowcount
         print("Sync data successfully---> ")
@@ -304,3 +306,4 @@ def MySQL_Delete(query):
         cursor.close()
         db.close()
         print(f"Error: '{err}'")
+

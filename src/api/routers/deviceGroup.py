@@ -112,11 +112,11 @@ def get_each_group(id_device_group: Optional[int] = Body(embed=True), db: Sessio
                                 detail=f"Not have template")
         # 
         template_list=[item.__dict__ for item in result_template]
-       
+
         result={
            **result_device_group.__dict__,
-           "template_list":template_list
-           
+            "template_list":template_list
+
         }
         return result
     except Exception as err: 

@@ -46,12 +46,15 @@ QUERY_TIME_CREATE_FILE = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
 QUERY_SELECT_NAME_DEVICE = ""
+QUERY_SELECT_TOPIC = ""
     
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Dev/#"
+# MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Devices/#"
+MQTT_TOPIC_SUB = ""
 MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogDevice" 
+MQTT_TOPIC_PUB = ""
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -185,9 +188,8 @@ async def Get_MQTT(host, port, topic, username, password):
     global result_list
     global status_file
     result_values_dict = {}
-    device_id = 0
-    start_index = "" 
-    end_index = ""
+    device_id = 0 
+    
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client :
@@ -202,11 +204,7 @@ async def Get_MQTT(host, port, topic, username, password):
                 print("Not find message from MQTT")
                 return -1 
             # cut string get device id value from sud mqtt
-            start_index = topic.find("/Dev/") + len("/Dev/")
-            end_index = topic.find("|")
-
-            if start_index != -1 and end_index != -1:
-                device_id = topic[start_index:end_index]
+            device_id = message.topic.split("/Devices/")[-1]
             
             if status_file == "Success" :
                 result_value = []
@@ -318,6 +316,8 @@ async def Insert_TableDevice(sql_id):
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
 
+        print("query",query)
+        print("val",val)
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
@@ -345,7 +345,13 @@ async def Insert_TableDevice(sql_id):
 # 	 */
 async def monitoring_device_AllDevice(host, port,topic, username, password):
     global QUERY_ALL_DEVICES
+    global QUERY_SELECT_TOPIC 
+    result_topic = "" 
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    
+    result_topic = await MySQL_Select_v1 (QUERY_SELECT_TOPIC)
+    topic = result_topic[0]["serial_number"]
+    topic = topic + "/LogDevice"  
     
     tasks = []
     for item in result_all:
@@ -373,13 +379,13 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
     global status 
     global time_interval
     
-    current_time = get_utc()
+    current_time = ""
     result_all = []
     data = []
     sql_id_str = ""
     device_name = ""
     
-
+    current_time = get_utc()
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
@@ -413,8 +419,18 @@ async def main():
     global QUERY_ALL_DEVICES 
     global QUERY_TIME_SYNC_DATA
     global QUERY_SELECT_NAME_DEVICE
+    global QUERY_SELECT_TOPIC
+    
+    global MQTT_BROKER
+    global MQTT_PORT
+    global MQTT_TOPIC_SUB
+    global MQTT_USERNAME
+    global MQTT_PASSWORD
     
     global time_interval
+    topic = ""
+    result_all = []
+    result_topic = []
     
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
@@ -422,15 +438,21 @@ async def main():
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
         QUERY_SELECT_NAME_DEVICE = result_mybatis["QUERY_SELECT_NAME_DEVICE"]
+        QUERY_SELECT_TOPIC = result_mybatis["QUERY_SELECT_TOPIC"]
+        
     except Exception as e:
             print('An exception occurred',e)
     
-    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_NAME_DEVICE:
+    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_NAME_DEVICE or not QUERY_SELECT_TOPIC:
         print("Error not found data in file mybatis") 
         return -1
     #------------------------------------------------------------------------
     time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    
+    result_topic = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
+    topic = result_topic[0]["serial_number"]
+    MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
     
     item = time_create_file_insert_data_table_dev[0]
     time_interval = item["time_log_interval"]

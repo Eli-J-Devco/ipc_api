@@ -102,7 +102,6 @@ class device_control(BaseModel):
     # }
     # DEVICE_NAME: str | None = None
     DEVICE_ID: int
-
     DEVICE_NAME: str
     TAG_NAME: str
     VALUE: float
