@@ -40,7 +40,9 @@
         device_list.point_q,device_list.value_q,device_list.send_q,
         device_list.point_pf,device_list.value_pf,device_list.send_pf,
         device_list.enable_poweroff, device_list.inverter_shutdown,
-        driver_list.name AS connect_type, device_type.name AS device_type,
+        driver_list.name AS connect_type, 
+        device_type.name AS device_type,
+        device_type.id AS id_device_type,
         device_group.name AS device_group,
         template_library.name AS template_name
 		

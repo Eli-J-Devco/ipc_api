@@ -63,7 +63,8 @@ data_write_device=[]
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
 inv_shutdown_point=[]
-
+NAME_DEVICE_TYPE=None
+ID_DEVICE_TYPE=None
 # ----------------------------------------------------------------------
 
 # config[0] -- id
@@ -747,12 +748,14 @@ async def device(ConfigPara):
                 global point_list_device,status_register_block
                 global enable_write_control
                 global data_write_device
-
-  
+                global NAME_DEVICE_TYPE
+                global ID_DEVICE_TYPE
                 device_name=results_device[0]["name"]
                 slave_ip = results_device[0]["tcp_gateway_ip"]
                 slave_port = results_device[0]['tcp_gateway_port']
                 slave_ID =  results_device[0]['rtu_bus_address']
+                NAME_DEVICE_TYPE =  results_device[0]['device_type']
+                ID_DEVICE_TYPE =  results_device[0]['id_device_type']
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
@@ -972,6 +975,8 @@ async def monitoring_device(serial_number_project,host=[], port=[], username=[],
                         new_point.append(point_item)
             data_mqtt={
                 "ID_DEVICE":device_id,
+                "ID_DEVICE_TYPE":ID_DEVICE_TYPE,
+                "NAME_DEVICE_TYPE":NAME_DEVICE_TYPE,
                 "STATUS_DEVICE":status_device,
                 "TIME_STAMP":getUTC(),
                 "MSG_DEVICE":msg_device,

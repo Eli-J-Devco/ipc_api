@@ -178,54 +178,60 @@ class apiGateway:
                                 result=await restart_program_pm2_many(pm2_app_list)
                             if communication_list:
                                 device_rs485=list(set(communication_list))
-                            if device_rs485:
-                                for item in device_rs485:
-                                    result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
-                                    if result_find_app_pm2==100:
-                                        result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
-                                        device_list_query = db.query(
-                                                    deviceList_models.Device_list).filter(
-                                                    deviceList_models.Device_list.id_communication ==
-                                                                                id_communication).filter(
-                                                    deviceList_models.Device_list.status == 1).order_by(
-                                                                                deviceList_models.Device_list.id.asc()).all()
-                                        db.commit()
-                                        # check device same group rs485 com port   
-                                        item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                                                        id_communication]
-                                        if item_rs485:
-                                            # check group rs485 same com port
+                            # if device_rs485:
+                            #     for item in device_rs485:
+                            #         result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
+                            #         if result_find_app_pm2==100:
+                            #             result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
+                            #             device_list_query = db.query(
+                            #                         deviceList_models.Device_list).filter(
+                            #                         deviceList_models.Device_list.id_communication ==
+                            #                                                     id_communication).filter(
+                            #                         deviceList_models.Device_list.status == 1).order_by(
+                            #                                                     deviceList_models.Device_list.id.asc()).all()
+                            #             db.commit()
+                            #             # check device same group rs485 com port   
+                            #             item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                            #                             id_communication]
+                            #             if item_rs485:
+                            #                 # check group rs485 same com port
 
-                                            sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                                    {"id_communication":id_communication})
-                                            result_device_group_rs485 = db.execute(
-                                                                                text(sql_query_select_device), 
-                                                                                    ).all()
-                                            results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                                            db.close()                                          
-                                            # init restart pm2 app same rs485
-                                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                            # restart pm2 app log
-                                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                            await restart_program_pm2_many(pm2_app_list) 
-                                    elif result_find_app_pm2!=100:
-                                        print('---------- create group RS485 same com port when list device empty ----------')
-                                        # check group rs485 same com port
-                                        sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                                {"id_communication":id_communication})
-                                        result_device_group_rs485 =  db.execute(
-                                                                                text(sql_query_select_device), 
-                                                                                    ).all()
-                                        results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
-                                        db.close()                                                       
-                                        # init restart pm2 app same rs485
-                                        await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                        # restart pm2 app log
-                                        pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                        result=await restart_program_pm2_many(pm2_app_list)
+                            #                 sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                            #                                                         {"id_communication":id_communication})
+                            #                 result_device_group_rs485 = db.execute(
+                            #                                                     text(sql_query_select_device), 
+                            #                                                         ).all()
+                            #                 results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
+                            #                 db.close()                                          
+                            #                 # init restart pm2 app same rs485
+                            #                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                            #                 # restart pm2 app log
+                            #                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                            #                 await restart_program_pm2_many(pm2_app_list) 
+                            #         elif result_find_app_pm2!=100:
+                            #             print('---------- create group RS485 same com port when list device empty ----------')
+                            #             # check group rs485 same com port
+                            #             sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                            #                                                     {"id_communication":id_communication})
+                            #             result_device_group_rs485 =  db.execute(
+                            #                                                     text(sql_query_select_device), 
+                            #                                                         ).all()
+                            #             results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
+                            #             db.close()                                                       
+                            #             # init restart pm2 app same rs485
+                            #             await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                            #             # restart pm2 app log
+                            #             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                            #             result=await restart_program_pm2_many(pm2_app_list)
                 
         except Exception as err:
             print(f"Error PM2: '{err}'")
+    # async def deviceList(self):
+    #     try:
+    #         pass
+    #     except Exception as err:
+    #         print('An exception occurred')
+        
 
 async def main():
     tasks = []
