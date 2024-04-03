@@ -987,7 +987,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 new_point_type=[]
                 for item_point in new_point_list_device:
                     if int(item_type["id"])==int(item_point["id_point_list_type"]):
-                        if  item_point["id"]>=0:
+                        if  item_point["id"]>=400:
                             new_point_type.append({
                                 # "config":item_point["config"],
                                 # "id_point_list_type":item_point["id_point_list_type"],
@@ -1064,7 +1064,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                         password[1],
                                         data_mqtt)
             
-            await asyncio.sleep(2)
+            await asyncio.sleep(1)
         
     except Exception as err:
         print('Error monitoring_device : ',err)
