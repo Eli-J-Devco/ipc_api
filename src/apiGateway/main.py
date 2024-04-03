@@ -296,7 +296,27 @@ class apiGateway:
                 #     }
                 # ]
                 
-            topic=f"{self.MQTT_TOPIC_CLOUD}/Devices/All"
+            # topic=f"{self.MQTT_TOPIC_CLOUD}/Devices/All"
+            # db=get_db()
+            # result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
+            # db.close()
+            # param=[]
+            # for item in result_project:
+            #     self.DeviceList.append({
+            #         "id_device":item.id,
+            #         "device_name":item.name,
+            #     })
+            
+            # while True:
+            #     param=self.DeviceList
+            #     mqtt_public_common(self.MQTT_BROKER_CLOUD,
+            #                     self.MQTT_PORT_CLOUD,
+            #                     topic,
+            #                     self.MQTT_USERNAME_CLOUD,
+            #                     self.MQTT_PASSWORD_CLOUD,
+            #                     param)
+            #     await asyncio.sleep(2)
+            topic=f"{self.MQTT_TOPIC}/Devices/All"
             db=get_db()
             result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
             db.close()
@@ -309,11 +329,11 @@ class apiGateway:
             
             while True:
                 param=self.DeviceList
-                mqtt_public_common(self.MQTT_BROKER_CLOUD,
-                                self.MQTT_PORT_CLOUD,
+                mqtt_public_common(self.MQTT_BROKER,
+                                self.MQTT_PORT,
                                 topic,
-                                self.MQTT_USERNAME_CLOUD,
-                                self.MQTT_PASSWORD_CLOUD,
+                                self.MQTT_USERNAME,
+                                self.MQTT_PASSWORD,
                                 param)
                 await asyncio.sleep(2)
         except Exception as err:
