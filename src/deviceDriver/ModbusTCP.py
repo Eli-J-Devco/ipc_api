@@ -108,26 +108,27 @@ def getUTC():
 def point_object(Config,
                  id_point_type,
                  name_point_type,
-                 IDPoint,Parent,
-                 ItemID,PointKey,
-                 Name,Units,Value,
-                 Quality,Timestamp=None,
-                 MsgError="", PointType=""):
+                 id_point,parent,
+                 id,point_key,
+                 name,unit,value,
+                 quality,timestamp=None,
+                 message="", active=0):
     
     return {"config":Config,
             "id_point_list_type":id_point_type,
             "name_point_list_type":name_point_type,
-            "id_point":IDPoint,
-            "parent":Parent,
-            "id": ItemID,
-            "point_key":PointKey,
-            "name": Name, 
-            "unit": Units, 
-            "value":  Value, 
-            "timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
-            "quality":Quality,
-            "message":MsgError,
-            "point_type":PointType
+            "id_point":id_point,
+            "parent":parent,
+            "id": id,
+            "point_key":point_key,
+            "name": name, 
+            "unit": unit, 
+            "value":  value, 
+            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
+            "quality":quality,
+            "message":message,
+            # "point_type":PointType,
+            "active":active
             }
 # Describe functions before writing code
 # /**
@@ -349,7 +350,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             point_list_item['name_units'], 
                                                             point_value, 
                                                             1,
-                                                            MsgError="Not found register"
+                                                            message="Not found register",
+                                                            active=point_list_item['active']
                                                             )
                 else:
                     if point_value != None:
@@ -370,7 +372,10 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 point_list_item['point_name'], 
                                                 point_list_item['name_units'], 
                                                 value, 
-                                                0)
+                                                0,
+                                                message="",
+                                                active=point_list_item['active']
+                                                )
                 return point_list
             case "Internal":
                 point_list=point_object(point_list_item['config_information'],
@@ -384,6 +389,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['name_units'], 
                                         None, 
                                         0,
+                                        message="",
+                                        active=point_list_item['active']
                                         )
                 return point_list
             case "Equation":
@@ -397,7 +404,10 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['point_name'], 
                                         point_list_item['name_units'], 
                                         point_list_item['constants'], 
-                                        0)
+                                        0,
+                                        message="",
+                                        active=point_list_item['active']
+                                        )
                 return point_list
         
     except Exception as err:
@@ -504,7 +514,7 @@ def func_check_data_mybatis(data,item,object_name):
 def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
-      
+
         publish.single(topic, payload, hostname=host,
                        retain=False, port=port,
                        auth = {'username':f'{username}', 
@@ -848,7 +858,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['value'], 
                                                 1,
                                                 item['timestamp'],
-                                                MsgError="Error Device"
+                                                message="Error Device",
+                                                active=item['active']
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -867,7 +878,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 None, 
                                                 1,
                                                 None,
-                                                MsgError="error device"
+                                                message="error device",
+                                                active=item['active']
                                                 )
                             )
                         
@@ -973,21 +985,21 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         # loaded_r = json.loads(r)
                         # print(loaded_r)
                             new_point_type.append({
-                                "config":item_point["config"],
-                                "id_point_list_type":item_point["id_point_list_type"],
-                                "name_point_list_type":item_point["name_point_list_type"],
-                                "id_point":item_point["id_point"],
-                                "parent":item_point["parent"],
-                                "id":item_point["id"],
-                                "point_key":item_point["point_key"],
-                                "name":item_point["name"],
-                                "unit":item_point["unit"],
-                                "value":item_point["value"],
-                                "timestamp":item_point["timestamp"],
-                                "quality":item_point["quality"],
-                                "message":item_point["message"],
-                                "point_type":item_point["point_type"],
-                                # **item_point
+                                # "config":item_point["config"],
+                                # "id_point_list_type":item_point["id_point_list_type"],
+                                # "name_point_list_type":item_point["name_point_list_type"],
+                                # "id_point":item_point["id_point"],
+                                # "parent":item_point["parent"],
+                                # "id":item_point["id"],
+                                # "point_key":item_point["point_key"],
+                                # "name":item_point["name"],
+                                # "unit":item_point["unit"],
+                                # "value":item_point["value"],
+                                # "timestamp":item_point["timestamp"],
+                                # "quality":item_point["quality"],
+                                # "message":item_point["message"],
+                                # "point_type":item_point["point_type"],
+                                **item_point
                             })
                 # print(len(new_point_type))
                 parameters.append({
@@ -1012,6 +1024,20 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "fields":new_point,
                 "mppt":mppt
             }
+            data_mqtt_short={
+                "id_device":device_id,
+                "device_name":device_name,
+                "id_device_type":ID_DEVICE_TYPE,
+                "name_device_type":NAME_DEVICE_TYPE,
+                "status_device":status_device,
+                "timestamp":getUTC(),
+                "message":msg_device,
+                "status_register":status_register_block,
+                "point_count":len(new_point),
+                # "parameters":parameters,
+                "fields":new_point,
+                "mppt":mppt
+            }
             print(f'MQTT message size: {sys.getsizeof(data_mqtt)} bytes')
             # for item in parameters:
             #     print(len(item['fields']))
@@ -1023,6 +1049,12 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     username[0],
                                     password[0],
                                     data_mqtt)
+                func_mqtt_public(   host[0],
+                                    port[0],
+                                    serial_number_project+"/"+"short/"+""+device_id,
+                                    username[0],
+                                    password[0],
+                                    data_mqtt_short)
                 # 
                 if host[1] != None and port[1]:
                     func_mqtt_public(   host[1],

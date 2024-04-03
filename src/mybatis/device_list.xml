@@ -113,7 +113,8 @@
         table_datatype.value AS value_datatype,
         table_datatype.namekey AS name_datatype,
         table_units.value AS value_units,
-        table_units.namekey AS name_units
+        table_units.namekey AS name_units,
+        point_list.active as active
         FROM `device_point_list_map` 
         INNER JOIN point_list ON device_point_list_map.id_point_list=point_list.id
         LEFT JOIN point_list_type ON point_list_type.id=point_list.id_point_list_type
