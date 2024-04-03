@@ -40,7 +40,9 @@
         device_list.point_q,device_list.value_q,device_list.send_q,
         device_list.point_pf,device_list.value_pf,device_list.send_pf,
         device_list.enable_poweroff, device_list.inverter_shutdown,
-        driver_list.name AS connect_type, device_type.name AS device_type,
+        driver_list.name AS connect_type, 
+        device_type.name AS device_type,
+        device_type.id AS id_device_type,
         device_group.name AS device_group,
         template_library.name AS template_name
 		
@@ -59,6 +61,9 @@
 
         device_point_list_map.id,
         point_list.id_pointkey AS pointkey,
+        point_list_type.id as id_point_list_type,
+        point_list_type.namekey as name_point_list_type,
+        
         table_pointtype.name AS pointtype,
         point_list.id_pointclass_type AS id_pointclass,
         point_list.id_config_information AS id_config_infor,
@@ -82,7 +87,7 @@
         device_point_list_map.id_point_list,
         
         point_list.id_pointkey AS id_pointkey,
-        point_list.name AS unit_desc,
+        point_list.name AS point_name,
         point_list.nameedit,
         point_list.id_type_units,
         point_list.nameedit,
@@ -111,6 +116,7 @@
         table_units.namekey AS name_units
         FROM `device_point_list_map` 
         INNER JOIN point_list ON device_point_list_map.id_point_list=point_list.id
+        LEFT JOIN point_list_type ON point_list_type.id=point_list.id_point_list_type
         
         INNER JOIN device_list  ON device_point_list_map.id_device_list=device_list.id
         INNER JOIN template_library ON device_list.id_template=template_library.id

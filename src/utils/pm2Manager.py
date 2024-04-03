@@ -513,3 +513,52 @@ async def restart_pm2_update_template(device_lists,db:Session):
                 # --------------------------------------
     except Exception as err:
         print(f'Error: {err}')
+# Describe functions before writing code
+# /**
+# 	 * @description delete many app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 29-03-2024
+# 	 * @param {list app_name of pm2}
+# 	 * @return data ()
+# 	 */
+async def delete_program_pm2_many(app_name=[]):
+    try:
+        cmd_list=""
+        if sys.platform == 'win32':
+            cmd_list="pm2 jlist"
+        else:
+            cmd_list="sudo pm2 jlist"
+        shellscript = subprocess.Popen(cmd_list,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, text=True)
+                
+        out, err = shellscript.communicate()
+        result = json.loads(out)             
+        app_detect=0
+        pid_list=[]
+        for item in result:
+            name = item['name']
+            for item_app in app_name:
+                if name.find(item_app)==0:
+                    pid= item['pm_id']
+                    pid_list.append(pid)
+        print(f'list {pid_list}')
+        cmd_pm2=""
+        if sys.platform == 'win32':
+            cmd_pm2=f'pm2 delete '
+        else:
+            cmd_pm2=f'sudo pm2 delete '
+        join_pid=""
+        if pid_list:
+            for item in pid_list:
+                join_pid=join_pid+ " " +str(item)
+            cmd_pm2= cmd_pm2 +join_pid
+            print(f'cmd_pm2: {cmd_pm2}')
+            os.system(f'{cmd_pm2}')
+            app_detect=1
+        if app_detect==1:
+            return 100
+        else:
+            return 200
+    except Exception as err:
+        print('Error stop pm2 : ',err)
+        return 300

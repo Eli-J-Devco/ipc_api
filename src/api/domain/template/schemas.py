@@ -21,7 +21,7 @@ sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_na
 # from api.domain.deviceGroup.schemas import DeviceGroupBase
 from model.schemas import (DataTypeBase, PointByteOrder, PointDataType,
                            PointOutBase, PointUnit, RegisterListBase,
-                           TypeByteOrderBase, TypeClassBase, TypePointBase,
+                           TypeByteOrderBase, TypeClassBase, TypeFunctionBase, TypePointBase,
                            TypeUnitsBase, ManualPointBase)
 
 
@@ -123,6 +123,9 @@ class TemplateConfigBase(BaseModel):
     data_type:list[PointDataType]=None
     byte_order:list[PointByteOrder]=None
     point_unit:list[PointUnit]=None
+    type_point:list[TypePointBase]=None
+    type_class:list[TypeClassBase]=None
+    type_function:list[TypeFunctionBase]=None
 
     class Config:
         orm_mode = True
@@ -131,6 +134,7 @@ class TemplateListBase(BaseModel):
     # byte_order:list[PointByteOrder]=None
     # point_unit:list[PointUnit]=None
     point_list : list[PointOutBase]=None
+    mppt_list : list[PointOutBase]=None
     register_list : list[RegisterListBase]=None
     
     class Config:

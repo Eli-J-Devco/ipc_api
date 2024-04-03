@@ -11,7 +11,7 @@ import asyncio_mqtt as aiomqtt
 
 broker = 'test.mosquitto.org'
 port = 1883
-topic = "IPC"
+# topic = "IPC"
 MQTT_USERNAME = "nextwave"
 MQTT_PASSWORD = "123654789"
 
@@ -66,8 +66,8 @@ import mqttools
 # MQTT_BROKER = '115.78.133.129' 
 # MQTT_PORT = 1883
 
-MQTT_BROKER = '192.168.1.103' 
-MQTT_PORT = 1885
+MQTT_BROKER = '115.78.133.129' 
+MQTT_PORT = 1883
 
 # Publish   -> IPC@device_name
 # Subscribe -> IPC@device_name@control
@@ -81,14 +81,14 @@ async def subscriber():
     print(f'MQTT_USERNAME: {MQTT_USERNAME}')
     print(f'MQTT_PASSWORD: {MQTT_PASSWORD}')
     client = mqttools.Client(host=MQTT_BROKER, 
-                             port=MQTT_PORT
-                            #  username= MQTT_USERNAME, 
-                            #  password=bytes(MQTT_PASSWORD, 'utf-8')
+                             port=MQTT_PORT,
+                             username= MQTT_USERNAME, 
+                             password=bytes(MQTT_PASSWORD, 'utf-8')
                              )
     # client = mqttools.Client(host=MQTT_BROKER, 
     #                          port=MQTT_PORT
     #                         )
-    Topic="python/mqtt/#"
+    Topic="G83VZT33/Devices/#"
     await client.start()
     await client.subscribe(Topic)
 
@@ -101,9 +101,9 @@ async def subscriber():
 
         print(f'Topic:   {message.topic}')
         print(f'Message: {message.message.decode()}')
-        print()
-
-asyncio.run(subscriber())
+       
+if __name__ == '__main__':
+    asyncio.run(subscriber())
 # async def publisher():
 #     Topic="IPC@UNO-DM-3.3-TL-PLUS"
 #     async with mqttools.Client(host=MQTT_BROKER, 

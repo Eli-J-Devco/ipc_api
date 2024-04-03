@@ -63,3 +63,28 @@ def mqtt_public(Topic,data_send):
                                'password':f'{password}'})
     except Exception as err:
         print(f"Error MQTT public: '{err}'")
+# Describe functions before writing code
+# /**
+# 	 * @description public data MQTT
+# 	 * @author vnguyen
+# 	 * @since 02-04-2024
+# 	 * @param {data_send}
+# 	 * @return data ()
+# 	 */
+def mqtt_public_common(host,port,topic,username,password,data_send):
+    try:
+        # 
+        
+        # print(host)
+        # print(port)
+        # print(topic)
+        # print(username)
+        # print(password)
+        
+        payload = json.dumps(data_send)
+        publish.single(topic, payload, hostname=host,
+                       retain=False, port=port,
+                       auth = {'username':f'{username}', 
+                               'password':f'{password}'})
+    except Exception as err:
+        print(f"Error MQTT public: '{err}'")

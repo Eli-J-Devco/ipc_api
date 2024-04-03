@@ -214,8 +214,12 @@ def reset_password(username: Optional[str] = Body(embed=True), db: Session = Dep
  
             # using random.choices()
             # generating random strings
-            required_letters = string.ascii_letters + string.digits + string.punctuation + string.ascii_uppercase + string.ascii_lowercase
-            new_password = ''.join(secrets.choice(required_letters) for i in range(20))
+            new_password = ""
+            new_password = new_password + ''.join(secrets.choice(string.ascii_uppercase) for i in range(5))
+            new_password = new_password + ''.join(secrets.choice(string.ascii_lowercase) for i in range(5))
+            new_password = new_password + ''.join(secrets.choice("~`!@#$%^&*()--+='<>,.?/_₹") for i in range(5))
+            new_password = new_password + ''.join(secrets.choice(string.digits) for i in range(5))
+            new_password = ''.join(random.sample(new_password, len(new_password)))
             
             hashed_password = hash(new_password)
             user_query.update(dict(password=hashed_password,), synchronize_session=False)
