@@ -470,6 +470,7 @@ async def device(ConfigPara):
             return -1
         results_device = MySQL_Select(query_device_rs485, (id_communication,))
         # 
+        print(results_device)
         if type(results_device) == list and len(results_device)>=1:
             pass
         else:           
@@ -512,8 +513,8 @@ async def device(ConfigPara):
         all_device_data_request=[]
         for item in results_device:
             data_of_one_device={}
-            data_of_one_device["id"]=item['id']
-            data_of_one_device["name"]=item['name']
+            data_of_one_device["id_device"]=item['id']
+            data_of_one_device["device_name"]=item['name']
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
             # Register block
@@ -525,8 +526,8 @@ async def device(ConfigPara):
                     new_item_rb.append(new_item)
             if type(new_item_rb) == list and len(new_item_rb)>=1:
                 data_of_one_device["RB"]=new_item_rb
-         
-                
+
+            
             # Point list
             item_point= MySQL_Select(query_point_list, (item['id'],))
             if type(item_point) == list and len(item_point)>=1:
@@ -536,8 +537,8 @@ async def device(ConfigPara):
         
             
        
-        # for item in all_device_data_request:
-        #     pprint(item, sort_dicts=False)
+        for item in all_device_data_request:
+            pprint(item, sort_dicts=False)
             
             
             
