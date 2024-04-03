@@ -794,7 +794,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                     print("Error ------------------------------------")
                                     print(f'ADDR: {ADDR} COUNT: {COUNT}')
                                     if hasattr(result_rb, 'function_code'):
-                                        status_device="ONLINE"
+                                        status_device="online"
                                         # Exception Response(131, 3, IllegalAddress)
                                         print(f'ERROR CODE: {result_rb.function_code}')
                                         #
@@ -806,7 +806,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                         status_register_block=status_rb
                                     else:
                                         print(f'This Slave {device_name} - [{slave_ip}] was not found')
-                                        status_device="OFFLINE"
+                                        status_device="offline"
                                         status_rb.append({"ADDR":ADDR,
                                                               "ERROR_CODE":139,
                                                                "Timestamp": getUTC(),
