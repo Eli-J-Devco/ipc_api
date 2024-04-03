@@ -254,9 +254,11 @@ async def Get_MQTT(host, port, topic, username, password):
                 ]
                 for item in result_list:
                     item['data'] = [val if val != 'None' else '' for val in item['data']]
-                    
+                
+                print("result_list",result_list)
+                
                 # Get data for table mppt 
-                if 'mppt' in mqtt_result :
+                if 'MPPT' in mqtt_result :
                     MPPT = mqtt_result['MPPT']
                 for item in MPPT:
                     MPPTVolt = item['value']['mppt_volt']
@@ -293,6 +295,10 @@ async def Get_MQTT(host, port, topic, username, password):
                         for string_item in result_list_MPPTSTRING:
                             if string_item['MPPTCurent'] == MPPTAmps:
                                 string_item['id_device_mppt'] = item['id_device_mppt']
+                
+                print("result_list_MPPT",result_list_MPPT)
+                print("result_list_MPPTSTRING",result_list_MPPTSTRING)
+                
             else: 
                 pass
     except Exception as err:

@@ -670,7 +670,7 @@ async def write_device(client,slave_ID,device_control,
                 "time_stamp" :current_time,
                 "status":comment, 
                 }
-            if bit_feedback == 1 :
+            if bit_feedback == 1 and code_value == 16:
                 push_data_to_mqtt(mqtt_host,
                         mqtt_port,
                         topicPublic + "/" + device_control +  "/" + "Feedback" ,
