@@ -55,7 +55,7 @@ class DriverListBase(BaseModel):
     
 class TypeUnitsBase(BaseModel):
     id: Optional[int] = Field(..., nullable=True, alias='id')
-    namekey: Optional[str] = Field(..., nullable=True,alias='Units')
+    namekey: Optional[str] = Field(..., nullable=True,alias='unit')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
@@ -63,7 +63,7 @@ class TypeUnitsBase(BaseModel):
 class DataTypeBase(BaseModel):
 
     id: Optional[int] = Field(..., alias='id')
-    namekey: Optional[str] = Field(...,alias='Data Type')
+    namekey: Optional[str] = Field(...,alias='data_type')
     
     class Config:
         allow_population_by_field_name = True
@@ -71,14 +71,15 @@ class DataTypeBase(BaseModel):
         from_attributes = True
 class TypeByteOrderBase(BaseModel):
     id: Optional[int] = Field(..., alias='id')
-    namekey: Optional[str]  = Field(...,alias='Byte Order')
+    namekey: Optional[str]  = Field(...,alias='byte_order')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
 class TypePointBase(BaseModel):
     id: Optional[int] = Field(..., alias='id')
-    namekey: Optional[str] = Field(...,alias='Type Point')
+    type: Optional[int] = Field(...,alias='type')
+    namekey: Optional[str] = Field(...,alias='type_point')
     
     class Config:
         allow_population_by_field_name = True
@@ -86,7 +87,7 @@ class TypePointBase(BaseModel):
         from_attributes = True
 class TypeClassBase(BaseModel):
     id:  Optional[int] = Field(..., alias='id')
-    name:  Optional[str] = Field(...,alias='TypeClass')
+    name:  Optional[str] = Field(...,alias='type_class')
     
     class Config:
         allow_population_by_field_name = True
@@ -95,6 +96,7 @@ class TypeClassBase(BaseModel):
 class PointBase(BaseModel):
     id : Optional[int] = None
     id_pointkey : Optional[str] = None
+    parent: Optional[int] = None
     # --------------------------------------------------
     id_template : Optional[int] = None
     # 
@@ -109,7 +111,7 @@ class PointBase(BaseModel):
     id_type_datatype : Optional[int] = None
     id_type_byteorder : Optional[int] = None
     slope : Optional[float] = None
-    slopeenabled : Optional[int] = None
+    slopeenabled : Optional[bool] = None
     offset : Optional[float] = None
     offsetenabled : Optional[bool] = None
     multreg : Optional[int] = None
@@ -127,6 +129,7 @@ class PointBase(BaseModel):
 
 class ManualPointBase(BaseModel):
     id : Optional[int] = None
+    parent: Optional[int] = None
     id_device_type : Optional[int] = None
     id_pointclass_type : Optional[int] = None
     id_config_information : Optional[int] = None
@@ -180,25 +183,26 @@ class PointChangeNumberBase(BaseModel):
 
 class PointDataType(BaseModel):
     id: int = Field(..., alias='id')
-    namekey: str = Field(...,alias='Data Type')
+    namekey: str = Field(...,alias='data_type')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
 class PointByteOrder(BaseModel):
     id: int = Field(..., alias='id')
-    namekey: str = Field(...,alias='Byte Order')
+    namekey: str = Field(...,alias='byte_order')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
 class PointUnit(BaseModel):
     id: int = Field(..., alias='id')
-    namekey: str = Field(...,alias='Unit')
+    namekey: str = Field(...,alias='unit')
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
+
 class PointOutBase(PointBase):
     # 
     type_units  : Optional[TypeUnitsBase] = None
