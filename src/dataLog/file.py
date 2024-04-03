@@ -220,7 +220,7 @@ async def get_mqtt(host, port, topic, username, password):
                 status_register = mqtt_result['status_register']
                 
                 for item in mqtt_result['fields']:
-                    if item['config'] != 'mppt':
+                    if item['config'] != 'MPPT':
                         value = str(item["value"])
                         point_id = str(item["id"])
                         if countMonitor :

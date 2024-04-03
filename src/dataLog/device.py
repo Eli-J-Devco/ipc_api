@@ -240,7 +240,7 @@ async def Get_MQTT(host, port, topic, username, password):
                 status_register = mqtt_result['status_register']
                 
                 for item in mqtt_result['fields']:
-                    if item['config'] != 'mppt':
+                    if item['config'] != 'MPPT':
                         value = str(item["value"])
                         point_id = str(item["id"])
                                     
@@ -257,7 +257,7 @@ async def Get_MQTT(host, port, topic, username, password):
                     
                 # Get data for table mppt 
                 if 'mppt' in mqtt_result :
-                    MPPT = mqtt_result['mppt']
+                    MPPT = mqtt_result['MPPT']
                 for item in MPPT:
                     MPPTVolt = item['value']['mppt_volt']
                     MPPTAmps = item['value']["mppt_amps"]
