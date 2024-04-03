@@ -913,17 +913,26 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global device_id
             global NAME_DEVICE_TYPE
             global ID_DEVICE_TYPE
+            new_point_list_device=[]
             new_point=[]
             mppt=[]
-            if point_list_device:
-                for point_item in point_list_device:
+            #
+            
+            for item in point_list_device:
+                new_point_list_device.append({
+                    **item,
+                    "timestamp":getUTC()
+                })
+            # 
+            if new_point_list_device:
+                for point_item in new_point_list_device:
                     if point_item['config']=="MPPT":
                         mppt_strings=[]
                         mppt_volt=[]
                         mppt_amps=[]                 
-                        mppt_volt=[item for item in point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
-                        mppt_amps=[item for item in point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
-                        mppt_string=[item for item in point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
+                        mppt_volt=[item for item in new_point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
+                        mppt_amps=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
+                        mppt_string=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
                         for item in mppt_string:
                             mppt_strings.append({
                                 "point_key":item["point_key"],
@@ -976,14 +985,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             parameters=[]
             for item_type in point_type:
                 new_point_type=[]
-                for item_point in point_list_device:
+                for item_point in new_point_list_device:
                     if int(item_type["id"])==int(item_point["id_point_list_type"]):
                         if  item_point["id"]>=0:
-                            # print(item_point)
-                            # print({**item_point})
-                        # r = json.dumps(item_point)
-                        # loaded_r = json.loads(r)
-                        # print(loaded_r)
                             new_point_type.append({
                                 # "config":item_point["config"],
                                 # "id_point_list_type":item_point["id_point_list_type"],
@@ -1001,15 +1005,11 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 # "point_type":item_point["point_type"],
                                 **item_point
                             })
-                # print(len(new_point_type))
                 parameters.append({
                     "id": item_type['id'],
                     "name": item_type['name'],
                     "fields": new_point_type
                 })
-                
-            # print(parameters)
-            # print(len(parameters))
             data_mqtt={
                 "id_device":device_id,
                 "device_name":device_name,
