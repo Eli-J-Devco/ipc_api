@@ -81,6 +81,10 @@ QUERY_ALL_DEVICES = ""
 QUERY_TYPE_DEVICE = ""
 QUERY_REGISTER_DATATYPE = ""
 QUERY_DATATYPE = ""
+
+
+NAME_DEVICE_TYPE=None
+ID_DEVICE_TYPE=None
 # ----------------------------------------------------------------------
 
 # config[0] -- id
@@ -101,23 +105,29 @@ def getUTC():
 # 	 * @param {}
 # 	 * @return data {ItemID, Name, Units, Value, Timestamp,Quality}
 # 	 */
-def point_object(Config,IDPoint,Parent,
+def point_object(Config,
+                 id_point_type,
+                 name_point_type,
+                 IDPoint,Parent,
                  ItemID,PointKey,
-                 Name,Units,Value,Quality,Timestamp=None,
+                 Name,Units,Value,
+                 Quality,Timestamp=None,
                  MsgError="", PointType=""):
     
-    return {"Config":Config,
-            "IDPoint":IDPoint,
-            "Parent":Parent,
-            "ItemID": ItemID,
-            "PointKey":PointKey,
-            "Name": Name, 
-            "Units": Units, 
-            "Value":  Value, 
-            "Timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
-            "Quality":Quality,
-            "MsgError":MsgError,
-            "PointType":PointType
+    return {"config":Config,
+            "id_point_list_type":id_point_type,
+            "name_point_list_type":name_point_type,
+            "id_point":IDPoint,
+            "parent":Parent,
+            "id": ItemID,
+            "point_key":PointKey,
+            "name": Name, 
+            "unit": Units, 
+            "value":  Value, 
+            "timestamp":(lambda x:  getUTC() if x ==None else x) (Timestamp),
+            "quality":Quality,
+            "message":MsgError,
+            "point_type":PointType
             }
 # Describe functions before writing code
 # /**
@@ -173,54 +183,25 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
 def convert_register_to_point_list(point_list_item,data_of_register):
     try:
         point_list={}
-        # print(f'data_of_register: {data_of_register}')
-        # print(f'point_list_item: {point_list_item}')
+        point_value :int = None
+        data_have=0
         match point_list_item['pointtype']:
             case "Modbus register":
-                match point_list_item['value_datatype']:
+                datatype=point_list_item['value_datatype']
+                match datatype:
                     case 3: # Short Signed 16-bit
                         result = []
-                        point_value :int = None
                         for itemD in data_of_register:
                             if point_list_item['register'] == itemD["MRA"]:
                                 result.append(itemD["Value"])
                         # print(f'result: --- {result}')        
                         if len(result) > 0:
-                            
                             decoder = BinaryPayloadDecoder.fromRegisters(
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_16bit_int()
-                            
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                                    point_list_item['id_point'],
-                                                    point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'],
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 4: # Word Unsigned 16-bit
                         result = []
                         point_value :int = None
@@ -233,37 +214,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                             decoder = BinaryPayloadDecoder.fromRegisters(
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_16bit_uint()
-                            
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 5: # Long Signed 32-bit
                         
                         result = []
@@ -284,36 +237,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_32bit_int()
                             
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'],
-                                                    point_list_item['pointkey'],  
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 6: # DWord Unsigned 32-bit
                         result = []
                         point_value :int = None
@@ -333,36 +259,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_32bit_uint()
                             
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 7: # LLong Signed 64-bit
                         result = []
                         point_value :int = None
@@ -387,36 +286,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_64bit_int()
                             
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 8: # QWord Unsigned 64-bit 
                         result = []
                         point_value :int = None
@@ -441,36 +313,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_64bit_uint()
                             
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'],
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                        point_list_item['id_point'],
-                                        point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    func_check_float(point_value), 
-                                                    0)
-                            
-                            return point_list 
-                        else:  
-                            return point_list
+                            data_have=0
                     case 9: # Float 32-bit real value IEEE-754       
                         result = []
                         point_value : float = None
@@ -484,66 +329,77 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                             decoder = BinaryPayloadDecoder.fromRegisters(
                                                         result, byteorder=Endian.Big, wordorder=Endian.Big)
                             point_value = decoder.decode_32bit_float()
+                            data_have=1
                         else:
-                            point_list=point_object(point_list_item['config_information'],
-                                                    point_list_item['id_point'],
-                                                    point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_value, 
-                                                    1,
-                                                    MsgError="Not found register"
-                                                    )      
-                        if point_value != None:
-                            point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
-                            point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
-                            point_list=point_object(point_list_item['config_information'],
-                                                    point_list_item['id_point'],
-                                                    point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    round(point_value,2), 
-                                                    0)
-                            
-                            return point_list 
-                        else:
-                            return point_list 
+                            data_have=0
                     case 10: # Double 64-bit real value
                         return {}
                     case _:
                         return {}
+                
+                if data_have==0:
+                    point_list=point_object(point_list_item['config_information'],
+                                                            point_list_item['id_point_list_type'],
+                                                            point_list_item['name_point_list_type'],
+                                                            point_list_item['id_point'],
+                                                            point_list_item['parent'],
+                                                            point_list_item['id'],
+                                                            point_list_item['pointkey'], 
+                                                            point_list_item['point_name'], 
+                                                            point_list_item['name_units'], 
+                                                            point_value, 
+                                                            1,
+                                                            MsgError="Not found register"
+                                                            )
+                else:
+                    if point_value != None:
+                        point_value=func_slope(point_list_item['slopeenabled'],point_list_item['slope'],point_value)
+                        point_value=func_Offset(point_list_item['offsetenabled'],point_list_item['offset'],point_value)
+                        value=None
+                        if datatype==9:# Float 32-bit real value IEEE-754    
+                            value=round(point_value,2)
+                        else:
+                            value=func_check_float(point_value)
+                        point_list=point_object(point_list_item['config_information'],
+                                                point_list_item['id_point_list_type'],
+                                                point_list_item['name_point_list_type'],
+                                                point_list_item['id_point'],
+                                                point_list_item['parent'],
+                                                point_list_item['id'], 
+                                                point_list_item['pointkey'], 
+                                                point_list_item['point_name'], 
+                                                point_list_item['name_units'], 
+                                                value, 
+                                                0)
+                return point_list
             case "Internal":
                 point_list=point_object(point_list_item['config_information'],
+                                        point_list_item['id_point_list_type'],
+                                        point_list_item['name_point_list_type'],
                                         point_list_item['id_point'],
                                         point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    None, 
-                                                    0,
-                                                    )
+                                        point_list_item['id'], 
+                                        point_list_item['pointkey'], 
+                                        point_list_item['point_name'], 
+                                        point_list_item['name_units'], 
+                                        None, 
+                                        0,
+                                        )
                 return point_list
             case "Equation":
                 point_list=point_object(point_list_item['config_information'],
+                                        point_list_item['id_point_list_type'],
+                                        point_list_item['name_point_list_type'],
                                         point_list_item['id_point'],
                                         point_list_item['parent'],
-                                                    # point_list_item['id_pointkey'], 
-                                                    point_list_item['id'], 
-                                                    point_list_item['pointkey'], 
-                                                    point_list_item['unit_desc'], 
-                                                    point_list_item['name_units'], 
-                                                    point_list_item['constants'], 
-                                                    0)
+                                        point_list_item['id'], 
+                                        point_list_item['pointkey'], 
+                                        point_list_item['point_name'], 
+                                        point_list_item['name_units'], 
+                                        point_list_item['constants'], 
+                                        0)
                 return point_list
-            # return point_list   
+        
     except Exception as err:
         print(f'Error convert_register_to_point_list {err}')
         return {}
@@ -929,7 +785,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                 print("The device does not return results")
                             else:
                                 if not result_rb.isError():
-                                    status_device="ONLINE"
+                                    status_device="online"
                                     INC = ADDR-1
                                     for itemR in result_rb.registers:
                                         INC = INC+1
@@ -971,29 +827,50 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         await asyncio.sleep(5)
                         # 
                 except (ConnectionException, ModbusException) as e:
-                    # print(f'Loi thiet bi')
-                    status_device="OFFLINE"
+                    status_device="offline"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"
-                    # set value Quality of Point =1 when disconnect
                     point_list_error=[]
                     # if point_list_device:
                     #     print(point_list_device[0])
-                    for item in point_list_device:
-                        point_list_error.append(point_object(
-                                        item['Config'],
-                                        item['IDPoint'],
-                                        item['Parent'],
-                                        
-                                            item['ItemID'], 
-                                            item['PointKey'],
-                                            item['Name'], 
-                                            item['Units'], 
-                                            item['Value'], 
-                                            item['Timestamp'], 
-                                            1,
-                                            MsgError="Error Device"
-                                            ))
+                    if point_list_device:
+                        for item in point_list_device:
+                            point_list_error.append(point_object(
+                                                item['config'],
+                                                item['id_point_list_type'],
+                                                item['name_point_list_type'],
+                                                item['id_point'],
+                                                item['parent'],
+                                                item['id'], 
+                                                item['point_key'],
+                                                item['name'], 
+                                                item['unit'], 
+                                                item['value'], 
+                                                1,
+                                                item['timestamp'],
+                                                MsgError="Error Device"
+                                                ))
+                    else:
+                        # print(results_Plist[0])
+                        for item in results_Plist:
+                            point_list_error.append(
+                                point_object(
+                                                item['config_information'],
+                                                item['id_point_list_type'],
+                                                item['name_point_list_type'],
+                                                item['id_point'],
+                                                item['parent'],
+                                                item['id'], 
+                                                item['pointkey'],
+                                                item['point_name'], 
+                                                item['name_units'], 
+                                                None, 
+                                                1,
+                                                None,
+                                                MsgError="error device"
+                                                )
+                            )
+                        
                     point_list_device=point_list_error
                     await asyncio.sleep(5)
                 except AttributeError as ae:
@@ -1014,7 +891,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(serial_number_project,host=[], port=[], username=[], password=[]
+async def monitoring_device(point_type,serial_number_project,host=[], port=[], username=[], password=[]
 
                         ):
     try:
@@ -1022,106 +899,138 @@ async def monitoring_device(serial_number_project,host=[], port=[], username=[],
             print(f'-----{getUTC()} monitoring_device -----')
             global  device_name,status_device,msg_device,status_register_block,point_list_device
             global device_id
-            # [{'IDPoint': 119, 
-            # 'Value': {  'MPPTVolt': 0, 
-            #             'MPPTAmps': 0, 
-            #             'MPPTSTRING': 
-            #                 [{'PointKey': 'STRING1', 'Name': 'STRING1', 'Value': 0}]}}, 
-            # {'IDPoint': 120, 
-            # 'Value': {  'MPPTVolt': 0, 
-            #             'MPPTAmps': 0, 
-            #             'MPPTSTRING': [{'PointKey': 'STRING2', 'Name': 'STRING2', 'Value': 0}]}}]
+            global NAME_DEVICE_TYPE
+            global ID_DEVICE_TYPE
             new_point=[]
             mppt=[]
             if point_list_device:
                 for point_item in point_list_device:
-                    if point_item['Config']=="MPPT":
+                    if point_item['config']=="MPPT":
                         mppt_strings=[]
                         mppt_volt=[]
                         mppt_amps=[]                 
-                        mppt_volt=[item for item in point_list_device if item['Parent'] == point_item["IDPoint"] and item['Config'] =="MPPTVolt" ]
-                        mppt_amps=[item for item in point_list_device if item['Parent'] == point_item["IDPoint"]and item['Config'] =="MPPTAmps"]
-                        mppt_string=[item for item in point_list_device if item['Parent'] == point_item["IDPoint"]and item['Config'] =="StringAmps"]
+                        mppt_volt=[item for item in point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
+                        mppt_amps=[item for item in point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
+                        mppt_string=[item for item in point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
                         for item in mppt_string:
                             mppt_strings.append({
-                                "PointKey":item["PointKey"],
-                                "Name":item["PointKey"],
-                                "Value":item["Value"],
+                                "point_key":item["point_key"],
+                                "name":item["name"],
+                                "value":item["value"],
                                             })
                         Quality=[]
                         if mppt_volt:
-                            volt_quality=  [item for item in mppt_volt if item['Quality'] == 1]
+                            volt_quality=  [item for item in mppt_volt if item['quality'] == 1]
                             if volt_quality==[]:
                                 Quality.append(0)
                             else:
                                 Quality.append(1)
                         if mppt_amps:
-                            amps_quality=  [item for item in mppt_amps if item['Quality'] == 1]
+                            amps_quality=  [item for item in mppt_amps if item['quality'] == 1]
                             if amps_quality==[]:
                                 Quality.append(0)
                             else:
                                 Quality.append(1)
                         if mppt_string:
-                            string_quality=  [item for item in mppt_string if item['Quality'] == 1]
+                            string_quality=  [item for item in mppt_string if item['quality'] == 1]
                             if string_quality==[]:
                                 Quality.append(0)
                             else:
                                 Quality.append(1)
                         mppt_item={
-                                "Config":point_item["Config"],
-                                "IDPoint":point_item["IDPoint"],
-                                "Parent":point_item["Parent"],
-                                "ItemID": point_item["ItemID"],
-                                "PointKey":point_item["PointKey"],
-                                "Name": point_item["Name"],
-                                'Value':{
-                                    "MPPTVolt":(lambda x: x[0]['Value'] if x else None)(mppt_volt),
-                                    "MPPTAmps":(lambda x: x[0]['Value'] if x else None)(mppt_amps),
-                                    "MPPTSTRING":mppt_strings
+                                "config":point_item["config"],
+                                "id_point":point_item["id_point"],
+                                "parent":point_item["parent"],
+                                "id": point_item["id"],
+                                "point_key":point_item["point_key"],
+                                "name": point_item["name"],
+                                'value':{
+                                    "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
+                                    "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
+                                    "mppt_string":mppt_strings
                                     },
-                                "Timestamp":getUTC(),
-                                "Quality":(lambda x: 1 if 1 in Quality else 0)(Quality),
+                                "timestamp":getUTC(),
+                                "quality":(lambda x: 1 if 1 in Quality else 0)(Quality),
                                 }
                         new_point.append(mppt_item)
                         mppt.append(mppt_item)
-                    elif point_item['Config']=="Field":
+                    elif point_item['config']=="Field":
                         new_point.append(point_item)
                         pass
-                    elif point_item['Config']=="Panel":
+                    elif point_item['config']=="Panel":
                         new_point.append(point_item)
                     else:
                         new_point.append(point_item)
+            parameters=[]
+            for item_type in point_type:
+                new_point_type=[]
+                for item_point in point_list_device:
+                    if int(item_type["id"])==int(item_point["id_point_list_type"]):
+                        if  item_point["id"]>=0:
+                            # print(item_point)
+                            # print({**item_point})
+                        # r = json.dumps(item_point)
+                        # loaded_r = json.loads(r)
+                        # print(loaded_r)
+                            new_point_type.append({
+                                "config":item_point["config"],
+                                "id_point_list_type":item_point["id_point_list_type"],
+                                "name_point_list_type":item_point["name_point_list_type"],
+                                "id_point":item_point["id_point"],
+                                "parent":item_point["parent"],
+                                "id":item_point["id"],
+                                "point_key":item_point["point_key"],
+                                "name":item_point["name"],
+                                "unit":item_point["unit"],
+                                "value":item_point["value"],
+                                "timestamp":item_point["timestamp"],
+                                "quality":item_point["quality"],
+                                "message":item_point["message"],
+                                "point_type":item_point["point_type"],
+                                # **item_point
+                            })
+                # print(len(new_point_type))
+                parameters.append({
+                    "id": item_type['id'],
+                    "name": item_type['name'],
+                    "fields": new_point_type
+                })
+                
+            # print(parameters)
+            # print(len(parameters))
             data_mqtt={
-                "ID_DEVICE":device_id,
-                "ID_DEVICE_TYPE":ID_DEVICE_TYPE,
-                "NAME_DEVICE_TYPE":NAME_DEVICE_TYPE,
-                "STATUS_DEVICE":status_device,
-                "TIME_STAMP":getUTC(),
-                "MSG_DEVICE":msg_device,
-                "STATUS_REGISTER":status_register_block,
-                "POINT_COUNT":len(new_point),
-                "POINT_LIST":new_point,
-                "MPPT":mppt
+                "id_device":device_id,
+                "device_name":device_name,
+                "id_device_type":ID_DEVICE_TYPE,
+                "name_device_type":NAME_DEVICE_TYPE,
+                "status_device":status_device,
+                "timestamp":getUTC(),
+                "message":msg_device,
+                "status_register":status_register_block,
+                "point_count":len(new_point),
+                "parameters":parameters,
+                "fields":new_point,
+                "mppt":mppt
             }
+            print(f'MQTT message size: {sys.getsizeof(data_mqtt)} bytes')
+            # for item in parameters:
+            #     print(len(item['fields']))
             if device_name !="" and serial_number_project!= None:
-                # func_mqtt_public(   host,
-                #                     port,
-                #                     topic+""+device_id+"|"+device_name,
-                #                     username,
-                #                     password,
-                #                     data_mqtt)
+                
                 func_mqtt_public(   host[0],
                                     port[0],
                                     serial_number_project+"/"+"Devices/"+""+device_id,
                                     username[0],
                                     password[0],
                                     data_mqtt)
-                func_mqtt_public(   host[1],
-                                    port[1],
-                                    serial_number_project+"/"+"Devices/"+""+device_id,
-                                    username[1],
-                                    password[1],
-                                    data_mqtt)
+                # 
+                if host[1] != None and port[1]:
+                    func_mqtt_public(   host[1],
+                                        port[1],
+                                        serial_number_project+"/"+"Devices/"+""+device_id,
+                                        username[1],
+                                        password[1],
+                                        data_mqtt)
             
             await asyncio.sleep(2)
         
@@ -1464,6 +1373,7 @@ async def check_device_control():
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
+    results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
     serial_number_project=results_project[0]["serial_number"]
     tasks.append(asyncio.create_task(device(serial_number_project ,arr,
                                                     MQTT_BROKER,
@@ -1472,26 +1382,28 @@ async def main():
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD )))
     # 
-    MQTT_BROKER_CLOUD="mqtt.nextwavemonitoring.com"
-    MQTT_PORT_CLOUD=1883
-    MQTT_USERNAME_CLOUD="admin"
-    MQTT_PASSWORD_CLOUD="123654789"
+    MQTT_BROKER_CLOUD=results_project[0]["mqtt_broker_cloud"] #"mqtt.nextwavemonitoring.com"
+    MQTT_PORT_CLOUD=results_project[0]["mqtt_port_cloud"] #1883
+    MQTT_USERNAME_CLOUD=results_project[0]["mqtt_username_cloud"] #"admin"
+    MQTT_PASSWORD_CLOUD=results_project[0]["mqtt_password_cloud"] #"123654789"
     # 
     MQTT_BROKER_LIST=[]
     MQTT_PORT_LIST=[]
     MQTT_USERNAME_LIST=[]
     MQTT_PASSWORD_LIST=[]
+    
     MQTT_BROKER_LIST.append(MQTT_BROKER)
-    MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
     MQTT_PORT_LIST.append(MQTT_PORT)
-    MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
     MQTT_USERNAME_LIST.append(MQTT_USERNAME)
-    MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
     MQTT_PASSWORD_LIST.append(MQTT_PASSWORD)
+    
+    MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
+    MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
+    MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
     MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
     
     # 
-    tasks.append(asyncio.create_task(monitoring_device(serial_number_project,
+    tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,serial_number_project,
                                                     MQTT_BROKER_LIST,
                                                     MQTT_PORT_LIST,
                                                     MQTT_USERNAME_LIST,

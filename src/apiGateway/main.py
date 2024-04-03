@@ -27,7 +27,7 @@ from configs.config import Config
 from database.db import get_db
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
-from utils.mqttManager import mqtt_public
+from utils.mqttManager import mqtt_public, mqtt_public_common
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2,
@@ -54,13 +54,27 @@ class apiGateway:
                         MQTT_PORT=1883,
                         MQTT_TOPIC="",
                         MQTT_USERNAME="",
-                        MQTT_PASSWORD=""
+                        MQTT_PASSWORD="",
+                        MQTT_BROKER_CLOUD="127.0.0.1",
+                        MQTT_PORT_CLOUD=1883,
+                        MQTT_TOPIC_CLOUD="",
+                        MQTT_USERNAME_CLOUD="",
+                        MQTT_PASSWORD_CLOUD=""
                         ):
         self.MQTT_BROKER = MQTT_BROKER
         self.MQTT_PORT = MQTT_PORT
         self.MQTT_TOPIC = MQTT_TOPIC
         self.MQTT_USERNAME = MQTT_USERNAME
         self.MQTT_PASSWORD = MQTT_PASSWORD
+        self.DeviceList=[]
+        
+        self.MQTT_BROKER_CLOUD = MQTT_BROKER_CLOUD
+        self.MQTT_PORT_CLOUD = MQTT_PORT_CLOUD
+        self.MQTT_TOPIC_CLOUD = MQTT_TOPIC_CLOUD
+        self.MQTT_USERNAME_CLOUD = MQTT_USERNAME_CLOUD
+        self.MQTT_PASSWORD_CLOUD = MQTT_PASSWORD_CLOUD
+        
+        
     async def managerApplicationsWithPM2(self):
         try:
             
@@ -226,12 +240,85 @@ class apiGateway:
                 
         except Exception as err:
             print(f"Error PM2: '{err}'")
-    # async def deviceList(self):
-    #     try:
-    #         pass
-    #     except Exception as err:
-    #         print('An exception occurred')
+    async def deviceListSub(self):
+        try:
+            db=get_db()
+            result_project=db.query(deviceList_models.Device_list).all()
+            db.close()
+            # 
+            Topic=self.MQTT_TOPIC+"/"+"Devices"
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                                port=self.MQTT_PORT ,
+                                username= self.MQTT_USERNAME, 
+                                password=bytes(self.MQTT_PASSWORD, 'utf-8'))
         
+            await client.start()
+            await client.subscribe(Topic+"/#")
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                print(f'Topic:   {message.topic}')
+                result=json.loads(message.message.decode())
+                
+                for i,item in enumerate(self.DeviceList):
+                    # print('------------------')
+                    # print(item)
+                    # print(f'{Topic}/{item["id_device"]}')
+                    if message.topic==f'{Topic}/{item["id_device"]}':
+                        # print(item)
+                        self.DeviceList[i]["id_device_type"]=result["id_device_type"]
+                        self.DeviceList[i]["name_device_type"]=result["name_device_type"]
+                        self.DeviceList[i]["status_device"]=result["status_device"]
+                        self.DeviceList[i]["timestamp"]=result["timestamp"]
+                        self.DeviceList[i]["message"]=result["message"]
+                        self.DeviceList[i]["status_register"]=result["status_register"]
+                        self.DeviceList[i]["point_count"]=result["point_count"]
+                        self.DeviceList[i]["parameters"]=result["parameters"]
+                        self.DeviceList[i]["fields"]=result["fields"]
+                        self.DeviceList[i]["mppt"]=result["mppt"]
+                        
+                        # for item in result["parameters"]:
+                        #     print(len(item['fields']))
+                        print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
+                    
+        except Exception as err:
+            print('Error MQTT deviceListSub')
+    async def deviceListPub(self):
+        try:
+                # [
+                #     {   "id":296,
+                #         "name":"ABB",
+                #         "point_p":"",
+                #         "model":"",
+                #         "realtime":[]
+                #     }
+                # ]
+                
+            topic=f"{self.MQTT_TOPIC_CLOUD}/Devices/All"
+            db=get_db()
+            result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
+            db.close()
+            param=[]
+            for item in result_project:
+                self.DeviceList.append({
+                    "id_device":item.id,
+                    "device_name":item.name,
+                })
+            
+            while True:
+                param=self.DeviceList
+                mqtt_public_common(self.MQTT_BROKER_CLOUD,
+                                self.MQTT_PORT_CLOUD,
+                                topic,
+                                self.MQTT_USERNAME_CLOUD,
+                                self.MQTT_PASSWORD_CLOUD,
+                                param)
+                await asyncio.sleep(2)
+        except Exception as err:
+            print('Error MQTT deviceListPub')
+           
 
 async def main():
     tasks = []
@@ -239,15 +326,30 @@ async def main():
     result_project=db.query(project_models.Project_setup).first()
     db.close()
     MQTT_TOPIC=result_project.serial_number
+    
+    MQTT_BROKER_CLOUD=result_project.mqtt_broker_cloud
+    MQTT_PORT_CLOUD=result_project.mqtt_port_cloud
+    MQTT_TOPIC_CLOUD=result_project.serial_number
+    MQTT_USERNAME_CLOUD=result_project.mqtt_username_cloud
+    MQTT_PASSWORD_CLOUD=result_project.mqtt_password_cloud
     print(f'MQTT_TOPIC: {MQTT_TOPIC}')
     api_gateway=apiGateway(MQTT_BROKER,
                             MQTT_PORT,
                             MQTT_TOPIC,
                             MQTT_USERNAME,
-                            MQTT_PASSWORD
+                            MQTT_PASSWORD,
+                            MQTT_BROKER_CLOUD,
+                            MQTT_PORT_CLOUD,
+                            MQTT_TOPIC_CLOUD,
+                            MQTT_USERNAME_CLOUD,
+                            MQTT_PASSWORD_CLOUD,
                             )
     tasks.append(asyncio.create_task(
         api_gateway.managerApplicationsWithPM2()))
+    tasks.append(asyncio.create_task(
+        api_gateway.deviceListSub()))
+    tasks.append(asyncio.create_task(
+        api_gateway.deviceListPub()))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
