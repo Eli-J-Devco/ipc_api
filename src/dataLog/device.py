@@ -34,6 +34,8 @@ from utils.libMySQL import *
 # Declare Variable 
 result_list = []
 result_all = []
+result_list_MPPT = []
+result_list_MPPTSTRING = []
 status_device = ""     
 msg_device = ""
 status_register = ""
@@ -187,8 +189,19 @@ async def Get_MQTT(host, port, topic, username, password):
     global status_register
     global result_list
     global status_file
+    global result_list_MPPT 
+    global result_list_MPPTSTRING 
+    
     result_values_dict = {}
     device_id = 0 
+    
+    MPPT = ""
+    MPPTVolt = 0 
+    MPPTAmps = 0
+    MPPTKey = ""
+    MPPTCurrent = 0
+    query = ""
+    MPPTKey_string = ""
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -229,7 +242,7 @@ async def Get_MQTT(host, port, topic, username, password):
                 for item in mqtt_result['fields']:
                     if item['config'] != 'mppt':
                         value = str(item["value"])
-                        point_id = str(item["id_point"])
+                        point_id = str(item["id"])
                                     
                         result_value.append(value)
                         result_point_id.append(point_id)
@@ -241,6 +254,45 @@ async def Get_MQTT(host, port, topic, username, password):
                 ]
                 for item in result_list:
                     item['data'] = [val if val != 'None' else '' for val in item['data']]
+                    
+                # Get data for table mppt 
+                if 'mppt' in mqtt_result :
+                    MPPT = mqtt_result['mppt']
+                for item in MPPT:
+                    MPPTVolt = item['value']['mppt_volt']
+                    MPPTAmps = item['value']["mppt_amps"]
+                    MPPTKey = item["point_key"]
+                    
+                    result_list_MPPT.append({
+                        "id": int(device_id),
+                        "namekey": MPPTKey,
+                        "MPPTVolt": MPPTVolt,
+                        "MPPTAmps": MPPTAmps,
+                    })
+                    for string_item in item['value']['mppt_string']:
+                            MPPTCurrent = string_item['value']
+                            MPPTKey_string = string_item['name']
+                            result_list_MPPTSTRING.append({
+                                "name": MPPTKey_string,
+                                "MPPTCurent": MPPTCurrent
+                        })
+                if result_list_MPPT:
+                    for item in result_list_MPPT:
+                        id = item['id']
+                        namekey = item['namekey']
+                        MPPTAmps = item['MPPTAmps'] 
+
+                        query = f"SELECT id FROM `device_mppt` WHERE `id_device_list` = {id} AND `namekey` = '{namekey}'"
+                        result_id_mppt = await MySQL_Select_v1(query)
+
+                        if result_id_mppt:
+                            item['id_device_mppt'] = result_id_mppt[0]['id']
+                        else:
+                            item['id_device_mppt'] = None
+                        
+                        for string_item in result_list_MPPTSTRING:
+                            if string_item['MPPTCurent'] == MPPTAmps:
+                                string_item['id_device_mppt'] = item['id_device_mppt']
             else: 
                 pass
     except Exception as err:
@@ -334,6 +386,59 @@ async def Insert_TableDevice(sql_id):
     except Exception as e:
         
         print(f"Error during file creation is : {e}")
+
+# /**
+# 	 * @description 
+#       - create and write data in file  
+#       - sync data file with database 
+# 	 * @author bnguyen
+# 	 * @since 13-12-2023
+# 	 * @param {host, port, topic, username, password}
+# 	 * @return result_list 
+# 	 */ 
+async def Insert_TableMPPT():
+    global result_list_MPPT
+    global result_list_MPPTSTRING
+    val_list_MPPT = []
+    val_list_STRING = []
+    id_device_list = ""
+    id_device_list_string = ""
+    MPPTKey = ""
+    MPPTKey_string = ""
+    voltage = ""
+    current = ""
+    current_string = ""
+    
+    try:
+        if result_list_MPPT:
+            for item in result_list_MPPT:
+                id_device_list = item['id']
+                MPPTKey = item['namekey']
+                voltage = item['MPPTVolt']
+                current = item['MPPTAmps']
+
+                val_list_MPPT.append((voltage, current, id_device_list, MPPTKey))
+
+            query = "UPDATE device_mppt SET voltage = %s, current = %s WHERE id_device_list = %s AND namekey = %s;"
+            MySQL_Insert_v4(query, val_list_MPPT)
+            
+        else:
+            pass
+        if result_list_MPPTSTRING:
+            for item in result_list_MPPTSTRING:
+                id_device_list_string = item['id_device_mppt']
+                MPPTKey_string = item['name']
+                current_string = item['MPPTCurent']
+
+                val_list_STRING.append((current_string, id_device_list_string, MPPTKey_string))
+
+            query = "UPDATE device_mppt_string SET current = %s WHERE id_device_mppt = %s AND namekey = %s;"
+
+            MySQL_Insert_v4(query, val_list_STRING)
+        else:
+            pass
+    except Exception as e:
+        print(f"Error during data insertion: {e}")
                 
 # Describe monitoring_device_AllDevice
 # /**
@@ -470,6 +575,7 @@ async def main():
     
     scheduler = AsyncIOScheduler()
     scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')
+    scheduler.add_job(Insert_TableMPPT, 'cron', minute = f'*/{int_number}')
     scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_TOPIC_PUB,
