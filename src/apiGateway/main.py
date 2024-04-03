@@ -49,6 +49,10 @@ import api.domain.user.models as user_models
 import model.models as models
 
 
+def getUTC():
+    now = datetime.datetime.now(
+        datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return now
 class apiGateway:
     def __init__(self,MQTT_BROKER="127.0.0.1",
                         MQTT_PORT=1883,
@@ -326,20 +330,56 @@ class apiGateway:
                     "id_device":item.id,
                     "device_name":item.name,
                     "model":item.model,
+                    "parameters":[]
                 })
             
             while True:
-                param=self.DeviceList
+                mqtt_data=[]
+                for item in self.DeviceList:
+                    parameters=[]
+                    fields=[]
+                    mppt=[]
+                    if 'parameters' in item.keys():
+                        for item_para in item["parameters"] :
+                            parameter_fields=[]
+                            if 'fields' in item_para.keys():
+                                for item_fields in item_para["fields"]:
+                                    parameter_fields.append({
+                                        **item_fields,
+                                        "timestamp":getUTC()
+                                    })
+                                parameters.append(
+                                    {
+                                        **item_para,
+                                        "fields":parameter_fields
+                                    }
+                                )
+                    if 'fields' in item.keys():
+                        fields=[ {**item_fields,
+                                  "timestamp":getUTC()
+                                  } for item_fields in item["parameters"]]
+                    if 'mppt' in item.keys():
+                        mppt=[ {**item_mppt,
+                                  "timestamp":getUTC()
+                                  } for item_mppt in item["mppt"]]
+                    mqtt_data.append({
+                        **item,
+                        "timestamp":getUTC(),
+                        "parameters":parameters,
+                        "fields":fields,
+                        "mppt":mppt
+                    })
+                    
+                    
                 mqtt_public_common(self.MQTT_BROKER,
                                 self.MQTT_PORT,
                                 topic,
                                 self.MQTT_USERNAME,
                                 self.MQTT_PASSWORD,
-                                param)
+                                mqtt_data)
                 await asyncio.sleep(2)
         except Exception as err:
             print('Error MQTT deviceListPub')
-           
 
 async def main():
     tasks = []

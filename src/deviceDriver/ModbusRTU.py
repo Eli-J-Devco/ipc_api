@@ -468,6 +468,8 @@ async def device(ConfigPara):
         else:           
             print("Error not found data in file mybatis")
             return -1
+        print(f'id_communication: {id_communication}')
+        print(query_device_rs485)
         results_device = MySQL_Select(query_device_rs485, (id_communication,))
         # 
         print(results_device)
