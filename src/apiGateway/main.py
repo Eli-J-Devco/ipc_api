@@ -357,7 +357,7 @@ class apiGateway:
                     if 'fields' in item.keys():
                         fields=[ {**item_fields,
                                   "timestamp":getUTC()
-                                  } for item_fields in item["parameters"]]
+                                  } for item_fields in item["fields"]]
                     if 'mppt' in item.keys():
                         mppt=[ {**item_mppt,
                                   "timestamp":getUTC()
