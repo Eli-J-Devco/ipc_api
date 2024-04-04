@@ -469,10 +469,9 @@ async def device(ConfigPara):
             print("Error not found data in file mybatis")
             return -1
         print(f'id_communication: {id_communication}')
-        print(query_device_rs485)
         results_device = MySQL_Select(query_device_rs485, (id_communication,))
         # 
-        print(results_device)
+        print(f'results_device: {results_device}')
         if type(results_device) == list and len(results_device)>=1:
             pass
         else:           
@@ -517,10 +516,12 @@ async def device(ConfigPara):
             data_of_one_device={}
             data_of_one_device["id_device"]=item['id']
             data_of_one_device["device_name"]=item['name']
+            data_of_one_device["name_device_type"]=item['device_type']
+            data_of_one_device["id_device_type"]=item['id_device_type']
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
             # Register block
-            item_rb= MySQL_Select(query_register_block, (item['id'],))
+            item_rb= MySQL_Select(query_register_block, (item['id_template'],))
             new_item_rb=[]
             if type(item_rb) == list and len(item_rb)>=1:
                 for new_item in item_rb:
@@ -537,14 +538,15 @@ async def device(ConfigPara):
             # 
             all_device_data_request.append(data_of_one_device)
         
+        print(all_device_data_request[0])
+        # for item in all_device_data_request:
+        #     print(item)
+        #     print('-----------------------------------------')
+        #     pprint(item, sort_dicts=False)
             
-       
-        for item in all_device_data_request:
-            pprint(item, sort_dicts=False)
             
             
-            
-       
+
         while True:
             try:
                 global all_device_data
@@ -587,19 +589,22 @@ async def device(ConfigPara):
 
                     for item_device in all_device_data_request:
                         data_one_device={}
-                        data_one_device["ID"]=item_device["ID"]
-                        data_one_device["NAME"]=item_device["NAME"]
-                        data_one_device["MSG_DEVICE"]=""
-                        data_one_device["STATUS_REGISTER"]=[]
-                        data_one_device["POINT_LIST"]=[]
-                        data_one_device["STATUS_DEVICE"]=""
+                        data_one_device["id_device"]=item_device["id_device"]
+                        data_one_device["id_device_type"]=item_device["id_device_type"]
+                        data_one_device["name_device_type"]=item_device['name_device_type']
+                        data_one_device["device_name"]=item_device["device_name"]
+                        data_one_device["message"]=""
+                        data_one_device["status_register"]=[]
+                        data_one_device["fields"]=[]
+                        data_one_device["status_device"]=""
                         
                         data_rg_one_device = []
                         status_rb=[]
                         status_device=""
                         # Read register block 1 device
+                        device_name_rs485=item_device["device_name"]
                         for itemRB in item_device["RB"]:
-                            device_name_rs485=itemRB["name"]
+                            
                             slave_ip=itemRB["rtu_bus_address"]
                             await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
@@ -651,20 +656,22 @@ async def device(ConfigPara):
                                 data_point_list_one_device.append(result)
                             else:
                                 pass
-                        data_one_device["STATUS_REGISTER"]=status_rb
-                        data_one_device["POINT_LIST"]=data_point_list_one_device
-                        data_one_device["STATUS_DEVICE"]=status_device
+                        data_one_device["status_register"]=status_rb
+                        data_one_device["fields"]=data_point_list_one_device
+                        data_one_device["status_device"]=status_device
                         all_device_data.append(data_one_device)
                 else:
                     print(f'----- Can not connect to port -----')
                     for item_device in all_device_data_request:
                         data_one_device={}
-                        data_one_device["ID"]=item_device["ID"]
-                        data_one_device["NAME"]=item_device["NAME"]
-                        data_one_device["MSG_DEVICE"]="Can't connect to modbus RTU"
-                        data_one_device["STATUS_REGISTER"]=[]
-                        data_one_device["POINT_LIST"]=[]
-                        data_one_device["STATUS_DEVICE"]="OFFLINE"
+                        data_one_device["id_device"]=item_device["id_device"]
+                        data_one_device["device_name"]=item_device["device_name"]
+                        data_one_device["name_device_type"]=item['device_type']
+                        data_one_device["id_device_type"]=item['id_device_type']
+                        data_one_device["message"]="Can't connect to modbus RTU"
+                        data_one_device["status_register"]=[]
+                        data_one_device["fields"]=[]
+                        data_one_device["status_device"]="offline"
                         all_device_data.append(data_one_device)
                         
                 client.close()
@@ -703,15 +710,21 @@ async def monitoring_device(serial_number_project,host, port,topic, username, pa
           
           
             for item in all_device_data:
-                device_id=str(item['ID'])
-                device_name=str(item['NAME'])
+                id_device=str(item['id_device'])
+                device_name=str(item['device_name'])
                 data_mqtt={
-                "ID_DEVICE":device_id,
-                "STATUS_DEVICE":item['STATUS_DEVICE'],
-                "TIME_STAMP":getUTC(),
-                "MSG_DEVICE":item['MSG_DEVICE'],
-                "STATUS_REGISTER":item['STATUS_REGISTER'],
-                "POINT_LIST":item['POINT_LIST'],
+                            "id_device":id_device,
+                            "device_name":device_name,
+                            "id_device_type":item['id_device_type'],
+                            "name_device_type":item['name_device_type'],
+                            "status_device":item['status_device'],
+                            "timestamp":getUTC(),
+                            "status_device":item['status_device'],
+                            "status_register":item['status_register'],
+                            "parameters":[],
+                            "fields":item['fields'],
+                            "mppt":[]
+                            
                             }
                 # func_mqtt_public(   host,
                 #                     port,
@@ -721,7 +734,7 @@ async def monitoring_device(serial_number_project,host, port,topic, username, pa
                 #                     data_mqtt)
                 func_mqtt_public(   host,
                                     port,
-                                    serial_number_project+"/"+"Devices/"+""+device_id,
+                                    serial_number_project+"/"+"Devices/"+""+id_device,
                                     username,
                                     password,
                                     data_mqtt)
