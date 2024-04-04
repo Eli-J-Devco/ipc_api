@@ -206,6 +206,7 @@ async def get_mqtt(host, port, topic, username, password):
                 result_value == result_values_dict
                 
             mqtt_result = json.loads(message.message.decode())
+
             if mqtt_result:
                 if 'status_device' not in mqtt_result:
                     return -1 
@@ -236,8 +237,6 @@ async def get_mqtt(host, port, topic, username, password):
                 ]
                 for item in result_list:
                     item['data'] = [val if val != 'None' else '' for val in item['data']]
-                    
-                print("result_list",result_list)
                     
             else: 
                 pass
