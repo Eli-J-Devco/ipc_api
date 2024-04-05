@@ -36,7 +36,8 @@ result_list = []
 result_all = []
 result_list_MPPT = []
 result_list_MPPTSTRING = []
-status_device = ""     
+status_device = ""   
+code_error = 0
 msg_device = ""
 status_register = ""
 status_file = "Success"
@@ -337,6 +338,8 @@ async def Insert_TableDevice_AllDevice():
 async def Insert_TableDevice(sql_id):
     global result_list
     global status
+    global status_device 
+    global code_error
     global QUERY_SELECT_NAME_DEVICE
     sql_queries = {}
     data = []
@@ -355,17 +358,24 @@ async def Insert_TableDevice(sql_id):
         data = DictID[0]["data"]
     if not data:  # Check data if data empty 
         data = [None] * len(filedtable)
-        
+
+    if status_device == "offline" :
+        code_error = 111
+    elif status_device == "online" :
+        code_error = 0
+    else :
+        pass
+
     try:
         # Write data to corresponding devices in the database
         time_insert_dev = get_utc()
-        value_insert = (time_insert_dev, sql_id) + tuple(data)
+        value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
         
         # Replace '0.0' with '' in the data tuple
         value_insert = tuple("0.0" if x == "" else x for x in value_insert)
         
         # Create Query
-        columns = ["time", "id_device"]
+        columns = ["time", "id_device", "error"]
         
         for itemp in filedtable:
             columns.append(itemp)
