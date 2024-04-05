@@ -552,7 +552,8 @@ def path_directory_relative(project_name):
 async def write_device(client,slave_ID,device_control,
                     serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global parameter
-
+    global ModeSysTemp
+    
     if parameter :
         print("---------- write data from Device ----------")
         topicPublic = serial_number_project + topicPublic
@@ -634,32 +635,33 @@ async def write_device(client,slave_ID,device_control,
                             pass
                         
                         try:
-                            if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
-                                print("da vao day 1 ")
-                                if value == True :
-                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
-                                elif value == False :
-                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
-                                    
-                                # get status INV 
-                                if results_write_modbus:
-                                    code_value = results_write_modbus['code']
-                                    if code_value == 16 :
-                                        comment = f"Sent Successfully"
-                                    elif code_value == 144 :
-                                        comment = f"Sent Failure "
-                            
-                            elif len(filtered_results_register) >= 1 and isinstance(value, int) :
-                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                            if ModeSysTemp == "Manual" :
+                                if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
+                                    if value == True :
+                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                    elif value == False :
+                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+                                        
+                                    # get status INV 
+                                    if results_write_modbus:
+                                        code_value = results_write_modbus['code']
+                                        if code_value == 16 :
+                                            comment = f"Sent Successfully"
+                                        elif code_value == 144 :
+                                            comment = f"Sent Failure "
                                 
-                                # get status INV 
-                                if results_write_modbus:
-                                    code_value = results_write_modbus['code']
-                                    if code_value == 16 :
-                                        comment = f"Sent Successfully"
-                                    elif code_value == 144 :
-                                        comment = f"Sent Failure "
-                            
+                                elif len(filtered_results_register) >= 1 and isinstance(value, int) :
+                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                    
+                                    # get status INV 
+                                    if results_write_modbus:
+                                        code_value = results_write_modbus['code']
+                                        if code_value == 16 :
+                                            comment = f"Sent Successfully"
+                                        elif code_value == 144 :
+                                            comment = f"Sent Failure "
+                            if ModeSysTemp == "Auto" :
+                                pass
                         except Exception as e:
                             print(f"An error occurred: {e}")
                             
@@ -674,6 +676,7 @@ async def write_device(client,slave_ID,device_control,
                 "device_name":device_name,
                 "time_stamp" :current_time,
                 "status":comment, 
+                "mode":ModeSysTemp,
                 }
             if bit_feedback == 1 and code_value == 16 :
                 push_data_to_mqtt(mqtt_host,
@@ -1331,8 +1334,8 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             else:
                 pass
 
-            if mqtt_result and 'mode' in mqtt_result:
-                ModeSysTemp = mqtt_result['mode']
+            if mqtt_result and 'confirm_mode' in mqtt_result:
+                ModeSysTemp = mqtt_result['confirm_mode']
             else :
                 ModeSysTemp = None
                 

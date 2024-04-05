@@ -379,7 +379,7 @@ async def Insert_TableDevice(sql_id):
         value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
         
         # Replace '0.0' with '' in the data tuple
-        value_insert = tuple("0.0" if x == "" else x for x in value_insert)
+        value_insert = tuple("Null" if x == "" else x for x in value_insert)
         
         # Create Query
         columns = ["time", "id_device", "error"]
