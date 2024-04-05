@@ -778,7 +778,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         # 
                         await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
-
+                        await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
                         msg_device=""
@@ -786,7 +786,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         Data = []
                         status_rb=[]
                         for itemRB in results_RBlock:
-                            await asyncio.sleep(0.5)
+                            await asyncio.sleep(1)
                             FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
