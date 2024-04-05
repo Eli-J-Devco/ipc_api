@@ -54,8 +54,18 @@ Mode = Limit ->
 
 async def confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global ModeSysTemp
+    tempmode = 0
+    result = []
     topic = serial_number_project + topicPublic
-    
+    if not ModeSysTemp :
+        query = "SELECT `project_setup`.`mode` FROM `project_setup`"
+        result = await MySQL_Select_v1(query) 
+        tempmode = result[0]['mode']
+        if tempmode == 0 :
+            ModeSysTemp = "Manual"
+        elif tempmode == 1 :
+            ModeSysTemp = "Auto"
+            
     if ModeSysTemp == "Manual" or ModeSysTemp == "Auto" :
         try:
             if ModeSysTemp:
@@ -82,6 +92,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     
     mqtt_result = ""
     topic = serial_number_project + topic
+    val = 0
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -102,12 +113,22 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
                 continue
             
             mqtt_result = json.loads(message.message.decode())
-            print("mqtt_result",mqtt_result)
 
             if mqtt_result and 'mode' in mqtt_result:
                 ModeSysTemp = mqtt_result['mode']
-            print("ModeSysTemp",ModeSysTemp)
 
+                query = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+
+                if ModeSysTemp == "Manual":
+                    val = 0
+                elif ModeSysTemp == "Auto":
+                    val = 1
+                
+                if ModeSysTemp in ["Manual", "Auto"]:
+                    MySQL_Insert_v5(query, (val,))
+                else:
+                    print("Failed to insert data")
+            
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
