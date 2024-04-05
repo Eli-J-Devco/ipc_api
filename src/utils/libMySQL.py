@@ -203,8 +203,6 @@ def MySQL_Insert_v4(query,val):
     result = None
     try:
         cursor.executemany(query,val)
-        print("query", query)
-        print("val", val)
         db.commit()
         result = cursor.rowcount
         print("Sync data successfully---> ")
@@ -222,6 +220,26 @@ def MySQL_Insert_v4(query,val):
             # db.close()
             print("connection is closed")
             
+def MySQL_Insert_v5(query, val):
+    db = create_server_connection(DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
+    cursor = db.cursor(dictionary=True)
+    result = None
+    try:
+        cursor.execute(query, val)
+        print("Data inserted successfully")
+        
+        db.commit()
+        result = cursor.rowcount
+        cursor.close()
+        db.close()
+        return result
+    except Exception as err:
+        cursor.close()
+        db.close()
+        print(f"Error: '{err} {val}'")
+    finally:
+        if db.is_connected():
+            print("connection is closed")
             
 def MySQL_Update(query):
     db = create_server_connection(
