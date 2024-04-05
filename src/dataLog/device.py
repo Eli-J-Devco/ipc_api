@@ -360,7 +360,7 @@ async def Insert_TableDevice(sql_id):
         data = [None] * len(filedtable)
 
     if status_device == "offline" :
-        code_error = 111
+        code_error = 139
     elif status_device == "online" :
         code_error = 0
     else :
