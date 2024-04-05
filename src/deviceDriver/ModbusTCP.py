@@ -21,7 +21,6 @@ import mqttools
 import mybatis_mapper2sql
 # import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-from fastapi.responses import JSONResponse
 # from async_paho_mqtt_client import AsyncClient
 # from asyncio_paho import AsyncioPahoClient
 # from asyncio_paho.client import AsyncioMqttAuthError
@@ -56,6 +55,7 @@ MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
 
 # 
+ModeSysTemp = "" 
 device_name=""
 status_register_block=[]
 status_device=""
@@ -551,6 +551,7 @@ def path_directory_relative(project_name):
 async def write_device(client,slave_ID,device_control,
                     serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global parameter
+
     if parameter :
         print("---------- write data from Device ----------")
         topicPublic = serial_number_project + topicPublic
@@ -582,6 +583,7 @@ async def write_device(client,slave_ID,device_control,
             global enable_write_control
             global data_write_device
             global bit_feedback
+            global ModeSysTemp
             # result Modbus
             results_device_type = []
             results_write_modbus = []
@@ -595,6 +597,7 @@ async def write_device(client,slave_ID,device_control,
             comment = ""
             current_time = ""
             data_send = ""
+            code_value = 0
 
             current_time = get_utc()
             
@@ -630,7 +633,8 @@ async def write_device(client,slave_ID,device_control,
                             pass
                         
                         try:
-                            if len(filtered_results_register) == 1:
+                            if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
+                                print("da vao day 1 ")
                                 if value == True :
                                     results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
                                 elif value == False :
@@ -644,16 +648,16 @@ async def write_device(client,slave_ID,device_control,
                                     elif code_value == 144 :
                                         comment = f"Sent Failure "
                             
-                            elif len(filtered_results_register) >= 1:
+                            elif len(filtered_results_register) >= 1 and isinstance(value, int) :
                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                 
                                 # get status INV 
                                 if results_write_modbus:
                                     code_value = results_write_modbus['code']
                                     if code_value == 16 :
-                                        comment = f"Sent Parametter Successfully"
+                                        comment = f"Sent Successfully"
                                     elif code_value == 144 :
-                                        comment = f"Sent Parametter Failure "
+                                        comment = f"Sent Failure "
                             
                         except Exception as e:
                             print(f"An error occurred: {e}")
@@ -670,16 +674,16 @@ async def write_device(client,slave_ID,device_control,
                 "time_stamp" :current_time,
                 "status":comment, 
                 }
-            if bit_feedback == 1 and code_value == 16:
+            if bit_feedback == 1 and code_value == 16 :
                 push_data_to_mqtt(mqtt_host,
                         mqtt_port,
-                        topicPublic + "/" + device_control +  "/" + "Feedback" ,
+                        topicPublic + "/" + device_control +  "/" + "Feedback",
                         mqtt_username,
                         mqtt_password,
                         data_send)
                 bit_feedback == 0
             
-            parameter = []
+                parameter = []
         except Exception as err:
             print(f"Error MQTT subscribe: '{err}'")
     else:
@@ -778,7 +782,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         # 
                         await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
-
+                        await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
                         msg_device=""
@@ -786,7 +790,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         Data = []
                         status_rb=[]
                         for itemRB in results_RBlock:
-                            await asyncio.sleep(0.5)
+                            await asyncio.sleep(1)
                             FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
@@ -1296,6 +1300,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global enable_write_control
     global parameter
     global bit_feedback
+    global ModeSysTemp
     mqtt_result = ""
     topic = serial_number_project + topic
     
@@ -1319,13 +1324,18 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result:
-                if 'id_device' not in mqtt_result or 'parameter' not in mqtt_result :
-                    continue
+            if mqtt_result and 'id_device' in mqtt_result and 'parameter' in mqtt_result:
                 device_control = mqtt_result['id_device']
                 parameter = mqtt_result['parameter']
                 bit_feedback = 1
+            else:
+                pass
 
+            if mqtt_result and 'mode' in mqtt_result:
+                ModeSysTemp = mqtt_result['mode']
+            else :
+                ModeSysTemp = None
+                
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 # Describe functions before writing code
@@ -1440,7 +1450,7 @@ async def main():
                                                     MQTT_PORT_LIST,
                                                     MQTT_USERNAME_LIST,
                                                     MQTT_PASSWORD_LIST
-                                                                                   
+                                                    
                                                     )))
     tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
                                                     MQTT_BROKER,

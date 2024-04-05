@@ -304,6 +304,9 @@ async def Get_MQTT(host, port, topic, username, password):
                                                 item['id_device_mppt'] = item['id_device_mppt']
             else: 
                 pass
+            
+            print("result_list_MPPT",result_list_MPPT)
+            
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
@@ -339,6 +342,7 @@ async def Insert_TableDevice(sql_id):
     global result_list
     global status
     global status_device 
+    global status_register
     global code_error
     global QUERY_SELECT_NAME_DEVICE
     sql_queries = {}
@@ -362,7 +366,10 @@ async def Insert_TableDevice(sql_id):
     if status_device == "offline" :
         code_error = 139
     elif status_device == "online" :
-        code_error = 0
+        if len(status_register) > 0 :
+            code_error = status_register[0]["ERROR_CODE"]
+        else :
+            code_error = 0
     else :
         pass
 
@@ -416,8 +423,8 @@ async def Insert_TableDevice(sql_id):
 # 	 */ 
 async def Insert_TableMPPT():
     global result_list_MPPT
-    global result_list_MPPTSTRING
 
+    print("result_list_MPPT",result_list_MPPT)
     val_list_MPPT = []
     val_list_STRING = []
     id_device_list = ""
@@ -428,17 +435,18 @@ async def Insert_TableMPPT():
     current = ""
     
     try:
-        if result_list_MPPT:
+        if result_list_MPPT :
             for item in result_list_MPPT:
-                id_device_list = item['id']
-                MPPTKey = item['namekey']
-                voltage = item['MPPTVolt']
-                current = item['MPPTAmps']
-                id_device_list_string = item['id_device_mppt']
-                MPPTKey_string = item['MPPTKey_string']
+                if 'id' in item and 'namekey' in item and 'MPPTVolt' in item and 'MPPTAmps' in item and 'id_device_mppt' in item and 'MPPTKey_string' in item:
+                    id_device_list = item['id']
+                    MPPTKey = item['namekey']
+                    voltage = item['MPPTVolt']
+                    current = item['MPPTAmps']
+                    id_device_list_string = item['id_device_mppt']
+                    MPPTKey_string = item['MPPTKey_string']
 
-                val_list_MPPT.append((voltage, current, id_device_list, MPPTKey))
-                val_list_STRING.append((current, id_device_list_string, MPPTKey_string))
+                    val_list_MPPT.append((voltage, current, id_device_list, MPPTKey))
+                    val_list_STRING.append((current, id_device_list_string, MPPTKey_string))
 
             query = "UPDATE device_mppt SET voltage = %s, current = %s WHERE id_device_list = %s AND namekey = %s;"
             MySQL_Insert_v4(query, val_list_MPPT)
