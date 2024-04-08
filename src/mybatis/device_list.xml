@@ -31,6 +31,7 @@
     
   <select id="select_only_device">
         SELECT device_list.id, device_list.name,
+		    device_list.mode,
 		    device_list.id_template,
         device_list.value_p, device_list.send_p,
         device_list.rtu_bus_address AS rtu_bus_address,
@@ -107,7 +108,8 @@
         point_list.invalidvalueenabled,
         point_list.extendednumpoints,
         point_list.extendedregblocks,
-    
+        point_list.control_enabled,
+
         table_byteorder.value AS value_byteorder,
         table_byteorder.namekey AS name_byteorder,
         table_datatype.value AS value_datatype,

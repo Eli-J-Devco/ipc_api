@@ -85,6 +85,9 @@ QUERY_DATATYPE = ""
 
 NAME_DEVICE_TYPE=None
 ID_DEVICE_TYPE=None
+device_mode=None
+# 0: Manual mode
+# 1: Auto mode
 # ----------------------------------------------------------------------
 
 # config[0] -- id
@@ -112,7 +115,9 @@ def point_object(Config,
                  id,point_key,
                  name,unit,value,
                  quality,timestamp=None,
-                 message="", active=0):
+                 message="", active=0,
+                 control_enabled=False
+                 ):
     
     return {"config":Config,
             "id_point_list_type":id_point_type,
@@ -128,7 +133,8 @@ def point_object(Config,
             "quality":quality,
             "message":message,
             # "point_type":PointType,
-            "active":active
+            "active":active,
+            "control_enabled":control_enabled
             }
 # Describe functions before writing code
 # /**
@@ -351,7 +357,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             point_value, 
                                                             1,
                                                             message="Not found register",
-                                                            active=point_list_item['active']
+                                                            active=point_list_item['active'],
+                                                            control_enabled=point_list_item['controlenabled']
                                                             )
                 else:
                     if point_value != None:
@@ -374,7 +381,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 value, 
                                                 0,
                                                 message="",
-                                                active=point_list_item['active']
+                                                active=point_list_item['active'],
+                                                control_enabled=point_list_item['control_enabled']
                                                 )
                 return point_list
             case "Internal":
@@ -390,7 +398,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         None, 
                                         0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        control_enabled=point_list_item['control_enabled']
                                         )
                 return point_list
             case "Equation":
@@ -406,7 +415,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['constants'], 
                                         0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        control_enabled=point_list_item['control_enabled']
                                         )
                 return point_list
         
@@ -714,6 +724,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         # global data_control
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
+        global device_mode
         pathSource=path
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
@@ -764,7 +775,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             print("Error device point list not found")
             # return -1 
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
-        
+        device_mode=results_device[0]['mode']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -785,7 +796,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         # 
                         await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
-                        await asyncio.sleep(1)
+                        # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
                         msg_device=""
@@ -793,7 +804,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         Data = []
                         status_rb=[]
                         for itemRB in results_RBlock:
-                            await asyncio.sleep(1)
+                            await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
@@ -866,7 +877,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
-                                                active=item['active']
+                                                active=item['active'],
+                                                control_enabled=item['control_enabled']
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -886,7 +898,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 1,
                                                 None,
                                                 message="error device",
-                                                active=item['active']
+                                                active=item['active'],
+                                                control_enabled=item['control_enabled']
                                                 )
                             )
                         
@@ -920,6 +933,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global device_id
             global NAME_DEVICE_TYPE
             global ID_DEVICE_TYPE
+            global device_mode
             new_point_list_device=[]
             new_point=[]
             mppt=[]
@@ -1017,8 +1031,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     "name": item_type['name'],
                     "fields": new_point_type
                 })
-            data_mqtt={
+            data_device={
                 "id_device":device_id,
+                "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
@@ -1031,8 +1046,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "fields":new_point,
                 "mppt":mppt
             }
-            data_mqtt_short={
+            data_device_short={
                 "id_device":device_id,
+                "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
@@ -1045,7 +1061,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "fields":new_point,
                 "mppt":mppt
             }
-            print(f'MQTT message size: {sys.getsizeof(data_mqtt)} bytes')
+            
+            # print(f'Data message size: {sys.getsizeof(data_device)} bytes')
             # for item in parameters:
             #     print(len(item['fields']))
             if device_name !="" and serial_number_project!= None:
@@ -1055,13 +1072,13 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     serial_number_project+"/"+"Devices/"+""+device_id,
                                     username[0],
                                     password[0],
-                                    data_mqtt)
+                                    data_device)
                 func_mqtt_public(   host[0],
                                     port[0],
                                     serial_number_project+"/"+"Shorts/"+""+device_id,
                                     username[0],
                                     password[0],
-                                    data_mqtt_short)
+                                    data_device_short)
                 # 
                 if host[1] != None and port[1]:
                     func_mqtt_public(   host[1],
@@ -1069,7 +1086,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                         serial_number_project+"/"+"Devices/"+""+device_id,
                                         username[1],
                                         password[1],
-                                        data_mqtt)
+                                        data_device)
             
             await asyncio.sleep(1)
         
@@ -1304,6 +1321,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global parameter
     global bit_feedback
     global ModeSysTemp
+    
     mqtt_result = ""
     topic = serial_number_project + topic
     

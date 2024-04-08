@@ -329,7 +329,7 @@ class apiGateway:
                 self.DeviceList.append({
                     "id_device":item.id,
                     "device_name":item.name,
-                    "model":item.model,
+                    "mode":item.mode,
                     "parameters":[]
                 })
             

@@ -107,6 +107,7 @@ class Device_list(Base):
     # 12/03/2024
     # device_group= relationship("Device_group", back_populates="device_list")
     device_type = relationship('Device_type', foreign_keys=[id_device_type])
+    mode = Column(Integer, nullable=True, default=False)
     
 class Device_mppt(Base):
     __tablename__ = "device_mppt"
