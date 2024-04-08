@@ -109,6 +109,7 @@
         point_list.extendednumpoints,
         point_list.extendedregblocks,
         point_list.control_enabled,
+        point_list.id_control_group,
 
         table_byteorder.value AS value_byteorder,
         table_byteorder.namekey AS name_byteorder,

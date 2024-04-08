@@ -241,7 +241,12 @@ class apiGateway:
                             #             # restart pm2 app log
                             #             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
                             #             result=await restart_program_pm2_many(pm2_app_list)
-                
+                        case "UpdateDev":
+                            pass
+                        case "UpdateTemplate":
+                            pass
+                        case "DeleteTemplate":
+                            pass
         except Exception as err:
             print(f"Error PM2: '{err}'")
     async def deviceListSub(self):

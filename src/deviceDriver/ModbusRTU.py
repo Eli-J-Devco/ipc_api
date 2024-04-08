@@ -74,7 +74,9 @@ def point_object(Config,
                  id,point_key,
                  name,unit,value,
                  quality,timestamp=None,
-                 message="", active=0):
+                 message="", active=0,
+                 control_enabled=False
+                 ):
     
     return {"config":Config,
             "id_point_list_type":id_point_type,
@@ -90,7 +92,8 @@ def point_object(Config,
             "quality":quality,
             "message":message,
             # "point_type":PointType,
-            "active":active
+            "active":active,
+            "control_enabled":control_enabled
             }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
@@ -335,7 +338,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             point_value, 
                                                             1,
                                                             message="Not found register",
-                                                            active=point_list_item['active']
+                                                            active=point_list_item['active'],
+                                                            control_enabled=point_list_item['control_enabled']
                                                             )
                 else:
                     if point_value != None:
@@ -358,7 +362,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 value, 
                                                 0,
                                                 message="",
-                                                active=point_list_item['active']
+                                                active=point_list_item['active'],
+                                                control_enabled=point_list_item['control_enabled']
                                                 )
                 return point_list
             case "Internal":
@@ -374,7 +379,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         None, 
                                         0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        control_enabled=point_list_item['control_enabled']
                                         )
                 return point_list
             case "Equation":
@@ -390,7 +396,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['constants'], 
                                         0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        control_enabled=point_list_item['control_enabled']
                                         )
                 return point_list
         
@@ -666,6 +673,40 @@ async def device(ConfigPara):
                         new_data_device.append(data_one_device)
                     all_device_data=new_data_device 
                 else:
+                    # if not all_device_data:
+                    #     for item_device in all_device_data_request:
+                    #         data_one_device={}
+                    #         data_point_list_one_device = []
+                    #         for item in item_device["POINT"]:
+                    #             data_point_list_one_device.append(
+                    #                 point_object(
+                    #                             item['config'],
+                    #                             item['id_point_list_type'],
+                    #                             item['name_point_list_type'],
+                    #                             item['id_point'],
+                    #                             item['parent'],
+                    #                             item['id'], 
+                    #                             item['point_key'],
+                    #                             item['name'], 
+                    #                             item['unit'], 
+                    #                             item['value'], 
+                    #                             1,
+                    #                             item['timestamp'],
+                    #                             message="Error Device",
+                    #                             active=item['active'],
+                    #                             control_enabled=item['control_enabled']
+                    #                             )
+                    #             )
+                    #         data_one_device["id_device"]=item_device["id_device"]
+                    #         data_one_device["device_name"]=item_device["device_name"]
+                    #         data_one_device["name_device_type"]=item['device_type']
+                    #         data_one_device["id_device_type"]=item['id_device_type']
+                    #         data_one_device["message"]="Can't connect to modbus RTU"
+                    #         data_one_device["status_register"]=[]
+                    #         data_one_device["fields"]=data_point_list_one_device
+                    #         data_one_device["status_device"]="offline"
+                    #         data_one_device["timestamp"]=getUTC()
+                    #         new_error_data_device.append(data_one_device)
                     print(f'----- Can not connect to port -----')
                     for item_device in all_device_data_request:
                         data_one_device={}

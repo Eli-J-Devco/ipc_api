@@ -116,7 +116,8 @@ def point_object(Config,
                  name,unit,value,
                  quality,timestamp=None,
                  message="", active=0,
-                 control_enabled=False
+                 control_enabled=False,
+                 id_control_group=None,
                  ):
     
     return {"config":Config,
@@ -134,7 +135,8 @@ def point_object(Config,
             "message":message,
             # "point_type":PointType,
             "active":active,
-            "control_enabled":control_enabled
+            "control_enabled":control_enabled,
+            "id_control_group":id_control_group
             }
 # Describe functions before writing code
 # /**
@@ -358,7 +360,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             1,
                                                             message="Not found register",
                                                             active=point_list_item['active'],
-                                                            control_enabled=point_list_item['controlenabled']
+                                                            control_enabled=point_list_item['control_enabled'],
+                                                            id_control_group=point_list_item['id_control_group']
                                                             )
                 else:
                     if point_value != None:
@@ -382,7 +385,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 0,
                                                 message="",
                                                 active=point_list_item['active'],
-                                                control_enabled=point_list_item['control_enabled']
+                                                control_enabled=point_list_item['control_enabled'],
+                                                id_control_group=point_list_item['id_control_group']
                                                 )
                 return point_list
             case "Internal":
@@ -399,7 +403,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled']
+                                        control_enabled=point_list_item['control_enabled'],
+                                        id_control_group=point_list_item['id_control_group']
                                         )
                 return point_list
             case "Equation":
@@ -416,7 +421,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled']
+                                        control_enabled=point_list_item['control_enabled'],
+                                        id_control_group=point_list_item['id_control_group']
                                         )
                 return point_list
         
@@ -878,7 +884,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['timestamp'],
                                                 message="Error Device",
                                                 active=item['active'],
-                                                control_enabled=item['control_enabled']
+                                                control_enabled=item['control_enabled'],
+                                                id_control_group=item['id_control_group']
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -899,7 +906,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 None,
                                                 message="error device",
                                                 active=item['active'],
-                                                control_enabled=item['control_enabled']
+                                                control_enabled=item['control_enabled'],
+                                                id_control_group=item['id_control_group']
                                                 )
                             )
                         
