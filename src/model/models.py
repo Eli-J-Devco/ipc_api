@@ -233,16 +233,26 @@ class PointListType(Base):
     status = Column(Boolean, nullable=False, default=True)
 
 
+class PointListControlGroup(Base):
+    __tablename__ = "point_list_control_group"
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String(255), nullable=True)
+    value = Column(Integer, nullable=True)
+    status = Column(Boolean, nullable=False, default=True)
+
+
 #
 #
 class Point_list(Base):
     __tablename__ = "point_list"
     id = Column(Integer, primary_key=True, nullable=False)
+    index = Column(Integer, nullable=False)
     # parent= Column(Integer, nullable=False)
     id_pointclass_type = Column(
         Integer,
         ForeignKey("pointclass_type.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=True,
+        default=1,
     )
     id_pointkey = Column(Integer, nullable=False)
     id_template = Column(
@@ -254,6 +264,7 @@ class Point_list(Base):
         Integer,
         ForeignKey("point_list_type.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
+        default=1,
     )
     name = Column(String(255), nullable=False)
     nameedit = Column(Boolean, nullable=False, default=True)
@@ -280,11 +291,13 @@ class Point_list(Base):
         Integer,
         ForeignKey("config_information.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
+        default=4,
     )
     id_type_byteorder = Column(
         Integer,
         ForeignKey("config_information.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
+        default=252,
     )
     slope = Column(DOUBLE, nullable=False)
     slopeenabled = Column(Boolean, nullable=False, default=True)
@@ -295,11 +308,20 @@ class Point_list(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    id_control_group = Column(
+        Integer,
+        ForeignKey(
+            "point_list_control_group.id", ondelete="CASCADE", onupdate="CASCADE"
+        ),
+        nullable=True,
+    )
     extendednumpoints = Column(Integer, nullable=True)
     extendedregblocks = Column(Integer, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
     function = Column(Text, nullable=True)
     constants = Column(Text, nullable=True, default=0)
+    active = Column(Boolean, nullable=False, default=True)
+    status = Column(Boolean, nullable=False, default=True)
     #
     # template_library  = relationship('Template_library', foreign_keys=[id_template])
     type_units = relationship("Config_information", foreign_keys=[id_type_units])
@@ -312,6 +334,9 @@ class Point_list(Base):
     type_class = relationship("Pointclass_type", foreign_keys=[id_pointclass_type])
     type_config_information = relationship(
         "Config_information", foreign_keys=[id_config_information]
+    )
+    type_control_group = relationship(
+        "PointListControlGroup", foreign_keys=[id_control_group]
     )
 
     #
@@ -331,6 +356,7 @@ class Point_list(Base):
 class ManualPointList(Base):
     __tablename__ = "manual_point_list"
     id = Column(Integer, primary_key=True, nullable=False)
+    index = Column(Integer, nullable=False)
     id_device_type = Column(
         Integer,
         ForeignKey("device_type.id", ondelete="CASCADE", onupdate="CASCADE"),
@@ -387,11 +413,20 @@ class ManualPointList(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    id_control_group = Column(
+        Integer,
+        ForeignKey(
+            "point_list_control_group.id", ondelete="CASCADE", onupdate="CASCADE"
+        ),
+        nullable=True,
+    )
     extendednumpoints = Column(Integer, nullable=True)
     extendedregblocks = Column(Integer, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
     function = Column(Text, nullable=True)
     constants = Column(Text, nullable=True, default=0)
+    active = Column(Boolean, nullable=False, default=True)
+    status = Column(Boolean, nullable=False, default=True)
     #
     # template_library  = relationship('Template_library', foreign_keys=[id_template])
     type_units = relationship("Config_information", foreign_keys=[id_type_units])
@@ -406,7 +441,9 @@ class ManualPointList(Base):
         "Config_information", foreign_keys=[id_config_information]
     )
     device_type = relationship("Device_type", foreign_keys=[id_device_type])
-
+    type_control_group = relationship(
+        "PointListControlGroup", foreign_keys=[id_control_group]
+    )
     parent = Column(Integer, ForeignKey("point_list.id"), nullable=False)
     reply_to_point = relationship("Point_list", remote_side=[parent])
 

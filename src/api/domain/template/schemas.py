@@ -49,6 +49,7 @@ from model.schemas import (
     TypeUnitsBase,
     ManualPointBase,
     PointBase,
+    TypeControlGroupBase,
 )
 
 
@@ -94,6 +95,7 @@ class STRINGOutBase(PointOutBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class MPPTOutBase(PointOutBase):
@@ -101,6 +103,7 @@ class MPPTOutBase(PointOutBase):
 
     class Config:
         orm_mode = True
+        from_attributes = True
 
 
 class TemplateMPPTBase(BaseModel):
@@ -198,6 +201,7 @@ class TemplateConfigBase(BaseModel):
     type_point_list: list[TypePointListBase] = None
     type_class: list[TypeClassBase] = None
     type_function: list[TypeFunctionBase] = None
+    type_control_group: list[TypeControlGroupBase] = None
 
     class Config:
         orm_mode = True
@@ -224,11 +228,28 @@ class TemplateUpdateBase(TemplateListBase):
 
 class PointInfoTemplateBase(BaseModel):
     id_point: Optional[int] = None
+    id_pointkey: Optional[str] = None
 
 
 class PointDeleteTemplateBase(BaseModel):
     id_template: Optional[int] = None
-    id_point: Optional[list[int]] = None
+    points: Optional[list[PointInfoTemplateBase]] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+
+class MPPTPointInfoTemplateBase(BaseModel):
+    id_point: Optional[int] = None
+    id_pointkey: Optional[str] = None
+    id_config_information: Optional[int] = None
+    parent: Optional[int] = None
+
+
+class MPPTPointDeleteTemplateBase(BaseModel):
+    id_template: Optional[int] = None
+    points: Optional[list[MPPTPointInfoTemplateBase]] = None
 
     class Config:
         orm_mode = True
