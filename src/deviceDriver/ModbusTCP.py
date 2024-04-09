@@ -809,6 +809,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         # 
                         Data = []
                         status_rb=[]
+                        status_register_block=[]
                         for itemRB in results_RBlock:
                             await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
@@ -920,6 +921,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         print('KeyError device : ', type(err).__name__)
     except Exception as err:
         print('Exception device : ', type(err).__name__)
+        
         # raise Exception("Runtime Error!!!") 
     finally:
         print ("--Finally--")      
