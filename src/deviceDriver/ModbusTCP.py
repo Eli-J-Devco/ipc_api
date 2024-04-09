@@ -57,7 +57,7 @@ MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/All"
 MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
 MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write/#"
-
+MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -75,6 +75,7 @@ data_write_device=[]
 parameter = []
 bit_feedback = 0
 count = 0 
+mqtt_result_control_write = ""
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -568,13 +569,12 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
-async def write_device(client ,slave_ID , ConfigPara, serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     
     topicPublic = serial_number_project + topicPublic
     
     global mqtt_result_control_write
     global device_mode
-    
     global status_device
     global msg_device ,device_name 
     global point_list_device,status_register_block
@@ -582,7 +582,6 @@ async def write_device(client ,slave_ID , ConfigPara, serial_number_project , mq
     global data_write_device
     global bit_feedback
     
-    data_send_list = []
     id_systemp = ConfigPara[1]
     
     if mqtt_result_control_write :
@@ -822,7 +821,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         # 
-                        await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
@@ -941,6 +940,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         print('KeyError device : ', type(err).__name__)
     except Exception as err:
         print('Exception device : ', type(err).__name__)
+        print('Exception device : ', err)
         # raise Exception("Runtime Error!!!") 
     finally:
         print ("--Finally--")      
@@ -1449,7 +1449,7 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
                 id_device = int(id_device)
                 if id_device == id_systemp:
                     device_mode = mqtt_result["mode"]
-
+                    print("device_mode",device_mode)
                     querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
                     if device_mode == 0:
                         val = 0
@@ -1507,6 +1507,39 @@ async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud,
 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+
+async def mqtt_subscribe_update_modesystemp(serial_number_project,host, port, topic, username, password):
+    
+    global device_mode
+    
+    mqtt_result = ""
+    topic = serial_number_project + topic
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+
+            if mqtt_result and 'confirm_mode' in mqtt_result:
+                device_mode = mqtt_result['confirm_mode']
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+        
 # Describe functions before writing code
 # /**
 # 	 * @description check device control
@@ -1651,7 +1684,13 @@ async def main():
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    
+    tasks.append(asyncio.create_task(mqtt_subscribe_update_modesystemp(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':
