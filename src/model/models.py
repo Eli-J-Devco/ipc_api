@@ -308,6 +308,7 @@ class Point_list(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    control_enabled = Column(Boolean, nullable=False, default=True)
     id_control_group = Column(
         Integer,
         ForeignKey(
@@ -335,7 +336,7 @@ class Point_list(Base):
     type_config_information = relationship(
         "Config_information", foreign_keys=[id_config_information]
     )
-    type_control_group = relationship(
+    type_control = relationship(
         "PointListControlGroup", foreign_keys=[id_control_group]
     )
 
@@ -413,6 +414,7 @@ class ManualPointList(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
+    control_enabled = Column(Boolean, nullable=False, default=True)
     id_control_group = Column(
         Integer,
         ForeignKey(
@@ -441,7 +443,7 @@ class ManualPointList(Base):
         "Config_information", foreign_keys=[id_config_information]
     )
     device_type = relationship("Device_type", foreign_keys=[id_device_type])
-    type_control_group = relationship(
+    type_control = relationship(
         "PointListControlGroup", foreign_keys=[id_control_group]
     )
     parent = Column(Integer, ForeignKey("point_list.id"), nullable=False)

@@ -177,7 +177,10 @@ class PointBase(BaseModel):
     userscaleenabled: Optional[bool] = None
     invalidvalue: Optional[int] = None
     invalidvalueenabled: Optional[bool] = None
+    control_enabled: Optional[bool] = None
+    id_control_group: Optional[int] = None
     extendednumpoints: Optional[int] = None
+    active: Optional[bool] = False
     extendedregblocks: Optional[int] = None
     status: Optional[bool] = None
     function: Optional[str] = None
@@ -213,11 +216,14 @@ class ManualPointBase(BaseModel):
     userscaleenabled: Optional[bool] = None
     invalidvalue: Optional[int] = None
     invalidvalueenabled: Optional[bool] = None
+    control_enabled: Optional[bool] = None
+    id_control_group: Optional[int] = None
     extendednumpoints: Optional[int] = None
     extendedregblocks: Optional[int] = None
-    status: Optional[bool] = None
     function: Optional[str] = None
     constants: Optional[str] = None
+    active: Optional[bool] = False
+    status: Optional[bool] = None
 
     class Config:
         orm_mode = True
