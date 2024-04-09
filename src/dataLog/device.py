@@ -379,7 +379,7 @@ async def Insert_TableDevice(sql_id):
         value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
         
         # Replace '0.0' with '' in the data tuple
-        value_insert = tuple("Null" if x == "" else x for x in value_insert)
+        value_insert = tuple("0.0" if x == "" else x for x in value_insert)
         
         # Create Query
         columns = ["time", "id_device", "error"]
@@ -424,7 +424,6 @@ async def Insert_TableDevice(sql_id):
 async def Insert_TableMPPT():
     global result_list_MPPT
 
-    print("result_list_MPPT",result_list_MPPT)
     val_list_MPPT = []
     val_list_STRING = []
     id_device_list = ""

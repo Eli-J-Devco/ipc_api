@@ -50,10 +50,14 @@ MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC = Config.MQTT_TOPIC +"/Dev/"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
-MQTT_TOPIC_SUD_CONTROL = "/Control/#"
+MQTT_TOPIC_SUD_CONTROL = "/Control/Write"
+MQTT_TOPIC_SUD_CONTROL_MODE = "/Control/Setup/Mode/Feedback"
+MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/#"
+MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/All"
 MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
-
+MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write/#"
+MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -71,6 +75,7 @@ data_write_device=[]
 parameter = []
 bit_feedback = 0
 count = 0 
+mqtt_result_control_write = ""
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -564,147 +569,162 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
-async def write_device(client,slave_ID,device_control,
-                    serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global parameter
-    global ModeSysTemp
+async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     
-    if parameter :
-        print("---------- write data from Device ----------")
-        topicPublic = serial_number_project + topicPublic
-        pathSource=path
-        print(f'pathSource: {pathSource}')
-        # pathSource="D:/NEXTWAVE/project/ipc_api"
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        xml=pathSource + '/mybatis/device_list.xml')
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True) 
-        # 
-        QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
-        QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
-        QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
-        QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
-        
-        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
+    topicPublic = serial_number_project + topicPublic
+    
+    global mqtt_result_control_write
+    global device_mode
+    global status_device
+    global msg_device ,device_name 
+    global point_list_device,status_register_block
+    global enable_write_control
+    global data_write_device
+    global bit_feedback
+    
+    id_systemp = ConfigPara[1]
+    
+    if mqtt_result_control_write :
+        for item in mqtt_result_control_write:
+            device_control = item['id_device']
+            parameter = item['parameter']
             
-        try:
-            # Share data to Global variable
-            global status_device
-            global msg_device ,device_name 
-            global point_list_device,status_register_block
-            global enable_write_control
-            global data_write_device
-            global bit_feedback
-            global ModeSysTemp
-            # result Modbus
-            results_device_type = []
-            results_write_modbus = []
-            results_register = []
-            filtered_results_register = []
-            
-            # information Modbus 
-            register = ""
-            datatype = ""
-            type_datatype = ""
-            comment = ""
-            current_time = ""
-            data_send = ""
-            code_value = 0
-
-            current_time = get_utc()
-            
-            if device_control :
-                results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
-                results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
-            else :
-                pass
-
-            # if device is INV 
-            if results_device_type :
-                if results_device_type[0]["name"] == "PV System Inverter" :
-                    if results_register :
-                        filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
-                        
-                        # Iterate through the new list to assign values from the corresponding variables
-                        for item in filtered_results_register:
-                            for p in parameter:
-                                if item['id_pointkey'] == p['id_pointkey']:
-                                    item['value'] = p['value']
+            if id_systemp == device_control:
+                if parameter :
+                    print("---------- write data from Device ----------")
+                    pathSource=path
+                    print(f'pathSource: {pathSource}')
+                    # pathSource="D:/NEXTWAVE/project/ipc_api"
+                    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+                    xml=pathSource + '/mybatis/device_list.xml')
+                    statement = mybatis_mapper2sql.get_statement(
+                    mapper, result_type='list', reindent=True, strip_comments=True) 
+                    # 
+                    QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+                    QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
+                    QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
+                    QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
                     
-                    for item in filtered_results_register:
-                        value = item["value"]
-                        register = item["register"]
-                        type_datatype = item["id_type_datatype"]
+                    # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+                    if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+                        pass
+                    else:           
+                        print("Error not found data in file mybatis")
+                        return -1
                         
-                        # Find datatype register (int16,int32, float,...)
-                        results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+                    try:
+                        # result Modbus
+                        results_device_type = []
+                        results_write_modbus = []
+                        results_register = []
+                        filtered_results_register = []
+                        
+                        # information Modbus 
+                        register = ""
+                        datatype = ""
+                        type_datatype = ""
+                        comment = ""
+                        current_time = ""
+                        data_send = ""
+                        code_value = 0
 
-                        if results_datatype :
-                            datatype = results_datatype[0]["value"]
+                        current_time = get_utc()
+                        
+                        if device_control :
+                            results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
+                            results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
                         else :
                             pass
-                        
-                        try:
-                            if ModeSysTemp == "Manual" :
-                                if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
-                                    if value == True :
-                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
-                                    elif value == False :
-                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
-                                        
-                                    # get status INV 
-                                    if results_write_modbus:
-                                        code_value = results_write_modbus['code']
-                                        if code_value == 16 :
-                                            comment = f"Sent Successfully"
-                                        elif code_value == 144 :
-                                            comment = f"Sent Failure "
-                                
-                                elif len(filtered_results_register) >= 1 and isinstance(value, int) :
-                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                    
-                                    # get status INV 
-                                    if results_write_modbus:
-                                        code_value = results_write_modbus['code']
-                                        if code_value == 16 :
-                                            comment = f"Sent Successfully"
-                                        elif code_value == 144 :
-                                            comment = f"Sent Failure "
-                            if ModeSysTemp == "Auto" :
-                                pass
-                        except Exception as e:
-                            print(f"An error occurred: {e}")
-                            
-                else:
-                    comment = "device cannot be controlled"
-            else :
-                comment = "device does not exist"
+
+                        # if device is INV 
+                        if results_device_type :
+                            if results_device_type[0]["name"] == "PV System Inverter" :
                 
-            # data pud mqtt 
-            data_send = {
-                "id_device":device_control,
-                "device_name":device_name,
-                "time_stamp" :current_time,
-                "status":comment, 
-                "mode":ModeSysTemp,
-                }
-            if bit_feedback == 1 and code_value == 16 :
-                push_data_to_mqtt(mqtt_host,
-                        mqtt_port,
-                        topicPublic + "/" + device_control +  "/" + "Feedback",
-                        mqtt_username,
-                        mqtt_password,
-                        data_send)
-                bit_feedback == 0
-            
-                parameter = []
-        except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+                                if results_register :
+                                    filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
+                                    
+                                    # Iterate through the new list to assign values from the corresponding variables
+                                    for item in filtered_results_register:
+                                        for p in parameter:
+                                            if item['id_pointkey'] == p['id_pointkey']:
+                                                item['value'] = p['value']
+                                
+                                for item in filtered_results_register:
+                                    value = item["value"]
+                                    register = item["register"]
+                                    type_datatype = item["id_type_datatype"]
+                                    
+                                    # Find datatype register (int16,int32, float,...)
+                                    results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+
+                                    if results_datatype :
+                                        datatype = results_datatype[0]["value"]
+                                    else :
+                                        pass
+                                    
+                                    try:
+                                        if device_mode == "0" :
+                                            print("---------- Manual control mode ----------")
+                                            if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
+                                                if value == True :
+                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                                elif value == False :
+                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+                                                    
+                                                # get status INV 
+                                                if results_write_modbus:
+                                                    code_value = results_write_modbus['code']
+                                                    if code_value == 16 :
+                                                        comment = f"Sent Successfully"
+                                                    elif code_value == 144 :
+                                                        comment = f"Sent Failure "
+                                            
+                                            elif len(filtered_results_register) >= 1 and isinstance(value, int) :
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                                
+                                                # get status INV 
+                                                if results_write_modbus:
+                                                    code_value = results_write_modbus['code']
+                                                    if code_value == 16 :
+                                                        comment = f"Sent Successfully"
+                                                    elif code_value == 144 :
+                                                        comment = f"Sent Failure "
+                                        if device_mode == "1" :
+                                            print("---------- Auto control mode ----------")
+                                            pass
+                                    except Exception as e:
+                                        print(f"An error occurred: {e}")
+                                        
+                            else:
+                                comment = "device cannot be controlled"
+                        else :
+                            comment = "device does not exist"
+                            
+                        # data pud mqtt 
+                        data_send = {
+                            "id_device":device_control,
+                            "device_name":device_name,
+                            "time_stamp" :current_time,
+                            "status":comment, 
+                            "mode":ModeSysTemp,
+                            }
+                        if bit_feedback == 1 and code_value == 16 :
+                            push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicPublic + "/" +"Feedback" +  "/" + device_control ,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+                            bit_feedback == 0
+                            mqtt_result_control_write = []
+                        else :
+                            pass
+                    except Exception as err:
+                        print(f"Error MQTT subscribe: '{err}'")
+                else:
+                    pass
+            else:
+                pass
     else:
         pass
 # Describe functions before writing code
@@ -801,7 +821,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
                         # 
-                        await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
@@ -1331,7 +1351,39 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global parameter
     global bit_feedback
     global ModeSysTemp
+    global mqtt_result_control_write 
+    topic = serial_number_project + topic
     
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result_control_write = json.loads(message.message.decode())
+            if mqtt_result_control_write :
+                bit_feedback =1 
+            else:
+                pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+
+async def mqtt_subscribe_controlsV3(serial_number_project,host, port, topic, username, password):
+    
+    global ModeSysTemp
     mqtt_result = ""
     topic = serial_number_project + topic
     
@@ -1355,13 +1407,6 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result and 'id_device' in mqtt_result and 'parameter' in mqtt_result:
-                device_control = mqtt_result['id_device']
-                parameter = mqtt_result['parameter']
-                bit_feedback = 1
-            else:
-                pass
-
             if mqtt_result and 'confirm_mode' in mqtt_result:
                 ModeSysTemp = mqtt_result['confirm_mode']
             else :
@@ -1369,6 +1414,133 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+        
+async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host, port, topic, username, password):
+    
+    global device_mode
+    mqtt_result = ""
+    topic = serial_number_project + topic
+    val = 0
+    id_systemp = ConfigPara[1]
+    id_systemp = int(id_systemp)
+    
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+            
+            if mqtt_result and 'mode' in mqtt_result and 'id_device' in mqtt_result:
+                id_device = mqtt_result["id_device"]
+
+                id_device = int(id_device)
+                if id_device == id_systemp:
+                    device_mode = mqtt_result["mode"]
+                    print("device_mode",device_mode)
+                    querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                    if device_mode == 0:
+                        val = 0
+                    elif device_mode == 1:
+                        val = 1
+                    
+                    if device_mode in [0, 1]:  
+                        MySQL_Insert_v5(querydevice, (val, id_device))  
+                    else:
+                        print("Failed to insert data")
+                else :
+                    pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+        
+async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud, topicpud, username, password):
+    global mqtt_result_control_write
+    topicsud = serial_number_project + topicsud
+    topicpud = serial_number_project + topicpud
+    data_dict = []
+    
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topicsud)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+            
+            id_device = mqtt_result['id_device']
+            
+            existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
+            if existing_data:
+                existing_data.update(mqtt_result)
+            else:
+                data_dict.append(mqtt_result)
+            
+            if len(data_dict) == len(mqtt_result_control_write) and len(data_dict) >= 1:
+                push_data_to_mqtt(host, port, topicpud, username, password, data_dict)
+                data_dict = []
+                mqtt_result_control_write = []
+
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+
+async def mqtt_subscribe_update_modesystemp(serial_number_project,host, port, topic, username, password):
+    
+    global device_mode
+    
+    mqtt_result = ""
+    topic = serial_number_project + topic
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+
+            if mqtt_result and 'confirm_mode' in mqtt_result:
+                device_mode = mqtt_result['confirm_mode']
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+        
 # Describe functions before writing code
 # /**
 # 	 * @description check device control
@@ -1483,6 +1655,14 @@ async def main():
                                                     MQTT_PASSWORD_LIST
                                                     
                                                     )))
+    tasks.append(asyncio.create_task(mqtt_feedback_all_control(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL,
+                                                    MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
     tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
@@ -1490,7 +1670,28 @@ async def main():
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    
+    tasks.append(asyncio.create_task(mqtt_subscribe_update_modedevice(arr,
+                                                    serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV3(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_CONTROL_MODE,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    tasks.append(asyncio.create_task(mqtt_subscribe_update_modesystemp(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':
