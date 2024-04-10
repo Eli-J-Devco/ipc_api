@@ -108,7 +108,7 @@
         point_list.invalidvalueenabled,
         point_list.extendednumpoints,
         point_list.extendedregblocks,
-        point_list.control_enabled,
+
         
 	
         table_byteorder.value AS value_byteorder,
