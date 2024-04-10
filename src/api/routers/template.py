@@ -324,34 +324,6 @@ def refresh_table_device(
 
 
 # Describe functions before writing code
-# 	 * @description update register list by template id
-# 	 * @author nhan.tran
-# 	 * @since 10-04-2024
-# 	 * @param {id_template,points,db}
-# 	 * @return data (RegisterOutBase)
-def update_register_list(
-    id_template: int, registers: list[schemas.RegisterOutBase], db: Session
-):
-    if registers:
-        for item in registers:
-            register_query = (
-                db.query(models.Register_block)
-                .filter(models.Register_block.id_template == id_template)
-                .filter(models.Register_block.id == item.id)
-            )
-            result_register = register_query.first()
-            if not result_register:
-                return formatMessage(
-                    f"Register with id: {item.id} does not exist",
-                    status.HTTP_404_NOT_FOUND,
-                )
-            register_query.update(dict(**item.model_dump(exclude=["type_function"])))
-        db.flush()
-        return registers
-    return None
-
-
-# Describe functions before writing code
 # 	 * @description update mppt list by template id
 # 	 * @author nhan.tran
 # 	 * @since 10-04-2024
@@ -1989,35 +1961,40 @@ def get_register_list(
         )
 
 
-# Describe functions before writing code
-# 	 * @description edit each register
-# 	 * @author vnguyen
-# 	 * @since 10-01-2024
-# 	 * @param {info_register,db}
-# 	 * @return data (RegisterOutBase)
-@router.post("/register/edit/", response_model=schemas.RegisterOutBase)
-def edit_each_register(
-    info_register: schemas.RegisterOutBase, db: Session = Depends(get_db)
+@router.post("/register/create/", response_model=template_schemas.TemplateListBase)
+def add_multiple_registers(
+    number_of_register: int = Body(embed=True),
+    id_template: int = Body(embed=True),
+    db: Session = Depends(get_db),
 ):
     try:
-        id = info_register.id
-        id_template = info_register.id_template
-        register_query = db.query(models.Register_block).filter(
-            models.Register_block.id == id
+        last_register = (
+            db.query(models.Register_block)
+            .filter(models.Register_block.id_template == id_template)
+            .order_by(models.Register_block.id.desc())
+            .first()
         )
-        result_register = register_query.first()
-        print(result_register.__dict__)
-        if not result_register:
-            return formatMessage(
-                f"Register with id: {id} does not exist", status.HTTP_404_NOT_FOUND
+
+        if not last_register:
+            last_register = models.Register_block(
+                id_template=id_template, id_type_function=166, count=1, addr=0
             )
-        # restart_pm2_change_template(id_template, db)
-        register_query.update(info_register.dict())
+
+        for i in range(number_of_register):
+            add_register = schemas.RegisterBase(**last_register.__dict__)
+            register_to_add = models.Register_block(
+                **add_register.model_dump(exclude=["id"])
+            )
+            db.add(register_to_add)
+            db.flush()
+
         db.commit()
-        return result_register
+
+        return get_template_by_id(id_template, db)
     except Exception as err:
-        print("Error : ", err)
+        print(f"Error: {err}")
         # LOGGER.error(f'--- {err} ---')
+        db.rollback()
         return formatMessage(
             "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
         )
@@ -2028,24 +2005,26 @@ def edit_each_register(
 # 	 * @author vnguyen
 # 	 * @since 10-01-2024
 # 	 * @param {register_list,db}
-# 	 * @return data (RegisterOutBase)
-@router.post("/register/edit_multiple/", response_model=list[schemas.RegisterOutBase])
+# 	 * @return data (RegisterBase)
+@router.post(
+    "/register/edit_multiple/", response_model=template_schemas.TemplateListBase
+)
 def edit_all_register(
-    register_list: list[schemas.RegisterOutBase], db: Session = Depends(get_db)
+    register_list: schemas.RegisterListInputBase, db: Session = Depends(get_db)
 ):
     try:
-        id_template = register_list[0].id_template
+        id_template = register_list.id_template
 
         register_query = db.query(models.Register_block).filter(
             models.Register_block.id_template == id_template
         )
-        for item in register_list:
+        for item in register_list.registers:
             register_query.filter(models.Register_block.id == item.id).update(
-                item.dict()
+                item.model_dump(exclude=["id_template"]), synchronize_session=False
             )
         db.commit()
         # restart_pm2_change_template(id_template, db)
-        return register_query
+        return get_template_by_id(id_template, db)
 
     except Exception as err:
         print(f"Error: {err}")
@@ -2060,13 +2039,15 @@ def edit_all_register(
 # 	 * @author vnguyen
 # 	 * @since 10-01-2024
 # 	 * @param {id,db}
-# 	 * @return data (RegisterOutBase)
-@router.post("/register/delete/", response_model=list[schemas.RegisterOutBase])
+# 	 * @return data (RegisterBase)
+@router.post(
+    "/register/delete_multiple/", response_model=template_schemas.TemplateListBase
+)
 def delete_register(
-    register_list: list[schemas.RegisterOutBase], db: Session = Depends(get_db)
+    register_list: schemas.RegisterListInputBase, db: Session = Depends(get_db)
 ):
     try:
-        id_template = register_list[0].id_template
+        id_template = register_list.id_template
         register_query = db.query(models.Register_block).filter(
             models.Register_block.id_template == id_template
         )
@@ -2077,14 +2058,14 @@ def delete_register(
                 status.HTTP_404_NOT_FOUND,
             )
 
-        for item in register_list:
+        for item in register_list.registers:
             register_query.filter(models.Register_block.id == item.id).delete(
                 synchronize_session=False
             )
 
         # restart_pm2_change_template(id_template, db)
         db.commit()
-        return register_query.all()
+        return get_template_by_id(id_template, db)
     except Exception as err:
         print(f"Error: {err}")
         # LOGGER.error(f'--- {err} ---')
@@ -2102,8 +2083,8 @@ def delete_register(
 # 	 * @author vnguyen
 # 	 * @since 16-01-2024
 # 	 * @param {id,db}
-# 	 * @return data (RegisterOutBase)
-@router.post("/export_file/", response_model=list[schemas.RegisterOutBase])
+# 	 * @return data (RegisterBase)
+@router.post("/export_file/", response_model=list[schemas.RegisterBase])
 def export_file(
     id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):

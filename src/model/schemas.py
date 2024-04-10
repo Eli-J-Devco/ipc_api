@@ -177,7 +177,6 @@ class PointBase(BaseModel):
     userscaleenabled: Optional[bool] = None
     invalidvalue: Optional[int] = None
     invalidvalueenabled: Optional[bool] = None
-    control_enabled: Optional[bool] = None
     id_control_group: Optional[int] = None
     extendednumpoints: Optional[int] = None
     active: Optional[bool] = False
@@ -216,7 +215,6 @@ class ManualPointBase(BaseModel):
     userscaleenabled: Optional[bool] = None
     invalidvalue: Optional[int] = None
     invalidvalueenabled: Optional[bool] = None
-    control_enabled: Optional[bool] = None
     id_control_group: Optional[int] = None
     extendednumpoints: Optional[int] = None
     extendedregblocks: Optional[int] = None
@@ -315,34 +313,25 @@ class TypeFunctionBase(BaseModel):
 
 
 class RegisterBase(BaseModel):
-    # --------------------------------------------------
-    id_template: Optional[int] = None
-    addr: Optional[int] = None
-    count: Optional[int] = None
-    id_type_function: Optional[int] = None
-    status: Optional[bool] = None
-
-    class Config:
-        orm_mode = True
-
-
-class RegisterCreateBase(RegisterBase):
-    pass
-
-    class Config:
-        orm_mode = True
-
-
-class RegisterOutBase(RegisterBase):
     id: Optional[int] = None
+    id_template: Optional[int] = None
+    addr: Optional[int] = 0
+    count: Optional[int] = 0
+    id_type_function: Optional[int] = None
+    status: Optional[bool] = True
 
     class Config:
         orm_mode = True
+
+
+class RegisterListInputBase(BaseModel):
+    id_template: Optional[int] = None
+    registers: Optional[list[RegisterBase]] = None
 
 
 class RegisterConfigOutBase(BaseModel):
 
-    register_list: Optional[list[RegisterOutBase]] = None
+    register_list: Optional[list[RegisterBase]] = None
     type_function: Optional[list[TypeFunctionBase]] = None
 
     class Config:

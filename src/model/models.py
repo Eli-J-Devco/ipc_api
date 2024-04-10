@@ -308,7 +308,6 @@ class Point_list(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
-    control_enabled = Column(Boolean, nullable=False, default=True)
     id_control_group = Column(
         Integer,
         ForeignKey(
@@ -414,7 +413,6 @@ class ManualPointList(Base):
     userscaleenabled = Column(Boolean, nullable=False, default=True)
     invalidvalue = Column(Integer, nullable=False)
     invalidvalueenabled = Column(Boolean, nullable=False, default=True)
-    control_enabled = Column(Boolean, nullable=False, default=True)
     id_control_group = Column(
         Integer,
         ForeignKey(
