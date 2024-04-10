@@ -639,7 +639,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         # if device is INV 
                         if results_device_type :
                             if results_device_type[0]["name"] == "PV System Inverter" :
-                
                                 if results_register :
                                     filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
                                     
@@ -661,7 +660,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         datatype = results_datatype[0]["value"]
                                     else :
                                         pass
-                                    
+                                    print("len(filtered_results_register)",len(filtered_results_register))
+                                    print("filtered_results_register",filtered_results_register)
                                     try:
                                         if device_mode == "0" :
                                             print("---------- Manual control mode ----------")
@@ -680,6 +680,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         comment = f"Sent Failure "
                                             
                                             elif len(filtered_results_register) >= 1 and isinstance(value, int) :
+                                                print("da vao ghi data vao du lieu")
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 
                                                 # get status INV 
