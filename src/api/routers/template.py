@@ -62,9 +62,20 @@ from utils.pm2Manager import (
 # logger_setup = LoggerSetup()
 # # get logger for module
 # LOGGER = logging.getLogger(__name__)
-router = APIRouter(prefix="/template", tags=["Template"])
+router = APIRouter(
+    prefix="/template",
+    tags=["Template"],
+    dependencies=[Depends(oauth2.get_current_user)],
+)
 
 
+# region Helper function
+# Describe functions before writing code
+# 	 * @description update mppt list by template id
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,mppt_list,db}
+# 	 * @return data (PointOutBase)
 def get_template_by_id(id_template: int, db: Session):
     register_list = []
     point_list = []
@@ -90,26 +101,35 @@ def get_template_by_id(id_template: int, db: Session):
         .filter(models.Point_list.id_template == id_template)
         .filter(models.Point_list.id_config_information > 266)
         .filter(models.Point_list.status == 1)
-        .order_by(models.Point_list.index.asc())
+        .filter(models.Point_list.parent == None)
     ).all()
 
     for item in mppt_query:
-        if item.parent == None:
-            if not hasattr(item, "children"):
-                item.children = []
-            mppt_list.append(item)
-        else:
-            for mppt in mppt_list:
-                if item.parent == mppt.id:
-                    mppt.children.append(item)
-                    break
-                else:
-                    for child in mppt.children:
-                        if item.parent == child.id:
-                            if not hasattr(child, "children"):
-                                child.children = []
-                            child.children.append(item)
-                            break
+        item.children = []
+        mppt_list.append(item)
+
+    for mppt in mppt_list:
+        string_query = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.parent == mppt.id)
+            .filter(models.Point_list.status == 1)
+        )
+        string_list = string_query.all()
+        for string in string_list:
+            string.children = []
+            mppt.children.append(string)
+
+        for string in mppt.children:
+            panel_query = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.parent == string.id)
+                .filter(models.Point_list.status == 1)
+            )
+            panel_list = panel_query.all()
+            for panel in panel_list:
+                string.children.append(panel)
 
     return {
         "point_list": point_list,
@@ -118,18 +138,252 @@ def get_template_by_id(id_template: int, db: Session):
     }
 
 
+# Describe functions before writing code
+# 	 * @description update mppt list by template id when delete points
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,points,db}
+# 	 * @return data (PointOutBase)
+def refresh_when_delete(
+    existed_point: list[dict], id_template: int, db: Session, type: int = 1
+):  # 1: point, 2: mppt
+    id_point_to_delte = [list(item.keys())[0] for item in existed_point]
+    device_point_list_map_query = db.query(models.Device_point_list_map).filter(
+        models.Device_point_list_map.id_point_list.in_(id_point_to_delte)
+    )
+    device_point_list_map_query.delete(synchronize_session=False)
+    db.flush()
+
+    used_template_devices = (
+        db.query(deviceList_models.Device_list).filter(
+            deviceList_models.Device_list.id_template == id_template
+        )
+    ).all()
+
+    column_to_drop = [
+        f"DROP COLUMN {list(item.values())[0].replace(' ', '')}"
+        for item in existed_point
+    ]
+    column_to_drop = ", ".join(column_to_drop)
+
+    devices_id = []
+    if used_template_devices:
+        for device in used_template_devices:
+            devices_id.append(device.id)
+            db.execute(text(f"ALTER TABLE {device.table_name} {column_to_drop};"))
+        db.flush()
+
+    if type == 2:
+        for item in existed_point:
+            if (
+                item["id_config_information"] == 274
+                or item["id_config_information"] == 275
+            ):
+                continue
+
+            if item["id_config_information"] == 277:
+                mppt_to_del = (
+                    db.query(deviceList_models.Device_mppt)
+                    .filter(
+                        deviceList_models.Device_mppt.id_point_list
+                        == list(item.keys())[0]
+                    )
+                    .filter(
+                        deviceList_models.Device_mppt.id_device_list.in_(devices_id)
+                    )
+                )
+
+                if mppt_to_del:
+                    mppt_to_del.delete(synchronize_session=False)
+                    db.flush()
+                continue
+
+            if item["id_config_information"] == 276:
+                string_to_del = (
+                    db.query(deviceList_models.Device_mppt_string)
+                    .filter(
+                        deviceList_models.Device_mppt_string.id_point_list
+                        == list(item.keys())[0]
+                    )
+                    .filter(
+                        deviceList_models.Device_mppt_string.id_device_list.in_(
+                            devices_id
+                        )
+                    )
+                )
+
+                if string_to_del:
+                    string_to_del.delete(synchronize_session=False)
+                    db.flush()
+                continue
+
+            panel_to_del = (
+                db.query(deviceList_models.Device_panel)
+                .filter(
+                    deviceList_models.Device_panel.id_point_list == list(item.keys())[0]
+                )
+                .filter(deviceList_models.Device_panel.id_device_list.in_(devices_id))
+            )
+
+            if panel_to_del:
+                panel_to_del.delete(synchronize_session=False)
+                db.flush()
+
+
+# Describe functions before writing code
+# 	 * @description update mppt list by template id when add points
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,points,db}
+# 	 * @return data (PointOutBase)
+def refresh_table_device(
+    id_template: int,
+    last_index: int,
+    new_points: list[template_schemas.PointOutBase],
+    last_point: template_schemas.PointOutBase,
+    db: Session,
+):
+    mppt_query = (
+        db.query(models.Point_list)
+        .filter(models.Point_list.id_template == id_template)
+        .filter(models.Point_list.id_config_information > 266)
+    )
+    result_mppt = mppt_query.order_by(models.Point_list.index.asc()).all()
+    for item in result_mppt:
+        mppt_query.filter(models.Point_list.id == item.id).update(
+            {"index": last_index}, synchronize_session=False
+        )
+        last_index += 1
+
+    db.flush()
+
+    used_template_devices = (
+        db.query(deviceList_models.Device_list).filter(
+            deviceList_models.Device_list.id_template == id_template
+        )
+    ).all()
+
+    if used_template_devices:
+        for item in used_template_devices:
+            device_point_list_map_query = db.query(models.Device_point_list_map).filter(
+                models.Device_point_list_map.id_device_list == item.id
+            )
+
+            device_point_list_map_query.delete(synchronize_session=False)
+            db.flush()
+            points_query = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .order_by(models.Point_list.index.asc())
+            )
+            points = points_query.all()
+            for point in points:
+                db.add(
+                    models.Device_point_list_map(
+                        id_device_list=item.id, id_point_list=point.id, name=point.name
+                    )
+                )
+
+            db.flush()
+
+            # db.execute(text("DROP TABLE IF EXISTS " + item.table_name))
+            db.execute(text("DROP VIEW IF EXISTS " + item.view_table))
+
+            column_to_add = [
+                f"ADD COLUMN {item.id_pointkey} DOUBLE" for item in new_points
+            ]
+            column_to_add_query = []
+
+            last_column = f" AFTER {last_point.id_pointkey}" if last_point else ""
+            for col in column_to_add:
+                column_to_add_query.append(col + last_column)
+                last_column = f" AFTER {col.split(' ')[2]}"
+            column_to_add = ", ".join(column_to_add_query)
+
+            add_column_query = f"ALTER TABLE {item.table_name} {column_to_add};"
+            print(f"add_column_query: {add_column_query}")
+            db.execute(text(add_column_query))
+            db.flush()
+            # add view table of device
+            tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
+            view_table = f"dev_{str(item.id)}_{tg}"
+
+            query_add_view_table_device = text(
+                f"CREATE VIEW {view_table}  AS SELECT * from {item.table_name}"
+            )
+            print(f"query_add_view_table_device: {query_add_view_table_device}")
+            db.execute(query_add_view_table_device)
+            device_query = db.query(deviceList_models.Device_list).filter_by(id=item.id)
+            device_query.update(
+                {
+                    "view_table": view_table,
+                }
+            )
+            db.flush()
+            # restart_pm2_change_template(id_template, db)
+
+
+# Describe functions before writing code
+# 	 * @description update register list by template id
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,points,db}
+# 	 * @return data (RegisterOutBase)
+def update_register_list(
+    id_template: int, registers: list[schemas.RegisterOutBase], db: Session
+):
+    if registers:
+        for item in registers:
+            register_query = (
+                db.query(models.Register_block)
+                .filter(models.Register_block.id_template == id_template)
+                .filter(models.Register_block.id == item.id)
+            )
+            result_register = register_query.first()
+            if not result_register:
+                return formatMessage(
+                    f"Register with id: {item.id} does not exist",
+                    status.HTTP_404_NOT_FOUND,
+                )
+            register_query.update(dict(**item.model_dump(exclude=["type_function"])))
+        db.flush()
+        return registers
+    return None
+
+
+# Describe functions before writing code
+# 	 * @description update mppt list by template id
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,mppt_list,db}
+# 	 * @return data (PointOutBase)
+def update_mppt(list_mppt: list[models.ManualPointList], id_template: int, db: Session):
+    existed_mppt = (
+        db.query(models.Point_list)
+        .filter(models.Point_list.id_template == id_template)
+        .filter(models.Point_list.id_config_information > 266)
+        .all()
+    )
+
+    existed_mppt_id = [item.id for item in existed_mppt]
+
+    db.flush()
+
+
+# endregion
+
 # region Template
+
+
 # Describe functions before writing code
 # 	 * @description create template modbus
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 15-01-2024
 # 	 * @param {template,db}
 # 	 * @return data (TemplateOutBase)
 @router.post("/create/", response_model=template_schemas.TemplateOutBase)
 def create_template(
-    template: template_schemas.TemplateCreateBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    template: template_schemas.TemplateCreateBase, db: Session = Depends(get_db)
 ):
     try:
         name = template.name
@@ -251,15 +505,13 @@ def create_template(
 
 # Describe functions before writing code
 # 	 * @description edit template
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 10-01-2024
 # 	 * @param {,db}
 # 	 * @return data ()
 @router.post("/edit/", response_model=template_schemas.TemplateListBase)
 def edit_each_template(
-    template: template_schemas.TemplateUpdateBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    template: template_schemas.TemplateUpdateBase, db: Session = Depends(get_db)
 ):
     try:
         id = template.id
@@ -294,15 +546,13 @@ def edit_each_template(
 
 # Describe functions before writing code
 # 	 * @description delete template
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 15-01-2024
 # 	 * @param {,db}
 # 	 * @return data (TemplateDelete)
 @router.post("/delete/", response_model=template_schemas.TemplateDelete)
 def delete_template(
-    id_template: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
         template_query = db.query(template_models.Template_library).filter(
@@ -365,7 +615,7 @@ def delete_template(
 
 # Describe functions before writing code
 # 	 * @description get template list
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 10-01-2024
 # 	 * @param {db}
 # 	 * @return data (TemplateBase)
@@ -389,15 +639,13 @@ def get_list(
 
 # Describe functions before writing code
 # 	 * @description get each template
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 28-12-2023
 # 	 * @param {id_template,db}
 # 	 * @return data (TemplateListBase)
 @router.post("/get/", response_model=template_schemas.TemplateListBase)
 def get_each_template(
-    id_template: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
         template_query = (
@@ -423,16 +671,12 @@ def get_each_template(
 
 # Describe functions before writing code
 # 	 * @description get template list by type
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 10-01-2024
-# 	 * @param {db}
+# 	 * @param {type,db}
 # 	 * @return data (TemplateBase)
 @router.post("/get/all/type/", response_model=list[template_schemas.TemplateBase])
-def get_list_by_type(
-    type: int,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
-):
+def get_list_by_type(type: int, db: Session = Depends(get_db)):
     try:
         template_query = db.query(template_models.Template_library).filter(
             template_models.Template_library.type == type
@@ -455,9 +699,9 @@ def get_list_by_type(
 # region Configuration
 # Describe functions before writing code
 # 	 * @description get tempalte config information
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 28-12-2023
-# 	 * @param {id_template,db}
+# 	 * @param {db}
 # 	 * @return data (TemplateListBase)
 @router.post("/config/", response_model=template_schemas.TemplateConfigBase)
 def get_template_config(
@@ -499,7 +743,7 @@ def get_template_config(
 
 # Describe functions before writing code
 # 	 * @description get template type
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 15-01-2024
 # 	 * @param {,db}
 # 	 * @return data (TemplateTypeBase)
@@ -529,16 +773,12 @@ def get_type(
 
 # Describe functions before writing code
 # 	 * @description get manual point list by device type id
-# 	 * @author vnguyen
-# 	 * @since 28-12-2023
+# 	 * @author vnguyen, nhan.tran
+# 	 * @since 10-04-2024
 # 	 * @param {id_template,db}
 # 	 * @return data (TemplateListBase)
 @router.post("/get/manual/", response_model=template_schemas.ManualPointOutBase)
-def get_manual_point_list(
-    id_device_type: int,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
-):
+def get_manual_point_list(id_device_type: int, db: Session = Depends(get_db)):
     try:
         manual_point_list = (
             db.query(models.ManualPointList)
@@ -557,7 +797,7 @@ def get_manual_point_list(
 
 # Describe functions before writing code
 # 	 * @description get template group device
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 28-12-2023
 # 	 * @param {id_device_group,db}
 # 	 * @return data (TemplateGroupDeviceOutBase)
@@ -565,9 +805,7 @@ def get_manual_point_list(
     "/device/get/group/", response_model=deviceGroup_schemas.TemplateGroupDeviceOutBase
 )
 def get_group_device(
-    id_device_group: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_device_group: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
         id = id_device_group
@@ -627,15 +865,13 @@ def get_group_device(
 
 # Describe functions before writing code
 # 	 * @description get each point
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 18-12-2023
 # 	 * @param {info_point,db}
 # 	 * @return data (PointTemplateOutBase)
 @router.post("/point/get/", response_model=template_schemas.PointTemplateOutBase)
 def get_each_point(
-    info_point: template_schemas.PointInfoTemplateBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    info_point: template_schemas.PointInfoTemplateBase, db: Session = Depends(get_db)
 ):
     try:
         point_query = db.query(models.Point_list).filter(
@@ -692,101 +928,12 @@ def get_each_point(
         )
 
 
-def refresh_table_device(
-    id_template: int,
-    last_index: int,
-    new_points: list[template_schemas.PointOutBase],
-    last_point: template_schemas.PointOutBase,
-    db: Session,
-):
-    mppt_query = (
-        db.query(models.Point_list)
-        .filter(models.Point_list.id_template == id_template)
-        .filter(models.Point_list.id_config_information > 266)
-    )
-    result_mppt = mppt_query.order_by(models.Point_list.index.asc()).all()
-    for item in result_mppt:
-        mppt_query.filter(models.Point_list.id == item.id).update(
-            {"index": last_index}, synchronize_session=False
-        )
-        last_index += 1
-
-    db.flush()
-
-    used_template_devices = (
-        db.query(deviceList_models.Device_list).filter(
-            deviceList_models.Device_list.id_template == id_template
-        )
-    ).all()
-
-    if used_template_devices:
-        for item in used_template_devices:
-            device_point_list_map_query = db.query(models.Device_point_list_map).filter(
-                models.Device_point_list_map.id_device_list == item.id
-            )
-
-            device_point_list_map_query.delete(synchronize_session=False)
-            db.flush()
-            points_query = (
-                db.query(models.Point_list)
-                .filter(models.Point_list.id_template == id_template)
-                .order_by(models.Point_list.index.asc())
-            )
-            points = points_query.all()
-            for point in points:
-                db.add(
-                    models.Device_point_list_map(
-                        id_device_list=item.id, id_point_list=point.id, name=point.name
-                    )
-                )
-
-            db.flush()
-
-            # db.execute(text("DROP TABLE IF EXISTS " + item.table_name))
-            db.execute(text("DROP VIEW IF EXISTS " + item.view_table))
-
-            column_to_add = [f"{item.id_pointkey} DOUBLE" for item in new_points]
-            column_to_add = ", ".join(column_to_add)
-            last_column = f" AFTER {last_point.id_pointkey}" if last_point else ""
-            db.execute(
-                text(
-                    "ALTER TABLE "
-                    + item.table_name
-                    + " ADD COLUMN "
-                    + column_to_add
-                    + last_column
-                    + ";"
-                )
-            )
-            db.flush()
-            table_name = f"dev_{str(item.id)}"
-            # query_add_table_device = deviceList_models.create_table_device(
-            #     table_name,
-            #     [{"name": item.id_pointkey} for item in points]
-            #     + [{"name": item.id_pointkey} for item in mppt_list_query],
-            # )
-            # print(f"query_add_table_device: {query_add_table_device}")
-            # db.execute(CreateTable(query_add_table_device))
-            # add view table of device
-            tg = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d")
-            view_table = f"dev_{str(item.id)}_{tg}"
-
-            query_add_view_table_device = text(
-                f"CREATE VIEW {view_table}  AS SELECT * from {table_name}"
-            )
-            print(f"query_add_view_table_device: {query_add_view_table_device}")
-            db.execute(query_add_view_table_device)
-            device_query = db.query(deviceList_models.Device_list).filter_by(id=item.id)
-            device_query.update(
-                {
-                    "table_name": f"dev_{str(item.id)}",
-                    "view_table": view_table,
-                }
-            )
-            db.flush()
-            # restart_pm2_change_template(id_template, db)
-
-
+# Describe functions before writing code
+# 	 * @description update point list by template id
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {id_template,points,db}
+# 	 * @return data (PointOutBase)
 @router.post("/point/edit/all/", response_model=list[template_schemas.PointOutBase])
 def update_point_list(
     id_template: int = Body(embed=True),
@@ -887,92 +1034,13 @@ def update_point_list(
 
 # Describe functions before writing code
 # 	 * @description edit each point
-# 	 * @author vnguyen
+# 	 * @author vnguyen, nhan.tran
 # 	 * @since 29-12-2023
 # 	 * @param {info_point,db}
 # 	 * @return data (PointOutBase)
 @router.post("/point/edit/", response_model=schemas.PointOutBase)
-def edit_each_point(
-    point: schemas.PointOutBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
-):
+def edit_each_point(point: schemas.PointOutBase, db: Session = Depends(get_db)):
     try:
-        id_pointkey = point.name.replace(" ", "")
-
-        last_index = point.index
-
-        last_point = (
-            db.query(models.Point_list)
-            .filter(models.Point_list.id_template == point.id_template)
-            .filter(models.Point_list.id_config_information == 266)
-            .order_by(models.Point_list.index.desc())
-            .first()
-        )
-
-        if point.id == None:
-            point_query = (
-                db.query(models.Point_list)
-                .filter(models.Point_list.id_template == point.id_template)
-                .filter(models.Point_list.id_pointkey == id_pointkey)
-            )
-            result_point = point_query.first()
-            if result_point:
-                return formatMessage(
-                    f"Point with name: {point.name} already exists",
-                    status.HTTP_406_NOT_ACCEPTABLE,
-                )
-
-            # region Add point if not exist
-            add_point = models.Point_list(
-                id_template=point.id_template,
-                index=last_index,
-                id_pointkey=id_pointkey,
-                id_point_list_type=point.id_point_list_type,
-                id_pointtype=point.id_pointtype,
-                id_pointclass_type=point.id_pointclass_type,
-                id_config_information=point.id_config_information,
-                name=point.name,
-                nameedit=point.nameedit,
-                id_type_units=point.id_type_units,
-                unitsedit=point.unitsedit,
-                register=point.register,
-                id_type_datatype=point.id_type_datatype,
-                id_type_byteorder=point.id_type_byteorder,
-                slope=point.slope,
-                slopeenabled=point.slopeenabled,
-                offset=point.offset,
-                offsetenabled=point.offsetenabled,
-                multreg=point.multreg,
-                multregenabled=point.multregenabled,
-                userscaleenabled=point.userscaleenabled,
-                invalidvalue=point.invalidvalue,
-                invalidvalueenabled=point.invalidvalueenabled,
-                extendednumpoints=point.extendednumpoints,
-                extendedregblocks=point.extendedregblocks,
-                status=1,
-                function=point.function,
-                constants=point.constants,
-            )
-
-            db.add(add_point)
-            db.flush()
-
-            if last_point:
-                last_index = (
-                    last_point.index + 1
-                    if last_point.index > last_index
-                    else last_index + 1
-                )
-            db.refresh(add_point)
-            refresh_table_device(
-                point.id_template, last_index, [add_point], last_point, db
-            )
-            db.commit()
-            # result_point = point_query.first()
-            return add_point
-        # endregion
-
         point_query = db.query(models.Point_list).filter(
             models.Point_list.id == point.id
         )
@@ -987,6 +1055,7 @@ def edit_each_point(
                     "type_point",
                     "type_class",
                     "type_control",
+                    "index",
                 ]
             ),
         )
@@ -1035,269 +1104,65 @@ def edit_each_point(
         )
 
 
-# # Describe functions before writing code
-# # 	 * @description change number point
-# # 	 * @author vnguyen
-# # 	 * @since 08-01-2024
-# # 	 * @param {PointChangeNumberBase,db}
-# # 	 * @return data (PointBase)
-# @router.post("/point/change_number/", response_model=list[schemas.PointBase])
-# def change_number_point(
-#     change_number_point: schemas.PointChangeNumberBase,
-#     db: Session = Depends(get_db),
-#     current_user: int = Depends(oauth2.get_current_user),
-# ):
-#     try:
-#         number_point = change_number_point.number_point
-#         id_template = change_number_point.id_template
-#         point_query = (
-#             db.query(models.Point_list)
-#             .filter(models.Point_list.id_template == id_template)
-#             .filter(models.Point_list.status == 1)
-#         )
-#         result_point = point_query.all()
-#         if result_point and len(result_point) > 0:
-#             count_point = len(result_point)
-#             if number_point < count_point:
-#                 print(f"----- Disable point -----")
-#                 # delete
-#                 array_delete = result_point[number_point:count_point]
-#                 for item in array_delete:
-#                     print(f"Disable Id: {item.id}")
-#                     point_query.filter(models.Point_list.id == item.id).update(
-#                         {"status": 0}
-#                     )
-#                 db.flush()
-#                 restart_pm2_change_template(id_template, db)
-#                 db.commit()
-#                 point_query = db.query(models.Point_list).filter(
-#                     models.Point_list.id_template == id_template
-#                 )
-#                 result_point = point_query.all()
-#                 return result_point
-#             elif number_point == count_point:
-#                 print(f"----- Keep point -----")
-#                 # no do
-#                 point_query = db.query(models.Point_list).filter(
-#                     models.Point_list.id_template == id_template
-#                 )
-#                 result_point = point_query.all()
-#                 return result_point
-#             else:
-#                 print(f"----- Insert point -----")
-#                 config_info_query = db.query(models.Config_information).filter(
-#                     models.Config_information.status == 1
-#                 )
-#                 result_config_info = config_info_query.all()
-
-#                 name = ""
-#                 nameedit = False
-#                 id_type_units = [
-#                     item.__dict__
-#                     for item in result_config_info
-#                     if item.namekey == "(No units)" and item.id_type == 3
-#                 ][0]["id"]
-#                 unitsedit = False
-#                 id_equation = [
-#                     item.__dict__
-#                     for item in result_config_info
-#                     if item.namekey == "Modbus register" and item.id_type == 15
-#                 ][0]["id"]
-#                 id_config = [
-#                     item.__dict__
-#                     for item in result_config_info
-#                     if item.namekey == "Input" and item.id_type == 15
-#                 ][0]["id"]
-#                 register = 0
-#                 id_type_datatype = [
-#                     item.__dict__
-#                     for item in result_config_info
-#                     if item.namekey == "Short" and item.id_type == 1
-#                 ][0]["id"]
-#                 id_type_byteorder = [
-#                     item.__dict__
-#                     for item in result_config_info
-#                     if item.namekey == "normal" and item.id_type == 2
-#                 ][0]["id"]
-#                 slope = 1
-#                 slopeenabled = False
-#                 offset = 0
-#                 offsetenabled = False
-#                 multreg = 0
-#                 multregenabled = False
-#                 userscaleenabled = False
-#                 invalidvalue = 65535
-#                 invalidvalueenabled = False
-#                 extendednumpoints = 0
-#                 extendedregblocks = 0
-#                 constants = 0
-#                 function = ""
-#                 # add
-#                 number_point_add = number_point - count_point
-#                 new_point_list = []
-
-#                 for item in range(number_point_add):
-#                     new_point = models.Point_list(
-#                         id_template=id_template,
-#                         name=name,
-#                         nameedit=nameedit,
-#                         id_type_units=id_type_units,
-#                         unitsedit=unitsedit,
-#                         equation=id_equation,
-#                         config=id_config,
-#                         register=register,
-#                         id_type_datatype=id_type_datatype,
-#                         id_type_byteorder=id_type_byteorder,
-#                         slope=slope,
-#                         slopeenabled=slopeenabled,
-#                         offset=offset,
-#                         offsetenabled=offsetenabled,
-#                         multreg=multreg,
-#                         multregenabled=multregenabled,
-#                         userscaleenabled=userscaleenabled,
-#                         invalidvalue=invalidvalue,
-#                         invalidvalueenabled=invalidvalueenabled,
-#                         extendednumpoints=extendednumpoints,
-#                         extendedregblocks=extendedregblocks,
-#                         status=1,
-#                         function=function,
-#                         constants=constants,
-#                     )
-#                     new_point_list.append(new_point)
-
-#                 db.add_all(new_point_list)
-#                 db.flush()
-#                 device_point_list_query = db.query(models.Device_point_list).filter(
-#                     models.Device_point_list.id_template == id_template
-#                 )
-#                 result_device_point_list = device_point_list_query.all()
-
-#                 if result_device_point_list:
-#                     # check number device
-#                     device_list = list(
-#                         set([item.id_device_list for item in result_device_point_list])
-#                     )
-#                     insert_device_point_list = []
-#                     for item_point in new_point_list:
-#                         for item_device in device_list:
-#                             id_device_group = [
-#                                 item.__dict__
-#                                 for item in result_device_point_list
-#                                 if item.id_device_list == item_device
-#                             ][0]["id_device_group"]
-#                             insert_device_point_list.append(
-#                                 models.Device_point_list(
-#                                     id_template=id_template,
-#                                     id_device_group=id_device_group,
-#                                     id_device_list=item_device,
-#                                     id_point_list=item_point.id,
-#                                 )
-#                             )
-#                     if insert_device_point_list:
-#                         db.add_all(insert_device_point_list)
-#                 # restart_pm2_change_template(id_template, db)
-#                 db.commit()
-#                 point_query = db.query(models.Point_list).filter(
-#                     models.Point_list.id_template == id_template
-#                 )
-#                 result_point = point_query.all()
-#                 # print(result_point)
-#                 return result_point
-#         else:
-#             return formatMessage("Not have data", status.HTTP_404_NOT_FOUND)
-
-#     except Exception as err:
-#         print(f"Error: {err}")
-#         # LOGGER.error(f'--- {err} ---')
-#         return formatMessage(
-#             "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
-#         )
-
-
-def refresh_when_delete(
-    existed_point: list[dict], id_template: int, db: Session, type: int = 1
-):  # 1: point, 2: mppt
-    id_point_to_delte = [list(item.keys())[0] for item in existed_point]
-    device_point_list_map_query = db.query(models.Device_point_list_map).filter(
-        models.Device_point_list_map.id_point_list.in_(id_point_to_delte)
-    )
-    device_point_list_map_query.delete(synchronize_session=False)
-    db.flush()
-
-    used_template_devices = (
-        db.query(deviceList_models.Device_list).filter(
-            deviceList_models.Device_list.id_template == id_template
+# Describe functions before writing code
+# 	 * @description add multiple points to template by id_template
+# 	 * @author vnguyen, nhan.tran
+# 	 * @since 08-01-2024
+# 	 * @param {number_of_point,id_template,db}
+# 	 * @return data (PointBase)
+@router.post("/point/create/", response_model=template_schemas.TemplateListBase)
+def add_multiple_points(
+    number_of_point: int = Body(embed=True),
+    id_template: int = Body(embed=True),
+    db: Session = Depends(get_db),
+):
+    try:
+        last_point = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.id_config_information == 266)
+            .order_by(models.Point_list.index.desc())
+            .first()
         )
-    ).all()
 
-    column_to_drop = [
-        f"DROP COLUMN {list(item.values())[0].replace(' ', '')}"
-        for item in existed_point
-    ]
-    column_to_drop = ", ".join(column_to_drop)
-
-    devices_id = []
-    if used_template_devices:
-        for device in used_template_devices:
-            devices_id.append(device.id)
-            db.execute(text(f"ALTER TABLE {device.table_name} {column_to_drop};"))
-        db.flush()
-
-    if type == 2:
-        for item in existed_point:
-            if (
-                item["id_config_information"] == 274
-                or item["id_config_information"] == 275
-            ):
-                continue
-
-            if item["id_config_information"] == 277:
-                mppt_to_del = (
-                    db.query(deviceList_models.Device_mppt)
-                    .filter(
-                        deviceList_models.Device_mppt.id_point_list
-                        == list(item.keys())[0]
-                    )
-                    .filter(
-                        deviceList_models.Device_mppt.id_device_list.in_(devices_id)
-                    )
-                )
-
-                if mppt_to_del:
-                    mppt_to_del.delete(synchronize_session=False)
-                    db.flush()
-                continue
-
-            if item["id_config_information"] == 276:
-                string_to_del = (
-                    db.query(deviceList_models.Device_mppt_string)
-                    .filter(
-                        deviceList_models.Device_mppt_string.id_point_list
-                        == list(item.keys())[0]
-                    )
-                    .filter(
-                        deviceList_models.Device_mppt_string.id_device_list.in_(
-                            devices_id
-                        )
-                    )
-                )
-
-                if string_to_del:
-                    string_to_del.delete(synchronize_session=False)
-                    db.flush()
-                continue
-
-            panel_to_del = (
-                db.query(deviceList_models.Device_panel)
-                .filter(
-                    deviceList_models.Device_panel.id_point_list == list(item.keys())[0]
-                )
-                .filter(deviceList_models.Device_panel.id_device_list.in_(devices_id))
+        if not last_point:
+            last_point = models.Point_list(
+                id_template=id_template,
+                id_config_information=266,
             )
 
-            if panel_to_del:
-                panel_to_del.delete(synchronize_session=False)
-                db.flush()
+        last_index = last_point.index if last_point.id else -1
+
+        new_points = []
+        for i in range(number_of_point):
+            last_index += 1
+            add_point = template_schemas.PointBase(**last_point.__dict__)
+            add_point.index = last_index
+            add_point.id_pointkey = f"point_{last_index}"
+            add_point.name = f"Point {last_index}"
+
+            point_to_add = models.Point_list(**add_point.model_dump(exclude=["id"]))
+            db.add(point_to_add)
+            db.flush()
+            new_points.append(add_point)
+
+        refresh_table_device(
+            id_template,
+            last_index + 1,
+            new_points,
+            last_point if last_point.id is not None else None,
+            db,
+        )
+        db.commit()
+
+        return get_template_by_id(id_template, db)
+    except Exception as err:
+        print(f"Error: {err}")
+        # LOGGER.error(f'--- {err} ---')
+        db.rollback()
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 # Describe functions before writing code
@@ -1310,9 +1175,7 @@ def refresh_when_delete(
     "/point/delete_multiple/", response_model=template_schemas.TemplateListBase
 )
 def delete_point_list(
-    point_list: template_schemas.PointDeleteTemplateBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    point_list: template_schemas.PointDeleteTemplateBase, db: Session = Depends(get_db)
 ):
     try:
         id_template = point_list.id_template
@@ -1376,9 +1239,7 @@ def delete_point_list(
     response_model_by_alias=False,
 )
 def get_mppt_template(
-    id_template: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
         point_list_query = (
@@ -1423,6 +1284,7 @@ def get_mppt_template(
             "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
 # Describe functions before writing code
 # 	 * @description create MPPT, STRING, PANEL of Template with 2 mode:
 # 	 * @description 1. Create new MPPT, STRING, PANEL
@@ -1440,7 +1302,7 @@ def create_mppt(
     create_information: template_schemas.MPPTCreateBase, db: Session = Depends(get_db)
 ):
     id_template = create_information.id_template
-    is_clone = create_information.is_clone_last_mppt
+    is_clone = create_information.is_clone_from_last
     num_of_mppt = create_information.num_of_mppt
     num_of_string = create_information.num_of_string
     num_of_panel = create_information.num_of_panel
@@ -1717,6 +1579,285 @@ def create_mppt(
             "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+
+# Describe functions before writing code
+# 	 * @description add children to MPPT, STRING of Template
+# 	 * @description 1. Add new children
+# 	 * @description 2. Clone last children
+# 	 * @author nhan.tran
+# 	 * @since 10-04-2024
+# 	 * @param {create_information,db}
+# 	 * @return data (TemplateListBase)
+@router.post(
+    "/mppt/create/children",
+    response_model=template_schemas.TemplateListBase,
+    response_model_by_alias=False,
+)
+def add_children(
+    create_information: template_schemas.MPPTCreateBase, db: Session = Depends(get_db)
+):
+    id_template = create_information.id_template
+    id = create_information.id
+    num_of_string = create_information.num_of_string
+    num_of_panel = create_information.num_of_panel
+    is_clone_from_last = create_information.is_clone_from_last
+
+    try:
+        point = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id == id)
+            .filter(models.Point_list.status == 1)
+            .first()
+        )
+        if not point:
+            return formatMessage(f"No point with id {id}", status.HTTP_400_BAD_REQUEST)
+
+        new_string = template_schemas.PointBase(
+            id_template=id_template,
+            parent=id,
+            id_config_information=276,
+        )
+
+        new_panel = template_schemas.PointBase(
+            id_template=id_template,
+            parent=id,
+            id_config_information=278,
+        )
+
+        clone_panel_list = []
+
+        if is_clone_from_last:
+            last_children = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.parent == id)
+                .order_by(models.Point_list.index.desc())
+                .first()
+            )
+
+            if last_children:
+                if num_of_string > 0:
+                    new_string = template_schemas.PointBase(**last_children.__dict__)
+
+                    panel_list = (
+                        db.query(models.Point_list)
+                        .filter(models.Point_list.id_template == id_template)
+                        .filter(models.Point_list.parent == last_children.id)
+                        .all()
+                    )
+
+                    if panel_list:
+                        for panel in panel_list:
+                            clone_panel = template_schemas.PointBase(**panel.__dict__)
+                            clone_panel_list.append(clone_panel)
+
+                if num_of_panel > 0:
+                    new_panel = template_schemas.PointBase(**last_children.__dict__)
+
+        last_index = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .order_by(models.Point_list.index.desc())
+            .first()
+        )
+
+        last_index = last_index.index + 1 if last_index else 0
+
+        used_template_devices = (
+            db.query(deviceList_models.Device_list).filter(
+                deviceList_models.Device_list.id_template == id_template
+            )
+        ).all()
+
+        children_count = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.parent == id)
+            .count()
+        ) - 2
+
+        new_children = []
+        if num_of_string == 0:
+            new_children.append(point)
+
+        for i in range(num_of_string):
+            children_count += 1
+            new_string_to_add = models.Point_list(
+                **new_string.model_dump(exclude=["id"])
+            )
+            if (
+                new_string_to_add.id_pointkey
+                == f"{point.id_pointkey}String{children_count}"
+            ):
+                children_count += 1
+
+            new_string_to_add.index = last_index
+            new_string_to_add.id_pointkey = f"{point.id_pointkey}String{children_count}"
+            new_string_to_add.name = f"String {children_count}"
+            new_string_to_add.parent = id
+            db.add(new_string_to_add)
+            db.flush()
+            last_index += 1 + num_of_panel
+            new_children.append(new_string_to_add)
+
+        new_string_children = {}
+        for parent in new_children:
+            if num_of_panel == 0:
+                num_of_panel = len(clone_panel_list)
+                for i in range(num_of_panel):
+                    panel = clone_panel_list[i]
+                    new_panel_to_add = models.Point_list(
+                        **panel.model_dump(exclude=["id"])
+                    )
+                    new_panel_to_add.index = parent.index + num_of_panel
+                    new_panel_to_add.id_pointkey = f"{parent.id_pointkey}Panel{i + 1}"
+                    new_panel_to_add.name = f"Panel {i + 1}"
+                    new_panel_to_add.parent = parent.id
+                    db.add(new_panel_to_add)
+                    db.flush()
+                    last_index += 1
+                    if not new_string_children.get(parent.id):
+                        new_string_children[parent.id] = []
+                    new_string_children[parent.id].append(new_panel_to_add)
+                num_of_panel = 0
+                continue
+
+            parent_index = parent.index + 1
+            children_count = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.parent == parent.id)
+                .count()
+            )
+
+            for j in range(num_of_panel):
+                children_count += 1
+                new_panel_to_add = models.Point_list(
+                    **new_panel.model_dump(exclude=["id"])
+                )
+                if (
+                    new_panel_to_add.id_pointkey
+                    == f"{parent.id_pointkey}Panel{children_count}"
+                ):
+                    children_count += 1
+
+                new_panel_to_add.index = parent_index + children_count - 1
+                new_panel_to_add.id_pointkey = (
+                    f"{parent.id_pointkey}Panel{children_count}"
+                )
+                new_panel_to_add.name = f"Panel {children_count}"
+                new_panel_to_add.parent = parent.id
+                db.add(new_panel_to_add)
+                db.flush()
+                if not new_string_children.get(parent.id):
+                    new_string_children[parent.id] = []
+                new_string_children[parent.id].append(new_panel_to_add)
+
+        if used_template_devices:
+            for device in used_template_devices:
+                table_name = device.table_name
+                column_to_add = []
+                if num_of_string == 0:
+                    string_mppt = (
+                        db.query(deviceList_models.Device_mppt_string)
+                        .filter(
+                            deviceList_models.Device_mppt_string.id_device_list
+                            == device.id
+                        )
+                        .filter(
+                            deviceList_models.Device_mppt_string.id_point_list == id
+                        )
+                    ).first()
+
+                    if not string_mppt or not new_string_children.get(id):
+                        continue
+
+                    for panel in new_string_children[id]:
+                        column_to_add.append(f"ADD COLUMN {panel.id_pointkey} DOUBLE")
+                        db.add(
+                            models.Device_point_list_map(
+                                id_device_list=device.id,
+                                id_point_list=panel.id,
+                                name=panel.name,
+                            )
+                        )
+                        db.add(
+                            deviceList_models.Device_panel(
+                                id_device_string=string_mppt.id,
+                                id_point_list=panel.id,
+                                id_device_list=device.id,
+                                name=panel.name,
+                            )
+                        )
+                        db.flush()
+
+                    db.execute(
+                        text(f"ALTER TABLE {table_name} {', '.join(column_to_add)};")
+                    )
+                    continue
+
+                device_mppt = (
+                    db.query(deviceList_models.Device_mppt)
+                    .filter(deviceList_models.Device_mppt.id_point_list == id)
+                    .filter(deviceList_models.Device_mppt.id_device_list == device.id)
+                ).first()
+
+                for child in new_children:
+                    column_to_add.append(f"ADD COLUMN {child.id_pointkey} DOUBLE")
+                    db.add(
+                        models.Device_point_list_map(
+                            id_device_list=device.id,
+                            id_point_list=child.id,
+                            name=child.name,
+                        )
+                    )
+                    string_mppt = deviceList_models.Device_mppt_string(
+                        id_device_mppt=device_mppt.id,
+                        id_point_list=child.id,
+                        id_device_list=device.id,
+                        name=child.name,
+                        namekey=child.id_pointkey,
+                    )
+                    db.add(string_mppt)
+                    db.flush()
+
+                    if not new_string_children.get(child.id):
+                        continue
+
+                    for panel in new_string_children[child.id]:
+                        column_to_add.append(f"ADD COLUMN {panel.id_pointkey} DOUBLE")
+                        db.add(
+                            models.Device_point_list_map(
+                                id_device_list=device.id,
+                                id_point_list=panel.id,
+                                name=panel.name,
+                            )
+                        )
+                        db.add(
+                            deviceList_models.Device_panel(
+                                id_device_string=string_mppt.id,
+                                id_point_list=panel.id,
+                                id_device_list=device.id,
+                                name=panel.name,
+                            )
+                        )
+                        db.flush()
+                db.execute(
+                    text(f"ALTER TABLE {table_name} {', '.join(column_to_add)};")
+                )
+            db.flush()
+
+        db.commit()
+
+        return get_template_by_id(id_template, db)
+    except Exception as err:
+        print("Error : ", err)
+        db.rollback()
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
 # Describe functions before writing code
 # 	 * @description delete mppt point list
 # 	 * @author vnguyen
@@ -1727,7 +1868,6 @@ def create_mppt(
 def delete_mppt_point_list(
     point_list: template_schemas.MPPTPointDeleteTemplateBase,
     db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
 ):
     try:
         id_template = point_list.id_template
@@ -1808,41 +1948,6 @@ def delete_mppt_point_list(
         )
 
 
-def update_register_list(
-    id_template: int, registers: list[schemas.RegisterOutBase], db: Session
-):
-    if registers:
-        for item in registers:
-            register_query = (
-                db.query(models.Register_block)
-                .filter(models.Register_block.id_template == id_template)
-                .filter(models.Register_block.id == item.id)
-            )
-            result_register = register_query.first()
-            if not result_register:
-                return formatMessage(
-                    f"Register with id: {item.id} does not exist",
-                    status.HTTP_404_NOT_FOUND,
-                )
-            register_query.update(dict(**item.model_dump(exclude=["type_function"])))
-        db.flush()
-        return registers
-    return None
-
-
-def update_mppt(list_mppt: list[models.ManualPointList], id_template: int, db: Session):
-    existed_mppt = (
-        db.query(models.Point_list)
-        .filter(models.Point_list.id_template == id_template)
-        .filter(models.Point_list.id_config_information > 266)
-        .all()
-    )
-
-    existed_mppt_id = [item.id for item in existed_mppt]
-
-    db.flush()
-
-
 # endregion
 
 
@@ -1855,9 +1960,7 @@ def update_mppt(list_mppt: list[models.ManualPointList], id_template: int, db: S
 # 	 * @return data (RegisterConfigOutBase)
 @router.post("/register/get/", response_model=schemas.RegisterConfigOutBase)
 def get_register_list(
-    id_template: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
         register_query = db.query(models.Register_block).filter(
@@ -1894,9 +1997,7 @@ def get_register_list(
 # 	 * @return data (RegisterOutBase)
 @router.post("/register/edit/", response_model=schemas.RegisterOutBase)
 def edit_each_register(
-    info_register: schemas.RegisterOutBase,
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    info_register: schemas.RegisterOutBase, db: Session = Depends(get_db)
 ):
     try:
         id = info_register.id
@@ -1930,9 +2031,7 @@ def edit_each_register(
 # 	 * @return data (RegisterOutBase)
 @router.post("/register/edit_multiple/", response_model=list[schemas.RegisterOutBase])
 def edit_all_register(
-    register_list: list[schemas.RegisterOutBase],
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    register_list: list[schemas.RegisterOutBase], db: Session = Depends(get_db)
 ):
     try:
         id_template = register_list[0].id_template
@@ -1964,9 +2063,7 @@ def edit_all_register(
 # 	 * @return data (RegisterOutBase)
 @router.post("/register/delete/", response_model=list[schemas.RegisterOutBase])
 def delete_register(
-    register_list: list[schemas.RegisterOutBase],
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    register_list: list[schemas.RegisterOutBase], db: Session = Depends(get_db)
 ):
     try:
         id_template = register_list[0].id_template
@@ -2008,9 +2105,7 @@ def delete_register(
 # 	 * @return data (RegisterOutBase)
 @router.post("/export_file/", response_model=list[schemas.RegisterOutBase])
 def export_file(
-    id_template: Optional[int] = Body(embed=True),
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
+    id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
 

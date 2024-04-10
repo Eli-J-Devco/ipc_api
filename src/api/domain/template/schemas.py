@@ -108,8 +108,9 @@ class MPPTOutBase(PointOutBase):
 
 class MPPTCreateBase(BaseModel):
     id_template: int = None
-    is_clone_last_mppt: Optional[bool] = False
-    num_of_mppt: Optional[int] = 1
+    id: Optional[int] = None
+    is_clone_from_last: Optional[bool] = False
+    num_of_mppt: Optional[int] = 0
     num_of_string: Optional[int] = 0
     num_of_panel: Optional[int] = 0
 
