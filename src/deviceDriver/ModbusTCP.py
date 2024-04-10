@@ -93,6 +93,7 @@ ID_DEVICE_TYPE=None
 device_mode=None
 # 0: Manual mode
 # 1: Auto mode
+id_template=None
 # ----------------------------------------------------------------------
 
 # config[0] -- id
@@ -123,6 +124,8 @@ def point_object(Config,
                  message="", active=0,
                  control_enabled=False,
                  id_control_group=None,
+                 control_type_input=0,
+                 control_menu_order=None
                  ):
     
     return {"config":Config,
@@ -141,7 +144,9 @@ def point_object(Config,
             # "point_type":PointType,
             "active":active,
             "control_enabled":control_enabled,
-            "id_control_group":id_control_group
+            "id_control_group":id_control_group,
+            "control_type_input":control_type_input,
+            "control_menu_order":control_menu_order
             }
 # Describe functions before writing code
 # /**
@@ -366,7 +371,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             message="Not found register",
                                                             active=point_list_item['active'],
                                                             control_enabled=point_list_item['control_enabled'],
-                                                            id_control_group=point_list_item['id_control_group']
+                                                            id_control_group=point_list_item['id_control_group'],
+                                                            control_type_input=point_list_item['control_type_input'],
+                                                            control_menu_order=point_list_item['control_menu_order'],
                                                             )
                 else:
                     if point_value != None:
@@ -391,7 +398,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 message="",
                                                 active=point_list_item['active'],
                                                 control_enabled=point_list_item['control_enabled'],
-                                                id_control_group=point_list_item['id_control_group']
+                                                id_control_group=point_list_item['id_control_group'],
+                                                control_type_input=point_list_item['control_type_input'],
+                                                control_menu_order=point_list_item['control_menu_order'],
                                                 )
                 return point_list
             case "Internal":
@@ -409,7 +418,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         message="",
                                         active=point_list_item['active'],
                                         control_enabled=point_list_item['control_enabled'],
-                                        id_control_group=point_list_item['id_control_group']
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
                                         )
                 return point_list
             case "Equation":
@@ -427,7 +438,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         message="",
                                         active=point_list_item['active'],
                                         control_enabled=point_list_item['control_enabled'],
-                                        id_control_group=point_list_item['id_control_group']
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
                                         )
                 return point_list
         
@@ -751,6 +764,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
         global device_mode
+        global id_template
         pathSource=path
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
@@ -906,7 +920,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 message="Error Device",
                                                 active=item['active'],
                                                 control_enabled=item['control_enabled'],
-                                                id_control_group=item['id_control_group']
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -928,7 +944,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 message="error device",
                                                 active=item['active'],
                                                 control_enabled=item['control_enabled'],
-                                                id_control_group=item['id_control_group']
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
                                                 )
                             )
                         
@@ -957,6 +975,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 
                         ):
     try:
+        global id_template
+        results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template}', ())
+
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global  device_name,status_device,msg_device,status_register_block,point_list_device
@@ -967,8 +988,42 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             new_point_list_device=[]
             new_point=[]
             mppt=[]
+            control_group=[]
+            match NAME_DEVICE_TYPE:
+                case "PV System Inverter":
+                    pass
+                case "Solar Tracker":
+                    pass
+                case "Production Meter":
+                    pass
+                case "Weather Station":
+                    pass
+                case "Datalogger":
+                    pass
+                case "Sensor":
+                    pass
+                case "Load meter":
+                    pass
+                case "SMA Communication products":
+                    pass
+                case "Consumption meter":
+                    pass
+                case "Cell Modem":
+                    pass
+                case "Virtual Meter":
+                    pass
+                case "UPS":
+                    pass
             #
-            
+            if results_control_group:
+                control_group=[
+                    {
+                        "id":item["id"],
+                        "name":item["name"],
+                        "fields":[]
+                        
+                    } for item in results_control_group]
+               
             for item in point_list_device:
                 new_point_list_device.append({
                     **item,
@@ -1061,6 +1116,20 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     "name": item_type['name'],
                     "fields": new_point_type
                 })
+            new_control_group=[]
+            for item_group in control_group:
+                new_point_control=[]
+                for point_item in new_point_list_device:
+                    if point_item["id_control_group"]==item_group["id"]:
+                        new_point_control.append({
+                            **point_item
+                        })
+                new_point_control.sort(key=lambda x: x["control_menu_order"])   
+                new_control_group.append({
+                    **item_group,
+                    "fields":new_point_control
+                })
+            # print(f'new_control_group: {new_control_group}')
             data_device={
                 "id_device":device_id,
                 "mode":device_mode,
@@ -1089,12 +1158,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "point_count":len(new_point),
                 # "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt
+                "mppt":mppt,
+                "control_group":new_control_group
             }
             
-            # print(f'Data message size: {sys.getsizeof(data_device)} bytes')
-            # for item in parameters:
-            #     print(len(item['fields']))
             if device_name !="" and serial_number_project!= None:
                 
                 func_mqtt_public(   host[0],

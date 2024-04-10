@@ -287,7 +287,8 @@ class apiGateway:
                         self.DeviceList[i]["parameters"]=result["parameters"]
                         self.DeviceList[i]["fields"]=result["fields"]
                         self.DeviceList[i]["mppt"]=result["mppt"]
-                        
+                        self.DeviceList[i]["mode"]=result["mode"]
+                        self.DeviceList[i]["control_group"]=result["control_group"]
                         # for item in result["parameters"]:
                         #     print(len(item['fields']))
                         print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
