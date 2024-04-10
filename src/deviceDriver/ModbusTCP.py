@@ -634,7 +634,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         register = ""
                         datatype = ""
                         type_datatype = ""
-                        comment = ""
+                        comment = 400
                         current_time = ""
                         data_send = ""
                         code_value = 0
@@ -685,9 +685,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
                                                     if code_value == 16 :
-                                                        comment = f"Sent Successfully"
+                                                        comment = 200
                                                     elif code_value == 144 :
-                                                        comment = f"Sent Failure "
+                                                        comment = 400
                                             
                                             elif len(filtered_results_register) >= 1 and isinstance(value, int):
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
@@ -696,9 +696,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
                                                     if code_value == 16 :
-                                                        comment = f"Sent Successfully"
+                                                        comment = 200
                                                     elif code_value == 144 :
-                                                        comment = f"Sent Failure "
+                                                        comment = 400
                                         if device_mode == 1 :
                                             print("---------- Auto control mode ----------")
                                             pass
@@ -706,9 +706,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         print(f"An error occurred: {e}")
                                         
                             else:
-                                comment = "device cannot be controlled"
+                                comment = 400
                         else :
-                            comment = "device does not exist"
+                            comment = 400
                             
                         # data pud mqtt 
                         data_send = {
