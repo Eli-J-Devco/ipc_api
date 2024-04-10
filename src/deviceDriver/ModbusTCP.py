@@ -75,6 +75,7 @@ data_write_device=[]
 parameter = []
 bit_feedback = 0
 count = 0 
+len_mqtt = 0
 mqtt_result_control_write = ""
 # Set time shutdown of inverter
 inv_shutdown_enable=False
@@ -469,7 +470,6 @@ def convert_register_to_point_list(point_list_item,data_of_register):
 # 	 */   
 def write_modbus_tcp(client, unit, datatype,register, value):
     try:
-
         builder = BinaryPayloadBuilder(
         byteorder=Endian.Big)
         match datatype:
@@ -608,7 +608,25 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     global bit_feedback
     
     id_systemp = ConfigPara[1]
+    pathSource=path
+    # print(f'pathSource: {pathSource}')
+    # pathSource="D:/NEXTWAVE/project/ipc_api"
+    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+    xml=pathSource + '/mybatis/device_list.xml')
+    statement = mybatis_mapper2sql.get_statement(
+    mapper, result_type='list', reindent=True, strip_comments=True) 
+    # 
+    QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+    QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
+    QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
+    QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
     
+    # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+    if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+        pass
+    else:           
+        print("Error not found data in file mybatis")
+        return -1
     if mqtt_result_control_write :
         for item in mqtt_result_control_write:
             device_control = item['id_device']
@@ -617,26 +635,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
             if id_systemp == device_control:
                 if parameter :
                     print("---------- write data from Device ----------")
-                    pathSource=path
-                    print(f'pathSource: {pathSource}')
-                    # pathSource="D:/NEXTWAVE/project/ipc_api"
-                    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-                    xml=pathSource + '/mybatis/device_list.xml')
-                    statement = mybatis_mapper2sql.get_statement(
-                    mapper, result_type='list', reindent=True, strip_comments=True) 
-                    # 
-                    QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
-                    QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
-                    QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
-                    QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
-                    
-                    # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-                    if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
-                        pass
-                    else:           
-                        print("Error not found data in file mybatis")
-                        return -1
-                        
                     try:
                         # result Modbus
                         results_device_type = []
@@ -685,10 +683,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         datatype = results_datatype[0]["value"]
                                     else :
                                         pass
-                                    print("len(filtered_results_register)",len(filtered_results_register))
-                                    print("filtered_results_register",filtered_results_register)
+
                                     try:
-                                        if device_mode == "0" :
+                                        if device_mode == 0 :
                                             print("---------- Manual control mode ----------")
                                             if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
                                                 if value == True :
@@ -704,8 +701,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     elif code_value == 144 :
                                                         comment = f"Sent Failure "
                                             
-                                            elif len(filtered_results_register) >= 1 and isinstance(value, int) :
-                                                print("da vao ghi data vao du lieu")
+                                            elif len(filtered_results_register) >= 1 and isinstance(value, int):
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 
                                                 # get status INV 
@@ -715,7 +711,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         comment = f"Sent Successfully"
                                                     elif code_value == 144 :
                                                         comment = f"Sent Failure "
-                                        if device_mode == "1" :
+                                        if device_mode == 1 :
                                             print("---------- Auto control mode ----------")
                                             pass
                                     except Exception as e:
@@ -1437,6 +1433,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     global bit_feedback
     global ModeSysTemp
     global mqtt_result_control_write 
+    global len_mqtt
     topic = serial_number_project + topic
     
     try:
@@ -1460,6 +1457,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             mqtt_result_control_write = json.loads(message.message.decode())
             if mqtt_result_control_write :
                 bit_feedback =1 
+                len_mqtt = len(mqtt_result_control_write)
             else:
                 pass
             
@@ -1554,6 +1552,7 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
         
 async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud, topicpud, username, password):
     global mqtt_result_control_write
+    global len_mqtt
     topicsud = serial_number_project + topicsud
     topicpud = serial_number_project + topicpud
     data_dict = []
@@ -1586,10 +1585,10 @@ async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud,
             else:
                 data_dict.append(mqtt_result)
             
-            if len(data_dict) == len(mqtt_result_control_write) and len(data_dict) >= 1:
+            if len(data_dict) == len_mqtt and len(data_dict) >= 1:
                 push_data_to_mqtt(host, port, topicpud, username, password, data_dict)
                 data_dict = []
-                mqtt_result_control_write = []
+                len_mqtt = 0
 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
