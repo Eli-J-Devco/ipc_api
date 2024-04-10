@@ -716,7 +716,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                             "device_name":device_name,
                             "time_stamp" :current_time,
                             "status":comment, 
-                            "mode":ModeSysTemp,
                             }
                         if bit_feedback == 1 and code_value == 16 :
                             push_data_to_mqtt(mqtt_host,
@@ -1539,6 +1538,7 @@ async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud,
     topicsud = serial_number_project + topicsud
     topicpud = serial_number_project + topicpud
     data_dict = []
+    topic_ALL = ""
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1558,21 +1558,29 @@ async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud,
                 print("Not find message from MQTT")
                 continue
             
-            mqtt_result = json.loads(message.message.decode())
-            
-            id_device = mqtt_result['id_device']
-            
-            existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
-            if existing_data:
-                existing_data.update(mqtt_result)
-            else:
-                data_dict.append(mqtt_result)
-            
-            if len(data_dict) == len_mqtt and len(data_dict) >= 1:
-                push_data_to_mqtt(host, port, topicpud, username, password, data_dict)
-                data_dict = []
-                len_mqtt = 0
+            topic_ALL = message.topic.split("/")[-1]
 
+            if topic_ALL != "All":
+                mqtt_result = json.loads(message.message.decode())
+                
+                id_device = mqtt_result['id_device']
+                existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
+                if existing_data:
+                    existing_data.update(mqtt_result)
+                else:
+                    data_dict.append(mqtt_result)
+                
+                if len(data_dict) == len_mqtt and len(data_dict) >= 1:
+                    push_data_to_mqtt(host,
+                                    port,
+                                    topicpud,
+                                    username,
+                                    password,
+                                    data_dict)
+                    data_dict = []
+                    len_mqtt = 0
+            else:
+                pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
