@@ -123,10 +123,12 @@ def point_object(Config,
                  name,unit,value,
                  quality,timestamp=None,
                  message="", active=0,
-                 control_enabled=False,
+                #  control_enabled=False,
                  id_control_group=None,
                  control_type_input=0,
-                 control_menu_order=None
+                 control_menu_order=None,
+                 control_min=None,
+                 control_max=None
                  ):
     
     return {"config":Config,
@@ -144,10 +146,12 @@ def point_object(Config,
             "message":message,
             # "point_type":PointType,
             "active":active,
-            "control_enabled":control_enabled,
+            # "control_enabled":control_enabled,
             "id_control_group":id_control_group,
             "control_type_input":control_type_input,
-            "control_menu_order":control_menu_order
+            "control_menu_order":control_menu_order,
+            "control_min":control_min,
+            "control_max":control_max,
             }
 # Describe functions before writing code
 # /**
@@ -371,10 +375,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             1,
                                                             message="Not found register",
                                                             active=point_list_item['active'],
-                                                            control_enabled=point_list_item['control_enabled'],
                                                             id_control_group=point_list_item['id_control_group'],
                                                             control_type_input=point_list_item['control_type_input'],
                                                             control_menu_order=point_list_item['control_menu_order'],
+                                                            control_min=point_list_item['control_min'],
+                                                            control_max=point_list_item['control_max'],
                                                             )
                 else:
                     if point_value != None:
@@ -398,10 +403,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 0,
                                                 message="",
                                                 active=point_list_item['active'],
-                                                control_enabled=point_list_item['control_enabled'],
                                                 id_control_group=point_list_item['id_control_group'],
                                                 control_type_input=point_list_item['control_type_input'],
                                                 control_menu_order=point_list_item['control_menu_order'],
+                                                control_min=point_list_item['control_min'],
+                                                control_max=point_list_item['control_max'],
                                                 )
                 return point_list
             case "Internal":
@@ -418,10 +424,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled'],
                                         id_control_group=point_list_item['id_control_group'],
                                         control_type_input=point_list_item['control_type_input'],
                                         control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
                                         )
                 return point_list
             case "Equation":
@@ -438,10 +445,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled'],
                                         id_control_group=point_list_item['id_control_group'],
                                         control_type_input=point_list_item['control_type_input'],
                                         control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
                                         )
                 return point_list
         
@@ -915,10 +923,11 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['timestamp'],
                                                 message="Error Device",
                                                 active=item['active'],
-                                                control_enabled=item['control_enabled'],
                                                 id_control_group=item['id_control_group'],
                                                 control_type_input=item['control_type_input'],
                                                 control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -939,10 +948,11 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 None,
                                                 message="error device",
                                                 active=item['active'],
-                                                control_enabled=item['control_enabled'],
                                                 id_control_group=item['id_control_group'],
                                                 control_type_input=item['control_type_input'],
                                                 control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
                                                 )
                             )
                         
@@ -1016,10 +1026,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     {
                         "id":item["id"],
                         "name":item["name"],
+                        "description":item["description"],
                         "fields":[]
                         
                     } for item in results_control_group]
-               
             for item in point_list_device:
                 new_point_list_device.append({
                     **item,
@@ -1139,7 +1149,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "point_count":len(new_point),
                 "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt
+                "mppt":mppt,
+                "control_group":new_control_group
             }
             data_device_short={
                 "id_device":device_id,
@@ -1151,11 +1162,11 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "timestamp":getUTC(),
                 "message":msg_device,
                 "status_register":status_register_block,
-                "point_count":len(new_point),
+                # "point_count":len(new_point),
                 # "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt,
-                "control_group":new_control_group
+                # "mppt":mppt,
+                # "control_group":new_control_group
             }
             
             if device_name !="" and serial_number_project!= None:

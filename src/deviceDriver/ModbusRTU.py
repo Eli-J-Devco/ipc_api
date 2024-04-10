@@ -75,7 +75,12 @@ def point_object(Config,
                  name,unit,value,
                  quality,timestamp=None,
                  message="", active=0,
-                 control_enabled=False
+                 control_enabled=False,
+                 id_control_group=None,
+                 control_type_input=0,
+                 control_menu_order=None,
+                 control_min=None,
+                 control_max=None
                  ):
     
     return {"config":Config,
@@ -93,7 +98,12 @@ def point_object(Config,
             "message":message,
             # "point_type":PointType,
             "active":active,
-            "control_enabled":control_enabled
+            "control_enabled":control_enabled,
+            "id_control_group":id_control_group,
+            "control_type_input":control_type_input,
+            "control_menu_order":control_menu_order,
+            "control_min":control_min,
+            "control_max":control_max,
             }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
