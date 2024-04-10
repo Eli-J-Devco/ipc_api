@@ -1144,7 +1144,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "point_count":len(new_point),
                 "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt
+                "mppt":mppt,
+                "control_group":new_control_group
             }
             data_device_short={
                 "id_device":device_id,
