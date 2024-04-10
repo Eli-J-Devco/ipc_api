@@ -286,21 +286,23 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             
             mqtt_result = json.loads(message.message.decode())
 
-            if mqtt_result and 'mode' in mqtt_result:
-                ModeSysTemp = mqtt_result['mode']
-
-                querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                querydevice = "UPDATE device_list SET device_list.mode = %s;"
-                if ModeSysTemp == 0:
-                    val = 0
-                elif ModeSysTemp == 1:
-                    val = 1
-                
-                if ModeSysTemp in [0, 1]:
-                    MySQL_Insert_v5(querysystemp, (val,))
-                    MySQL_Insert_v5(querydevice, (val,))
-                else:
-                    print("Failed to insert data")
+            if mqtt_result and all(item.get('id_device') == 'Systemp' for item in mqtt_result):
+                for item in mqtt_result:
+                    if item.get('id_device') == 'Systemp':
+                        ModeSysTemp = item['mode']
+                        
+                        querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+                        querydevice = "UPDATE device_list SET device_list.mode = %s;"
+                        if ModeSysTemp == 0:
+                            val = 0
+                        elif ModeSysTemp == 1:
+                            val = 1
+                        
+                        if ModeSysTemp in [0, 1]:
+                            MySQL_Insert_v5(querysystemp, (val,))
+                            MySQL_Insert_v5(querydevice, (val,))
+                        else:
+                            print("Failed to insert data")
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")

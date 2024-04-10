@@ -1497,6 +1497,7 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
     mqtt_result = ""
     topic = serial_number_project + topic
     val = 0
+    id_device = 0
     id_systemp = ConfigPara[1]
     id_systemp = int(id_systemp)
     
@@ -1519,27 +1520,28 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
                 continue
             
             mqtt_result = json.loads(message.message.decode())
-            
-            if mqtt_result and 'mode' in mqtt_result and 'id_device' in mqtt_result:
-                id_device = mqtt_result["id_device"]
+            if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+                for item in mqtt_result:
+                    id_device = int(item["id_device"])
 
-                id_device = int(id_device)
-                if id_device == id_systemp:
-                    device_mode = mqtt_result["mode"]
-                    print("device_mode",device_mode)
-                    querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
-                    if device_mode == 0:
-                        val = 0
-                    elif device_mode == 1:
-                        val = 1
-                    
-                    if device_mode in [0, 1]:  
-                        MySQL_Insert_v5(querydevice, (val, id_device))  
-                    else:
-                        print("Failed to insert data")
-                else :
-                    pass
-            
+                    if id_device == id_systemp:
+                        device_mode = int(item["mode"])
+                        print("id_device",id_device)
+                        print("device_mode",device_mode)
+                        querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                        if device_mode == 0:
+                            val = 0
+                        elif device_mode == 1:
+                            val = 1
+                        
+                        if device_mode in [0, 1]:  
+                            MySQL_Insert_v5(querydevice, (val, id_device))  
+                        else:
+                            print("Failed to insert data")
+                    else :
+                        pass
+            else:
+                pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
