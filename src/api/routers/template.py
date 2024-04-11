@@ -77,8 +77,6 @@ router = APIRouter(
 # 	 * @param {id_template,mppt_list,db}
 # 	 * @return data (PointOutBase)
 def get_template_by_id(id_template: int, db: Session):
-    register_list = []
-    point_list = []
     mppt_list = []
 
     register_query = (
@@ -92,6 +90,7 @@ def get_template_by_id(id_template: int, db: Session):
         db.query(models.Point_list)
         .filter(models.Point_list.id_template == id_template)
         .filter(models.Point_list.id_config_information == 266)
+        .filter(models.Point_list.id_control_group == None)
         .filter(models.Point_list.status == 1)
     )
     point_list = point_query.all()
@@ -131,10 +130,28 @@ def get_template_by_id(id_template: int, db: Session):
             for panel in panel_list:
                 string.children.append(panel)
 
+    control_group = (
+        db.query(models.PointListControlGroup)
+        .filter(models.PointListControlGroup.id_template == id_template)
+        .filter(models.PointListControlGroup.status == 1)
+    ).all()
+
+    control_group_output = []
+    for item in control_group:
+        item.children = []
+        point_list_control_group = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.id_control_group == item.id)
+            .filter(models.Point_list.status == 1)
+        ).all()
+        item.children = point_list_control_group
+        control_group_output.append(item)
     return {
         "point_list": point_list,
         "mppt_list": mppt_list,
         "register_list": register_list,
+        "control_group_list": control_group_output,
     }
 
 
@@ -832,9 +849,8 @@ def get_group_device(
 
 # endregion
 
+
 # region Point
-
-
 # Describe functions before writing code
 # 	 * @description get each point
 # 	 * @author vnguyen, nhan.tran
@@ -1086,6 +1102,7 @@ def edit_each_point(point: schemas.PointOutBase, db: Session = Depends(get_db)):
 def add_multiple_points(
     number_of_point: int = Body(embed=True),
     id_template: int = Body(embed=True),
+    id_control_group: int = Body(default=None, embed=True),
     db: Session = Depends(get_db),
 ):
     try:
@@ -1112,6 +1129,7 @@ def add_multiple_points(
             add_point.index = last_index
             add_point.id_pointkey = f"point_{last_index}"
             add_point.name = f"Point {last_index}"
+            add_point.id_control_group = id_control_group
 
             point_to_add = models.Point_list(**add_point.model_dump(exclude=["id"]))
             db.add(point_to_add)
@@ -2076,7 +2094,187 @@ def delete_register(
 
 # endregion
 
+# region Control Group
 
+
+# Describe functions before writing code
+# 	 * @description create new control group with existing points if any
+# 	 * @author nhan.tran
+# 	 * @since 11-04-2024
+# 	 * @param {control_group, id_template, db}
+# 	 * @return data (TemplateListBase)
+@router.post("/control_group/create/", response_model=template_schemas.TemplateListBase)
+def create_control_group(
+    control_group: schemas.ControlGroupPointBase,
+    id_template: int = Body(embed=True),
+    db: Session = Depends(get_db),
+):
+    try:
+        if (
+            control_group.attributes > 0
+            and len(control_group.children) > control_group.attributes + 1
+        ):
+            return formatMessage(
+                f"Number of adding points must be less than or equal to {control_group.attributes + 1}",
+                status.HTTP_400_BAD_REQUEST,
+            )
+
+        template_query = (
+            db.query(template_models.Template_library)
+            .filter(template_models.Template_library.id == id_template)
+            .filter(template_models.Template_library.type == 1)
+            .filter(template_models.Template_library.status == 1)
+        )
+        result_template = template_query.all()
+        if not result_template:
+            return formatMessage(
+                f"Template with id: {id_template} does not exist",
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        existed_control_group = (
+            db.query(models.PointListControlGroup)
+            .filter(models.PointListControlGroup.id_template == id_template)
+            .filter(models.PointListControlGroup.name == control_group.name)
+            .first()
+        )
+        if existed_control_group:
+            return formatMessage(
+                f"Control group with name: {control_group.name} already exists",
+                status.HTTP_409_CONFLICT,
+            )
+
+        new_control_group = models.PointListControlGroup(
+            **control_group.model_dump(exclude=["children"])
+        )
+        new_control_group.id_template = id_template
+        new_control_group.namekey = "".join(control_group.name.split(" "))
+        db.add(new_control_group)
+        db.flush()
+
+        points = control_group.children
+        for point in points:
+            point_to_update_query = db.query(models.Point_list).filter(
+                models.Point_list.id == point.id
+            )
+            point_to_update = point_to_update_query.first()
+            if not point_to_update:
+                return formatMessage(
+                    f"Point with id: {point.id} does not exist",
+                    status.HTTP_404_NOT_FOUND,
+                )
+            point_to_update_query.update(
+                {"id_control_group": new_control_group.id}, synchronize_session=False
+            )
+
+        db.commit()
+
+        return get_template_by_id(id_template, db)
+    except Exception as err:
+        print(f"Error: {err}")
+        db.rollback()
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# Describe functions before writing code
+# 	 * @description edit control group
+#    * @author nhan.tran
+#    * @since 11-04-2024
+#    * @param {control_group, db}
+@router.post(
+    "/control_group/edit/", response_model=template_schemas.TypeControlGroupBase
+)
+def edit_control_group(
+    control_group: schemas.TypeControlGroupBase,
+    db: Session = Depends(get_db),
+):
+    try:
+        id_control_group = control_group.id
+        print(id_control_group)
+        control_group_query = db.query(models.PointListControlGroup).filter(
+            models.PointListControlGroup.id == id_control_group
+        )
+        result_control_group = control_group_query.first()
+        if not result_control_group:
+            return formatMessage(
+                f"Control group with id: {id_control_group} does not exist",
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        control_group_query.update(
+            control_group.model_dump(), synchronize_session=False
+        )
+
+        db.commit()
+
+        return control_group
+    except Exception as err:
+        print(f"Error: {err}")
+        db.rollback()
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# Describe functions before writing code
+# 	 * @description delete control group
+# 	 * @author nhan.tran
+# 	 * @since 11-04-2024
+# 	 * @param {control_group, db}
+# 	 * @return data (TemplateListBase)
+@router.post("/control_group/delete/", response_model=template_schemas.TemplateListBase)
+def delete_control_group(
+    control_group: schemas.TypeControlGroupBase,
+    db: Session = Depends(get_db),
+):
+    try:
+        id_control_group = control_group.id
+        control_group_query = db.query(models.PointListControlGroup).filter(
+            models.PointListControlGroup.id == id_control_group
+        )
+        result_control_group = control_group_query.first()
+        if not result_control_group:
+            return formatMessage(
+                f"Control group with id: {id_control_group} does not exist",
+                status.HTTP_404_NOT_FOUND,
+            )
+        id_template = result_control_group.id_template
+        points = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.id_control_group == id_control_group)
+        ).all()
+
+        for point in points:
+            point_to_update_query = db.query(models.Point_list).filter(
+                models.Point_list.id == point.id
+            )
+            point_to_update = point_to_update_query.first()
+            if not point_to_update:
+                return formatMessage(
+                    f"Point with id: {point.id} does not exist",
+                    status.HTTP_404_NOT_FOUND,
+                )
+            point_to_update_query.update(
+                {"id_control_group": None}, synchronize_session=False
+            )
+
+        control_group_query.delete(synchronize_session=False)
+
+        db.commit()
+
+        return get_template_by_id(id_template, db)
+    except Exception as err:
+        print(f"Error: {err}")
+        db.rollback()
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+# endregion
 # region Export
 # Describe functions before writing code
 # 	 * @description export template file

@@ -123,11 +123,6 @@ class Device_type(Base):
     name = Column(String(255), nullable=True)
     status = Column(Boolean, nullable=False, default=True)
     #
-
-
-#
-
-
 class Config_information(Base):
     __tablename__ = "config_information"
     id = Column(Integer, primary_key=True, nullable=False)
@@ -143,7 +138,6 @@ class Config_information(Base):
         nullable=False,
     )
     status = Column(Boolean, nullable=False, default=True)
-
 
 #
 # #
@@ -236,10 +230,12 @@ class PointListType(Base):
 class PointListControlGroup(Base):
     __tablename__ = "point_list_control_group"
     id = Column(Integer, primary_key=True, nullable=False)
+    id_template = Column(Integer, ForeignKey("template_library.id"), nullable=False)
     name = Column(String(255), nullable=True)
-    value = Column(Integer, nullable=True)
+    namekey = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    attributes = Column(Integer, nullable=True)
     status = Column(Boolean, nullable=False, default=True)
-
 
 #
 #

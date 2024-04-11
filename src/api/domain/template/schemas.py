@@ -35,6 +35,7 @@ sys.path.append(
 )
 # from api.domain.deviceGroup.schemas import DeviceGroupBase
 from model.schemas import (
+    ControlGroupPointBase,
     DataTypeBase,
     PointByteOrder,
     PointDataType,
@@ -226,6 +227,7 @@ class TemplateListBase(BaseModel):
     point_list: Optional[list[PointOutBase]] = None
     mppt_list: Optional[list[MPPTOutBase]] = None
     register_list: Optional[list[RegisterListBase]] = None
+    control_group_list: Optional[list[ControlGroupPointBase]] = None
 
     class Config:
         orm_mode = True

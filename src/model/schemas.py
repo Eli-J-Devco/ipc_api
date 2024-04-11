@@ -140,14 +140,16 @@ class TypeClassBase(BaseModel):
 
 
 class TypeControlGroupBase(BaseModel):
-    id: Optional[int] = Field(..., alias="id")
-    name: Optional[str] = Field(..., alias="namekey")
+    id: Optional[int] = None
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+    description: Optional[str] = None
+    attributes: Optional[int] = None
 
     class Config:
         allow_population_by_field_name = True
         populate_by_name = True
         from_attributes = True
-
 
 class PointBase(BaseModel):
     id: Optional[int] = None
@@ -187,7 +189,6 @@ class PointBase(BaseModel):
 
     class Config:
         orm_mode = True
-
 
 class ManualPointBase(BaseModel):
     id: Optional[int] = None
@@ -240,7 +241,8 @@ class PointOutBase(PointBase):
     class Config:
         orm_mode = True
 
-
+class ControlGroupPointBase(TypeControlGroupBase):
+    children: Optional[List[PointOutBase]] = None
 class PointUpdateBase(PointBase):
     # id : Optional[int] = None
     equation: Optional[int] = Field(..., examples=[1], nullable=True)
