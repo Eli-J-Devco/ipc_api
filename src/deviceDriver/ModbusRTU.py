@@ -44,6 +44,7 @@ MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 query_device_rs485=""
 all_device_data=[]
+device_mode=[]
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -75,7 +76,6 @@ def point_object(Config,
                  name,unit,value,
                  quality,timestamp=None,
                  message="", active=0,
-                 control_enabled=False,
                  id_control_group=None,
                  control_type_input=0,
                  control_menu_order=None,
@@ -93,12 +93,11 @@ def point_object(Config,
             "name": name, 
             "unit": unit, 
             "value":  value, 
-            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "quality":quality,
+            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "message":message,
             # "point_type":PointType,
             "active":active,
-            "control_enabled":control_enabled,
             "id_control_group":id_control_group,
             "control_type_input":control_type_input,
             "control_menu_order":control_menu_order,
@@ -349,7 +348,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             1,
                                                             message="Not found register",
                                                             active=point_list_item['active'],
-                                                            control_enabled=point_list_item['control_enabled']
+                                                            id_control_group=point_list_item['id_control_group'],
+                                                            control_type_input=point_list_item['control_type_input'],
+                                                            control_menu_order=point_list_item['control_menu_order'],
+                                                            control_min=point_list_item['control_min'],
+                                                            control_max=point_list_item['control_max'],
                                                             )
                 else:
                     if point_value != None:
@@ -373,7 +376,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 0,
                                                 message="",
                                                 active=point_list_item['active'],
-                                                control_enabled=point_list_item['control_enabled']
+                                                id_control_group=point_list_item['id_control_group'],
+                                                control_type_input=point_list_item['control_type_input'],
+                                                control_menu_order=point_list_item['control_menu_order'],
+                                                control_min=point_list_item['control_min'],
+                                                control_max=point_list_item['control_max'],
                                                 )
                 return point_list
             case "Internal":
@@ -390,7 +397,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled']
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
                                         )
                 return point_list
             case "Equation":
@@ -407,7 +418,11 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         0,
                                         message="",
                                         active=point_list_item['active'],
-                                        control_enabled=point_list_item['control_enabled']
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
                                         )
                 return point_list
         
@@ -485,7 +500,7 @@ async def device(ConfigPara):
         else:           
             print("Error not found data in file mybatis")
             return -1
-        print(f'id_communication: {id_communication}')
+        # print(f'id_communication: {id_communication}')
         results_device = MySQL_Select(query_device_rs485, (id_communication,))
         # 
         # print(f'results_device: {results_device}')
@@ -538,6 +553,21 @@ async def device(ConfigPara):
             data_of_one_device["id_device_type"]=item['id_device_type']
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
+            data_of_one_device["id_template"]=item['id_template']
+            control_group=[]
+            # 
+            results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={item["id_template"]} and status=1', ())
+            if results_control_group:
+                control_group=[
+                    {
+                        "id":item["id"],
+                        "name":item["name"],
+                        "description":item["description"],
+                        "fields":[]
+                        
+                    } for item in results_control_group]
+            data_of_one_device["control_group"]=control_group
+            # 
             # Register block
             item_rb= MySQL_Select(query_register_block, (item['id_template'],))
             new_item_rb=[]
@@ -551,12 +581,15 @@ async def device(ConfigPara):
             
             # Point list
             item_point= MySQL_Select(query_point_list, (item['id'],))
+            # print(f'item_point: {item_point}')
             if type(item_point) == list and len(item_point)>=1:
                 data_of_one_device["POINT"]=item_point
             # 
             all_device_data_request.append(data_of_one_device)
-        
-        # print(all_device_data_request[0])
+            device_mode.append({
+                "id_device":item['id'],
+                "mode":item['mode'],
+            })
         # for item in all_device_data_request:
         #     print(item)
         #     print('-----------------------------------------')
@@ -618,7 +651,7 @@ async def device(ConfigPara):
                         data_one_device["status_register"]=[]
                         data_one_device["fields"]=[]
                         data_one_device["status_device"]=""
-                        
+                        data_one_device["id_template"]=item_device['id_template']
                         data_rg_one_device = []
                         status_rb=[]
                         status_device=""
@@ -683,56 +716,99 @@ async def device(ConfigPara):
                         new_data_device.append(data_one_device)
                     all_device_data=new_data_device 
                 else:
-                    # if not all_device_data:
-                    #     for item_device in all_device_data_request:
-                    #         data_one_device={}
-                    #         data_point_list_one_device = []
-                    #         for item in item_device["POINT"]:
-                    #             data_point_list_one_device.append(
-                    #                 point_object(
-                    #                             item['config'],
-                    #                             item['id_point_list_type'],
-                    #                             item['name_point_list_type'],
-                    #                             item['id_point'],
-                    #                             item['parent'],
-                    #                             item['id'], 
-                    #                             item['point_key'],
-                    #                             item['name'], 
-                    #                             item['unit'], 
-                    #                             item['value'], 
-                    #                             1,
-                    #                             item['timestamp'],
-                    #                             message="Error Device",
-                    #                             active=item['active'],
-                    #                             control_enabled=item['control_enabled']
-                    #                             )
-                    #             )
-                    #         data_one_device["id_device"]=item_device["id_device"]
-                    #         data_one_device["device_name"]=item_device["device_name"]
-                    #         data_one_device["name_device_type"]=item['device_type']
-                    #         data_one_device["id_device_type"]=item['id_device_type']
-                    #         data_one_device["message"]="Can't connect to modbus RTU"
-                    #         data_one_device["status_register"]=[]
-                    #         data_one_device["fields"]=data_point_list_one_device
-                    #         data_one_device["status_device"]="offline"
-                    #         data_one_device["timestamp"]=getUTC()
-                    #         new_error_data_device.append(data_one_device)
                     print(f'----- Can not connect to port -----')
-                    for item_device in all_device_data_request:
-                        data_one_device={}
-                        data_one_device["id_device"]=item_device["id_device"]
-                        data_one_device["device_name"]=item_device["device_name"]
-                        data_one_device["name_device_type"]=item['device_type']
-                        data_one_device["id_device_type"]=item['id_device_type']
-                        data_one_device["message"]="Can't connect to modbus RTU"
-                        data_one_device["status_register"]=[]
-                        data_one_device["fields"]=[]
-                        data_one_device["status_device"]="offline"
-                        data_one_device["timestamp"]=getUTC()
-                        new_error_data_device.append(data_one_device)
+                    if  all_device_data:
+                        for item_device in all_device_data:
+                            data_one_device={}
+                            data_point_list_one_device = []
+                            # print("1 +++++++++++++++++++++++++++++++++++")
+                            for item in item_device["fields"]:
+                                data_point_list_one_device.append(
+                                    point_object(
+                                                item['config'],
+                                                item['id_point_list_type'],
+                                                item['name_point_list_type'],
+                                                item['id_point'],
+                                                item['parent'],
+                                                item['id'], 
+                                                item['point_key'],
+                                                item['name'], 
+                                                item['unit'], 
+                                                item['value'], 
+                                                quality=1,
+                                                timestamp=None,
+                                                message="Error Device",
+                                                active=item['active'],
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
+                                                
+                                                )
+                                )
+                            # print("2 +++++++++++++++++++++++++++++++++++")
+                            data_one_device["id_device"]=item_device["id_device"]
+                            data_one_device["device_name"]=item_device["device_name"]
+                            data_one_device["name_device_type"]=item_device['name_device_type']
+                            data_one_device["id_device_type"]=item_device['id_device_type']
+                            data_one_device["message"]="Can't connect to modbus RTU"
+                            data_one_device["status_register"]=[]
+                            data_one_device["fields"]=data_point_list_one_device
+                            data_one_device["status_device"]="offline"
+                            data_one_device["timestamp"]=getUTC()
+                            data_one_device["id_template"]=item_device['id_template']
+                            data_one_device["control_group"]=item_device['control_group']
+                            new_error_data_device.append(data_one_device)
+                    
+                    else:
+                        for item_device in all_device_data_request:
+                            data_one_device={}
+                            data_point_list_one_device = []
+                            # print(f'POINT: {item_device["POINT"]}')
+                            for item in item_device["POINT"]:
+                                data_point_list_one_device.append(
+                                    point_object(
+                                                item['config_information'],
+                                                item['id_point_list_type'],
+                                                item['name_point_list_type'],
+                                                item['id_point'],
+                                                item['parent'],
+                                                item['id'], 
+                                                item['pointkey'],
+                                                item['point_name'], 
+                                                item['name_units'], 
+                                                None, 
+                                                quality=1,
+                                                timestamp=None,
+                                                message="Error Device",
+                                                active=item['active'],
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
+                                                
+                                                )
+                                )
+                            print("-----------------------------------------")
+                            data_one_device["id_device"]=item_device["id_device"]
+                            data_one_device["device_name"]=item_device["device_name"]
+                            data_one_device["name_device_type"]=item_device['name_device_type']
+                            data_one_device["id_device_type"]=item_device['id_device_type']
+                            data_one_device["message"]="Can't connect to modbus RTU"
+                            data_one_device["status_register"]=[]
+                            data_one_device["fields"]=data_point_list_one_device
+                            data_one_device["status_device"]="offline"
+                            data_one_device["timestamp"]=getUTC()
+                            data_one_device["id_template"]=item_device['id_template']
+                            data_one_device["control_group"]=item_device['control_group']
+                            new_error_data_device.append(data_one_device)
+                        
+                    
                     all_device_data=new_error_data_device
                 client.close()
-                await asyncio.sleep(2)
+                await asyncio.sleep(5)
             except (ConnectionException, ModbusException) as e:
                 print(f"Modbus error from: {e}")
                 await asyncio.sleep(5)
@@ -761,13 +837,13 @@ async def monitoring_device(point_type,serial_number_project,
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global all_device_data
+            global device_mode
             # pprint(all_device_data, sort_dicts=False)
             # global  device_name,status_Device,msg_device,status_register_block,point_list_device
             if all_device_data:
                 for item_data in all_device_data:
-                    
+                    # 
                     id_device=str(item_data['id_device'])
-                    
                     device_name=str(item_data['device_name'])
                     id_device_type=item_data['id_device_type']
                     name_device_type=item_data['name_device_type']
@@ -775,10 +851,15 @@ async def monitoring_device(point_type,serial_number_project,
                     message=item_data['message']
                     status_register=item_data['status_register']
                     fields=item_data['fields']
+                    id_template=item_data['id_template']
+                    # 
+                    mode=[item for item in device_mode if item['id_device'] == item_data["id_device"]][0]["mode"]
                     # 
                     new_point=[]
                     new_point_list_device=[]
                     mppt=[]
+                    control_group=item_data['control_group']
+                    new_control_group=[]
                     
                     # 
                     
@@ -865,10 +946,25 @@ async def monitoring_device(point_type,serial_number_project,
                             "name": item_type['name'],
                             "fields": new_point_type
                         })
-                    data_mqtt={
+                    # 
+                    for item_group in control_group:
+                        new_point_control=[]
+                        for point_item in new_point_list_device:
+                            if point_item["id_control_group"]==item_group["id"]:
+                                new_point_control.append({
+                                    **point_item
+                                })
+                        new_point_control.sort(key=lambda x: x["control_menu_order"])   
+                        new_control_group.append({
+                            **item_group,
+                            "fields":new_point_control
+                        })
+                    data_device={
                                 "id_device":id_device,
+                                "mode":mode,
                                 "device_name":device_name,
                                 "id_device_type":id_device_type,
+                                "id_template":id_template,
                                 "name_device_type":name_device_type,
                                 "status_device":status_device,
                                 "timestamp":getUTC(),
@@ -876,13 +972,15 @@ async def monitoring_device(point_type,serial_number_project,
                                 "status_register":status_register,
                                 "parameters":parameters,
                                 "fields":fields,
-                                "mppt":mppt
-                                
+                                "mppt":mppt,
+                                "control_group":new_control_group
                                 }
-                    data_mqtt_short={
+                    data_device_short={
                                 "id_device":id_device,
+                                "mode":mode,
                                 "device_name":device_name,
                                 "id_device_type":id_device_type,
+                                "id_template":id_template,
                                 "name_device_type":name_device_type,
                                 "status_device":status_device,
                                 "timestamp":getUTC(),
@@ -900,13 +998,13 @@ async def monitoring_device(point_type,serial_number_project,
                                             serial_number_project+"/"+"Devices/"+""+id_device,
                                             username[0],
                                             password[0],
-                                            data_mqtt)
+                                            data_device)
                         func_mqtt_public(   host[0],
                                             port[0],
                                             serial_number_project+"/"+"Shorts/"+""+id_device,
                                             username[0],
                                             password[0],
-                                            data_mqtt_short)
+                                            data_device_short)
                         # 
                         if host[1] != None and port[1]:
                             func_mqtt_public(   host[1],
@@ -914,7 +1012,7 @@ async def monitoring_device(point_type,serial_number_project,
                                                 serial_number_project+"/"+"Devices/"+""+id_device,
                                                 username[1],
                                                 password[1],
-                                                data_mqtt)
+                                                data_device)
                 
             await asyncio.sleep(2)
         

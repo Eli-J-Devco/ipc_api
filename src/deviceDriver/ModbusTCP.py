@@ -141,12 +141,11 @@ def point_object(Config,
             "name": name, 
             "unit": unit, 
             "value":  value, 
-            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "quality":quality,
+            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "message":message,
             # "point_type":PointType,
             "active":active,
-            # "control_enabled":control_enabled,
             "id_control_group":id_control_group,
             "control_type_input":control_type_input,
             "control_menu_order":control_menu_order,
@@ -982,7 +981,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         ):
     try:
         global id_template
-        results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template}', ())
+        results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
 
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
