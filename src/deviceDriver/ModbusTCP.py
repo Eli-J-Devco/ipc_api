@@ -645,7 +645,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         current_time = ""
                         data_send = ""
                         code_value = 0
-
+                        result_query_findname = []
+                        id_pointkey = ""
+                        name_device_points_list_map = ""
                         current_time = get_utc()
                         
                         if device_control :
@@ -670,9 +672,14 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                     value = item["value"]
                                     register = item["register"]
                                     type_datatype = item["id_type_datatype"]
+                                    id_pointkey = item['id_pointkey']
                                     
                                     # Find datatype register (int16,int32, float,...)
                                     results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+
+                                    # Find 'name' in device_point_list_map
+                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                    name_device_points_list_map = result_query_findname [0]["name"]
 
                                     if results_datatype :
                                         datatype = results_datatype[0]["value"]
@@ -685,9 +692,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
                                                 if value == True :
                                                     results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
                                                 elif value == False :
                                                     results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
-                                                    
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                                 # get status INV 
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
@@ -698,7 +706,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             
                                             elif len(filtered_results_register) >= 1 and isinstance(value, int):
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                                
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                                 # get status INV 
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
@@ -1525,8 +1533,7 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
 
                     if id_device == id_systemp:
                         device_mode = int(item["mode"])
-                        print("id_device",id_device)
-                        print("device_mode",device_mode)
+
                         querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
                         if device_mode == 0:
                             val = 0
@@ -1761,7 +1768,7 @@ async def main():
                                                     serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                    MQTT_TOPIC_SUD_CONTROL,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
