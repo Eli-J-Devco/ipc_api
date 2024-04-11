@@ -929,7 +929,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         # 
                         await asyncio.sleep(5)
                         # 
-                    # client.close()
+                        client.close()
                 except (ConnectionException, ModbusException) as e:
                     status_device="offline"
                     print(f"Modbus error from {slave_ip}: {e}")
