@@ -650,7 +650,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         current_time = ""
                         data_send = ""
                         code_value = 0
-
+                        result_query_findname = []
+                        id_pointkey = ""
+                        name_device_points_list_map = ""
                         current_time = get_utc()
                         
                         if device_control :
@@ -675,9 +677,14 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                     value = item["value"]
                                     register = item["register"]
                                     type_datatype = item["id_type_datatype"]
+                                    id_pointkey = item['id_pointkey']
                                     
                                     # Find datatype register (int16,int32, float,...)
                                     results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+
+                                    # Find 'name' in device_point_list_map
+                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                    name_device_points_list_map = result_query_findname [0]["name"]
 
                                     if results_datatype :
                                         datatype = results_datatype[0]["value"]
@@ -690,9 +697,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
                                                 if value == True :
                                                     results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
                                                 elif value == False :
                                                     results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
-                                                    
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                                 # get status INV 
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
@@ -703,7 +711,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             
                                             elif len(filtered_results_register) >= 1 and isinstance(value, int):
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                                
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                                 # get status INV 
                                                 if results_write_modbus:
                                                     code_value = results_write_modbus['code']
@@ -724,15 +732,13 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                             
                         # data pud mqtt 
                         data_send = {
-                            "id_device":device_control,
-                            "device_name":device_name,
                             "time_stamp" :current_time,
                             "status":comment, 
                             }
                         if bit_feedback == 1 and code_value == 16 :
                             push_data_to_mqtt(mqtt_host,
                                     mqtt_port,
-                                    topicPublic + "/" +"Feedback" +  "/" + device_control ,
+                                    topicPublic + "/" +"Feedback" ,
                                     mqtt_username,
                                     mqtt_password,
                                     data_send)
@@ -1579,6 +1585,7 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
     mqtt_result = ""
     topic = serial_number_project + topic
     val = 0
+    id_device = 0
     id_systemp = ConfigPara[1]
     id_systemp = int(id_systemp)
     
@@ -1601,81 +1608,81 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
                 continue
             
             mqtt_result = json.loads(message.message.decode())
-            
-            if mqtt_result and 'mode' in mqtt_result and 'id_device' in mqtt_result:
-                id_device = mqtt_result["id_device"]
+            if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+                for item in mqtt_result:
+                    id_device = int(item["id_device"])
 
-                id_device = int(id_device)
-                if id_device == id_systemp:
-                    device_mode = mqtt_result["mode"]
-                    print("device_mode",device_mode)
-                    querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
-                    if device_mode == 0:
-                        val = 0
-                    elif device_mode == 1:
-                        val = 1
-                    
-                    if device_mode in [0, 1]:  
-                        MySQL_Insert_v5(querydevice, (val, id_device))  
-                    else:
-                        print("Failed to insert data")
-                else :
-                    pass
-            
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-        
-async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud, topicpud, username, password):
-    global mqtt_result_control_write
-    global len_mqtt
-    topicsud = serial_number_project + topicsud
-    topicpud = serial_number_project + topicpud
-    data_dict = []
-    topic_ALL = ""
-    
-    try:
-        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-        if not client:
-            return -1 
-        
-        await client.start()
-        await client.subscribe(topicsud)
-        
-        while True:
-            try:
-                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-            except asyncio.TimeoutError:
-                continue
-            
-            if not message:
-                print("Not find message from MQTT")
-                continue
-            
-            topic_ALL = message.topic.split("/")[-1]
+                    if id_device == id_systemp:
+                        device_mode = int(item["mode"])
 
-            if topic_ALL != "All":
-                mqtt_result = json.loads(message.message.decode())
-                
-                id_device = mqtt_result['id_device']
-                existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
-                if existing_data:
-                    existing_data.update(mqtt_result)
-                else:
-                    data_dict.append(mqtt_result)
-                
-                if len(data_dict) == len_mqtt and len(data_dict) >= 1:
-                    push_data_to_mqtt(host,
-                                    port,
-                                    topicpud,
-                                    username,
-                                    password,
-                                    data_dict)
-                    data_dict = []
-                    len_mqtt = 0
+                        querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                        if device_mode == 0:
+                            val = 0
+                        elif device_mode == 1:
+                            val = 1
+                        
+                        if device_mode in [0, 1]:  
+                            MySQL_Insert_v5(querydevice, (val, id_device))  
+                        else:
+                            print("Failed to insert data")
+                    else :
+                        pass
             else:
                 pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+        
+# async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud, topicpud, username, password):
+#     global mqtt_result_control_write
+#     global len_mqtt
+#     topicsud = serial_number_project + topicsud
+#     topicpud = serial_number_project + topicpud
+#     data_dict = []
+#     topic_ALL = ""
+    
+#     try:
+#         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+#         if not client:
+#             return -1 
+        
+#         await client.start()
+#         await client.subscribe(topicsud)
+        
+#         while True:
+#             try:
+#                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+#             except asyncio.TimeoutError:
+#                 continue
+            
+#             if not message:
+#                 print("Not find message from MQTT")
+#                 continue
+            
+#             topic_ALL = message.topic.split("/")[-1]
+
+#             if topic_ALL != "All":
+#                 mqtt_result = json.loads(message.message.decode())
+                
+#                 id_device = mqtt_result['id_device']
+#                 existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
+#                 if existing_data:
+#                     existing_data.update(mqtt_result)
+#                 else:
+#                     data_dict.append(mqtt_result)
+                
+#                 if len(data_dict) == len_mqtt and len(data_dict) >= 1:
+#                     push_data_to_mqtt(host,
+#                                     port,
+#                                     topicpud,
+#                                     username,
+#                                     password,
+#                                     data_dict)
+#                     data_dict = []
+#                     len_mqtt = 0
+#             else:
+#                 pass
+#     except Exception as err:
+#         print(f"Error MQTT subscribe: '{err}'")
 
 async def mqtt_subscribe_update_modesystemp(serial_number_project,host, port, topic, username, password):
     
@@ -1823,14 +1830,14 @@ async def main():
                                                     MQTT_PASSWORD_LIST
                                                     
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_feedback_all_control(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL,
-                                                    MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
+    # tasks.append(asyncio.create_task(mqtt_feedback_all_control(serial_number_project,
+    #                                                 MQTT_BROKER,
+    #                                                 MQTT_PORT,
+    #                                                 MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL,
+    #                                                 MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL,
+    #                                                 MQTT_USERNAME,
+    #                                                 MQTT_PASSWORD
+    #                                                 )))
     tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
@@ -1842,7 +1849,7 @@ async def main():
                                                     serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                    MQTT_TOPIC_SUD_CONTROL,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
