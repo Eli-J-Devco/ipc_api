@@ -626,6 +626,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         for item in mqtt_result_control_write:
             device_control = item['id_device']
             parameter = item['parameter']
+            id_systemp = int(id_systemp)
+            print("")
             
             if id_systemp == device_control:
                 if parameter :
@@ -641,7 +643,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         register = ""
                         datatype = ""
                         type_datatype = ""
-                        comment = 400
+                        comment = 200
                         current_time = ""
                         data_send = ""
                         code_value = 0
@@ -703,7 +705,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         comment = 200
                                                     elif code_value == 144 :
                                                         comment = 400
-                                            
+
                                             elif len(filtered_results_register) >= 1 and isinstance(value, int):
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
@@ -714,33 +716,49 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         comment = 200
                                                     elif code_value == 144 :
                                                         comment = 400
+                                            # data pud mqtt 
+                                                data_send = {
+                                                    "time_stamp" :current_time,
+                                                    "status":comment, 
+                                                    }
+                                                if bit_feedback == 1 and code_value == 16 :
+                                                    push_data_to_mqtt(mqtt_host,
+                                                            mqtt_port,
+                                                            topicPublic + "/" +"Feedback" ,
+                                                            mqtt_username,
+                                                            mqtt_password,
+                                                            data_send)
+                                                    bit_feedback == 0
+                                                    mqtt_result_control_write = []
+                                                else :
+                                                    pass
+                                            
                                         if device_mode == 1 :
                                             print("---------- Auto control mode ----------")
+                                            # data pud mqtt 
+                                            data_send = {
+                                                "time_stamp" :current_time,
+                                                "status":comment, 
+                                                }
+                                            if bit_feedback == 1 :
+                                                push_data_to_mqtt(mqtt_host,
+                                                        mqtt_port,
+                                                        topicPublic + "/" +"Feedback" ,
+                                                        mqtt_username,
+                                                        mqtt_password,
+                                                        data_send)
+                                                bit_feedback == 0
+                                                mqtt_result_control_write = []
+                                            else :
+                                                pass
                                             pass
                                     except Exception as e:
                                         print(f"An error occurred: {e}")
-                                        
                             else:
-                                comment = 400
-                        else :
-                            comment = 400
-                            
-                        # data pud mqtt 
-                        data_send = {
-                            "time_stamp" :current_time,
-                            "status":comment, 
-                            }
-                        if bit_feedback == 1 and code_value == 16 :
-                            push_data_to_mqtt(mqtt_host,
-                                    mqtt_port,
-                                    topicPublic + "/" +"Feedback" ,
-                                    mqtt_username,
-                                    mqtt_password,
-                                    data_send)
-                            bit_feedback == 0
-                            mqtt_result_control_write = []
+                                pass
                         else :
                             pass
+                            
                     except Exception as err:
                         print(f"Error MQTT subscribe: '{err}'")
                 else:
