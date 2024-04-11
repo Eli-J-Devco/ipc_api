@@ -335,7 +335,7 @@ async def mqtt_subscribe_information(serial_number_project,host, port, topic,top
 
             if mqtt_result and 'get_information' in mqtt_result:
                 sent_information = mqtt_result['get_information']
-                await pud_confirm_mode_control(serial_number_project,
+                await pud_feedback_project_setup(serial_number_project,
                                                     host,
                                                     port,
                                                     topic1,
@@ -372,6 +372,7 @@ async def main():
                                                                         MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
+    
     scheduler.start()
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
