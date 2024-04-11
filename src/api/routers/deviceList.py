@@ -829,7 +829,8 @@ async def delete_device(
             if delete_list:
                 param={
                     "CODE":"DeleteDev",
-                    "PAYLOAD":delete_list
+                    "PAYLOAD":delete_list,
+                    "MODE":mode
                 }
                 mqtt_public("/Init/API/Requests",param)
             return {"status": "success","code": str(100)}

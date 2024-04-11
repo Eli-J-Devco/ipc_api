@@ -864,7 +864,10 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 ID_DEVICE_TYPE =  results_device[0]['id_device_type']
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
-                    with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                    # with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                    client =ModbusTcpClient(slave_ip, port=slave_port)
+                    connection = client.connect()
+                    if connection:
                         # 
                         await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
@@ -926,6 +929,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         # 
                         await asyncio.sleep(5)
                         # 
+                    client.close()
                 except (ConnectionException, ModbusException) as e:
                     status_device="offline"
                     print(f"Modbus error from {slave_ip}: {e}")
@@ -991,7 +995,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     print("AE ERROR", ae)
                     await asyncio.sleep(5)
     except KeyError as err:
-        print('KeyError device : ', type(err).__name__)
+        print('KeyError device : ', err)
     except Exception as err:
         print('Exception device : ', type(err).__name__)
         
