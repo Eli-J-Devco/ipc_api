@@ -123,12 +123,12 @@ def point_object(Config,
                  name,unit,value,
                  quality,timestamp=None,
                  message="", active=0,
-                #  control_enabled=False,
                  id_control_group=None,
                  control_type_input=0,
                  control_menu_order=None,
                  control_min=None,
-                 control_max=None
+                 control_max=None,
+                 control_enabled=1,# show/hide = 1/0, get from Device
                  ):
     
     return {"config":Config,
@@ -151,6 +151,7 @@ def point_object(Config,
             "control_menu_order":control_menu_order,
             "control_min":control_min,
             "control_max":control_max,
+            "control_enabled":control_enabled
             }
 # Describe functions before writing code
 # /**
@@ -370,8 +371,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             point_list_item['pointkey'], 
                                                             point_list_item['point_name'], 
                                                             point_list_item['name_units'], 
-                                                            point_value, 
-                                                            1,
+                                                            value=point_value, 
+                                                            quality=1,
                                                             message="Not found register",
                                                             active=point_list_item['active'],
                                                             id_control_group=point_list_item['id_control_group'],
@@ -379,6 +380,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             control_menu_order=point_list_item['control_menu_order'],
                                                             control_min=point_list_item['control_min'],
                                                             control_max=point_list_item['control_max'],
+                                                            control_enabled=1
                                                             )
                 else:
                     if point_value != None:
@@ -398,8 +400,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 point_list_item['pointkey'], 
                                                 point_list_item['point_name'], 
                                                 point_list_item['name_units'], 
-                                                value, 
-                                                0,
+                                                value=value, 
+                                                quality=0,
                                                 message="",
                                                 active=point_list_item['active'],
                                                 id_control_group=point_list_item['id_control_group'],
@@ -407,6 +409,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 control_menu_order=point_list_item['control_menu_order'],
                                                 control_min=point_list_item['control_min'],
                                                 control_max=point_list_item['control_max'],
+                                                control_enabled=1
                                                 )
                 return point_list
             case "Internal":
@@ -419,8 +422,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['pointkey'], 
                                         point_list_item['point_name'], 
                                         point_list_item['name_units'], 
-                                        None, 
-                                        0,
+                                        value=None, 
+                                        quality=0,
                                         message="",
                                         active=point_list_item['active'],
                                         id_control_group=point_list_item['id_control_group'],
@@ -428,6 +431,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
+                                        control_enabled=1
                                         )
                 return point_list
             case "Equation":
@@ -441,7 +445,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['point_name'], 
                                         point_list_item['name_units'], 
                                         point_list_item['constants'], 
-                                        0,
+                                        quality=0,
                                         message="",
                                         active=point_list_item['active'],
                                         id_control_group=point_list_item['id_control_group'],
@@ -449,6 +453,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
+                                        control_enabled=1
                                         )
                 return point_list
         
@@ -951,6 +956,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_menu_order=item['control_menu_order'],
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
+                                                control_enabled=item['control_enabled'],
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -976,6 +982,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_menu_order=item['control_menu_order'],
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
+                                                control_enabled=1
                                                 )
                             )
                         
@@ -1006,7 +1013,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
     try:
         global id_template
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
-
+        # point_list
+        # 1: Number, 2: String, 3: Percent, 4: Bool
+        # point_list_control_group
+        # 0=Independent, 1=Depends one, 2=Depends two
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global  device_name,status_device,msg_device,status_register_block,point_list_device
@@ -1050,6 +1060,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         "id":item["id"],
                         "name":item["name"],
                         "description":item["description"],
+                        "attributes":item["attributes"],
                         "fields":[]
                         
                     } for item in results_control_group]
@@ -1153,10 +1164,82 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         new_point_control.append({
                             **point_item
                         })
-                new_point_control.sort(key=lambda x: x["control_menu_order"])   
+                new_point_control.sort(key=lambda x: x["control_menu_order"])
+                new_point_control_attr=[]
+                
+                match item_group["attributes"]:
+                    case 0:
+                        for item_point_attr in new_point_control:
+                            new_point_control_attr.append(
+                                {
+                                    **item_point_attr,
+                                    "control_enabled":1
+                                }
+                            )
+                    case 1: 
+                        if len(new_point_control)==2:
+                            control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                            if control_enable!=None and control_enable!="null":
+                                for item_point_attr in new_point_control:
+                                    if item_point_attr['control_type_input'] == 4:
+                                        new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":1
+                                            }
+                                        )
+                                    else:
+                                        new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                            }
+                                        )
+                            else:
+                                for item_point_attr in new_point_control:
+                                    new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":1
+                                            }
+                                        )
+                    case 2:  
+                        if len(new_point_control)==3:                   
+                            control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                            if control_enable!=None and control_enable!="null":
+                                    for item_point_attr in new_point_control:
+                                        if item_point_attr['control_type_input'] == 4:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":1
+                                                }
+                                            )
+                                        elif item_point_attr['control_menu_order'] == 2:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":(lambda x: 1  if x==0 else 0)(control_enable)
+                                                }
+                                            )
+                                        elif item_point_attr['control_menu_order'] == 3:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                                }
+                                            )
+                            else:
+                                    for item_point_attr in new_point_control:
+                                        new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":1
+                                                }
+                                            )
                 new_control_group.append({
                     **item_group,
-                    "fields":new_point_control
+                    "fields":new_point_control_attr
                 })
             # print(f'new_control_group: {new_control_group}')
             data_device={
