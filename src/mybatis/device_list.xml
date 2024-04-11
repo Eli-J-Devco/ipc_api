@@ -198,7 +198,8 @@
     name = #{name}
   </update>
 	<select id="select_all_device_rs485">
-    SELECT device_list.id, device_list.name, 
+    SELECT device_list.id, device_list.name,
+    device_list.mode,
     driver_list.name AS connect_type, 
     device_type.name AS device_type,
     device_type.id AS id_device_type,
