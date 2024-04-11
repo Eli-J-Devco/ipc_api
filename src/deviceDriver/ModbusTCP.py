@@ -1391,7 +1391,7 @@ async def mqtt_subscribe_modesystemp_feedback(serial_number_project,host, port, 
         print(f"Error MQTT subscribe: '{err}'")
         
 async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, topic,topicpud, username, password):
-    
+    print("da vao day")
     global device_mode
     mqtt_result = ""
     topic = serial_number_project + topic
@@ -1401,6 +1401,8 @@ async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, to
     id_systemp = ConfigPara[1]
     id_systemp = int(id_systemp)
     result_checkmode_control = []
+    result_checktype_device = []
+    checktype_device = ""
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1419,42 +1421,67 @@ async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, to
             if not message:
                 print("Not find message from MQTT")
                 continue
-            
+            print("mqtt_result",mqtt_result)
             mqtt_result = json.loads(message.message.decode())
             if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
                 for item in mqtt_result:
                     id_device = int(item["id_device"])
+                    result_checktype_device = MySQL_Select ("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;" ,(id_device,) )
+                    checktype_device = result_checktype_device[0]["name"]
+                    if checktype_device == "PV System Inverter":
+                        if id_device == id_systemp:
+                            device_mode = int(item["mode"])
 
-                    if id_device == id_systemp:
-                        device_mode = int(item["mode"])
+                            querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                            if device_mode == 0:
+                                val = 0
+                            elif device_mode == 1:
+                                val = 1
+                            
+                            if device_mode in [0, 1]:  
+                                MySQL_Insert_v5(querydevice, (val, id_device))  
+                                result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
 
-                        querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
-                        if device_mode == 0:
-                            val = 0
-                        elif device_mode == 1:
-                            val = 1
-                        
-                        if device_mode in [0, 1]:  
-                            MySQL_Insert_v5(querydevice, (val, id_device))  
-                            result_checkmode_control = await MySQL_Select_v1("SELECT `device_list`.`mode` FROM `device_list`")
-
-                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
-                                data_send = {
-                                            "id_device": "Systemp",
-                                            "mode": 2
-                                            }
-                                push_data_to_mqtt(host,
-                                        port,
-                                        topicpud ,
-                                        username,
-                                        password,
-                                        data_send)
+                                if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 2
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                elif all(item['mode'] == 0 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 0
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                elif all(item['mode'] == 1 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 1
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                else:
+                                    pass
                             else:
-                                pass
-
-                        else:
-                            print("Failed to insert data")
-                    else :
+                                print("Failed to insert data")
+                        else :
+                            pass
+                    else:
                         pass
             else:
                 pass

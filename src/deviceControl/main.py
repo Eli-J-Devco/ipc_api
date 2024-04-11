@@ -290,7 +290,7 @@ async def sud_update_mode_control_systemp(serial_number_project,host, port, topi
                         ModeSysTemp = mqtt_result.get('mode')  
 
                         querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                        querydevice = "UPDATE device_list SET device_list.mode = %s;"
+                        querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
 
                         if ModeSysTemp in [0, 1, 2]:
                             val = ModeSysTemp
