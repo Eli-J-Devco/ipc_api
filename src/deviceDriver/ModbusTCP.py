@@ -1016,6 +1016,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
     try:
         global id_template
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
+        print(f'init monitoring_device')
         # point_list
         # 1: Number, 2: String, 3: Percent, 4: Bool
         # point_list_control_group
