@@ -56,7 +56,7 @@ MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/#"
 MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/All"
 MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
-MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write/#"
+MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 # 
 ModeSysTemp = "" 
@@ -632,7 +632,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
             device_control = item['id_device']
             parameter = item['parameter']
             id_systemp = int(id_systemp)
-            print("")
             
             if id_systemp == device_control:
                 if parameter :
@@ -1312,218 +1311,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def mqtt_subscribe_controls(host, port,topic, username, password):
-    try:
-        # {
-        #    "DEVICE_NAME":"",
-        #    "CODE":1 # enable write parameter control
-        # }
-       
-        global enable_write_control,device_name
-        global query_device_control
-        global data_write_device
-        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
-        global device_id
-        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
-        Topic=f'IPC/{str(device_id)}|{str(device_name)}|control'
-        print(f'Topic: {Topic}')
-        client = mqttools.Client(host=host, 
-                                port=port,
-                                username= username, 
-                                password=bytes(password, 'utf-8'))
-        
-        await client.start()
-        await client.subscribe(Topic)
-        while True:
-            message = await client.messages.get()
-
-            if message is None:
-                print('Broker connection lost!')
-                break
-            print(f'Topic:   {message.topic}')
-            result=json.loads(message.message.decode())
-            print(f'Message: {result}')
-            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
-                DEVICE_NAME=result["DEVICE_NAME"]
-                CODE=result["CODE"]
-                
-                print(f'DEVICE_NAME: {DEVICE_NAME}')
-                print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1 :
-                    # print(f'query_device_control: {query_device_control}')
-                    results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    print(f'results_device_control: {results_device_control}')
-                    
-                    if type(results_device_control) == list and len(results_device_control)>=1:
-                        data_control=[]
-                        enable_p=results_device_control[0]["send_p"]
-                        enable_q=results_device_control[0]["send_q"]
-                        enable_pf=results_device_control[0]["send_pf"]
-                        enable_poweroff=results_device_control[0]["enable_poweroff"]
-                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
-                        # 
-                        if enable_p==1:
-                            data_control.append({
-                                "point":"send_p",
-                                "datatype":results_device_control[0]["datatype_p"],
-                                "register":results_device_control[0]["register_p"],
-                                "value":results_device_control[0]["value_p"],
-                            })
-                        if enable_q==1:
-                            data_control.append({
-                                 "point":"send_q",
-                                "datatype":results_device_control[0]["datatype_q"],
-                                "register":results_device_control[0]["register_q"],
-                                "value":results_device_control[0]["value_q"],
-                            })
-                        if enable_pf==1:
-                            data_control.append({
-                                "point":"send_pf",
-                                "datatype":results_device_control[0]["datatype_pf"],
-                                "register":results_device_control[0]["register_pf"],
-                                "value":results_device_control[0]["value_pf"],
-                            })
-                        # if enable_poweroff==1:
-                        #     today = DT.now(
-                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
-                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
-                        #     if str(today)==str(datetime_shutdown) :
-                        #         print("Turn off the inverter")
-                        #         data_control.append({
-                        #                     "point":"enable_poweroff",
-                        #                     "datatype":results_device_control[0]["datatype_p"],
-                        #                     "register":results_device_control[0]["register_p"],
-                        #                     "value":0,
-                        #                 })
-                        if enable_poweroff==1:
-                            inv_shutdown_datetime=inverter_shutdown
-                            
-                            item=[]
-                            item.append({
-                                            "point":"enable_poweroff",
-                                            "datatype":results_device_control[0]["datatype_p"],
-                                            "register":results_device_control[0]["register_p"],
-                                            "value":0,
-                                        })
-                            inv_shutdown_point=item
-                            inv_shutdown_enable=1
-                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
-                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
-                            data_write_device=data_control
-                            enable_write_control=True
-                        else:
-                            pass
-                 
-    except Exception as err:
-       
-        print(f"Error MQTT subscribe: '{err}'")
-async def mqtt_subscribe_controlsV1(host, port,topic, username, password):
-    try:
-        # {
-        #    "DEVICE_NAME":"",
-        #    "CODE":1 # enable write parameter control
-        # }
-       
-        global enable_write_control,device_name
-        global query_device_control
-        global data_write_device
-        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
-        global device_id
-        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
-        Topic=f'IPC|{str(device_id)}|{str(device_name)}|control'
-        print(f'Topic: {Topic}')
-        client = mqttools.Client(host=host, 
-                                port=port,
-                                username= username, 
-                                password=bytes(password, 'utf-8'))
-        
-        await client.start()
-        await client.subscribe(Topic)
-        while True:
-            message = await client.messages.get()
-
-            if message is None:
-                print('Broker connection lost!')
-                break
-            print(f'Topic:   {message.topic}')
-            result=json.loads(message.message.decode())
-            print(f'Message: {result}')
-            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
-                DEVICE_NAME=result["DEVICE_NAME"]
-                CODE=result["CODE"]
-                
-                print(f'DEVICE_NAME: {DEVICE_NAME}')
-                print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1 :
-                    # print(f'query_device_control: {query_device_control}')
-                    results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    # print(f'results_device_control: {results_device_control}')
-                    
-                    if type(results_device_control) == list and len(results_device_control)>=1:
-                        data_control=[]
-                        enable_p=results_device_control[0]["send_p"]
-                        enable_q=results_device_control[0]["send_q"]
-                        enable_pf=results_device_control[0]["send_pf"]
-                        enable_poweroff=results_device_control[0]["enable_poweroff"]
-                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
-                        # 
-                        if enable_p==1:
-                            data_control.append({
-                                "point":"send_p",
-                                "datatype":results_device_control[0]["datatype_p"],
-                                "register":results_device_control[0]["register_p"],
-                                "value":results_device_control[0]["value_p"],
-                            })
-                        if enable_q==1:
-                            data_control.append({
-                                 "point":"send_q",
-                                "datatype":results_device_control[0]["datatype_q"],
-                                "register":results_device_control[0]["register_q"],
-                                "value":results_device_control[0]["value_q"],
-                            })
-                        if enable_pf==1:
-                            data_control.append({
-                                "point":"send_pf",
-                                "datatype":results_device_control[0]["datatype_pf"],
-                                "register":results_device_control[0]["register_pf"],
-                                "value":results_device_control[0]["value_pf"],
-                            })
-                        # if enable_poweroff==1:
-                        #     today = DT.now(
-                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
-                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
-                        #     if str(today)==str(datetime_shutdown) :
-                        #         print("Turn off the inverter")
-                        #         data_control.append({
-                        #                     "point":"enable_poweroff",
-                        #                     "datatype":results_device_control[0]["datatype_p"],
-                        #                     "register":results_device_control[0]["register_p"],
-                        #                     "value":0,
-                        #                 })
-                        if enable_poweroff==1:
-                            inv_shutdown_datetime=inverter_shutdown
-                            
-                            item=[]
-                            item.append({
-                                            "point":"enable_poweroff",
-                                            "datatype":results_device_control[0]["datatype_p"],
-                                            "register":results_device_control[0]["register_p"],
-                                            "value":0,
-                                        })
-                            inv_shutdown_point=item
-                            inv_shutdown_enable=1
-                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
-                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
-                            data_write_device=data_control
-                            enable_write_control=True
-                        else:
-                            pass
-                 
-    except Exception as err:
-       
-        print(f"Error MQTT subscribe: '{err}'")
-
-async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, username, password):
+async def sud_parameter_control_device(serial_number_project,host, port, topic, username, password):
     
     global device_control
     global device_name
@@ -1563,7 +1351,7 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
-async def mqtt_subscribe_controlsV3(serial_number_project,host, port, topic, username, password):
+async def mqtt_subscribe_modesystemp_feedback(serial_number_project,host, port, topic, username, password):
     
     global ModeSysTemp
     mqtt_result = ""
@@ -1597,15 +1385,17 @@ async def mqtt_subscribe_controlsV3(serial_number_project,host, port, topic, use
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
-async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host, port, topic, username, password):
+async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, topic,topicpud, username, password):
     
     global device_mode
     mqtt_result = ""
     topic = serial_number_project + topic
+    topicpud = serial_number_project + topicpud
     val = 0
     id_device = 0
     id_systemp = ConfigPara[1]
     id_systemp = int(id_systemp)
+    result_checkmode_control = []
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1641,6 +1431,22 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
                         
                         if device_mode in [0, 1]:  
                             MySQL_Insert_v5(querydevice, (val, id_device))  
+                            result_checkmode_control = await MySQL_Select_v1("SELECT `device_list`.`mode` FROM `device_list`")
+
+                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
+                                data_send = {
+                                            "id_device": "Systemp",
+                                            "mode": 2
+                                            }
+                                push_data_to_mqtt(host,
+                                        port,
+                                        topicpud ,
+                                        username,
+                                        password,
+                                        data_send)
+                            else:
+                                pass
+
                         else:
                             print("Failed to insert data")
                     else :
@@ -1649,60 +1455,8 @@ async def mqtt_subscribe_update_modedevice(ConfigPara,serial_number_project,host
                 pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
-# async def mqtt_feedback_all_control(serial_number_project, host, port, topicsud, topicpud, username, password):
-#     global mqtt_result_control_write
-#     global len_mqtt
-#     topicsud = serial_number_project + topicsud
-#     topicpud = serial_number_project + topicpud
-#     data_dict = []
-#     topic_ALL = ""
-    
-#     try:
-#         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-#         if not client:
-#             return -1 
-        
-#         await client.start()
-#         await client.subscribe(topicsud)
-        
-#         while True:
-#             try:
-#                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-#             except asyncio.TimeoutError:
-#                 continue
-            
-#             if not message:
-#                 print("Not find message from MQTT")
-#                 continue
-            
-#             topic_ALL = message.topic.split("/")[-1]
 
-#             if topic_ALL != "All":
-#                 mqtt_result = json.loads(message.message.decode())
-                
-#                 id_device = mqtt_result['id_device']
-#                 existing_data = next((item for item in data_dict if item['id_device'] == id_device), None)
-#                 if existing_data:
-#                     existing_data.update(mqtt_result)
-#                 else:
-#                     data_dict.append(mqtt_result)
-                
-#                 if len(data_dict) == len_mqtt and len(data_dict) >= 1:
-#                     push_data_to_mqtt(host,
-#                                     port,
-#                                     topicpud,
-#                                     username,
-#                                     password,
-#                                     data_dict)
-#                     data_dict = []
-#                     len_mqtt = 0
-#             else:
-#                 pass
-#     except Exception as err:
-#         print(f"Error MQTT subscribe: '{err}'")
-
-async def mqtt_subscribe_update_modesystemp(serial_number_project,host, port, topic, username, password):
+async def update_modecontrol_systemp_for_modecontrol_device(serial_number_project,host, port, topic, username, password):
     
     global device_mode
     
@@ -1729,7 +1483,12 @@ async def mqtt_subscribe_update_modesystemp(serial_number_project,host, port, to
             mqtt_result = json.loads(message.message.decode())
 
             if mqtt_result and 'confirm_mode' in mqtt_result:
-                device_mode = mqtt_result['confirm_mode']
+                if mqtt_result['confirm_mode'] in [0, 1]:
+                    device_mode = mqtt_result['confirm_mode']
+                else:
+                    pass
+            else:
+                pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
@@ -1846,39 +1605,31 @@ async def main():
                                                     MQTT_PORT_LIST,
                                                     MQTT_USERNAME_LIST,
                                                     MQTT_PASSWORD_LIST
-                                                    
                                                     )))
-    # tasks.append(asyncio.create_task(mqtt_feedback_all_control(serial_number_project,
-    #                                                 MQTT_BROKER,
-    #                                                 MQTT_PORT,
-    #                                                 MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL,
-    #                                                 MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL,
-    #                                                 MQTT_USERNAME,
-    #                                                 MQTT_PASSWORD
-    #                                                 )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
+    tasks.append(asyncio.create_task(sud_parameter_control_device(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_CONTROL,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_update_modedevice(arr,
+    tasks.append(asyncio.create_task(sud_update_mode_device(arr,
                                                     serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_CONTROL,
+                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE ,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV3(serial_number_project,
+    tasks.append(asyncio.create_task(mqtt_subscribe_modesystemp_feedback(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_CONTROL_MODE,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_update_modesystemp(serial_number_project,
+    tasks.append(asyncio.create_task(update_modecontrol_systemp_for_modecontrol_device(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,

@@ -27,7 +27,6 @@ MQTT_TOPIC = Config.MQTT_TOPIC +"/Dev/"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 MQTT_TOPIC_SUD_MODECONTROL = "/Control/Setup/Mode/Write"
-MQTT_TOPIC_SUD_MODECONTROL_2 = "/Shorts/#"
 MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_PUD_PROJECT_SETUP = "/Project/Setup"
 MQTT_TOPIC_SUD_MODEGET_INFORMATION = "/Project/Get"
@@ -56,7 +55,7 @@ Mode = Zero Export ->
 Mode = Limit -> 
 """
 
-async def confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global ModeSysTemp
     global flag 
     result = []
@@ -66,7 +65,7 @@ async def confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topi
         result = await MySQL_Select_v1(query) 
         ModeSysTemp = result[0]['mode']
     
-    if ModeSysTemp == 0 or ModeSysTemp == 1 :
+    if ModeSysTemp == 0 or ModeSysTemp == 1 or ModeSysTemp == 2:
         try:
             current_time = get_utc()
             data_send = {
@@ -86,7 +85,7 @@ async def confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topi
             print(f"Error MQTT subscribe: '{err}'")
     else :
         pass
-async def feedback_project_setup(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     result = []
     topic = serial_number_project + topicPublic 
     name = ""
@@ -258,14 +257,14 @@ async def feedback_project_setup(serial_number_project, mqtt_host, mqtt_port, to
                 print(f"Error MQTT subscribe: '{err}'")
     else :
         pass
-async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, username, password):
+async def sud_update_mode_control_systemp(serial_number_project,host, port, topic, username, password):
     
     global ModeSysTemp
-    
     mqtt_result = ""
     topic = serial_number_project + topic
     val = 0
     
+    print("topic",topic)
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client:
@@ -285,60 +284,30 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
                 continue
             
             mqtt_result = json.loads(message.message.decode())
+            if mqtt_result:
+                try:
+                    if mqtt_result.get('id_device') == 'Systemp':
+                        ModeSysTemp = mqtt_result.get('mode')  
 
-            if mqtt_result and all(item.get('id_device') == 'Systemp' for item in mqtt_result):
-                for item in mqtt_result:
-                    if item.get('id_device') == 'Systemp':
-                        ModeSysTemp = item['mode']
-                        
                         querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                         querydevice = "UPDATE device_list SET device_list.mode = %s;"
-                        if ModeSysTemp == 0:
-                            val = 0
-                        elif ModeSysTemp == 1:
-                            val = 1
-                        
-                        if ModeSysTemp in [0, 1]:
+
+                        if ModeSysTemp in [0, 1, 2]:
+                            val = ModeSysTemp
                             MySQL_Insert_v5(querysystemp, (val,))
+                        else :
+                            print("Failed to insert data")
+                        if ModeSysTemp in [0, 1]:
                             MySQL_Insert_v5(querydevice, (val,))
                         else:
-                            print("Failed to insert data")
+                            pass
+                except Exception as json_err:
+                    print(f"Error processing JSON data: {json_err}")
+            else:
+                print("Received empty or invalid JSON data from MQTT")
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-
-async def mqtt_subscribe_controlsV3(serial_number_project,host, port, topic, username, password):
-    
-    mode_device = ""
-    mqtt_result = ""
-    topic = serial_number_project + topic
-    
-    try:
-        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-        if not client:
-            return -1 
-        
-        await client.start()
-        await client.subscribe(topic)
-        
-        while True:
-            try:
-                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-            except asyncio.TimeoutError:
-                continue
-            
-            if not message:
-                print("Not find message from MQTT")
-                continue
-            
-            mqtt_result = json.loads(message.message.decode())
-
-            if mqtt_result and 'mode' in mqtt_result:
-                mode_device = mqtt_result['mode']
-                
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-        
+        print(f"Error MQTT subscribe: '{err}'")        
 async def mqtt_subscribe_information(serial_number_project,host, port, topic,topic1, username, password):
     global sent_information 
     mqtt_result = ""
@@ -366,7 +335,7 @@ async def mqtt_subscribe_information(serial_number_project,host, port, topic,top
 
             if mqtt_result and 'get_information' in mqtt_result:
                 sent_information = mqtt_result['get_information']
-                await feedback_project_setup(serial_number_project,
+                await pud_confirm_mode_control(serial_number_project,
                                                     host,
                                                     port,
                                                     topic1,
@@ -375,23 +344,15 @@ async def mqtt_subscribe_information(serial_number_project,host, port, topic,top
             else:
                 pass
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-        
+        print(f"Error MQTT subscribe: '{err}'")        
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     serial_number_project=results_project[0]["serial_number"]
-    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
+    tasks.append(asyncio.create_task(sud_update_mode_control_systemp(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_MODECONTROL,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV3(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_MODECONTROL_2,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
@@ -405,7 +366,7 @@ async def main():
                                                     )))
     
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
+    scheduler.add_job(pud_confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
                                                                         MQTT_BROKER,
                                                                         MQTT_PORT,
                                                                         MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
