@@ -1103,24 +1103,78 @@ def add_multiple_points(
     number_of_point: int = Body(embed=True),
     id_template: int = Body(embed=True),
     id_control_group: int = Body(default=None, embed=True),
+    is_clone_from_last: bool = Body(default=True, embed=True),
+    selected_points: Optional[list[template_schemas.PointOutBase]] = Body(
+        default=None, embed=True
+    ),
     db: Session = Depends(get_db),
 ):
     try:
-        last_point = (
-            db.query(models.Point_list)
-            .filter(models.Point_list.id_template == id_template)
-            .filter(models.Point_list.id_config_information == 266)
-            .order_by(models.Point_list.index.desc())
+        template_query = (
+            db.query(template_models.Template_library)
+            .filter(template_models.Template_library.id == id_template)
+            .filter(template_models.Template_library.type == 1)
             .first()
         )
 
-        if not last_point:
-            last_point = models.Point_list(
-                id_template=id_template,
-                id_config_information=266,
+        if not template_query:
+            return formatMessage(
+                f"Template with id: {id_template} does not exist",
+                status.HTTP_404_NOT_FOUND,
             )
 
-        last_index = last_point.index if last_point.id else -1
+        if id_control_group is not None:
+            control_group_query = (
+                db.query(models.PointListControlGroup)
+                .filter(models.PointListControlGroup.id == id_control_group)
+                .filter(models.PointListControlGroup.status == 1)
+                .first()
+            )
+
+            if not control_group_query:
+                return formatMessage(
+                    f"Control group with id: {id_control_group} does not exist",
+                    status.HTTP_404_NOT_FOUND,
+                )
+
+        if selected_points:
+            for item in selected_points:
+                db.query(models.Point_list).filter(
+                    models.Point_list.id == item.id
+                ).update(
+                    {
+                        "id_control_group": id_control_group,
+                    },
+                    synchronize_session=False,
+                )
+            db.flush()
+            db.commit()
+            return get_template_by_id(id_template, db)
+
+        last_point = models.Point_list(
+            id_template=id_template,
+            id_config_information=266,
+        )
+
+        point_count = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.id_config_information == 266)
+            .count()
+        )
+
+        if is_clone_from_last:
+            last_point = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.id_config_information == 266)
+                .order_by(models.Point_list.index.desc())
+                .first()
+            )
+
+        last_index = (
+            last_point.index if last_point.index is not None else point_count - 1
+        )
 
         new_points = []
         for i in range(number_of_point):
@@ -1187,6 +1241,12 @@ def delete_point_list(
             if item.id_point in [item.id for item in result_point]
         ]
 
+        if len(existed_point) == 0:
+            return formatMessage(
+                "There are points that do not exist",
+                status.HTTP_404_NOT_FOUND,
+            )
+
         for item in point_list.points:
             if existed_point.index({item.id_point: item.id_pointkey}) == -1:
                 continue
@@ -1200,11 +1260,59 @@ def delete_point_list(
         refresh_when_delete(existed_point, id_template, db)
         db.commit()
 
+        # restart_pm2_change_template(id_template, db)
+        results = get_template_by_id(id_template, db)
+
+        return results
+    except Exception as err:
+        print(f"Error: {err}")
+        # LOGGER.error(f'--- {err} ---')
+        return formatMessage(
+            "Internal Server Error", status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@router.post("/point/remove_group/", response_model=template_schemas.TemplateListBase)
+def remove_group_point(
+    point_list: template_schemas.PointDeleteTemplateBase, db: Session = Depends(get_db)
+):
+    try:
+        id_template = point_list.id_template
+        point_query = (
+            db.query(models.Point_list)
+            .filter(models.Point_list.id_template == id_template)
+            .filter(models.Point_list.status == 1)
+        )
+        result_point = point_query.all()
+        if not result_point:
+            return formatMessage(
+                f"Point with id: {id_template} does not exist",
+                status.HTTP_404_NOT_FOUND,
+            )
+
+        existed_point = [
+            {item.id_point: item.id_pointkey}
+            for item in point_list.points
+            if item.id_point in [item.id for item in result_point]
+        ]
+
         if len(existed_point) == 0:
             return formatMessage(
                 "There are points that do not exist",
                 status.HTTP_404_NOT_FOUND,
             )
+
+        for item in point_list.points:
+            if existed_point.index({item.id_point: item.id_pointkey}) == -1:
+                continue
+
+            db.query(models.Point_list).filter(
+                models.Point_list.id == item.id_point
+            ).update({"id_control_group": None}, synchronize_session=False)
+
+        db.flush()
+        db.commit()
+
         # restart_pm2_change_template(id_template, db)
         results = get_template_by_id(id_template, db)
 
@@ -2226,43 +2334,61 @@ def edit_control_group(
 # 	 * @return data (TemplateListBase)
 @router.post("/control_group/delete/", response_model=template_schemas.TemplateListBase)
 def delete_control_group(
-    control_group: schemas.TypeControlGroupBase,
+    control_group: list[template_schemas.ControlGroupPointBase],
+    id_template: int = Body(embed=True),
     db: Session = Depends(get_db),
 ):
     try:
-        id_control_group = control_group.id
-        control_group_query = db.query(models.PointListControlGroup).filter(
-            models.PointListControlGroup.id == id_control_group
-        )
-        result_control_group = control_group_query.first()
-        if not result_control_group:
-            return formatMessage(
-                f"Control group with id: {id_control_group} does not exist",
-                status.HTTP_404_NOT_FOUND,
+        for item in control_group:
+            id_control_group = item.id
+            control_group_query = db.query(models.PointListControlGroup).filter(
+                models.PointListControlGroup.id == id_control_group
             )
-        id_template = result_control_group.id_template
-        points = (
-            db.query(models.Point_list)
-            .filter(models.Point_list.id_template == id_template)
-            .filter(models.Point_list.id_control_group == id_control_group)
-        ).all()
-
-        for point in points:
-            point_to_update_query = db.query(models.Point_list).filter(
-                models.Point_list.id == point.id
-            )
-            point_to_update = point_to_update_query.first()
-            if not point_to_update:
+            result_control_group = control_group_query.first()
+            if not result_control_group:
                 return formatMessage(
-                    f"Point with id: {point.id} does not exist",
+                    f"Control group with id: {id_control_group} does not exist",
                     status.HTTP_404_NOT_FOUND,
                 )
-            point_to_update_query.update(
-                {"id_control_group": None}, synchronize_session=False
-            )
 
-        control_group_query.delete(synchronize_session=False)
+            if len(item.children) > 0:
+                for point in item.children:
+                    db.query(models.Point_list).filter(
+                        models.Point_list.id == point.id
+                    ).delete(synchronize_session=False)
 
+                refresh_when_delete(
+                    [
+                        {
+                            item.id: point.id_pointkey,
+                        }
+                        for point in item.children
+                    ],
+                    id_template,
+                    db,
+                )
+            else:
+                points = (
+                    db.query(models.Point_list)
+                    .filter(models.Point_list.id_template == id_template)
+                    .filter(models.Point_list.id_control_group == id_control_group)
+                ).all()
+
+                for point in points:
+                    point_to_update_query = db.query(models.Point_list).filter(
+                        models.Point_list.id == point.id
+                    )
+                    point_to_update = point_to_update_query.first()
+                    if not point_to_update:
+                        return formatMessage(
+                            f"Point with id: {point.id} does not exist",
+                            status.HTTP_404_NOT_FOUND,
+                        )
+                    point_to_update_query.update(
+                        {"id_control_group": None}, synchronize_session=False
+                    )
+
+            control_group_query.delete(synchronize_session=False)
         db.commit()
 
         return get_template_by_id(id_template, db)
