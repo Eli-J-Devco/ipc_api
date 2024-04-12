@@ -51,13 +51,13 @@ MQTT_TOPIC = Config.MQTT_TOPIC +"/Dev/"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 MQTT_TOPIC_SUD_CONTROL = "/Control/Write"
-MQTT_TOPIC_SUD_CONTROL_MODE = "/Control/Setup/Mode/Feedback"
-MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/#"
-MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/All"
-MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
+
 MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
-MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
+MQTT_TOPIC_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
+
+MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
+MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -77,6 +77,12 @@ bit_feedback = 0
 count = 0 
 len_mqtt = 0
 mqtt_result_control_write = ""
+
+enable_zero_export = 0
+value_zero_export = 0
+enable_power_limit = 0
+value_power_limit = 0
+bitcheck = 0
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -594,9 +600,10 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
-async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic,topicPudModeAuto, mqtt_username, mqtt_password):
     
     topicPublic = serial_number_project + topicPublic
+    topicPudModeAuto = serial_number_project + topicPudModeAuto
     
     global mqtt_result_control_write
     global device_mode
@@ -607,34 +614,37 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     global data_write_device
     global bit_feedback
     
+    global enable_zero_export
+    global value_zero_export
+    global enable_power_limit
+    global value_power_limit
+    
     id_systemp = ConfigPara[1]
     pathSource=path
     # print(f'pathSource: {pathSource}')
     # pathSource="D:/NEXTWAVE/project/ipc_api"
-    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-    xml=pathSource + '/mybatis/device_list.xml')
-    statement = mybatis_mapper2sql.get_statement(
-    mapper, result_type='list', reindent=True, strip_comments=True) 
-    # 
-    QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
-    QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
-    QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
-    QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
-    
-    # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-    if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
-        pass
-    else:           
-        print("Error not found data in file mybatis")
-        return -1
-    if mqtt_result_control_write :
+    if mqtt_result_control_write or enable_zero_export == 1 or enable_power_limit == 1:
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        xml=pathSource + '/mybatis/device_list.xml')
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True) 
+        QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+        QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
+        QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
+        QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
+        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+            pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
         for item in mqtt_result_control_write:
             device_control = item['id_device']
             parameter = item['parameter']
             id_systemp = int(id_systemp)
             
-            if id_systemp == device_control:
-                if parameter :
+            if id_systemp == device_control or enable_zero_export == 1 or enable_power_limit == 1:
+                if parameter or enable_zero_export == 1 or enable_power_limit == 1:
                     print("---------- write data from Device ----------")
                     try:
                         # result Modbus
@@ -739,6 +749,33 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             
                                         if device_mode == 1 :
                                             print("---------- Auto control mode ----------")
+                                            if enable_zero_export == 1 and enable_power_limit == 0:
+                                                push_data_to_mqtt(mqtt_host,
+                                                        mqtt_port,
+                                                        topicPudModeAuto ,
+                                                        mqtt_username,
+                                                        mqtt_password,
+                                                        data_send)
+                                                
+                                            elif enable_power_limit == 1 and enable_zero_export == 0:
+                                                push_data_to_mqtt(mqtt_host,
+                                                        mqtt_port,
+                                                        topicPudModeAuto ,
+                                                        mqtt_username,
+                                                        mqtt_password,
+                                                        data_send)
+                                                
+                                            elif enable_zero_export == 1 and enable_power_limit == 1:
+                                                push_data_to_mqtt(mqtt_host,
+                                                        mqtt_port,
+                                                        topicPudModeAuto ,
+                                                        mqtt_username,
+                                                        mqtt_password,
+                                                        data_send)
+                                            else:
+                                                pass
+                                            
+                                            # ========================================================================
                                             # data pud mqtt 
                                             data_send = {
                                                 "time_stamp" :current_time,
@@ -755,7 +792,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 mqtt_result_control_write = []
                                             else :
                                                 pass
-                                            pass
+                                            
                                     except Exception as e:
                                         print(f"An error occurred: {e}")
                             else:
@@ -771,6 +808,105 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                 pass
     else:
         pass
+    
+    if enable_zero_export == 1 or enable_power_limit == 1:
+        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        xml=pathSource + '/mybatis/device_list.xml')
+        statement = mybatis_mapper2sql.get_statement(
+        mapper, result_type='list', reindent=True, strip_comments=True) 
+        QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+        QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
+        QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
+        QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
+        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+            pass
+        else:           
+            print("Error not found data in file mybatis")
+            return -1
+        
+        id_systemp = int(id_systemp)
+        current_time = get_utc()
+        comment = 200
+        global bitcheck
+        
+        if enable_zero_export == 1 or enable_power_limit == 1:
+            if  enable_zero_export == 1 or enable_power_limit == 1:
+                print("---------- write data from Device ----------")
+                try:    
+                    if device_mode == 1 :
+                        print("---------- Auto control mode ----------")
+                        if enable_zero_export == 1 and enable_power_limit == 0 and bitcheck == 1:
+                            print("")
+                            data_send = {
+                            "time_stamp" :current_time,
+                            "status":comment, 
+                            }
+                            push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicPudModeAuto ,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+                            
+                            bitcheck = 0 
+                            
+                        elif enable_power_limit == 1 and enable_zero_export == 0 and bitcheck == 1:
+                            data_send = {
+                            "time_stamp" :current_time,
+                            "status":comment, 
+                            }
+                            push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicPudModeAuto ,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+                            bitcheck = 0 
+                            
+                        elif enable_zero_export == 1 and enable_power_limit == 1 and bitcheck == 1:
+                            data_send = {
+                            "time_stamp" :current_time,
+                            "status":comment, 
+                            }
+                            push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicPudModeAuto ,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+                            bitcheck = 0 
+                        else:
+                            pass
+                        
+                        # ========================================================================
+                        # data pud mqtt 
+                        data_send = {
+                            "time_stamp" :current_time,
+                            "status":comment, 
+                            }
+                        if bit_feedback == 1 :
+                            push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicPublic + "/" +"Feedback" ,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+                            bit_feedback == 0
+                            mqtt_result_control_write = []
+                        else :
+                            pass
+                        
+                except Exception as e:
+                    print(f"An error occurred: {e}")
+                        
+            else:
+                pass
+        else:
+            pass
+    else:
+        pass
+    
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -797,6 +933,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global device_mode
         global id_template
         pathSource=path
+        global MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -868,8 +1005,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
-                        # 
-                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, MQTT_TOPIC_PUD_CHOICES_MODE_AUTO, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
@@ -1348,7 +1484,7 @@ async def sud_parameter_control_device(serial_number_project,host, port, topic, 
             
             mqtt_result_control_write = json.loads(message.message.decode())
             if mqtt_result_control_write :
-                bit_feedback =1 
+                bit_feedback = 1 
                 len_mqtt = len(mqtt_result_control_write)
             else:
                 pass
@@ -1391,8 +1527,8 @@ async def mqtt_subscribe_modesystemp_feedback(serial_number_project,host, port, 
         print(f"Error MQTT subscribe: '{err}'")
         
 async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, topic,topicpud, username, password):
-    
     global device_mode
+    global status_device
     mqtt_result = ""
     topic = serial_number_project + topic
     topicpud = serial_number_project + topicpud
@@ -1401,6 +1537,8 @@ async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, to
     id_systemp = ConfigPara[1]
     id_systemp = int(id_systemp)
     result_checkmode_control = []
+    result_checktype_device = []
+    checktype_device = ""
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1419,42 +1557,67 @@ async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, to
             if not message:
                 print("Not find message from MQTT")
                 continue
-            
+                    
             mqtt_result = json.loads(message.message.decode())
             if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
                 for item in mqtt_result:
                     id_device = int(item["id_device"])
+                    result_checktype_device = MySQL_Select ("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;" ,(id_device,) )
+                    checktype_device = result_checktype_device[0]["name"]
+                    if checktype_device == "PV System Inverter":
+                        if id_device == id_systemp:
+                            device_mode = int(item["mode"])
 
-                    if id_device == id_systemp:
-                        device_mode = int(item["mode"])
+                            querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                            if device_mode == 0:
+                                val = 0
+                            elif device_mode == 1:
+                                val = 1
+                            
+                            if device_mode in [0, 1]:  
+                                MySQL_Insert_v5(querydevice, (val, id_device))  
+                                result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
 
-                        querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
-                        if device_mode == 0:
-                            val = 0
-                        elif device_mode == 1:
-                            val = 1
-                        
-                        if device_mode in [0, 1]:  
-                            MySQL_Insert_v5(querydevice, (val, id_device))  
-                            result_checkmode_control = await MySQL_Select_v1("SELECT `device_list`.`mode` FROM `device_list`")
-
-                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
-                                data_send = {
-                                            "id_device": "Systemp",
-                                            "mode": 2
-                                            }
-                                push_data_to_mqtt(host,
-                                        port,
-                                        topicpud ,
-                                        username,
-                                        password,
-                                        data_send)
+                                if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 2
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                elif all(item['mode'] == 0 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 0
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                elif all(item['mode'] == 1 for item in result_checkmode_control):
+                                    data_send = {
+                                                "id_device": "Systemp",
+                                                "mode": 1
+                                                }
+                                    push_data_to_mqtt(host,
+                                            port,
+                                            topicpud ,
+                                            username,
+                                            password,
+                                            data_send)
+                                else:
+                                    pass
                             else:
-                                pass
-
-                        else:
-                            print("Failed to insert data")
-                    else :
+                                print("Failed to insert data")
+                        else :
+                            pass
+                    else:
                         pass
             else:
                 pass
@@ -1498,6 +1661,65 @@ async def update_modecontrol_systemp_for_modecontrol_device(serial_number_projec
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
+async def sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,host, port, topic, username, password):
+    
+    global enable_zero_export
+    global value_zero_export
+    global enable_power_limit
+    global value_power_limit
+    global bitcheck 
+    
+    mode_auto = ""
+    type_mode_auto = ""
+    
+    topic = serial_number_project + topic
+    mqtt_result = []
+    
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+            
+            if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result :
+                mode_auto = mqtt_result['mode'] 
+                type_mode_auto = mqtt_result['type']
+                bitcheck = 1
+                
+                if mode_auto == "zero_export":
+                    if type_mode_auto == "checkbox" :
+                        enable_zero_export = mqtt_result['enable']
+                        MySQL_Update_V1 ("update project_setup set enable_zero_export = %s",(enable_zero_export,))
+                    elif type_mode_auto == "textbox":
+                        value_zero_export = mqtt_result['value']
+                        MySQL_Update_V1 ("update project_setup set value_zero_export = %s",(value_zero_export,))
+                elif mode_auto == "power_limit":
+                    if type_mode_auto == "checkbox" :
+                        enable_power_limit = mqtt_result['enable']
+                        MySQL_Update_V1 ("update project_setup set enable_power_limit = %s",(enable_power_limit,))
+                    elif type_mode_auto == "textbox":
+                        value_power_limit = mqtt_result['value']
+                        MySQL_Update_V1 ("update project_setup set value_power_limit = %s",(value_power_limit,))
+                
+            else:
+                pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")       
 # Describe functions before writing code
 # /**
 # 	 * @description check device control
@@ -1630,14 +1852,21 @@ async def main():
     tasks.append(asyncio.create_task(mqtt_subscribe_modesystemp_feedback(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_CONTROL_MODE,
+                                                    MQTT_TOPIC_FEEDBACK_MODECONTROL,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    tasks.append(asyncio.create_task(sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
     tasks.append(asyncio.create_task(update_modecontrol_systemp_for_modecontrol_device(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
-                                                    MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
+                                                    MQTT_TOPIC_FEEDBACK_MODECONTROL,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))

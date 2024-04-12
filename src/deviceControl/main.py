@@ -111,8 +111,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
     sampling_time1cycle = ""
     enable_zero_export = ""
     value_zero_export = ""
-    enable_limit_energy = ""
-    value_limit_energy = ""
+    enable_power_limit = ""
+    value_power_limit = ""
     powermeter_target_point = ""
     powermeter_tolerance = ""
     powermeter_max_point = ""
@@ -164,8 +164,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
         sampling_time1cycle = result[0]['sampling_time1cycle']
         enable_zero_export = result[0]['enable_zero_export']
         value_zero_export = result[0]['value_zero_export']
-        enable_limit_energy = result[0]['enable_limit_energy']
-        value_limit_energy = result[0]['value_limit_energy']
+        enable_power_limit = result[0]['enable_power_limit']
+        value_power_limit = result[0]['value_power_limit']
         powermeter_target_point = result[0]['powermeter_target_point']
         powermeter_tolerance = result[0]['powermeter_tolerance']
         powermeter_max_point = result[0]['powermeter_max_point']
@@ -218,8 +218,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
                         "sampling_time1cycle":sampling_time1cycle,
                         "enable_zero_export":enable_zero_export,
                         "value_zero_export":value_zero_export,
-                        "enable_limit_energy":enable_limit_energy,
-                        "value_limit_energy":value_limit_energy,
+                        "enable_power_limit":enable_power_limit,
+                        "value_power_limit":value_power_limit,
                         "powermeter_target_point":powermeter_target_point,
                         "powermeter_tolerance":powermeter_tolerance,
                         "powermeter_max_point":powermeter_max_point,
@@ -290,7 +290,7 @@ async def sud_update_mode_control_systemp(serial_number_project,host, port, topi
                         ModeSysTemp = mqtt_result.get('mode')  
 
                         querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                        querydevice = "UPDATE device_list SET device_list.mode = %s;"
+                        querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
 
                         if ModeSysTemp in [0, 1, 2]:
                             val = ModeSysTemp
@@ -335,7 +335,7 @@ async def mqtt_subscribe_information(serial_number_project,host, port, topic,top
 
             if mqtt_result and 'get_information' in mqtt_result:
                 sent_information = mqtt_result['get_information']
-                await pud_confirm_mode_control(serial_number_project,
+                await pud_feedback_project_setup(serial_number_project,
                                                     host,
                                                     port,
                                                     topic1,
@@ -372,6 +372,7 @@ async def main():
                                                                         MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
+    
     scheduler.start()
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
