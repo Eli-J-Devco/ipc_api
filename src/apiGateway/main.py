@@ -103,7 +103,7 @@ class apiGateway:
                     match result['CODE']:
                         case "CreateTCPDev":
                             new_device=result['PAYLOAD']
-                            print(new_device[0])
+                            # print(new_device[0])
                             #  init start pm2 new app
                             for item in new_device:
                                 
@@ -121,6 +121,20 @@ class apiGateway:
                                         "TIME_STAMP":now
                                     }
                             mqtt_public("/Init/API/Responses",param)
+                            # Insert Device to MQTT
+                            for item_device in new_device:
+                                have_device=False
+                                for item in self.DeviceList:
+                                    if item_device["id"]==item["id_device"]:
+                                        have_device=True
+                                if have_device:
+                                    self.DeviceList.append({
+                                        "id_device":item_device.id,
+                                        "device_name":item_device.name,
+                                        "mode":item_device.mode,
+                                        "parameters":[]
+                                    })
+                                
                         case "CreateRS485Dev":
                             id_communication=result['PAYLOAD']
                             result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')

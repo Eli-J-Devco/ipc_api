@@ -114,15 +114,22 @@ class Device_mppt(Base):
     id = Column(Integer, primary_key=True, nullable=False)
     id_device_list = Column(Integer, ForeignKey(
         "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_point_list = Column(Integer, ForeignKey(
+        "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
     namekey = Column(String(255), nullable=True)
     voltage= Column(DOUBLE, nullable=True)
     current= Column(DOUBLE, nullable=True)
     status = Column(Boolean, nullable=True, default=True)
-    device_list  = relationship('Device_list', foreign_keys=[id_device_list]) 
+    device_list  = relationship('Device_list', foreign_keys=[id_device_list])
+    point_list  = relationship('Point_list', foreign_keys=[id_point_list])
 class Device_mppt_string(Base):
     __tablename__ = "device_mppt_string"
     id = Column(Integer, primary_key=True, nullable=False)
+    id_device_list = Column(Integer, ForeignKey(
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_point_list = Column(Integer, ForeignKey(
+        "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_device_mppt = Column(Integer, ForeignKey(
         "device_mppt.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
@@ -130,10 +137,16 @@ class Device_mppt_string(Base):
     panel= Column(Integer, nullable=True)
     current= Column(DOUBLE, nullable=True)
     status = Column(Boolean, nullable=True, default=True)
-    device_mptt  = relationship('Device_mppt', foreign_keys=[id_device_mppt]) 
+    device_mptt  = relationship('Device_mppt', foreign_keys=[id_device_mppt])
+    device_list  = relationship('Device_list', foreign_keys=[id_device_list])
+    point_list  = relationship('Point_list', foreign_keys=[id_point_list])
 class Device_panel(Base):
     __tablename__ = "device_panel"
     id = Column(Integer, primary_key=True, nullable=False)
+    id_device_list = Column(Integer, ForeignKey(
+        "device_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
+    id_point_list = Column(Integer, ForeignKey(
+        "point_list.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     id_device_string = Column(Integer, ForeignKey(
         "device_mppt_string.id", ondelete="CASCADE", onupdate="CASCADE"), nullable=True)
     name = Column(String(255), nullable=True)
