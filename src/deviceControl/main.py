@@ -111,8 +111,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
     sampling_time1cycle = ""
     enable_zero_export = ""
     value_zero_export = ""
-    enable_limit_energy = ""
-    value_limit_energy = ""
+    enable_power_limit = ""
+    value_power_limit = ""
     powermeter_target_point = ""
     powermeter_tolerance = ""
     powermeter_max_point = ""
@@ -164,8 +164,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
         sampling_time1cycle = result[0]['sampling_time1cycle']
         enable_zero_export = result[0]['enable_zero_export']
         value_zero_export = result[0]['value_zero_export']
-        enable_limit_energy = result[0]['enable_limit_energy']
-        value_limit_energy = result[0]['value_limit_energy']
+        enable_power_limit = result[0]['enable_power_limit']
+        value_power_limit = result[0]['value_power_limit']
         powermeter_target_point = result[0]['powermeter_target_point']
         powermeter_tolerance = result[0]['powermeter_tolerance']
         powermeter_max_point = result[0]['powermeter_max_point']
@@ -218,8 +218,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
                         "sampling_time1cycle":sampling_time1cycle,
                         "enable_zero_export":enable_zero_export,
                         "value_zero_export":value_zero_export,
-                        "enable_limit_energy":enable_limit_energy,
-                        "value_limit_energy":value_limit_energy,
+                        "enable_power_limit":enable_power_limit,
+                        "value_power_limit":value_power_limit,
                         "powermeter_target_point":powermeter_target_point,
                         "powermeter_tolerance":powermeter_tolerance,
                         "powermeter_max_point":powermeter_max_point,

@@ -868,7 +868,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
-                        # 
+                        print("da vao day") 
                         await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
@@ -1391,8 +1391,8 @@ async def mqtt_subscribe_modesystemp_feedback(serial_number_project,host, port, 
         print(f"Error MQTT subscribe: '{err}'")
         
 async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, topic,topicpud, username, password):
-    print("da vao day")
     global device_mode
+    global status_device
     mqtt_result = ""
     topic = serial_number_project + topic
     topicpud = serial_number_project + topicpud
@@ -1421,7 +1421,7 @@ async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, to
             if not message:
                 print("Not find message from MQTT")
                 continue
-            print("mqtt_result",mqtt_result)
+                    
             mqtt_result = json.loads(message.message.decode())
             if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
                 for item in mqtt_result:
