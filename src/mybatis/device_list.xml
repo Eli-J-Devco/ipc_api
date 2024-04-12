@@ -31,6 +31,7 @@
     
   <select id="select_only_device">
         SELECT device_list.id, device_list.name,
+		    device_list.mode,
 		    device_list.id_template,
         device_list.value_p, device_list.send_p,
         device_list.rtu_bus_address AS rtu_bus_address,
@@ -61,8 +62,8 @@
 
         device_point_list_map.id,
         point_list.id_pointkey AS pointkey,
-        point_list_type.id as id_point_list_type,
-        point_list_type.namekey as name_point_list_type,
+        point_list_type.id AS id_point_list_type,
+        point_list_type.namekey AS name_point_list_type,
         
         table_pointtype.name AS pointtype,
         point_list.id_pointclass_type AS id_pointclass,
@@ -107,14 +108,22 @@
         point_list.invalidvalueenabled,
         point_list.extendednumpoints,
         point_list.extendedregblocks,
-    
+
+        
+	
         table_byteorder.value AS value_byteorder,
         table_byteorder.namekey AS name_byteorder,
         table_datatype.value AS value_datatype,
         table_datatype.namekey AS name_datatype,
         table_units.value AS value_units,
         table_units.namekey AS name_units,
-        point_list.active as active
+        point_list.active AS `active`,
+        point_list.id_control_group,
+        point_list.control_type_input,
+        point_list.control_menu_order,
+        point_list.control_min,
+        point_list.control_max
+
         FROM `device_point_list_map` 
         INNER JOIN point_list ON device_point_list_map.id_point_list=point_list.id
         LEFT JOIN point_list_type ON point_list_type.id=point_list.id_point_list_type
@@ -134,6 +143,7 @@
         LEFT JOIN pointclass_type table_pointclass_type ON point_list.id_pointclass_type=table_pointclass_type.id
         LEFT JOIN config_information table_config_information ON point_list.id_config_information=table_config_information.id
         LEFT JOIN config_information table_pointtype ON point_list.id_pointtype=table_pointtype.id
+        LEFT JOIN point_list_control_group  ON point_list.id_control_group=point_list_control_group.id
         
         WHERE device_point_list_map.status=1 AND
                     device_point_list_map.id_device_list=%s ORDER BY device_point_list_map.id ASC;
@@ -188,11 +198,14 @@
     name = #{name}
   </update>
 	<select id="select_all_device_rs485">
-    SELECT device_list.id, device_list.name, 
+    SELECT device_list.id, device_list.name,
+    device_list.mode,
     driver_list.name AS connect_type, 
     device_type.name AS device_type,
+    device_type.id AS id_device_type,
     device_list.id_communication AS id_communication,
     device_list.rtu_bus_address AS rtu_bus_address,
+    device_list.id_template,
     communication.name AS serialport_name,
     communication.namekey AS serialport_group,
     table_baud.name AS serialport_baud,
@@ -211,7 +224,7 @@
     LEFT JOIN config_information table_timeout ON communication.id_type_timeout=table_timeout.id
     LEFT JOIN config_information table_debug_level ON communication.id_type_debug_level=table_debug_level.id
     
-    WHERE device_list.status=1 and device_list.id_communication =%s;
+    WHERE device_list.status=1 AND device_list.id_communication =%s;
   
 	</select>
 	<select id="select_point_list_v0">

@@ -103,7 +103,7 @@ class apiGateway:
                     match result['CODE']:
                         case "CreateTCPDev":
                             new_device=result['PAYLOAD']
-                            print(new_device[0])
+                            # print(new_device[0])
                             #  init start pm2 new app
                             for item in new_device:
                                 
@@ -121,6 +121,20 @@ class apiGateway:
                                         "TIME_STAMP":now
                                     }
                             mqtt_public("/Init/API/Responses",param)
+                            # Insert Device to MQTT
+                            for item_device in new_device:
+                                have_device=False
+                                for item in self.DeviceList:
+                                    if item_device["id"]==item["id_device"]:
+                                        have_device=True
+                                if have_device:
+                                    self.DeviceList.append({
+                                        "id_device":item_device.id,
+                                        "device_name":item_device.name,
+                                        "mode":item_device.mode,
+                                        "parameters":[]
+                                    })
+                                
                         case "CreateRS485Dev":
                             id_communication=result['PAYLOAD']
                             result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
@@ -241,7 +255,12 @@ class apiGateway:
                             #             # restart pm2 app log
                             #             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
                             #             result=await restart_program_pm2_many(pm2_app_list)
-                
+                        case "UpdateDev":
+                            pass
+                        case "UpdateTemplate":
+                            pass
+                        case "DeleteTemplate":
+                            pass
         except Exception as err:
             print(f"Error PM2: '{err}'")
     async def deviceListSub(self):
@@ -282,7 +301,8 @@ class apiGateway:
                         self.DeviceList[i]["parameters"]=result["parameters"]
                         self.DeviceList[i]["fields"]=result["fields"]
                         self.DeviceList[i]["mppt"]=result["mppt"]
-                        
+                        self.DeviceList[i]["mode"]=result["mode"]
+                        self.DeviceList[i]["control_group"]=result["control_group"]
                         # for item in result["parameters"]:
                         #     print(len(item['fields']))
                         print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
@@ -329,7 +349,7 @@ class apiGateway:
                 self.DeviceList.append({
                     "id_device":item.id,
                     "device_name":item.name,
-                    "model":item.model,
+                    "mode":item.mode,
                     "parameters":[]
                 })
             

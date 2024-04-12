@@ -21,7 +21,6 @@ import mqttools
 import mybatis_mapper2sql
 # import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
-from fastapi.responses import JSONResponse
 # from async_paho_mqtt_client import AsyncClient
 # from asyncio_paho import AsyncioPahoClient
 # from asyncio_paho.client import AsyncioMqttAuthError
@@ -51,11 +50,16 @@ MQTT_PORT = Config.MQTT_PORT
 MQTT_TOPIC = Config.MQTT_TOPIC +"/Dev/"
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
-MQTT_TOPIC_SUD_CONTROL = "/Control/#"
+MQTT_TOPIC_SUD_CONTROL = "/Control/Write"
+MQTT_TOPIC_SUD_CONTROL_MODE = "/Control/Setup/Mode/Feedback"
+MQTT_TOPIC_SUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/#"
+MQTT_TOPIC_PUD_ALL_FEEDBACK_CONTROL = "/Control/Feedback/All"
 MQTT_TOPIC_SUD_PARAMETTER = "/Control/#"
 MQTT_TOPIC_PUB_CONTROL = "/Control"
-
+MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
+MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 # 
+ModeSysTemp = "" 
 device_name=""
 status_register_block=[]
 status_device=""
@@ -71,6 +75,8 @@ data_write_device=[]
 parameter = []
 bit_feedback = 0
 count = 0 
+len_mqtt = 0
+mqtt_result_control_write = ""
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -85,6 +91,10 @@ QUERY_DATATYPE = ""
 
 NAME_DEVICE_TYPE=None
 ID_DEVICE_TYPE=None
+device_mode=None
+# 0: Manual mode
+# 1: Auto mode
+id_template=None
 # ----------------------------------------------------------------------
 
 # config[0] -- id
@@ -112,7 +122,14 @@ def point_object(Config,
                  id,point_key,
                  name,unit,value,
                  quality,timestamp=None,
-                 message="", active=0):
+                 message="", active=0,
+                 id_control_group=None,
+                 control_type_input=0,
+                 control_menu_order=None,
+                 control_min=None,
+                 control_max=None,
+                 control_enabled=1,# show/hide = 1/0, get from Device
+                 ):
     
     return {"config":Config,
             "id_point_list_type":id_point_type,
@@ -124,11 +141,17 @@ def point_object(Config,
             "name": name, 
             "unit": unit, 
             "value":  value, 
-            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "quality":quality,
+            "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "message":message,
             # "point_type":PointType,
-            "active":active
+            "active":active,
+            "id_control_group":id_control_group,
+            "control_type_input":control_type_input,
+            "control_menu_order":control_menu_order,
+            "control_min":control_min,
+            "control_max":control_max,
+            "control_enabled":control_enabled
             }
 # Describe functions before writing code
 # /**
@@ -348,10 +371,16 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             point_list_item['pointkey'], 
                                                             point_list_item['point_name'], 
                                                             point_list_item['name_units'], 
-                                                            point_value, 
-                                                            1,
+                                                            value=point_value, 
+                                                            quality=1,
                                                             message="Not found register",
-                                                            active=point_list_item['active']
+                                                            active=point_list_item['active'],
+                                                            id_control_group=point_list_item['id_control_group'],
+                                                            control_type_input=point_list_item['control_type_input'],
+                                                            control_menu_order=point_list_item['control_menu_order'],
+                                                            control_min=point_list_item['control_min'],
+                                                            control_max=point_list_item['control_max'],
+                                                            control_enabled=1
                                                             )
                 else:
                     if point_value != None:
@@ -371,10 +400,16 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 point_list_item['pointkey'], 
                                                 point_list_item['point_name'], 
                                                 point_list_item['name_units'], 
-                                                value, 
-                                                0,
+                                                value=value, 
+                                                quality=0,
                                                 message="",
-                                                active=point_list_item['active']
+                                                active=point_list_item['active'],
+                                                id_control_group=point_list_item['id_control_group'],
+                                                control_type_input=point_list_item['control_type_input'],
+                                                control_menu_order=point_list_item['control_menu_order'],
+                                                control_min=point_list_item['control_min'],
+                                                control_max=point_list_item['control_max'],
+                                                control_enabled=1
                                                 )
                 return point_list
             case "Internal":
@@ -387,10 +422,16 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['pointkey'], 
                                         point_list_item['point_name'], 
                                         point_list_item['name_units'], 
-                                        None, 
-                                        0,
+                                        value=None, 
+                                        quality=0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
+                                        control_enabled=1
                                         )
                 return point_list
             case "Equation":
@@ -404,9 +445,15 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         point_list_item['point_name'], 
                                         point_list_item['name_units'], 
                                         point_list_item['constants'], 
-                                        0,
+                                        quality=0,
                                         message="",
-                                        active=point_list_item['active']
+                                        active=point_list_item['active'],
+                                        id_control_group=point_list_item['id_control_group'],
+                                        control_type_input=point_list_item['control_type_input'],
+                                        control_menu_order=point_list_item['control_menu_order'],
+                                        control_min=point_list_item['control_min'],
+                                        control_max=point_list_item['control_max'],
+                                        control_enabled=1
                                         )
                 return point_list
         
@@ -423,7 +470,6 @@ def convert_register_to_point_list(point_list_item,data_of_register):
 # 	 */   
 def write_modbus_tcp(client, unit, datatype,register, value):
     try:
-
         builder = BinaryPayloadBuilder(
         byteorder=Endian.Big)
         match datatype:
@@ -548,140 +594,181 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
-async def write_device(client,slave_ID,device_control,
-                    serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global parameter
-    if parameter :
-        print("---------- write data from Device ----------")
-        topicPublic = serial_number_project + topicPublic
-        pathSource=path
-        print(f'pathSource: {pathSource}')
-        # pathSource="D:/NEXTWAVE/project/ipc_api"
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        xml=pathSource + '/mybatis/device_list.xml')
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True) 
-        # 
-        QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
-        QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
-        QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
-        QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
-        
-        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
+async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+    
+    topicPublic = serial_number_project + topicPublic
+    
+    global mqtt_result_control_write
+    global device_mode
+    global status_device
+    global msg_device ,device_name 
+    global point_list_device,status_register_block
+    global enable_write_control
+    global data_write_device
+    global bit_feedback
+    
+    id_systemp = ConfigPara[1]
+    pathSource=path
+    # print(f'pathSource: {pathSource}')
+    # pathSource="D:/NEXTWAVE/project/ipc_api"
+    mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+    xml=pathSource + '/mybatis/device_list.xml')
+    statement = mybatis_mapper2sql.get_statement(
+    mapper, result_type='list', reindent=True, strip_comments=True) 
+    # 
+    QUERY_INFORMATION_CONNECT_MODBUS_TCP = func_check_data_mybatis(statement,9,"QUERY_INFORMATION_CONNECT_MODBUSTCP")
+    QUERY_TYPE_DEVICE = func_check_data_mybatis(statement,11,"QUERY_TYPE_DEVICE")
+    QUERY_REGISTER_DATATYPE = func_check_data_mybatis(statement,12,"QUERY_REGISTER_DATATYPE")
+    QUERY_DATATYPE = func_check_data_mybatis(statement,13,"QUERY_DATATYPE")
+    
+    # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+    if QUERY_TYPE_DEVICE != -1 and QUERY_INFORMATION_CONNECT_MODBUS_TCP != -1 and QUERY_ALL_DEVICES != -1 and QUERY_REGISTER_DATATYPE != -1 and QUERY_DATATYPE:
+        pass
+    else:           
+        print("Error not found data in file mybatis")
+        return -1
+    if mqtt_result_control_write :
+        for item in mqtt_result_control_write:
+            device_control = item['id_device']
+            parameter = item['parameter']
+            id_systemp = int(id_systemp)
             
-        try:
-            # Share data to Global variable
-            global status_device
-            global msg_device ,device_name 
-            global point_list_device,status_register_block
-            global enable_write_control
-            global data_write_device
-            global bit_feedback
-            # result Modbus
-            results_device_type = []
-            results_write_modbus = []
-            results_register = []
-            filtered_results_register = []
-            
-            # information Modbus 
-            register = ""
-            datatype = ""
-            type_datatype = ""
-            comment = ""
-            current_time = ""
-            data_send = ""
-
-            current_time = get_utc()
-            
-            if device_control :
-                results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
-                results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
-            else :
-                pass
-
-            # if device is INV 
-            if results_device_type :
-                if results_device_type[0]["name"] == "PV System Inverter" :
-                    if results_register :
-                        filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
+            if id_systemp == device_control:
+                if parameter :
+                    print("---------- write data from Device ----------")
+                    try:
+                        # result Modbus
+                        results_device_type = []
+                        results_write_modbus = []
+                        results_register = []
+                        filtered_results_register = []
                         
-                        # Iterate through the new list to assign values from the corresponding variables
-                        for item in filtered_results_register:
-                            for p in parameter:
-                                if item['id_pointkey'] == p['id_pointkey']:
-                                    item['value'] = p['value']
-                    
-                    for item in filtered_results_register:
-                        value = item["value"]
-                        register = item["register"]
-                        type_datatype = item["id_type_datatype"]
+                        # information Modbus 
+                        register = ""
+                        datatype = ""
+                        type_datatype = ""
+                        comment = 200
+                        current_time = ""
+                        data_send = ""
+                        code_value = 0
+                        result_query_findname = []
+                        id_pointkey = ""
+                        name_device_points_list_map = ""
+                        current_time = get_utc()
                         
-                        # Find datatype register (int16,int32, float,...)
-                        results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
-
-                        if results_datatype :
-                            datatype = results_datatype[0]["value"]
+                        if device_control :
+                            results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
+                            results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
                         else :
                             pass
-                        
-                        try:
-                            if len(filtered_results_register) == 1:
-                                if value == True :
-                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
-                                elif value == False :
-                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+
+                        # if device is INV 
+                        if results_device_type :
+                            if results_device_type[0]["name"] == "PV System Inverter" :
+                                if results_register :
+                                    filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
                                     
-                                # get status INV 
-                                if results_write_modbus:
-                                    code_value = results_write_modbus['code']
-                                    if code_value == 16 :
-                                        comment = f"Sent Successfully"
-                                    elif code_value == 144 :
-                                        comment = f"Sent Failure "
-                            
-                            elif len(filtered_results_register) >= 1:
-                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                    # Iterate through the new list to assign values from the corresponding variables
+                                    for item in filtered_results_register:
+                                        for p in parameter:
+                                            if item['id_pointkey'] == p['id_pointkey']:
+                                                item['value'] = p['value']
                                 
-                                # get status INV 
-                                if results_write_modbus:
-                                    code_value = results_write_modbus['code']
-                                    if code_value == 16 :
-                                        comment = f"Sent Parametter Successfully"
-                                    elif code_value == 144 :
-                                        comment = f"Sent Parametter Failure "
+                                for item in filtered_results_register:
+                                    value = item["value"]
+                                    register = item["register"]
+                                    type_datatype = item["id_type_datatype"]
+                                    id_pointkey = item['id_pointkey']
+                                    
+                                    # Find datatype register (int16,int32, float,...)
+                                    results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+
+                                    # Find 'name' in device_point_list_map
+                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                    name_device_points_list_map = result_query_findname [0]["name"]
+
+                                    if results_datatype :
+                                        datatype = results_datatype[0]["value"]
+                                    else :
+                                        pass
+
+                                    try:
+                                        if device_mode == 0 :
+                                            print("---------- Manual control mode ----------")
+                                            if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
+                                                if value == True :
+                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
+                                                elif value == False :
+                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
+                                                # get status INV 
+                                                if results_write_modbus:
+                                                    code_value = results_write_modbus['code']
+                                                    if code_value == 16 :
+                                                        comment = 200
+                                                    elif code_value == 144 :
+                                                        comment = 400
+
+                                            elif len(filtered_results_register) >= 1 and isinstance(value, int):
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
+                                                # get status INV 
+                                                if results_write_modbus:
+                                                    code_value = results_write_modbus['code']
+                                                    if code_value == 16 :
+                                                        comment = 200
+                                                    elif code_value == 144 :
+                                                        comment = 400
+                                            # data pud mqtt 
+                                                data_send = {
+                                                    "time_stamp" :current_time,
+                                                    "status":comment, 
+                                                    }
+                                                if bit_feedback == 1 and code_value == 16 :
+                                                    push_data_to_mqtt(mqtt_host,
+                                                            mqtt_port,
+                                                            topicPublic + "/" +"Feedback" ,
+                                                            mqtt_username,
+                                                            mqtt_password,
+                                                            data_send)
+                                                    bit_feedback == 0
+                                                    mqtt_result_control_write = []
+                                                else :
+                                                    pass
+                                            
+                                        if device_mode == 1 :
+                                            print("---------- Auto control mode ----------")
+                                            # data pud mqtt 
+                                            data_send = {
+                                                "time_stamp" :current_time,
+                                                "status":comment, 
+                                                }
+                                            if bit_feedback == 1 :
+                                                push_data_to_mqtt(mqtt_host,
+                                                        mqtt_port,
+                                                        topicPublic + "/" +"Feedback" ,
+                                                        mqtt_username,
+                                                        mqtt_password,
+                                                        data_send)
+                                                bit_feedback == 0
+                                                mqtt_result_control_write = []
+                                            else :
+                                                pass
+                                            pass
+                                    except Exception as e:
+                                        print(f"An error occurred: {e}")
+                            else:
+                                pass
+                        else :
+                            pass
                             
-                        except Exception as e:
-                            print(f"An error occurred: {e}")
-                            
+                    except Exception as err:
+                        print(f"Error MQTT subscribe: '{err}'")
                 else:
-                    comment = "device cannot be controlled"
-            else :
-                comment = "device does not exist"
-                
-            # data pud mqtt 
-            data_send = {
-                "id_device":device_control,
-                "device_name":device_name,
-                "time_stamp" :current_time,
-                "status":comment, 
-                }
-            if bit_feedback == 1 and code_value == 16:
-                push_data_to_mqtt(mqtt_host,
-                        mqtt_port,
-                        topicPublic + "/" + device_control +  "/" + "Feedback" ,
-                        mqtt_username,
-                        mqtt_password,
-                        data_send)
-                bit_feedback == 0
-            
-            parameter = []
-        except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+                    pass
+            else:
+                pass
     else:
         pass
 # Describe functions before writing code
@@ -707,6 +794,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         # global data_control
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
+        global device_mode
+        global id_template
         pathSource=path
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
@@ -757,7 +846,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             print("Error device point list not found")
             # return -1 
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
-        
+        device_mode=results_device[0]['mode']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -776,15 +865,19 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
+                    # client =ModbusTcpClient(slave_ip, port=slave_port)
+                    # connection = client.connect()
+                    # if connection:
                         # 
-                        await write_device(client,slave_ID ,device_control,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
-
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
                         msg_device=""
                         # 
                         Data = []
                         status_rb=[]
+                        status_register_block=[]
                         for itemRB in results_RBlock:
                             await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
@@ -836,6 +929,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         # 
                         await asyncio.sleep(5)
                         # 
+                        client.close()
                 except (ConnectionException, ModbusException) as e:
                     status_device="offline"
                     print(f"Modbus error from {slave_ip}: {e}")
@@ -859,7 +953,13 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
-                                                active=item['active']
+                                                active=item['active'],
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
+                                                control_enabled=item['control_enabled'],
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -879,7 +979,13 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 1,
                                                 None,
                                                 message="error device",
-                                                active=item['active']
+                                                active=item['active'],
+                                                id_control_group=item['id_control_group'],
+                                                control_type_input=item['control_type_input'],
+                                                control_menu_order=item['control_menu_order'],
+                                                control_min=item['control_min'],
+                                                control_max=item['control_max'],
+                                                control_enabled=1
                                                 )
                             )
                         
@@ -889,9 +995,10 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     print("AE ERROR", ae)
                     await asyncio.sleep(5)
     except KeyError as err:
-        print('KeyError device : ', type(err).__name__)
+        print('KeyError device : ', err)
     except Exception as err:
         print('Exception device : ', type(err).__name__)
+        
         # raise Exception("Runtime Error!!!") 
     finally:
         print ("--Finally--")      
@@ -907,17 +1014,60 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 
                         ):
     try:
+        global id_template
+        results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
+        print(f'init monitoring_device')
+        # point_list
+        # 1: Number, 2: String, 3: Percent, 4: Bool
+        # point_list_control_group
+        # 0=Independent, 1=Depends one, 2=Depends two
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global  device_name,status_device,msg_device,status_register_block,point_list_device
             global device_id
             global NAME_DEVICE_TYPE
             global ID_DEVICE_TYPE
+            global device_mode
             new_point_list_device=[]
             new_point=[]
             mppt=[]
+            control_group=[]
+            match NAME_DEVICE_TYPE:
+                case "PV System Inverter":
+                    pass
+                case "Solar Tracker":
+                    pass
+                case "Production Meter":
+                    pass
+                case "Weather Station":
+                    pass
+                case "Datalogger":
+                    pass
+                case "Sensor":
+                    pass
+                case "Load meter":
+                    pass
+                case "SMA Communication products":
+                    pass
+                case "Consumption meter":
+                    pass
+                case "Cell Modem":
+                    pass
+                case "Virtual Meter":
+                    pass
+                case "UPS":
+                    pass
             #
-            
+            if results_control_group:
+                control_group=[
+                    {
+                        "id":item["id"],
+                        "name":item["name"],
+                        "description":item["description"],
+                        "attributes":item["attributes"],
+                        "fields":[]
+                        
+                    } for item in results_control_group]
             for item in point_list_device:
                 new_point_list_device.append({
                     **item,
@@ -1010,8 +1160,95 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     "name": item_type['name'],
                     "fields": new_point_type
                 })
-            data_mqtt={
+            new_control_group=[]
+            for item_group in control_group:
+                new_point_control=[]
+                for point_item in new_point_list_device:
+                    if point_item["id_control_group"]==item_group["id"]:
+                        new_point_control.append({
+                            **point_item
+                        })
+                new_point_control.sort(key=lambda x: x["control_menu_order"])
+                new_point_control_attr=[]
+                
+                match item_group["attributes"]:
+                    case 0:
+                        for item_point_attr in new_point_control:
+                            new_point_control_attr.append(
+                                {
+                                    **item_point_attr,
+                                    "control_enabled":1
+                                }
+                            )
+                    case 1: 
+                        if len(new_point_control)==2:
+                            control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                            if control_enable!=None and control_enable!="null":
+                                for item_point_attr in new_point_control:
+                                    if item_point_attr['control_type_input'] == 4:
+                                        new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":1
+                                            }
+                                        )
+                                    else:
+                                        new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                            }
+                                        )
+                            else:
+                                for item_point_attr in new_point_control:
+                                    new_point_control_attr.append(
+                                            {
+                                                **item_point_attr,
+                                                "control_enabled":1
+                                            }
+                                        )
+                    case 2:  
+                        if len(new_point_control)==3:                   
+                            control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                            if control_enable!=None and control_enable!="null":
+                                    for item_point_attr in new_point_control:
+                                        if item_point_attr['control_type_input'] == 4:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":1
+                                                }
+                                            )
+                                        elif item_point_attr['control_menu_order'] == 2:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":(lambda x: 1  if x==0 else 0)(control_enable)
+                                                }
+                                            )
+                                        elif item_point_attr['control_menu_order'] == 3:
+                                            new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                                }
+                                            )
+                            else:
+                                    for item_point_attr in new_point_control:
+                                        new_point_control_attr.append(
+                                                {
+                                                    **item_point_attr,
+                                                    "control_enabled":1
+                                                }
+                                            )
+                new_control_group.append({
+                    **item_group,
+                    "fields":new_point_control_attr
+                })
+            # print(f'new_control_group: {new_control_group}')
+            data_device={
                 "id_device":device_id,
+                "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
@@ -1022,10 +1259,12 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "point_count":len(new_point),
                 "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt
+                "mppt":mppt,
+                "control_group":new_control_group
             }
-            data_mqtt_short={
+            data_device_short={
                 "id_device":device_id,
+                "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
@@ -1033,14 +1272,13 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "timestamp":getUTC(),
                 "message":msg_device,
                 "status_register":status_register_block,
-                "point_count":len(new_point),
+                # "point_count":len(new_point),
                 # "parameters":parameters,
                 "fields":new_point,
-                "mppt":mppt
+                # "mppt":mppt,
+                # "control_group":new_control_group
             }
-            print(f'MQTT message size: {sys.getsizeof(data_mqtt)} bytes')
-            # for item in parameters:
-            #     print(len(item['fields']))
+            
             if device_name !="" and serial_number_project!= None:
                 
                 func_mqtt_public(   host[0],
@@ -1048,13 +1286,13 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     serial_number_project+"/"+"Devices/"+""+device_id,
                                     username[0],
                                     password[0],
-                                    data_mqtt)
+                                    data_device)
                 func_mqtt_public(   host[0],
                                     port[0],
                                     serial_number_project+"/"+"Shorts/"+""+device_id,
                                     username[0],
                                     password[0],
-                                    data_mqtt_short)
+                                    data_device_short)
                 # 
                 if host[1] != None and port[1]:
                     func_mqtt_public(   host[1],
@@ -1062,7 +1300,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                         serial_number_project+"/"+"Devices/"+""+device_id,
                                         username[1],
                                         password[1],
-                                        data_mqtt)
+                                        data_device)
             
             await asyncio.sleep(1)
         
@@ -1078,224 +1316,49 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def mqtt_subscribe_controls(host, port,topic, username, password):
-    try:
-        # {
-        #    "DEVICE_NAME":"",
-        #    "CODE":1 # enable write parameter control
-        # }
-       
-        global enable_write_control,device_name
-        global query_device_control
-        global data_write_device
-        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
-        global device_id
-        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
-        Topic=f'IPC/{str(device_id)}|{str(device_name)}|control'
-        print(f'Topic: {Topic}')
-        client = mqttools.Client(host=host, 
-                                port=port,
-                                username= username, 
-                                password=bytes(password, 'utf-8'))
-        
-        await client.start()
-        await client.subscribe(Topic)
-        while True:
-            message = await client.messages.get()
-
-            if message is None:
-                print('Broker connection lost!')
-                break
-            print(f'Topic:   {message.topic}')
-            result=json.loads(message.message.decode())
-            print(f'Message: {result}')
-            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
-                DEVICE_NAME=result["DEVICE_NAME"]
-                CODE=result["CODE"]
-                
-                print(f'DEVICE_NAME: {DEVICE_NAME}')
-                print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1 :
-                    # print(f'query_device_control: {query_device_control}')
-                    results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    print(f'results_device_control: {results_device_control}')
-                    
-                    if type(results_device_control) == list and len(results_device_control)>=1:
-                        data_control=[]
-                        enable_p=results_device_control[0]["send_p"]
-                        enable_q=results_device_control[0]["send_q"]
-                        enable_pf=results_device_control[0]["send_pf"]
-                        enable_poweroff=results_device_control[0]["enable_poweroff"]
-                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
-                        # 
-                        if enable_p==1:
-                            data_control.append({
-                                "point":"send_p",
-                                "datatype":results_device_control[0]["datatype_p"],
-                                "register":results_device_control[0]["register_p"],
-                                "value":results_device_control[0]["value_p"],
-                            })
-                        if enable_q==1:
-                            data_control.append({
-                                 "point":"send_q",
-                                "datatype":results_device_control[0]["datatype_q"],
-                                "register":results_device_control[0]["register_q"],
-                                "value":results_device_control[0]["value_q"],
-                            })
-                        if enable_pf==1:
-                            data_control.append({
-                                "point":"send_pf",
-                                "datatype":results_device_control[0]["datatype_pf"],
-                                "register":results_device_control[0]["register_pf"],
-                                "value":results_device_control[0]["value_pf"],
-                            })
-                        # if enable_poweroff==1:
-                        #     today = DT.now(
-                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
-                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
-                        #     if str(today)==str(datetime_shutdown) :
-                        #         print("Turn off the inverter")
-                        #         data_control.append({
-                        #                     "point":"enable_poweroff",
-                        #                     "datatype":results_device_control[0]["datatype_p"],
-                        #                     "register":results_device_control[0]["register_p"],
-                        #                     "value":0,
-                        #                 })
-                        if enable_poweroff==1:
-                            inv_shutdown_datetime=inverter_shutdown
-                            
-                            item=[]
-                            item.append({
-                                            "point":"enable_poweroff",
-                                            "datatype":results_device_control[0]["datatype_p"],
-                                            "register":results_device_control[0]["register_p"],
-                                            "value":0,
-                                        })
-                            inv_shutdown_point=item
-                            inv_shutdown_enable=1
-                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
-                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
-                            data_write_device=data_control
-                            enable_write_control=True
-                        else:
-                            pass
-                 
-    except Exception as err:
-       
-        print(f"Error MQTT subscribe: '{err}'")
-async def mqtt_subscribe_controlsV1(host, port,topic, username, password):
-    try:
-        # {
-        #    "DEVICE_NAME":"",
-        #    "CODE":1 # enable write parameter control
-        # }
-       
-        global enable_write_control,device_name
-        global query_device_control
-        global data_write_device
-        global inv_shutdown_datetime, inv_shutdown_enable,inv_shutdown_point
-        global device_id
-        # Topic=f'topic+"@"+{str(device_id)}+"@control"'
-        Topic=f'IPC|{str(device_id)}|{str(device_name)}|control'
-        print(f'Topic: {Topic}')
-        client = mqttools.Client(host=host, 
-                                port=port,
-                                username= username, 
-                                password=bytes(password, 'utf-8'))
-        
-        await client.start()
-        await client.subscribe(Topic)
-        while True:
-            message = await client.messages.get()
-
-            if message is None:
-                print('Broker connection lost!')
-                break
-            print(f'Topic:   {message.topic}')
-            result=json.loads(message.message.decode())
-            print(f'Message: {result}')
-            if 'DEVICE_NAME' in result.keys() and 'CODE' in result.keys() :
-                DEVICE_NAME=result["DEVICE_NAME"]
-                CODE=result["CODE"]
-                
-                print(f'DEVICE_NAME: {DEVICE_NAME}')
-                print(f'CODE: {CODE}')
-                if DEVICE_NAME==device_name and CODE==1 :
-                    # print(f'query_device_control: {query_device_control}')
-                    results_device_control = MySQL_Select(query_device_control, (device_name,))
-                    # print(f'results_device_control: {results_device_control}')
-                    
-                    if type(results_device_control) == list and len(results_device_control)>=1:
-                        data_control=[]
-                        enable_p=results_device_control[0]["send_p"]
-                        enable_q=results_device_control[0]["send_q"]
-                        enable_pf=results_device_control[0]["send_pf"]
-                        enable_poweroff=results_device_control[0]["enable_poweroff"]
-                        inverter_shutdown=results_device_control[0]["inverter_shutdown"]
-                        # 
-                        if enable_p==1:
-                            data_control.append({
-                                "point":"send_p",
-                                "datatype":results_device_control[0]["datatype_p"],
-                                "register":results_device_control[0]["register_p"],
-                                "value":results_device_control[0]["value_p"],
-                            })
-                        if enable_q==1:
-                            data_control.append({
-                                 "point":"send_q",
-                                "datatype":results_device_control[0]["datatype_q"],
-                                "register":results_device_control[0]["register_q"],
-                                "value":results_device_control[0]["value_q"],
-                            })
-                        if enable_pf==1:
-                            data_control.append({
-                                "point":"send_pf",
-                                "datatype":results_device_control[0]["datatype_pf"],
-                                "register":results_device_control[0]["register_pf"],
-                                "value":results_device_control[0]["value_pf"],
-                            })
-                        # if enable_poweroff==1:
-                        #     today = DT.now(
-                        #         datetime.timezone.utc).strftime("%Y-%m-%d")
-                        #     datetime_shutdown = DT.strptime(str(inverter_shutdown), "%Y-%m-%d").date()
-                        #     if str(today)==str(datetime_shutdown) :
-                        #         print("Turn off the inverter")
-                        #         data_control.append({
-                        #                     "point":"enable_poweroff",
-                        #                     "datatype":results_device_control[0]["datatype_p"],
-                        #                     "register":results_device_control[0]["register_p"],
-                        #                     "value":0,
-                        #                 })
-                        if enable_poweroff==1:
-                            inv_shutdown_datetime=inverter_shutdown
-                            
-                            item=[]
-                            item.append({
-                                            "point":"enable_poweroff",
-                                            "datatype":results_device_control[0]["datatype_p"],
-                                            "register":results_device_control[0]["register_p"],
-                                            "value":0,
-                                        })
-                            inv_shutdown_point=item
-                            inv_shutdown_enable=1
-                        # if enable_p==1 or  enable_q==1 or enable_pf==1 or enable_poweroff==1 :
-                        if enable_p==1 or  enable_q==1 or enable_pf==1  :
-                            data_write_device=data_control
-                            enable_write_control=True
-                        else:
-                            pass
-                 
-    except Exception as err:
-       
-        print(f"Error MQTT subscribe: '{err}'")
-
-async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, username, password):
+async def sud_parameter_control_device(serial_number_project,host, port, topic, username, password):
     
     global device_control
     global device_name
     global enable_write_control
     global parameter
     global bit_feedback
+    global ModeSysTemp
+    global mqtt_result_control_write 
+    global len_mqtt
+    topic = serial_number_project + topic
+    
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result_control_write = json.loads(message.message.decode())
+            if mqtt_result_control_write :
+                bit_feedback =1 
+                len_mqtt = len(mqtt_result_control_write)
+            else:
+                pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+
+async def mqtt_subscribe_modesystemp_feedback(serial_number_project,host, port, topic, username, password):
+    
+    global ModeSysTemp
     mqtt_result = ""
     topic = serial_number_project + topic
     
@@ -1319,15 +1382,122 @@ async def mqtt_subscribe_controlsV2(serial_number_project,host, port, topic, use
             
             mqtt_result = json.loads(message.message.decode())
             
-            if mqtt_result:
-                if 'id_device' not in mqtt_result or 'parameter' not in mqtt_result :
-                    continue
-                device_control = mqtt_result['id_device']
-                parameter = mqtt_result['parameter']
-                bit_feedback = 1
-
+            if mqtt_result and 'confirm_mode' in mqtt_result:
+                ModeSysTemp = mqtt_result['confirm_mode']
+            else :
+                ModeSysTemp = None
+                
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+        
+async def sud_update_mode_device(ConfigPara,serial_number_project,host, port, topic,topicpud, username, password):
+    
+    global device_mode
+    mqtt_result = ""
+    topic = serial_number_project + topic
+    topicpud = serial_number_project + topicpud
+    val = 0
+    id_device = 0
+    id_systemp = ConfigPara[1]
+    id_systemp = int(id_systemp)
+    result_checkmode_control = []
+    
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+            if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+                for item in mqtt_result:
+                    id_device = int(item["id_device"])
+
+                    if id_device == id_systemp:
+                        device_mode = int(item["mode"])
+
+                        querydevice = "UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;"
+                        if device_mode == 0:
+                            val = 0
+                        elif device_mode == 1:
+                            val = 1
+                        
+                        if device_mode in [0, 1]:  
+                            MySQL_Insert_v5(querydevice, (val, id_device))  
+                            result_checkmode_control = await MySQL_Select_v1("SELECT `device_list`.`mode` FROM `device_list`")
+
+                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
+                                data_send = {
+                                            "id_device": "Systemp",
+                                            "mode": 2
+                                            }
+                                push_data_to_mqtt(host,
+                                        port,
+                                        topicpud ,
+                                        username,
+                                        password,
+                                        data_send)
+                            else:
+                                pass
+
+                        else:
+                            print("Failed to insert data")
+                    else :
+                        pass
+            else:
+                pass
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+
+async def update_modecontrol_systemp_for_modecontrol_device(serial_number_project,host, port, topic, username, password):
+    
+    global device_mode
+    
+    mqtt_result = ""
+    topic = serial_number_project + topic
+    try:
+        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+        if not client:
+            return -1 
+        
+        await client.start()
+        await client.subscribe(topic)
+        
+        while True:
+            try:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            except asyncio.TimeoutError:
+                continue
+            
+            if not message:
+                print("Not find message from MQTT")
+                continue
+            
+            mqtt_result = json.loads(message.message.decode())
+
+            if mqtt_result and 'confirm_mode' in mqtt_result:
+                if mqtt_result['confirm_mode'] in [0, 1]:
+                    device_mode = mqtt_result['confirm_mode']
+                else:
+                    pass
+            else:
+                pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+        
 # Describe functions before writing code
 # /**
 # 	 * @description check device control
@@ -1440,16 +1610,37 @@ async def main():
                                                     MQTT_PORT_LIST,
                                                     MQTT_USERNAME_LIST,
                                                     MQTT_PASSWORD_LIST
-                                                                                   
                                                     )))
-    tasks.append(asyncio.create_task(mqtt_subscribe_controlsV2(serial_number_project,
+    tasks.append(asyncio.create_task(sud_parameter_control_device(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_CONTROL,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
-    
+    tasks.append(asyncio.create_task(sud_update_mode_device(arr,
+                                                    serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_CONTROL,
+                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE ,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    tasks.append(asyncio.create_task(mqtt_subscribe_modesystemp_feedback(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_CONTROL_MODE,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    tasks.append(asyncio.create_task(update_modecontrol_systemp_for_modecontrol_device(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_PUB_FEEDBACK_MODECONTROL,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':

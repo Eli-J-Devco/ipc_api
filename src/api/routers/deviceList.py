@@ -441,65 +441,59 @@ async def create_multiple_device(
 
                 point_list_name = []
                 for item in point_list_query:
-                    point_list_name.append({"id": item.id, "name": item.id_pointkey})
+                    point_list_name.append({
+                        "id":item.id,
+                        "name":item.id_pointkey})
+                
                 # Update status table `device_point_list_map`
-                ## add mppt, string, panel
+                
+                ## add mppt, string, panel 
                 if create_device.mppt:
-                    for i, items in enumerate(new_device_list):
-                        id_device_list = items.id
-                        for i, mppt_item in enumerate(create_device.mppt):
-                            mppt_object = [
-                                item
-                                for item in point_list_query
-                                if item.id == mppt_item.id
-                            ][0]
-
+                    for i,items in enumerate(new_device_list): 
+                        id_device_list=items.id
+                        for i,mppt_item in enumerate(create_device.mppt):
+                            
+                            
+                            mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
+                            id_point_list=mppt_object.id
                             new_mppt = deviceList_models.Device_mppt(
-                                id_device_list=id_device_list,
-                                id_point_list=mppt_item.id,
-                                name=mppt_object.name,
-                                status=mppt_item.status,
-                                namekey=mppt_item.id_pointkey,
-                            )
+                                                                    id_device_list=id_device_list,
+                                                                    id_point_list=id_point_list,
+                                                                    name=mppt_object.name,
+                                                                    status= mppt_item.status,
+                                                                    namekey=mppt_item.id_pointkey
+                                                                )
                             db.add(new_mppt)
                             db.flush()
-                            print(f"MPPT ---------------------")
-                            for i, string_item in enumerate(mppt_item.string):
-                                string_name = [
-                                    item
-                                    for item in point_list_query
-                                    if item.id == string_item.id
-                                ][0].name
-                                panel_number = len(string_item.panel)
-                                new_string = deviceList_models.Device_mppt_string(
-                                    id_device_mppt=new_mppt.id,
-                                    id_device_list=id_device_list,
-                                    id_point_list=string_item.id,
-                                    name=string_name,
-                                    status=string_item.status,
-                                    namekey=string_item.id_pointkey,
-                                    panel=panel_number,
-                                )
-                                db.add(new_string)
-                                db.flush()
-                                print(f"STRING ---------------------")
-                                for i, panel_item in enumerate(string_item.panel):
-                                    print(f"PANEL ---------------------")
-                                    panel_name = [
-                                        item
-                                        for item in point_list_query
-                                        if item.id == panel_item.id
-                                    ][0].name
-                                    new_panel = deviceList_models.Device_panel(
-                                        id_device_string=new_string.id,
-                                        id_device_list=id_device_list,
-                                        id_point_list=panel_item.id,
-                                        status=panel_item.status,
-                                        name=panel_name,
-                                    )
-                                    db.add(new_panel)
-                                    db.flush()
-                #
+                            print(f'MPPT ---------------------')
+                            # for i,string_item in enumerate(mppt_item.string):
+                            #     string_name=[item for item in point_list_query if item.id == string_item.id][0].name
+                            #     panel_number=len(string_item.panel)
+                            #     new_string = deviceList_models.Device_mppt_string(
+                            #                                             id_device_mppt=new_mppt.id,
+                            #                                             id_device_list=id_device_list,
+                            #                                             id_point_list=id_point_list,
+                            #                                             name=string_name, 
+                            #                                             status= string_item.status,
+                            #                                             namekey=string_item.id_pointkey,
+                            #                                             panel=panel_number
+                            #                                     )
+                            #     db.add(new_string)
+                            #     db.flush()
+                            #     print(f'STRING ---------------------')
+                            #     for i,panel_item in enumerate(string_item.panel):
+                            #         print(f'PANEL ---------------------')
+                            #         panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
+                            #         new_panel = deviceList_models.Device_panel(
+                            #                                             id_device_list=id_device_list,
+                            #                                             id_point_list=id_point_list,
+                            #                                             id_device_string=new_string.id,
+                            #                                             status= panel_item.status,
+                            #                                             name=panel_name
+                            #                                     )
+                            #         db.add(new_panel)
+                            #         db.flush()   
+
                 # add table of device
                 for idd, item in enumerate(new_device_list):
                     try:
@@ -831,15 +825,14 @@ async def create_multiple_device(
                             )
                             print(f"result_point_list: {result_point_list.__dict__}")
                             if result_point_list.rowcount != 0:
-                                rowcount_point_list += 1
-                            new_device.append(
-                                {
-                                    "id": item.id,
-                                    "name": item.name,
-                                    "connect_type": driver_list.name,
-                                    "id_com": id_communication,
-                                }
-                            )
+                                rowcount_point_list +=1
+                            new_device.append({
+                                "id":item.id,
+                                "name":item.name,
+                                "connect_type":driver_list.name,
+                                "id_com":id_communication,
+                                # "model":item.model
+                                })
                         db.commit()
                         point_list_mppt_update = []
                         if create_device.mppt:
@@ -1182,9 +1175,13 @@ async def delete_device(
             )
         finally:
             if delete_list:
-                param = {"CODE": "DeleteDev", "PAYLOAD": delete_list}
-                mqtt_public("/Init/API/Requests", param)
-            return {"status": "success", "code": str(100)}
+                param={
+                    "CODE":"DeleteDev",
+                    "PAYLOAD":delete_list,
+                    "MODE":mode
+                }
+                mqtt_public("/Init/API/Requests",param)
+            return {"status": "success","code": str(100)}
     except Exception as err:
         raise HTTPException(status_code=500, detail="Internal server error")
 

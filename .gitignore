@@ -42,3 +42,4 @@ src/utils/libcom.py
 .env.development
 /src/dataLog
 /src/dataLog
+.env.development

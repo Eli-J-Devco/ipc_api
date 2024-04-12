@@ -156,7 +156,7 @@ class Device_list(Base):
     # 12/03/2024
     # device_group= relationship("Device_group", back_populates="device_list")
     device_type = relationship("Device_type", foreign_keys=[id_device_type])
-
+	mode = Column(Integer, nullable=True, default=False)
 
 class Device_mppt(Base):
     __tablename__ = "device_mppt"
@@ -203,7 +203,8 @@ class Device_mppt_string(Base):
     current = Column(DOUBLE, nullable=True)
     status = Column(Boolean, nullable=True, default=True)
     device_mptt = relationship("Device_mppt", foreign_keys=[id_device_mppt])
-
+	device_list  = relationship('Device_list', foreign_keys=[id_device_list])
+    point_list  = relationship('Point_list', foreign_keys=[id_point_list])
 
 class Device_panel(Base):
     __tablename__ = "device_panel"

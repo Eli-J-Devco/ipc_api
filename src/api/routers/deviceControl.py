@@ -187,9 +187,8 @@ async def device_control(id_device : int , bitcontrol : bool ):
         
     try:
         data_send = {
-            "mode":"Man",
             "id_device":sql_id_str,
-            "parametter" : parametter,
+            "parameter" : parametter,
             }
         
         push_data_to_mqtt(mqtt_host,
@@ -232,7 +231,6 @@ async def device_control(id_device : int , bitcontrol : bool ):
                     'id_device_return': id_device_return,
                     'device_name': device_name,
                     'status_device': status_device,
-                    'mode': mode,
                     # 'token': token,
                 }
 
