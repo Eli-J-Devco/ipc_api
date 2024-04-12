@@ -84,9 +84,12 @@ class Project_setup(Base):
     enable_zero_export = Column(Boolean, nullable=False, default=False)
     value_zero_export = Column(DOUBLE(), nullable=False, default=100)
 
-    enable_limit_energy = Column(Boolean, nullable=False, default=False)
-    value_limit_energy = Column(DOUBLE(), nullable=False, default=100)
-
+    # enable_limit_energy = Column(Boolean, nullable=False, default=False)
+    # value_limit_energy = Column(DOUBLE(), nullable=False, default=100)
+    
+    enable_power_limit = Column(Boolean, nullable=False, default=False)
+    value_power_limit = Column(DOUBLE(), nullable=False, default=100)
+    
     modhopper1 = Column(Integer, nullable=True)
     modhopper2 = Column(Integer, nullable=True)
     modhopper_key = Column(String(255), nullable=True)
