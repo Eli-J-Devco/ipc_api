@@ -809,7 +809,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     else:
         pass
     
-    if enable_zero_export == 1 or enable_power_limit == 1:
+    if enable_zero_export == 1 or enable_power_limit == 1 or value_zero_export > 0 or value_power_limit > 0:
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
         statement = mybatis_mapper2sql.get_statement(
@@ -830,14 +830,18 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         comment = 200
         global bitcheck
         
-        if enable_zero_export == 1 or enable_power_limit == 1:
-            if  enable_zero_export == 1 or enable_power_limit == 1:
+        if enable_zero_export == 1 or enable_power_limit == 1 or value_zero_export > 0 or value_power_limit > 0:
+            if enable_zero_export == 1 or enable_power_limit == 1 or value_zero_export > 0 or value_power_limit > 0:
                 print("---------- write data from Device ----------")
                 try:    
                     if device_mode == 1 :
                         print("---------- Auto control mode ----------")
-                        if enable_zero_export == 1 and enable_power_limit == 0 and bitcheck == 1:
-                            print("")
+                        print("enable_zero_export", enable_zero_export)
+                        print("enable_power_limit", enable_power_limit)
+                        print("value_zero_export", value_zero_export)
+                        print("value_power_limit", value_power_limit)
+                        print("bitcheck", bitcheck)
+                        if ( enable_zero_export == 1 and enable_power_limit == 0 and bitcheck == 1 ) or ( value_zero_export > 0 and bitcheck == 1 ):
                             data_send = {
                             "time_stamp" :current_time,
                             "status":comment, 
@@ -851,7 +855,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                             
                             bitcheck = 0 
                             
-                        elif enable_power_limit == 1 and enable_zero_export == 0 and bitcheck == 1:
+                        elif (enable_power_limit == 1 and enable_zero_export == 0 and bitcheck == 1) or ( value_power_limit > 0 and bitcheck == 1 ):
                             data_send = {
                             "time_stamp" :current_time,
                             "status":comment, 
@@ -878,7 +882,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                             bitcheck = 0 
                         else:
                             pass
-                        
                         # ========================================================================
                         # data pud mqtt 
                         data_send = {
@@ -1694,11 +1697,12 @@ async def sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,host
                 continue
             
             mqtt_result = json.loads(message.message.decode())
-            
+
             if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result :
                 mode_auto = mqtt_result['mode'] 
                 type_mode_auto = mqtt_result['type']
                 bitcheck = 1
+                print("da vao day ")
                 
                 if mode_auto == "zero_export":
                     if type_mode_auto == "checkbox" :
@@ -1714,6 +1718,11 @@ async def sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,host
                     elif type_mode_auto == "textbox":
                         value_power_limit = mqtt_result['value']
                         MySQL_Update_V1 ("update project_setup set value_power_limit = %s",(value_power_limit,))
+                        
+                print("enable_zero_export",enable_zero_export)
+                print("value_zero_export",value_zero_export)
+                print("enable_power_limit",enable_power_limit)
+                print("value_power_limit",value_power_limit)
                 
             else:
                 pass
