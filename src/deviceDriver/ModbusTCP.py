@@ -77,8 +77,11 @@ count = 0
 len_mqtt = 0
 mqtt_result_control_write = ""
 
-mode_auto = ""
-value_mode_auto = 0
+enable_zero_export = ""
+value_zero_export = 0
+enable_power_limit = ""
+value_power_limit = 0
+
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -609,6 +612,11 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     global data_write_device
     global bit_feedback
     
+    global enable_zero_export
+    global value_zero_export
+    global enable_power_limit
+    global value_power_limit
+    
     id_systemp = ConfigPara[1]
     pathSource=path
     # print(f'pathSource: {pathSource}')
@@ -741,6 +749,15 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             
                                         if device_mode == 1 :
                                             print("---------- Auto control mode ----------")
+                                            if enable_zero_export == 1 and enable_power_limit == 0:
+                                                pass
+                                                
+                                            elif enable_power_limit == 1 and enable_zero_export == 0:
+                                                pass
+                                                
+                                            elif enable_zero_export == 1 and enable_power_limit == 1:
+                                                pass
+                                                
                                             # data pud mqtt 
                                             data_send = {
                                                 "time_stamp" :current_time,
@@ -1528,8 +1545,12 @@ async def update_modecontrol_systemp_for_modecontrol_device(serial_number_projec
         
 async def sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,host, port, topic, username, password):
     
-    global mode_auto
-    global value_mode_auto
+    global enable_zero_export
+    global value_zero_export
+    global enable_power_limit
+    global value_power_limit
+    mode_auto = ""
+    type_mode_auto = ""
     
     topic = serial_number_project + topic
     mqtt_result = []
@@ -1556,10 +1577,27 @@ async def sud_mode_auto_control_zeroexport_powerlimit(serial_number_project,host
             
             if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result :
                 mode_auto = mqtt_result['mode'] 
-                value_mode_auto = mqtt_result['value']
+                type_mode_auto = mqtt_result['type']
                 
-                print("mode_auto",mode_auto)
-                print("value_mode_auto",value_mode_auto)
+                if mode_auto == "zero_export":
+                    if type_mode_auto == "checkbox" :
+                        enable_zero_export = mqtt_result['enable']
+                        MySQL_Update_V1 ("update project_setup set enable_zero_export = %s",(enable_zero_export,))
+                    elif type_mode_auto == "textbox":
+                        value_zero_export = mqtt_result['value']
+                        MySQL_Update_V1 ("update project_setup set value_zero_export = %s",(value_zero_export,))
+                elif mode_auto == "power_limit":
+                    if type_mode_auto == "checkbox" :
+                        enable_power_limit = mqtt_result['enable']
+                        MySQL_Update_V1 ("update project_setup set enable_power_limit = %s",(enable_power_limit,))
+                    elif type_mode_auto == "textbox":
+                        value_power_limit = mqtt_result['value']
+                        MySQL_Update_V1 ("update project_setup set value_power_limit = %s",(value_power_limit,))
+                        
+                print("enable_zero_export",enable_zero_export)
+                print("value_zero_export",value_zero_export)
+                print("enable_power_limit",enable_power_limit)
+                print("value_power_limit",value_power_limit)
                 
             else:
                 pass
