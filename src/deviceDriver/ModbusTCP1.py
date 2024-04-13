@@ -1536,10 +1536,13 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
     global bitchecktopic3
     
     # variable topic 1
+
     # variable topic 2
     global device_mode
     # variable topic 3
+    
     # variable topic 4
+    
     # variable topic 5
     
     try:
