@@ -1501,6 +1501,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
 
 async def main():
     tasks = []
+    await process_getfirst_zeroexport_powerlimit()
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
     serial_number_project=results_project[0]["serial_number"]
