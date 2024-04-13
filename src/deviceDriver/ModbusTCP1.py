@@ -866,7 +866,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         # 
         
         results_device = MySQL_Select(query_only_device, (id_device,))
-        # print(results_device)
+        
         # 
         if type(results_device) == list and len(results_device)>=1:
             pass
@@ -1536,10 +1536,13 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
     global bitchecktopic3
     
     # variable topic 1
+
     # variable topic 2
     global device_mode
     # variable topic 3
+    
     # variable topic 4
+    
     # variable topic 5
     
     try:
