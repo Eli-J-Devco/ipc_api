@@ -633,16 +633,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     global enable_power_limit
     global value_power_limit
     
-    
-    print("result_topic1",result_temp)
-    print("bitchecktopic1",bitchecktopic1)
-    print("device_mode",device_mode)
-    print("enable_zero_export",enable_zero_export)
-    print("value_zero_export",value_zero_export)
-    print("enable_power_limit",enable_power_limit)
-    print("value_power_limit",value_power_limit)
-    
-
     # process man mode
     if result_temp and bitchecktopic1 == 1 and ((enable_zero_export == 0 ) or (enable_power_limit == 0 )):
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -806,16 +796,19 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                 pass
     # process auto mode 
     elif (device_mode == 1 ) and ( (enable_zero_export == 1 and value_zero_export != 0) or (enable_power_limit == 1 and value_power_limit != 0 )) :
-        if enable_zero_export == 1 and value_zero_export != 0 :
+        if enable_zero_export == 1 and value_zero_export != 0 and enable_power_limit == 0:
             print("zero_export")
-        elif enable_power_limit == 1 and value_power_limit != 0 :
+            
+        elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
             print("power_limit")
+            # lay arr check phai inv hay khong neu la inv va trong che do nao thi lay gia tri max P tu bang device_list 
         elif ( enable_zero_export == 1 and value_zero_export != 0 ) and (enable_power_limit == 1 and value_power_limit != 0):
             print("zero_export + power_limit")
+
         else :
             pass
     else:
-        print("khong thuoc truong hop nao")
+        print("wwaiting user chosse the mode")
     
 # Describe functions before writing code
 # /**
