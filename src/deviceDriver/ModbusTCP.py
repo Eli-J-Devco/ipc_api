@@ -1481,7 +1481,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
             if message.topic == topic1:
                 result_topic1 = json.loads(message.message.decode())
                 #process
-                if result_topic1 :
+                if result_topic1 and 'parameter' in result_topic2 :
                     bitchecktopic1 = 1 
                     await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
                 
