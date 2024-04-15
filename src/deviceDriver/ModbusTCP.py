@@ -674,15 +674,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     global result_topic1
     global bitchecktopic1
     result_temp = []
-    if device_mode == 1 :
-        result_temp = []
-    else :
-        result_temp = result_topic1
+    result_temp = result_topic1
     
-    # Auto (device_mode == 1 ) and ( enable_zero_export == 1 and value_zero_export != 0 or  enable_power_limit == 1 and value_power_limit != 0 ): 
-
-    
-    # process man mode
     if result_temp and bitchecktopic1 == 1 :
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
@@ -763,7 +756,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 elif code_value == 144 :
                                                     comment = 400
 
-                                        elif len(inverter_info) >= 1 and isinstance(value, int):
+                                        if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
@@ -793,7 +786,16 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         
                                     if device_mode == 1 :
                                         print("---------- Auto control mode ----------")
-                                        # ========================================================================
+                                        if len(inverter_info) >= 1 and parameter[0]['id_pointkey'] == "WMax":
+                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
+                                            # get status INV 
+                                            if results_write_modbus:
+                                                code_value = results_write_modbus['code']
+                                                if code_value == 16 :
+                                                    comment = 200
+                                                elif code_value == 144 :
+                                                    comment = 400
                                         # Feedback confirms the device has switched to auto mode
                                         data_send = {
                                             "time_stamp" :current_time,
@@ -1481,7 +1483,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
             if message.topic == topic1:
                 result_topic1 = json.loads(message.message.decode())
                 #process
-                if result_topic1 and 'parameter' in result_topic2 :
+                if result_topic1 :
                     bitchecktopic1 = 1 
                     await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
                 

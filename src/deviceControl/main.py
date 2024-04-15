@@ -23,7 +23,8 @@ enable_zero_export = 0
 value_zero_export = 0
 enable_power_limit = 0
 value_power_limit = 0
-    
+
+result_topic4 = []
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
@@ -38,6 +39,7 @@ MQTT_TOPIC_SUD_MODEGET_INFORMATION = "/Project/Get"
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
+MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -307,7 +309,16 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
-
+        
+async def check_inverter_device(device_control):
+    results_device_type = []
+    
+    query = "SELECT `device_type`.`name` FROM device_type INNER JOIN `device_list` ON device_list.id_device_type=device_type.id WHERE device_list.id=%s;"
+    results_device_type = MySQL_Select(query, (device_control,))
+    if results_device_type and results_device_type[0]["name"] == "PV System Inverter":
+        return True  
+    else:
+        return False  
 async def get_list_device_in_automode(mqtt_result):
     device_list = []
     if mqtt_result and isinstance(mqtt_result, list):
@@ -316,16 +327,50 @@ async def get_list_device_in_automode(mqtt_result):
                 id_device = item['id_device']
                 mode = item['mode']
                 status_device = item['status_device']
-                # Thêm thông tin vào danh sách device_list
-                device_list.append({
-                    'id_device': id_device,
-                    'mode': mode,
-                    'status_device': status_device
-                })
-    print("device_list",device_list)
+                if await check_inverter_device(id_device) and status_device == 'online' and mode == 1:
+                    device_list.append({
+                        'id_device': id_device,
+                        'mode': mode,
+                        'status_device': status_device
+                    })
     return device_list
+
+async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global result_topic4
+    global enable_power_limit
+    global value_power_limit
+    global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
+    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    p_for_each_device = 0
     
+    if result_topic4 :
+        devices = await get_list_device_in_automode(result_topic4)
+        
+        if devices:  
+            p_for_each_device = value_power_limit / len(devices)
+
+            device_list_control_power_limit = []
+            for device in devices:
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "WMax", "value": p_for_each_device}
+                    ]
+                }
+                device_list_control_power_limit.append(new_device)
+            
+            if len(devices) == len(device_list_control_power_limit):
+                push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topicpud,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    device_list_control_power_limit)
+    else:
+        pass
+
 async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     
     global enable_zero_export
@@ -406,7 +451,7 @@ async def process_getfirst_zeroexport_powerlimit():
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")   
-async def process_zero_export_power_limit():
+async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     global enable_zero_export
     global value_zero_export
     global enable_power_limit
@@ -417,6 +462,7 @@ async def process_zero_export_power_limit():
     elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
         # lay arr check phai inv hay khong neu la inv va trong che do nao thi lay gia tri max P tu bang device_list 
         print("power_limit")
+        await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif ( enable_zero_export == 1 and value_zero_export != 0 ) and (enable_power_limit == 1 and value_power_limit != 0):
         print("zero_export + power_limit")
     else :
@@ -428,7 +474,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
     result_topic1 = ""
     result_topic2 = ""
     result_topic3 = ""
-    result_topic4 = ""
+    global result_topic4
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
@@ -467,7 +513,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
             elif message.topic == topic4:
                 result_topic4 = json.loads(message.message.decode())
-                await get_list_device_in_automode(result_topic4)
+                # await get_list_device_in_automode(result_topic4)
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
@@ -495,7 +541,11 @@ async def main():
                                                                         MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
-    scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/10' , args=[])
+    scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/10' , args=[serial_number_project,
+                                                                        MQTT_BROKER,
+                                                                        MQTT_PORT,
+                                                                        MQTT_USERNAME,
+                                                                        MQTT_PASSWORD])
     scheduler.start()
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
