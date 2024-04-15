@@ -55,8 +55,6 @@ MQTT_TOPIC_PUB_CONTROL = "/Control"
 MQTT_TOPIC_PUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE = "/Control/Write"
-MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
-MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -608,11 +606,65 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
-async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic,topicPudModeAuto, mqtt_username, mqtt_password):
+async def check_inverter_device(device_control):
+    results_device_type = []
+    
+    query = "SELECT `device_type`.`name` FROM device_type INNER JOIN `device_list` ON device_list.id_device_type=device_type.id WHERE device_list.id=%s;"
+    results_device_type = MySQL_Select(query, (device_control,))
+    if results_device_type and results_device_type[0]["name"] == "PV System Inverter":
+        return True  
+    else:
+        return False  
+
+async def find_inverter_information(device_control , parameter):
+    results_register = []
+    results_datatype = []
+    inverter_information = []
+    inverter_information_full = []
+    query_register = "SELECT point_list.id_pointkey , point_list.`register`, point_list.id_type_datatype FROM `point_list` INNER JOIN `device_list` ON device_list.id_template = point_list.id_template WHERE device_list.id = %s;"
+    query_datatype = "SELECT `config_information`.`value` FROM `config_information` WHERE `config_information`.id = %s"
+    
+    results_register = MySQL_Select(query_register, (device_control,))
+    
+    if results_register :
+        inverter_information = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
+        
+        # Iterate through the new list to assign values from the corresponding variables
+        for item in inverter_information:
+            for p in parameter:
+                if item['id_pointkey'] == p['id_pointkey']:
+                    item['value'] = p['value']
+    
+    for item in inverter_information:
+        value = item["value"]
+        register = item["register"]
+        type_datatype = item["id_type_datatype"]
+        id_pointkey = item['id_pointkey']
+
+        # Tìm kiếm datatype tương ứng
+        results_datatype = MySQL_Select(query_datatype, (type_datatype,))
+        if results_datatype:
+            datatype = results_datatype[0]["value"]
+        else:
+            datatype = None  # Xử lý trường hợp không tìm thấy datatype
+
+        # Thêm biến datatype vào phần tử và thêm vào danh sách mới
+        item_with_datatype = {
+            "value": value,
+            "register": register,
+            "id_type_datatype": type_datatype,
+            "id_pointkey": id_pointkey,
+            "datatype": datatype
+        }
+        inverter_information_full.append(item_with_datatype)
+        
+    return inverter_information_full
+    
+async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     
     topicPublic = serial_number_project + topicPublic
-    topicPudModeAuto = serial_number_project + topicPudModeAuto
     id_systemp = ConfigPara[1]
+    id_systemp = int(id_systemp)
     pathSource=path
     
     global device_mode
@@ -628,13 +680,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         result_temp = result_topic1
     
     # Auto (device_mode == 1 ) and ( enable_zero_export == 1 and value_zero_export != 0 or  enable_power_limit == 1 and value_power_limit != 0 ): 
-    global enable_zero_export
-    global value_zero_export
-    global enable_power_limit
-    global value_power_limit
+
     
     # process man mode
-    if result_temp and bitchecktopic1 == 1 and ((enable_zero_export == 0 ) or (enable_power_limit == 0 )):
+    if result_temp and bitchecktopic1 == 1 :
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
         statement = mybatis_mapper2sql.get_statement(
@@ -652,23 +701,19 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         for item in result_temp:
             device_control = item['id_device']
             parameter = item['parameter']
-            id_systemp = int(id_systemp)
             
             if id_systemp == device_control :
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
                         # result Modbus
-                        results_device_type = []
                         results_write_modbus = []
-                        results_register = []
-                        filtered_results_register = []
                         
                         # information Modbus 
                         register = ""
                         datatype = ""
-                        type_datatype = ""
                         code_value = 0
+                        id_pointkey = ""
                         
                         #mqtt
                         comment = 200
@@ -676,115 +721,98 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         data_send = ""
                         
                         # database
+                        is_inverter = []
+                        inverter_info = []
                         result_query_findname = []
-                        id_pointkey = ""
                         name_device_points_list_map = ""
                         
                         if device_control :
-                            results_device_type = MySQL_Select(QUERY_TYPE_DEVICE, (device_control,))
-                            results_register = MySQL_Select(QUERY_REGISTER_DATATYPE, (device_control,))
+                            is_inverter = await check_inverter_device(device_control)
                         else :
                             pass
 
                         # if device is INV 
-                        if results_device_type :
-                            if results_device_type[0]["name"] == "PV System Inverter" :
-                                if results_register :
-                                    filtered_results_register = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
-                                    
-                                    # Iterate through the new list to assign values from the corresponding variables
-                                    for item in filtered_results_register:
-                                        for p in parameter:
-                                            if item['id_pointkey'] == p['id_pointkey']:
-                                                item['value'] = p['value']
+                        if is_inverter:
+                            inverter_info = await find_inverter_information(device_control, parameter)
+
+                            for item in inverter_info:
+                                value = item["value"]
+                                register = item["register"]
+                                id_pointkey = item['id_pointkey']
+                                datatype = item["datatype"]
                                 
-                                for item in filtered_results_register:
-                                    value = item["value"]
-                                    register = item["register"]
-                                    type_datatype = item["id_type_datatype"]
-                                    id_pointkey = item['id_pointkey']
-                                    
-                                    # Find datatype register (int16,int32, float,...)
-                                    results_datatype = MySQL_Select(QUERY_DATATYPE, (type_datatype,))
+                                # Find 'name' in device_point_list_map
+                                result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                name_device_points_list_map = result_query_findname [0]["name"]
+                                
+                                try:
+                                    if device_mode == 0 :
+                                        print("---------- Manual control mode ----------")
+                                        if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
+                                            if value == True :
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
+                                            elif value == False :
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
+                                            # get status INV 
+                                            if results_write_modbus:
+                                                code_value = results_write_modbus['code']
+                                                if code_value == 16 :
+                                                    comment = 200
+                                                elif code_value == 144 :
+                                                    comment = 400
 
-                                    # Find 'name' in device_point_list_map
-                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
-                                    name_device_points_list_map = result_query_findname [0]["name"]
-
-                                    if results_datatype :
-                                        datatype = results_datatype[0]["value"]
-                                    else :
-                                        pass
-
-                                    try:
-                                        if device_mode == 0 :
-                                            print("---------- Manual control mode ----------")
-                                            if len(filtered_results_register) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
-                                                if value == True :
-                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
-                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
-                                                elif value == False :
-                                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
-                                                    MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
-                                                # get status INV 
-                                                if results_write_modbus:
-                                                    code_value = results_write_modbus['code']
-                                                    if code_value == 16 :
-                                                        comment = 200
-                                                    elif code_value == 144 :
-                                                        comment = 400
-
-                                            elif len(filtered_results_register) >= 1 and isinstance(value, int):
-                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
-                                                # get status INV 
-                                                if results_write_modbus:
-                                                    code_value = results_write_modbus['code']
-                                                    if code_value == 16 :
-                                                        comment = 200
-                                                    elif code_value == 144 :
-                                                        comment = 400
-                                            # data pud mqtt 
-                                                data_send = {
-                                                    "time_stamp" :current_time,
-                                                    "status":comment, 
-                                                    }
-                                                if bitchecktopic1 == 1 and code_value == 16 :
-                                                    push_data_to_mqtt(mqtt_host,
-                                                            mqtt_port,
-                                                            topicPublic + "/" +"Feedback" ,
-                                                            mqtt_username,
-                                                            mqtt_password,
-                                                            data_send)
-                                                    bitchecktopic1 == 0
-                                                    result_topic1 = []
-                                                else :
-                                                    pass
-                                            
-                                        if device_mode == 1 :
-                                            print("---------- Auto control mode ----------")
-                                            # ========================================================================
-                                            # Feedback confirms the device has switched to auto mode
-                                            data_send = {
-                                                "time_stamp" :current_time,
-                                                "status":comment, 
-                                                }
-                                            if bitchecktopic1 == 1 :
-                                                push_data_to_mqtt(mqtt_host,
-                                                        mqtt_port,
-                                                        topicPublic + "/" +"Feedback" ,
-                                                        mqtt_username,
-                                                        mqtt_password,
-                                                        data_send)
-                                                bitchecktopic1 == 0
-                                                result_topic1 = []
-                                            else :
-                                                pass
-                                            
-                                    except Exception as e:
-                                        print(f"An error occurred: {e}")
-                            else:
-                                pass
+                                        elif len(inverter_info) >= 1 and isinstance(value, int):
+                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
+                                            # get status INV 
+                                            if results_write_modbus:
+                                                code_value = results_write_modbus['code']
+                                                if code_value == 16 :
+                                                    comment = 200
+                                                elif code_value == 144 :
+                                                    comment = 400
+                                        # after control INV => Done pud status device to MQTT and resset Araay Sent data 
+                                        data_send = {
+                                            "time_stamp" :current_time,
+                                            "status":comment, 
+                                            }
+                                        if bitchecktopic1 == 1 and code_value == 16 :
+                                            push_data_to_mqtt(mqtt_host,
+                                                    mqtt_port,
+                                                    topicPublic + "/" +"Feedback" ,
+                                                    mqtt_username,
+                                                    mqtt_password,
+                                                    data_send)
+                                            # resset data
+                                            bitchecktopic1 == 0
+                                            result_topic1 = []
+                                        else :
+                                            pass
+                                        
+                                    if device_mode == 1 :
+                                        print("---------- Auto control mode ----------")
+                                        # ========================================================================
+                                        # Feedback confirms the device has switched to auto mode
+                                        data_send = {
+                                            "time_stamp" :current_time,
+                                            "status":comment, 
+                                            }
+                                        if bitchecktopic1 == 1 :
+                                            push_data_to_mqtt(mqtt_host,
+                                                    mqtt_port,
+                                                    topicPublic + "/" +"Feedback" ,
+                                                    mqtt_username,
+                                                    mqtt_password,
+                                                    data_send)
+                                            bitchecktopic1 == 0
+                                            result_topic1 = []
+                                        else :
+                                            pass
+                                        
+                                except Exception as e:
+                                    print(f"An error occurred: {e}")
                         else :
                             pass
                             
@@ -794,21 +822,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                     pass
             else:
                 pass
-    # process auto mode 
-    elif (device_mode == 1 ) and ( (enable_zero_export == 1 and value_zero_export != 0) or (enable_power_limit == 1 and value_power_limit != 0 )) :
-        if enable_zero_export == 1 and value_zero_export != 0 and enable_power_limit == 0:
-            print("zero_export")
-            
-        elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
-            print("power_limit")
-            # lay arr check phai inv hay khong neu la inv va trong che do nao thi lay gia tri max P tu bang device_list 
-        elif ( enable_zero_export == 1 and value_zero_export != 0 ) and (enable_power_limit == 1 and value_power_limit != 0):
-            print("zero_export + power_limit")
-
-        else :
-            pass
-    else:
-        print("wwaiting user chosse the mode")
     
 # Describe functions before writing code
 # /**
@@ -836,7 +849,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global device_mode
         global id_template
         pathSource=path
-        global MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -908,7 +920,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
-                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, MQTT_TOPIC_PUD_CHOICES_MODE_AUTO, mqtt_username, mqtt_password)
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
@@ -1432,108 +1444,20 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
         
-async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
-    
-    global enable_zero_export
-    global value_zero_export
-    global enable_power_limit
-    global value_power_limit
-    global MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
-    global bitchecktopic3
-    
-    topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
-    
-    current_time = get_utc()
-    mode_auto = ""
-    type_mode_auto = ""
-    comment = 0
-    
-    try:
-        if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result:
-            mode_auto = mqtt_result['mode'] 
-            type_mode_auto = mqtt_result['type']
-            bitchecktopic3 = 1
-            
-            if mode_auto == "zero_export":
-                if type_mode_auto == "checkbox":
-                    enable_zero_export = mqtt_result.get('enable', enable_zero_export)
-                    if enable_zero_export is not None:
-                        MySQL_Update_V1("update project_setup set enable_zero_export = %s", (enable_zero_export,))
-                elif type_mode_auto == "textbox":
-                    value_zero_export = mqtt_result.get('value', value_zero_export)
-                    if value_zero_export is not None:
-                        MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
-            elif mode_auto == "power_limit":
-                if type_mode_auto == "checkbox":
-                    enable_power_limit = mqtt_result.get('enable', enable_power_limit)
-                    if enable_power_limit is not None:
-                        MySQL_Update_V1("update project_setup set enable_power_limit = %s", (enable_power_limit,))
-                elif type_mode_auto == "textbox":
-                    value_power_limit = mqtt_result.get('value', value_power_limit)
-                    if value_power_limit is not None:
-                        MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
-            # When you receive one of the above information, give feedback to mqtt
-            if ( enable_zero_export or value_zero_export or enable_power_limit or value_power_limit ) and bitchecktopic3 == 1 :
-                comment = 200 
-                data_send = {
-                            "time_stamp" :current_time,
-                            "status":comment, 
-                            }
-                push_data_to_mqtt(mqtt_host,
-                        mqtt_port,
-                        topicPudModeAuto ,
-                        mqtt_username,
-                        mqtt_password,
-                        data_send)
-                bitchecktopic3 = 0
-        else:
-            pass
-            
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-
-async def process_getfirst_zeroexport_powerlimit():
-    
-    global enable_zero_export
-    global value_zero_export
-    global enable_power_limit
-    global value_power_limit
-    result_project_setup = []
-    
-    try:
-        result_project_setup = await MySQL_Select_v1("select * from project_setup")
-        if result_project_setup :
-            enable_zero_export = result_project_setup[0]["enable_zero_export"]
-            value_zero_export = result_project_setup[0]["value_zero_export"]
-            enable_power_limit = result_project_setup[0]["enable_power_limit"]
-            value_power_limit = result_project_setup[0]["value_power_limit"]
-        
-        else:
-            pass
-            
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-        
-async def sud_mqtt(serial_number_project, host, port, topic1, topic2, topic3, username, password):
+async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
     
     global result_topic1 
     global result_topic2 
-    global result_topic3 
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
-    topic3 = serial_number_project + topic3
     
     global bitchecktopic1 
     global bitchecktopic2
-    global bitchecktopic3
     
     # variable topic 1
     # variable topic 2
     global device_mode
-    # variable topic 3
-    # variable topic 4
-    # variable topic 5
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1543,7 +1467,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
         await client.start()
         await client.subscribe(topic1)
         await client.subscribe(topic2)
-        await client.subscribe(topic3)
         
         while True:
             try:
@@ -1572,19 +1495,12 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
                         pass
                 else:
                     pass
-            
-            elif message.topic == topic3:
-                result_topic3 = json.loads(message.message.decode())
-                print("result_topic3",result_topic3)
-                # process 
-                await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
 async def main():
     tasks = []
-    await process_getfirst_zeroexport_powerlimit()
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
     serial_number_project=results_project[0]["serial_number"]
@@ -1627,7 +1543,6 @@ async def main():
                                                     MQTT_PORT,
                                                     MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
                                                     MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
-                                                    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
