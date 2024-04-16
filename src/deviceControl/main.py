@@ -18,11 +18,17 @@ arr = sys.argv
 ModeSysTemp = ""
 flag = 0 
 sent_information = ""
+devices = []
 
 enable_zero_export = 0
 value_zero_export = 0
 enable_power_limit = 0
 value_power_limit = 0
+
+value_production = 0
+value_consumption = 0
+value_cumulative = 0
+value_subcumulative = 0
 
 result_topic4 = []
 MQTT_BROKER = Config.MQTT_BROKER
@@ -321,55 +327,141 @@ async def check_inverter_device(device_control):
         return False  
 async def get_list_device_in_automode(mqtt_result):
     device_list = []
+    result_pmax = []
+    p_max = 0
+    value = 0
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
                 id_device = item['id_device']
                 mode = item['mode']
                 status_device = item['status_device']
+                
+                for param in item.get("parameters", []):
+                    if param["name"] == "Basic":
+                        for field in param.get("fields", []):
+                            if field["point_key"] == "ControlINV":
+                                value = field["value"]
+                                break  
+                
                 if await check_inverter_device(id_device) and status_device == 'online' and mode == 1:
+                    
+                    # Pmax
+                    result_pmax = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
+                    p_max = result_pmax[0]["max_watt"]
+                    
                     device_list.append({
                         'id_device': id_device,
                         'mode': mode,
-                        'status_device': status_device
+                        'status_device': status_device,
+                        'p_max': p_max,
+                        'controlinv': value
                     })
     return device_list
 
+async def get_value_meter():
+    global result_topic4
+    global value_production
+    global value_consumption
+
+    if result_topic4:
+        for item in result_topic4:
+            if 'id_device' in item:
+                id_device = item['id_device']
+                result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
+
+                if result_type_meter and result_type_meter[0]["name"] == "Production Meter":
+                    for param in item.get("parameters", []):
+                        if param["name"] == "Basic":
+                            for field in param.get("fields", []):
+                                if field["point_key"] == "TotalActivePower":
+                                    value_production = field["value"]
+                                    print("Production Meter:", value_production)
+                                    break
+
+                elif result_type_meter and result_type_meter[0]["name"] == "Consumption meter":
+                    for param in item.get("parameters", []):
+                        if param["name"] == "Basic":
+                            for field in param.get("fields", []):
+                                if field["point_key"] == "TotalActivePower":
+                                    value_consumption = field["value"]
+                                    print("Consumption Meter:", value_consumption)
+                                    break
+    else:
+        pass  # Handle the case when result_topic4 is empty
+
+async def compare_value_production_with_setpoint():
+    global value_production
+    global value_power_limit
+    global value_cumulative
+    global value_subcumulative
+    global devices
+    results_sud = 0
+    
+    if value_power_limit > value_production : 
+        results_sud = value_power_limit - value_production
+        if results_sud > 0 and len(devices) > 0:
+            value_cumulative = results_sud/len(devices)
+    elif value_power_limit <= value_production :
+        value_cumulative = 0
+        results_sud = value_production - value_power_limit
+        if results_sud > 0 and len(devices) > 0:
+            value_subcumulative = results_sud/len(devices)
+        pass
+    
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
     global value_power_limit
+    global devices
+    global value_cumulative
+    global value_subcumulative
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-    p_for_each_device = 0
+    p_max_values = []
     
-    if result_topic4 :
+    if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-        
-        if devices:  
-            p_for_each_device = value_power_limit / len(devices)
 
+    await compare_value_production_with_setpoint()
+    if devices:
+        p_max_values = [device['p_max'] for device in devices]
+        if len(set(p_max_values)) == 1:  # check if all p_max values are the same
             device_list_control_power_limit = []
             for device in devices:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "parameter": [
-                        {"id_pointkey": "WMax", "value": p_for_each_device}
-                    ]
-                }
+                p_for_each_device = value_power_limit / len(devices)
+                if p_for_each_device > device['p_max']:
+                    p_for_each_device = device['p_max']
+                p_for_each_device = p_for_each_device + value_cumulative - value_subcumulative  # Update p_for_each_device with value_cumulative
+
+                if device['controlinv'] == 1:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "parameter": [
+                            {"id_pointkey": "WMax", "value": p_for_each_device}
+                        ]
+                    }
+                else:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "parameter": [
+                            {"id_pointkey": "ControlINV", "value": 1},
+                            {"id_pointkey": "WMax", "value": p_for_each_device}
+                        ]
+                    }
                 device_list_control_power_limit.append(new_device)
-            
+
             if len(devices) == len(device_list_control_power_limit):
-                push_data_to_mqtt(mqtt_host,
-                                    mqtt_port,
-                                    topicpud,
-                                    mqtt_username,
-                                    mqtt_password,
-                                    device_list_control_power_limit)
+                push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            else:
+                pass
+        else:
+            pass
     else:
-        pass
+        pass 
 
 async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     
@@ -546,6 +638,7 @@ async def main():
                                                                         MQTT_PORT,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
+    scheduler.add_job(get_value_meter, 'cron',  second = f'*/10' , args=[])
     scheduler.start()
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
