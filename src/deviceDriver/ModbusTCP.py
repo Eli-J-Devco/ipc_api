@@ -273,12 +273,14 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                         "code":result_rb.function_code,
                         "data":[],
                         "exception_code":desc,
+                        "address":ADDR
                     }
                 elif hasattr(result_rb, "registers"):
                     return {
                         "code":100,
                         "data":result_rb.registers,
-                        "exception_code":""
+                        "exception_code":"",
+                        "address":ADDR
                     }
             
         except Exception as err:
@@ -1041,14 +1043,14 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                         })
                                     # print(f'ERROR CODE: {result_rb["exception_code"]}')
                                     print(f"Error reading from {slave_ip}: {result_rb}")
-                                    
+                                    status_register_block=status_rb
                                 case 100:
                                     status_device="online"
                                     INC = ADDR-1
                                     for itemR in result_rb["data"]:
+                                        INC = INC+1
                                         Data.append({"MRA": INC, "Value": itemR, })
-                                case _:
-                                    pass
+                                    # print(f'Data1: {len(Data)}')    
                             # print(f"Register Block {slave_ip}: {new_Data}") 
                             # if result_rb==[]:
                             #     print("The device does not return results")
@@ -1080,8 +1082,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                             #                                   "ERROR_CODE":139,
                             #                                    "Timestamp": getUTC(),
                             #                                   })      
+                        # print(f'Data: {len(Data)}')
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
-                        
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)
