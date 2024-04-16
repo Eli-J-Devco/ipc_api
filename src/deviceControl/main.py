@@ -402,16 +402,18 @@ async def compare_value_production_with_setpoint():
     global value_subcumulative
     global devices
     results_sud = 0
-    
-    if value_power_limit > value_production : 
-        results_sud = value_power_limit - value_production
-        if results_sud > 0 and len(devices) > 0:
-            value_cumulative = results_sud/len(devices)
-    elif value_power_limit <= value_production :
-        value_cumulative = 0
-        results_sud = value_production - value_power_limit
-        if results_sud > 0 and len(devices) > 0:
-            value_subcumulative = results_sud/len(devices)
+    if value_power_limit is not None and value_production is not None:
+        if value_power_limit > value_production : 
+            results_sud = value_power_limit - value_production
+            if results_sud > 0 and len(devices) > 0:
+                value_cumulative = results_sud/len(devices)
+        elif value_power_limit <= value_production :
+            value_cumulative = 0
+            results_sud = value_production - value_power_limit
+            if results_sud > 0 and len(devices) > 0:
+                value_subcumulative = results_sud/len(devices)
+            pass
+    else:
         pass
     
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
@@ -421,6 +423,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     global devices
     global value_cumulative
     global value_subcumulative
+    global value_production
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
@@ -430,9 +433,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         devices = await get_list_device_in_automode(result_topic4)
 
     await compare_value_production_with_setpoint()
-    if devices:
+    if devices and value_production:
         p_max_values = [device['p_max'] for device in devices]
-        if len(set(p_max_values)) == 1:  # check if all p_max values are the same
+        if len(set(p_max_values)) == 1 :  # check if all p_max values are the same
             device_list_control_power_limit = []
             for device in devices:
                 p_for_each_device = value_power_limit / len(devices)
