@@ -537,7 +537,7 @@ async def create_multiple_device(
                         # rowcount_register_block=0
                         rowcount_point_list = 0
                         # insert device_point_list
-
+                        new_device = []
                         for item in new_device_list:
                             # param={
                             #     "id":item.id
@@ -566,6 +566,13 @@ async def create_multiple_device(
                             print(f"result_point_list: {result_point_list.__dict__}")
                             if result_point_list.rowcount != 0:
                                 rowcount_point_list += 1
+                            new_device.append({
+                                "id":item.id,
+                                "name":item.name,
+                                "connect_type":driver_list.name,
+                                "id_com":id_communication,
+                                "mode":item.mode
+                                })
                         if rowcount_point_list == 0:
                             reset_data_new(new_device_list)
                         db.commit()
@@ -761,7 +768,13 @@ async def create_multiple_device(
                             )
                             db.commit()
                         #
-                        param = {"CODE": "CreateRS485Dev", "PAYLOAD": id_communication}
+                        param = {
+                            "CODE": "CreateRS485Dev", 
+                            "PAYLOAD": {
+                                "id_communication":id_communication,
+                                "device":new_device
+                            }
+                            }
                         mqtt_public("/Init/API/Requests", param)
                         return 100
                     except exc.SQLAlchemyError as err:
@@ -806,7 +819,7 @@ async def create_multiple_device(
                                 "id":item.id,
                                 "name":item.name,
                                 "connect_type":driver_list.name,
-                                "id_com":id_communication,
+                                "id_communication":id_communication,
                                 "mode":item.mode
                                 })
                         db.commit()
@@ -1016,7 +1029,9 @@ async def create_multiple_device(
                         reset_data_new(new_device_list)
                     finally:
                         if rowcount_point_list != 0:
-                            param = {"CODE": "CreateTCPDev", "PAYLOAD": new_device}
+                            param = {
+                                    "CODE": "CreateTCPDev", 
+                                    "PAYLOAD": new_device}
                             mqtt_public("/Init/API/Requests", param)
                         return 100
                 else:
@@ -1128,7 +1143,7 @@ async def delete_device(
                         result_device.update({"status": 0})
                         # status =0 of device in table device_list
                         # Disable pm2 send list to api gateway
-                        # Delete app device running
+                        # Delete pm2 app device running
                         # Restart pm2: LogDevice, LogFile, UpData
                     elif mode == 2:  # delete
                         # Delete table and view of device
@@ -1137,7 +1152,7 @@ async def delete_device(
                         result_device.delete()
                         # Delete device in table device_list
                         # Delete pm2 send list to api gateway
-                        # Delete app device running
+                        # Delete pm2 app device running
                         # Restart pm2: LogDevice, LogFile, UpData
                     else:
                         pass
@@ -1154,7 +1169,7 @@ async def delete_device(
                 param={
                     "CODE":"DeleteDev",
                     "PAYLOAD":delete_list,
-                    "MODE":mode
+                    "DELETE_MODE":mode
                 }
                 mqtt_public("/Init/API/Requests",param)
             return {"status": "success","code": str(100)}

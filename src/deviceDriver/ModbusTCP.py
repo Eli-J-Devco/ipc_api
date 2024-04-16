@@ -174,38 +174,120 @@ def point_object(Config,
 # 	 * @return data (registers)
 # 	 */
 def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
-    try:
-        match FUNCTION:
-            case 0:# not used           
-                return []
-            case 1:# Read Coils
-                ADDR = ADDRs                        
-                result_rb = client.read_coils(
-                                ADDR, COUNT, unit=slave_ID)
-                return result_rb
-
-            case 2:# Read Discrete Inputs      
-                ADDR = ADDRs
-                result_rb = client.read_discrete_inputs(
-                                    ADDR, COUNT, unit=slave_ID)
-                return result_rb
+    result_rb=None
+    while True:
+        try:
             
-            case 3:# Read Holding Registers
-                ADDR = ADDRs
-                result_rb = client.read_holding_registers(
-                                    ADDR, COUNT, unit=slave_ID)
-                return result_rb
+            # match FUNCTION:
+            #     case 0:# not used           
+            #         return []
+            #     case 1:# Read Coils
+            #         ADDR = ADDRs                        
+            #         result_rb = client.read_coils(
+            #                         ADDR, COUNT, unit=slave_ID)
 
-            case 4:# Read Input Registers
-                ADDR = ADDRs
-                result_rb = client.read_input_registers(
+                        
+            #         return result_rb
+
+            #     case 2:# Read Discrete Inputs      
+            #         ADDR = ADDRs
+            #         result_rb = client.read_discrete_inputs(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
+                
+            #     case 3:# Read Holding Registers
+            #         ADDR = ADDRs
+            #         result_rb = client.read_holding_registers(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
+
+            #     case 4:# Read Input Registers
+            #         ADDR = ADDRs
+            #         result_rb = client.read_input_registers(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
+            #     case _:
+            #         return []
+            match FUNCTION:
+                case 0:# not used           
+                    result_rb = None
+                case 1:# Read Coils
+                    ADDR = ADDRs                        
+                    result_rb = client.read_coils(
                                     ADDR, COUNT, unit=slave_ID)
-                return result_rb
-            case _:
-                return []
-    except Exception as err:
-        print(f'Error select_function {err}')
-        return []
+
+                        
+                    # return result_rb
+
+                case 2:# Read Discrete Inputs      
+                    ADDR = ADDRs
+                    result_rb = client.read_discrete_inputs(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+                
+                case 3:# Read Holding Registers
+                    ADDR = ADDRs
+                    result_rb = client.read_holding_registers(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+
+                case 4:# Read Input Registers
+                    ADDR = ADDRs
+                    result_rb = client.read_input_registers(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+                case _:
+                    result_rb = None
+            # 
+            # print(f'result_rb: {result_rb}')
+            if result_rb==None:
+                return {
+                    "code":None,
+                    "data":[],
+                    "exception_code":""
+                }
+            elif hasattr(result_rb, "function_code"): 
+                
+                if hasattr(result_rb, "exception_code"):
+                    desc=""
+                    match result_rb.exception_code:
+                        case 1:
+                            desc="IllegalFunction"
+                        case 2:
+                            desc="IllegalAddress"
+                        case 3:
+                            desc="IllegalValue"
+                        case 4:
+                            desc="SlaveFailure"
+                        case 5:
+                            desc="Acknowledge"
+                        case 6:
+                            desc="SlaveBusy"
+                        case 8:
+                            desc="MemoryParityError"
+                        case 10:
+                            desc="GatewayPathUnavailable"
+                        case 11:
+                            desc="GatewayNoResponse"
+                    return {
+                        "code":result_rb.function_code,
+                        "data":[],
+                        "exception_code":desc,
+                    }
+                elif hasattr(result_rb, "registers"):
+                    return {
+                        "code":100,
+                        "data":result_rb.registers,
+                        "exception_code":""
+                    }
+            
+        except Exception as err:
+            print(f'Error select_function {err}')
+            return {
+                    "code":404,
+                    "data":[],
+                    "exception_code":err
+                }
 
 # Describe functions before writing code
 # /**
@@ -930,43 +1012,74 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         status_rb=[]
                         status_register_block=[]
                         for itemRB in results_RBlock:
-                            await asyncio.sleep(0.5)
+                            # await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
-                            if result_rb==[]:
-                                print("The device does not return results")
-                            else:
-                                if not result_rb.isError():
-                                    status_device="online"
-                                    INC = ADDR-1
-                                    for itemR in result_rb.registers:
-                                        INC = INC+1
-                                        Data.append({"MRA": INC, "Value": itemR, })
-                                else:
-                                    print("Error ------------------------------------")
-                                    print(f'ADDR: {ADDR} COUNT: {COUNT}')
-                                    if hasattr(result_rb, 'function_code'):
-                                        status_device="online"
-                                        # Exception Response(131, 3, IllegalAddress)
-                                        print(f'ERROR CODE: {result_rb.function_code}')
-                                        #
-                                        print(f"Error reading from {slave_ip}: {result_rb}")
-                                        status_rb.append({"ADDR":ADDR,
-                                                        "ERROR_CODE":result_rb.function_code,
-                                                        "Timestamp": getUTC(),
-                                                        })
-                                        status_register_block=status_rb
-                                    else:
-                                        print(f'This Slave {device_name} - [{slave_ip}] was not found')
+                            # print(f'result_rb: {result_rb}')
+                            match result_rb["code"]:
+                                case None:
+                                    status_device="offline"
+                                case 404:
+                                    status_device="offline"
+                                case 131:
+                                    exception_code=result_rb["exception_code"]
+                                    if exception_code=="GatewayNoResponse":
                                         status_device="offline"
                                         status_rb.append({"ADDR":ADDR,
-                                                              "ERROR_CODE":139,
-                                                               "Timestamp": getUTC(),
-                                                              })      
+                                                        "ERROR_CODE":139,
+                                                        "Timestamp": getUTC(),
+                                                        })
+                                    else:
+                                        status_device="online"
+                                        status_rb.append({"ADDR":ADDR,
+                                                        "ERROR_CODE":exception_code,
+                                                        "Timestamp": getUTC(),
+                                                        })
+                                    # print(f'ERROR CODE: {result_rb["exception_code"]}')
+                                    print(f"Error reading from {slave_ip}: {result_rb}")
+                                    
+                                case 100:
+                                    status_device="online"
+                                    INC = ADDR-1
+                                    for itemR in result_rb["data"]:
+                                        Data.append({"MRA": INC, "Value": itemR, })
+                                case _:
+                                    pass
+                            # print(f"Register Block {slave_ip}: {new_Data}") 
+                            # if result_rb==[]:
+                            #     print("The device does not return results")
+                            # else:
+                            #     if not result_rb.isError():
+                            #         status_device="online"
+                            #         INC = ADDR-1
+                            #         for itemR in result_rb.registers:
+                            #             INC = INC+1
+                            #             Data.append({"MRA": INC, "Value": itemR, })
+                            #     else:
+                            #         print("Error ------------------------------------")
+                            #         print(f'ADDR: {ADDR} COUNT: {COUNT}')
+                            #         if hasattr(result_rb, 'function_code'):
+                            #             status_device="online"
+                            #             # Exception Response(131, 3, IllegalAddress)
+                            #             print(f'ERROR CODE: {result_rb.function_code}')
+                            #             #
+                            #             print(f"Error reading from {slave_ip}: {result_rb}")
+                            #             status_rb.append({"ADDR":ADDR,
+                            #                             "ERROR_CODE":result_rb.function_code,
+                            #                             "Timestamp": getUTC(),
+                            #                             })
+                            #             status_register_block=status_rb
+                            #         else:
+                            #             print(f'This Slave {device_name} - [{slave_ip}] was not found')
+                            #             status_device="offline"
+                            #             status_rb.append({"ADDR":ADDR,
+                            #                                   "ERROR_CODE":139,
+                            #                                    "Timestamp": getUTC(),
+                            #                                   })      
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
-                        # print(f"Register Block {slave_ip}: {new_Data}")  
+                        
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)

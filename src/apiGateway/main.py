@@ -134,10 +134,25 @@ class apiGateway:
                                         "TIME_STAMP":now
                                     }
                             mqtt_public("/Init/API/Responses",param)
-
-
                         case "CreateRS485Dev":
-                            id_communication=result['PAYLOAD']
+                            payload=result['PAYLOAD']
+                            id_communication=payload['id_communication']
+                            # 
+                            new_device=payload['device']
+                            for item_device in new_device:
+                                have_device=False
+                                print(f'item_device: {item_device}')
+                                for item in self.DeviceList:
+                                    if item_device["id"]!=item["id_device"]:
+                                        have_device=True
+                                if have_device:
+                                    self.DeviceList.append({
+                                        "id_device":item_device["id"],
+                                        "device_name":item_device["name"],
+                                        "mode":item_device["mode"],
+                                        "parameters":[]
+                                    })
+                            # 
                             result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
                             if result_find_app_pm2==100:
                                 result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
@@ -211,51 +226,31 @@ class apiGateway:
                                 result=await restart_program_pm2_many(pm2_app_list)
                             if communication_list:
                                 device_rs485=list(set(communication_list))
-                            # if device_rs485:
-                            #     for item in device_rs485:
-                            #         result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
-                            #         if result_find_app_pm2==100:
-                            #             result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
-                            #             device_list_query = db.query(
-                            #                         deviceList_models.Device_list).filter(
-                            #                         deviceList_models.Device_list.id_communication ==
-                            #                                                     id_communication).filter(
-                            #                         deviceList_models.Device_list.status == 1).order_by(
-                            #                                                     deviceList_models.Device_list.id.asc()).all()
-                            #             db.commit()
-                            #             # check device same group rs485 com port   
-                            #             item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                            #                             id_communication]
-                            #             if item_rs485:
-                            #                 # check group rs485 same com port
-
-                            #                 sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                            #                                                         {"id_communication":id_communication})
-                            #                 result_device_group_rs485 = db.execute(
-                            #                                                     text(sql_query_select_device), 
-                            #                                                         ).all()
-                            #                 results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                            #                 db.close()                                          
-                            #                 # init restart pm2 app same rs485
-                            #                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                            #                 # restart pm2 app log
-                            #                 pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            #                 await restart_program_pm2_many(pm2_app_list) 
-                            #         elif result_find_app_pm2!=100:
-                            #             print('---------- create group RS485 same com port when list device empty ----------')
-                            #             # check group rs485 same com port
-                            #             sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                            #                                                     {"id_communication":id_communication})
-                            #             result_device_group_rs485 =  db.execute(
-                            #                                                     text(sql_query_select_device), 
-                            #                                                         ).all()
-                            #             results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
-                            #             db.close()                                                       
-                            #             # init restart pm2 app same rs485
-                            #             await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                            #             # restart pm2 app log
-                            #             pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            #             result=await restart_program_pm2_many(pm2_app_list)
+                                print(f'device_rs485: {device_rs485}')
+                            if device_rs485:
+                                device_list=[]
+                                for item in device_rs485:
+                                    device_list.append(f'Dev|{str(item)}|')
+                                if device_list:
+                                    await delete_program_pm2_many(device_list)
+                                if device_list:
+                                    for item in device_rs485:
+                                        id_communication=item
+                                        sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
+                                                                                        {"id_communication":id_communication})
+                                        result_device_group_rs485 = db.execute(
+                                                                                    text(sql_query_select_device), 
+                                                                                        ).all()
+                                        results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
+                                        db.close()
+                                        # print(f'results_device_group_dict: {results_device_group_dict}')                                       
+                                        # init restart pm2 app same rs485
+                                        if results_device_group_dict:
+                                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
+                                if device_list:
+                                    # restart pm2 app log
+                                    pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                                    await restart_program_pm2_many(pm2_app_list)
                         case "UpdateDev":
                             pass
                         case "UpdateTemplate":
@@ -283,7 +278,7 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                print(f'Topic:   {message.topic}')
+                # print(f'Topic:   {message.topic}')
                 result=json.loads(message.message.decode())
                 
                 for i,item in enumerate(self.DeviceList):
@@ -292,21 +287,45 @@ class apiGateway:
                     # print(f'{Topic}/{item["id_device"]}')
                     if message.topic==f'{Topic}/{item["id_device"]}':
                         # print(item)
-                        self.DeviceList[i]["id_device_type"]=result["id_device_type"]
-                        self.DeviceList[i]["name_device_type"]=result["name_device_type"]
-                        self.DeviceList[i]["status_device"]=result["status_device"]
-                        self.DeviceList[i]["timestamp"]=result["timestamp"]
-                        self.DeviceList[i]["message"]=result["message"]
-                        self.DeviceList[i]["status_register"]=result["status_register"]
-                        self.DeviceList[i]["point_count"]=result["point_count"]
-                        self.DeviceList[i]["parameters"]=result["parameters"]
-                        self.DeviceList[i]["fields"]=result["fields"]
-                        self.DeviceList[i]["mppt"]=result["mppt"]
-                        self.DeviceList[i]["mode"]=result["mode"]
-                        self.DeviceList[i]["control_group"]=result["control_group"]
+                        if 'id_device_type' in result.keys():
+                            self.DeviceList[i]["id_device_type"]=result["id_device_type"]
+                            
+                        if 'name_device_type' in result.keys():
+                            self.DeviceList[i]["name_device_type"]=result["name_device_type"]
+                            
+                        if 'status_device' in result.keys():
+                            self.DeviceList[i]["status_device"]=result["status_device"]
+                            
+                        if 'timestamp' in result.keys():
+                            self.DeviceList[i]["timestamp"]=result["timestamp"]
+                            
+                        if 'message' in result.keys():
+                            self.DeviceList[i]["message"]=result["message"]
+                            
+                        if 'status_register' in result.keys():
+                            self.DeviceList[i]["status_register"]=result["status_register"]
+                            
+                        if 'point_count' in result.keys():
+                            self.DeviceList[i]["point_count"]=result["point_count"]
+                            
+                        if 'parameters' in result.keys():
+                            self.DeviceList[i]["parameters"]=result["parameters"]
+                            
+                        if 'fields' in result.keys():
+                            self.DeviceList[i]["fields"]=result["fields"]
+                            
+                        if 'mppt' in result.keys():
+                            self.DeviceList[i]["mppt"]=result["mppt"]
+                            
+                        if 'mode' in result.keys():
+                            self.DeviceList[i]["mode"]=result["mode"]
+                            
+                        if 'control_group' in result.keys():
+                            self.DeviceList[i]["control_group"]=result["control_group"]
+                            
                         # for item in result["parameters"]:
                         #     print(len(item['fields']))
-                        print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
+                        # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
                     
         except Exception as err:
             print('Error MQTT deviceListSub')
