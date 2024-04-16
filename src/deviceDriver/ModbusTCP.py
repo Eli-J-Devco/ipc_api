@@ -776,7 +776,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         for item in result_temp:
             device_control = item['id_device']
             parameter = item['parameter']
-            
+            device_control = int(device_control)
             if id_systemp == device_control :
                 if parameter :
                     print("---------- write data from Device ----------")
