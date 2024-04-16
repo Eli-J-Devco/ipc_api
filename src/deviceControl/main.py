@@ -570,6 +570,23 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
     else :
         print("wwaiting user chosse the mode")
 
+async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
+    global enable_zero_export
+    global value_zero_export
+    global enable_power_limit
+    global value_power_limit
+    
+    if enable_zero_export == 1 and value_zero_export != 0 and enable_power_limit == 0:
+        print("zero_export")
+    elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
+        # lay arr check phai inv hay khong neu la inv va trong che do nao thi lay gia tri max P tu bang device_list 
+        print("power_limit")
+        await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+    elif ( enable_zero_export == 1 and value_zero_export != 0 ) and (enable_power_limit == 1 and value_power_limit != 0):
+        print("zero_export + power_limit")
+    else :
+        print("wwaiting user chosse the mode")
+        
 async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4, username, password):
     
     
