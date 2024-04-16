@@ -330,6 +330,7 @@ async def get_list_device_in_automode(mqtt_result):
     result_pmax = []
     p_max = 0
     value = 0
+    operator = 0
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
@@ -342,9 +343,11 @@ async def get_list_device_in_automode(mqtt_result):
                         for field in param.get("fields", []):
                             if field["point_key"] == "ControlINV":
                                 value = field["value"]
+                            if field["point_key"] == "OperatingState":
+                                operator = field["value"]
                                 break  
                 
-                if await check_inverter_device(id_device) and status_device == 'online' and mode == 1:
+                if await check_inverter_device(id_device) and status_device == 'online' and mode == 1 and operator not in [7, 8]:
                     
                     # Pmax
                     result_pmax = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
@@ -355,8 +358,10 @@ async def get_list_device_in_automode(mqtt_result):
                         'mode': mode,
                         'status_device': status_device,
                         'p_max': p_max,
-                        'controlinv': value
+                        'controlinv': value,
+                        'operator': operator,
                     })
+    print("device_list", device_list)
     return device_list
 
 async def get_value_meter():
@@ -434,6 +439,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if p_for_each_device > device['p_max']:
                     p_for_each_device = device['p_max']
                 p_for_each_device = p_for_each_device + value_cumulative - value_subcumulative  # Update p_for_each_device with value_cumulative
+                if p_for_each_device <= 0 :
+                    p_for_each_device = 0 
 
                 if device['controlinv'] == 1:
                     new_device = {
