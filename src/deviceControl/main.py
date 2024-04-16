@@ -402,16 +402,18 @@ async def compare_value_production_with_setpoint():
     global value_subcumulative
     global devices
     results_sud = 0
-    
-    if value_power_limit > value_production : 
-        results_sud = value_power_limit - value_production
-        if results_sud > 0 and len(devices) > 0:
-            value_cumulative = results_sud/len(devices)
-    elif value_power_limit <= value_production :
-        value_cumulative = 0
-        results_sud = value_production - value_power_limit
-        if results_sud > 0 and len(devices) > 0:
-            value_subcumulative = results_sud/len(devices)
+    if value_power_limit is not None and value_production is not None:
+        if value_power_limit > value_production : 
+            results_sud = value_power_limit - value_production
+            if results_sud > 0 and len(devices) > 0:
+                value_cumulative = results_sud/len(devices)
+        elif value_power_limit <= value_production :
+            value_cumulative = 0
+            results_sud = value_production - value_power_limit
+            if results_sud > 0 and len(devices) > 0:
+                value_subcumulative = results_sud/len(devices)
+            pass
+    else:
         pass
     
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
