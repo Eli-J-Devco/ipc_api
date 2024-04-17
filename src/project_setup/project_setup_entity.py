@@ -1,0 +1,139 @@
+import datetime
+
+from src.config import config
+from sqlalchemy import Integer, DOUBLE, String, DATETIME, ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+
+class ProjectSetup(config.Base):
+    __tablename__ = "project_setup"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True)
+    serial_number: Mapped[str] = mapped_column(String, unique=True)
+    location: Mapped[str] = mapped_column(String, nullable=True)
+
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    administrative_contact: Mapped[str] = mapped_column(String, nullable=True)
+
+    id_first_page_on_login: Mapped[int] = mapped_column(Integer,
+                                                        ForeignKey("screen.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                                        nullable=False)
+    id_logging_interval: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
+                                                                         onupdate="CASCADE"), nullable=False)
+
+    id_scheduled_upload_time: Mapped[int] = mapped_column(Integer,
+                                                          ForeignKey("config_information.id", ondelete="CASCADE",
+                                                                     onupdate="CASCADE"), nullable=False)
+    number_times_retry: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    id_time_wait_before_retry: Mapped[int] = mapped_column(Integer,
+                                                           ForeignKey("config_information.id", ondelete="CASCADE",
+                                                                      onupdate="CASCADE"), nullable=False)
+    id_upload_debug_information: Mapped[int] = mapped_column(Integer,
+                                                             ForeignKey("config_information.id", ondelete="CASCADE",
+                                                                        onupdate="CASCADE"), nullable=False)
+
+    enable_upload_data_on_alarm_status: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    enable_upload_data_on_low_disk: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    enable_upload_data_on_system_startup: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    link_remote_access: Mapped[str] = mapped_column(String, nullable=True)
+    allow_remote_access: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    enable_static_routing: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+
+    id_time_zone: Mapped[int] = mapped_column(Integer,
+                                              ForeignKey("time_zone.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                              nullable=False)
+    Time1cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+    sampling_time1cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
+
+    enable_zero_export: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
+    value_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+
+    enable_power_limit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
+    value_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+
+    modhopper1: Mapped[int] = mapped_column(Integer, nullable=True)
+    modhopper2: Mapped[int] = mapped_column(Integer, nullable=True)
+    modhopper_key: Mapped[str] = mapped_column(String, nullable=True)
+    modhopper_rf_config: Mapped[str] = mapped_column(String, nullable=True)
+    modhopper_rf_channel: Mapped[int] = mapped_column(Integer, nullable=True)
+    status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    enable_search_modbus_rtu_device: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
+    # enable_search_modbus_tcp_device: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
+
+    mqtt_broker_cloud: Mapped[str] = mapped_column(String, nullable=True)
+    mqtt_port_cloud: Mapped[int] = mapped_column(Integer, nullable=True)
+    mqtt_username_cloud: Mapped[str] = mapped_column(String, nullable=True)
+    mqtt_password_cloud: Mapped[str] = mapped_column(String, nullable=True)
+
+    logging_interval = relationship('ConfigInformation', foreign_keys=[id_logging_interval])
+    first_page_on_login = relationship('Screen', foreign_keys=[id_first_page_on_login])
+    scheduled_upload_time = relationship('ConfigInformation', foreign_keys=[id_scheduled_upload_time])
+    time_wait_before_retry = relationship('ConfigInformation', foreign_keys=[id_time_wait_before_retry])
+    upload_debug_information = relationship('ConfigInformation', foreign_keys=[id_upload_debug_information])
+    time_zone = relationship('TimeZone', foreign_keys=[id_time_zone])
+
+
+class ConfigInformation(config.Base):
+    __tablename__ = "config_information"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    parent: Mapped[str] = mapped_column(Integer, nullable=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    namekey: Mapped[str] = mapped_column(String, unique=True, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    value: Mapped[str] = mapped_column(Integer, nullable=True)
+    type: Mapped[str] = mapped_column(Integer, nullable=True)
+    id_type: Mapped[int] = mapped_column(Integer, ForeignKey("config_type.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                         nullable=False)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
+                                                                        onupdate="CASCADE"), nullable=False)
+
+    config_type = relationship("ConfigType", foreign_keys=[id_type])
+    pointclass_type = relationship("PointclassType", foreign_keys=[id_pointclass_type])
+
+
+class ConfigType(config.Base):
+    __tablename__ = "config_type"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class TimeZone(config.Base):
+    __tablename__ = "time_zone"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    namekey: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
+class Screen(config.Base):
+    __tablename__ = "screen"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    screen_name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
+    class_icon: Mapped[str] = mapped_column(String, nullable=True)
+    level: Mapped[int] = mapped_column(Integer, nullable=False)
+    parent: Mapped[int] = mapped_column(Integer, nullable=True)
+    path: Mapped[str] = mapped_column(String, nullable=True)
+    has_child: Mapped[bool] = mapped_column(Integer, nullable=False)
+    created_date: Mapped[datetime.datetime] = mapped_column(DATETIME, nullable=True)
+    updated_date: Mapped[datetime.datetime] = mapped_column(DATETIME, nullable=True)
+    created_by: Mapped[str] = mapped_column(String, nullable=True)
+    updated_by: Mapped[str] = mapped_column(String, nullable=True)
+    show_menu: Mapped[bool] = mapped_column(Integer, nullable=False)
+
+
+class Page(config.Base):
+    __tablename__ = "page"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    status: Mapped[int] = mapped_column(Integer, nullable=True)
