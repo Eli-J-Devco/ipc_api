@@ -330,11 +330,13 @@ async def check_inverter_device(device_control):
 async def get_list_device_in_automode(mqtt_result):
     global total_power 
     device_list = []
+    result_pmax_custom = []
     result_pmax = []
+    result_pmin_percent = []
+    p_max_custom = 0
     p_max = 0
-    result_effiiency = []
-    effiiency = 0
-    value_control = 0 
+    p_min_percent = 0
+    p_min = 0
     value = 0
     operator = 0
     if mqtt_result and isinstance(mqtt_result, list):
@@ -355,29 +357,32 @@ async def get_list_device_in_automode(mqtt_result):
                 
                 if await check_inverter_device(id_device) and status_device == 'online' and mode == 1 and operator not in [7, 8]:
                     
+                    # Pmax custom
+                    result_pmax_custom = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
+                    p_max_custom = result_pmax_custom[0]["max_watt"]
+                    
                     # Pmax
                     result_pmax = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
                     p_max = result_pmax[0]["max_watt"]
                     
                     # Pmax
-                    result_effiiency = MySQL_Select("SELECT maximum_effiiency FROM `device_list` WHERE id = %s", (id_device,))
-                    effiiency = result_effiiency[0]["maximum_effiiency"]
+                    result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
+                    p_min_percent = result_pmin_percent[0]["min_watt_in_percent"]
                     
-                    if p_max and effiiency:
-                        value_control = (p_max*effiiency)/100
+                    if p_max and p_min_percent:
+                        p_min = (p_max*p_min_percent)/100
                         
                     device_list.append({
                         'id_device': id_device,
                         'mode': mode,
                         'status_device': status_device,
-                        'p_max': p_max,
-                        'effiiency': effiiency,
-                        'value_control': value_control,
+                        'p_max': p_max_custom,
+                        'p_min': p_min,
                         'controlinv': value,
                         'operator': operator,
                     })
-        total_power = sum(device['value_control'] for device in device_list)
-
+        total_power = sum(device['p_max'] for device in device_list)
+    print("device_list",device_list)
     return device_list
 
 async def get_value_meter():
@@ -411,26 +416,6 @@ async def get_value_meter():
     else:
         pass  # Handle the case when result_topic4 is empty
 
-async def update_cycle_efficiency():
-    global result_topic4
-    efficiency = 0
-    table_device = 0 
-    result_power_write = []
-    result_power_real = []
-    
-    if result_topic4:
-        devices = await get_list_device_in_automode(result_topic4)
-        for device in devices:
-            id_device = device["id_device"]
-            table_device = "dev_" + id_device
-            print("table_device",table_device)
-            result_power_write = MySQL_Select_v1(f"SELECT Wmax FROM {table_device} ORDER BY `time` DESC LIMIT 10000;")
-            print("result_power_write",result_power_write)
-
-    
-
-    
-    
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -442,7 +427,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     global total_power
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     efficiency_total = 0
-    power_real_control = 0
+    power_max = 0
+    power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     
@@ -456,14 +442,17 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 efficiency_total = 1
             device_list_control_power_limit = []
             for device in devices:
-                power_real_control = device["value_control"]
-                power_real_control = int(power_real_control)
+                power_max = device["p_max"]
+                power_min = device["p_min"]
+                power_max = int(power_max)
                 
-                if efficiency_total and power_real_control:
-                    p_for_each_device = efficiency_total*power_real_control
-                    if p_for_each_device > device["value_control"]:
-                        p_for_each_device = power_real_control
-                
+                if efficiency_total and power_max:
+                    p_for_each_device = efficiency_total*power_max
+                    if p_for_each_device > power_max:
+                        p_for_each_device = power_max
+                    if p_for_each_device <= power_min:
+                        p_for_each_device = power_min
+                        
                 if device['controlinv'] == 1:
                     new_device = {
                         "id_device": device["id_device"],
