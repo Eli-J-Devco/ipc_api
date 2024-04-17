@@ -1573,6 +1573,11 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     global bitchecktopic2
     
     # variable topic 1
+    global arr
+    id_systemp = arr[1]
+    id_systemp = int(id_systemp)
+    custom_watt = 0 
+    
     # variable topic 2
     global device_mode
     
@@ -1600,7 +1605,14 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 #process
                 if result_topic1 :
                     bitchecktopic1 = 1 
-                    await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    if not "custom_watt" in result_topic1:
+                        await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    # update custom_watt in database
+                    for item in result_topic1:
+                        if item["id_device"] == id_systemp and "custom_watt" in item:
+                            custom_watt = item["custom_watt"] 
+                        if custom_watt : 
+                            MySQL_Update_V1('update `device_list` set `custom_watt` = %s where `id` = %s ',(custom_watt,id_systemp))
                 
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())

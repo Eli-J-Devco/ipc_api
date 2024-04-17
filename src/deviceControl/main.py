@@ -355,8 +355,8 @@ async def get_list_device_in_automode(mqtt_result):
                 if await check_inverter_device(id_device) and status_device == 'online' and mode == 1 and operator not in [7, 8]:
                     
                     # Pmax custom
-                    result_pmax_custom = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
-                    p_max_custom = result_pmax_custom[0]["max_watt"]
+                    result_pmax_custom = MySQL_Select("SELECT custom_watt FROM `device_list` WHERE id = %s", (id_device,))
+                    p_max_custom = result_pmax_custom[0]["custom_watt"]
                     
                     # Pmax
                     result_pmax = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
@@ -424,7 +424,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
@@ -446,7 +445,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     if p_for_each_device <= power_min:
                         p_for_each_device = power_min
                 
-                print("gia tri setpoint",value_zero_export)
+                print("gia tri setpoint",value_power_limit)
                 print("gia tri dieu khien",p_for_each_device)
                 
                 if device['controlinv'] == 1:
@@ -698,6 +697,7 @@ async def process_getfirst_zeroexport_powerlimit():
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")   
+        
 async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     global enable_zero_export
     global value_zero_export
