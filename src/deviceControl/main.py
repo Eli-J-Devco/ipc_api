@@ -386,7 +386,6 @@ async def get_list_device_in_automode(mqtt_result):
     print("device_list",device_list)
     return device_list
 async def get_value_meter():
-    print("da vao ham nay")
     global result_topic4
     value_production_aray = []
     value_consumption_aray = []
@@ -404,13 +403,13 @@ async def get_value_meter():
                 if result_type_meter:
                     if result_type_meter[0]["name"] == "Production Meter":
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                        if value_production_aray :
+                        if value_production_aray != None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
                             print("P san xuat",value_production)
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                        if value_consumption_aray :
+                        if value_consumption_aray != None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
                             print("P tieu thu",value_consumption)
@@ -500,7 +499,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    print("gia tri setpoint",value_zero_export)
+    print("gia tri setpoint",value_consumption)
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -514,48 +513,47 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         elif value_consumption == 0 :
             efficiency_total = 0
 
-            device_list_control_power_limit = []
-            for device in devices:
-                power_max = device["p_max"]
-                power_max = int(power_max)
-                
-                if efficiency_total and power_max:
-                    p_for_each_device = efficiency_total*power_max
-                    if p_for_each_device > power_max:
-                        p_for_each_device = power_max
-                        
-                elif efficiency_total == 0 :
-                    p_for_each_device = 0
+        device_list_control_power_limit = []
+        for device in devices:
+            power_max = device["p_max"]
+            power_max = int(power_max)
+            
+            if efficiency_total and power_max:
+                p_for_each_device = efficiency_total*power_max
+                if p_for_each_device > power_max:
+                    p_for_each_device = power_max
                     
-                print("gia tri dieu khien",p_for_each_device*10)
+            elif efficiency_total == 0 :
+                p_for_each_device = 0
                 
-                if device['controlinv'] == 1:
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": p_for_each_device}
-                        ]
-                    }
-                else:
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": p_for_each_device}
-                        ]
-                    }
-                device_list_control_power_limit.append(new_device)
-
-            if len(devices) == len(device_list_control_power_limit):
-                push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            print("gia tri dieu khien",p_for_each_device*10)
+            
+            if device['controlinv'] == 1:
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "WMax", "value": p_for_each_device}
+                    ]
+                }
             else:
-                pass
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": p_for_each_device}
+                    ]
+                }
+            device_list_control_power_limit.append(new_device)
+
+        if len(devices) == len(device_list_control_power_limit):
+            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
         else:
             pass
     else:
-        pass 
+        pass
+
 async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
