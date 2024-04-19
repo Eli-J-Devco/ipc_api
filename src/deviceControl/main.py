@@ -24,6 +24,8 @@ enable_zero_export = 0
 value_zero_export = 0
 enable_power_limit = 0
 value_power_limit = 0
+percent_offset_power_limit = 0 
+percent_offset_zero_export = 0 
 
 value_production = 0
 value_consumption = 0
@@ -496,7 +498,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     efficiency_total = 0
     power_max = 0
-    power_min = 0
+    p_for_each_device = 0
+    total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     print("gia tri setpoint",value_consumption)
@@ -504,7 +507,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
-    if devices :
+    if devices : 
         if total_power and value_consumption:  
             efficiency_total = value_consumption/total_power
             if efficiency_total > 1 :
@@ -528,6 +531,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 
             print("gia tri dieu khien",p_for_each_device*10)
             
+            total_p_inv_prodution += p_for_each_device
             if device['controlinv'] == 1:
                 new_device = {
                     "id_device": device["id_device"],
@@ -546,7 +550,17 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     ]
                 }
             device_list_control_power_limit.append(new_device)
-
+        
+        if value_consumption < total_p_inv_prodution :
+            new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "WMax", "value": 0}
+                    ]
+                }
+            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            
         if len(devices) == len(device_list_control_power_limit):
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
         else:
@@ -672,6 +686,8 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
     global value_zero_export
     global enable_power_limit
     global value_power_limit
+    global percent_offset_power_limit 
+    global percent_offset_zero_export 
     global MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     bitchecktopic3 = 0
     
@@ -697,6 +713,7 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                     value_zero_export = mqtt_result.get('value', value_zero_export)
                     if value_zero_export is not None:
                         MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
+                
             elif mode_auto == "power_limit":
                 if type_mode_auto == "checkbox":
                     enable_power_limit = mqtt_result.get('enable', enable_power_limit)
@@ -706,6 +723,10 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                     value_power_limit = mqtt_result.get('value', value_power_limit)
                     if value_power_limit is not None:
                         MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
+                
+                percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
+                MySQL_Update_V1("update project_setup set value_offset_power_limit = %s", (percent_offset_power_limit,))
+                
             # When you receive one of the above information, give feedback to mqtt
             if ( enable_zero_export or value_zero_export or enable_power_limit or value_power_limit ) and bitchecktopic3 == 1 :
                 comment = 200 
