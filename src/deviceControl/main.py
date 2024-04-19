@@ -711,7 +711,7 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                         MySQL_Update_V1("update project_setup set enable_zero_export = %s", (enable_zero_export,))
                 elif type_mode_auto == "textbox":
                     value_zero_export = mqtt_result.get('value', value_zero_export)
-                    if value_zero_export is not None:
+                    if 0 <= value_zero_export <= 100:
                         MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
                 
             elif mode_auto == "power_limit":
@@ -723,9 +723,13 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                     value_power_limit = mqtt_result.get('value', value_power_limit)
                     if value_power_limit is not None:
                         MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
-                
+
                 percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
-                MySQL_Update_V1("update project_setup set value_offset_power_limit = %s", (percent_offset_power_limit,))
+                
+                if 0 <= percent_offset_power_limit <= 100:
+                    MySQL_Update_V1("update project_setup set value_offset_power_limit = %s", (percent_offset_power_limit,))
+                else:
+                    pass
                 
             # When you receive one of the above information, give feedback to mqtt
             if ( enable_zero_export or value_zero_export or enable_power_limit or value_power_limit ) and bitchecktopic3 == 1 :
