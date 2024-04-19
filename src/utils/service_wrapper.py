@@ -2,6 +2,7 @@ import logging
 
 from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
+from pydantic.main import BaseModel
 
 
 class ServiceWrapper:
@@ -14,14 +15,16 @@ class ServiceWrapper:
                 if isinstance(result, HTTPException):
                     raise result
 
-                if isinstance(result, JSONResponse):
+                if isinstance(result, (JSONResponse, dict, list)):
                     return result
 
-                if not isinstance(result, dict):
-                    return result
+                if isinstance(result, str):
+                    return JSONResponse(status_code=status.HTTP_200_OK, content={"message": result})
 
-                result = result.__dict__
-                return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+                if isinstance(result, BaseModel):
+                    return JSONResponse(status_code=status.HTTP_200_OK, content=result.dict(exclude_unset=True))
+
+                return result.__dict__
             except HTTPException as e:
                 logging.error("HTTPException: " + e.detail)
                 try:

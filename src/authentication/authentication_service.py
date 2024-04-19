@@ -1,5 +1,3 @@
-import logging
-
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable, Depends
 
@@ -18,7 +16,7 @@ from ..project_setup.project_setup_service import ProjectSetupService
 
 from ..user.user_entity import User
 from ..user.user_service import UserService
-
+from ..role.role_service import RoleService
 
 @Injectable
 class AuthenticationService:
@@ -28,13 +26,10 @@ class AuthenticationService:
         self.authentication = AuthenticationRepository().get_authentication_config()
 
     @async_db_request_handler
-    async def refresh_token(self, session: AsyncSession, user_id: int):
-        query = select(User).where(User.id == user_id)
-        result = await session.execute(query)
-        return result.scalars().first()
-
-    @async_db_request_handler
     async def login(self, user_credential: OAuth2PasswordRequestForm, session: AsyncSession):
+        if not user_credential.username or not user_credential.password:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")
+
         user_provider = Authentication(username=user_credential.username, password=user_credential.password)
         decrypted_user_credential = self.authentication.decrypt_user_credential(user_provider)
         query = select(User).where(User.email == decrypted_user_credential.username)
@@ -51,11 +46,10 @@ class AuthenticationService:
         if not user.status == 1:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
 
-        logging.info(f"===================={user.id}====================")
-        roles = await UserService.get_user_roles(user.id, session)
+        roles = await UserService().get_user_roles(user.id, session)
         permissions = []
         for role in roles:
-            screens = await UserService.get_user_permissions(role, session)
+            screens = await RoleService().get_role_permissions(role, session)
             permissions.extend(screens)
 
         access_token = self.authentication.create_access_token(data={"user_id": user.id})

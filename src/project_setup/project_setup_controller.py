@@ -1,16 +1,15 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Body
 
 from ..config import config
 
 from .project_setup_service import ProjectSetupService
-from .project_setup_filter import (UpdateLoggingIntervalFilter,
+from .project_setup_filter import (UpdateConfigInformationType,
                                    UpdateRemoteAccessFilter,
                                    UpdateFirstPageLoginFilter,
                                    UpdateProjectSetupFilter,
                                    ProjectBaseFilter,
-                                   UpdateSearchRTUFilter,)
+                                   UpdateSearchRTUFilter, ConfigInformationType, )
 
 from ..authentication.authentication_repository import get_current_user
 from ..authentication.authentication_model import Authentication
@@ -43,19 +42,23 @@ class ProjectSetupController:
     async def get_logging_interval(self,
                                    session: AsyncSession = Depends(config.get_db),
                                    user: Authentication = Depends(get_current_user)):
-        return await (ServiceWrapper.async_wrapper(self.project_setup_service.get_logging_interval)(session))
+        return await (ServiceWrapper
+                      .async_wrapper(self.project_setup_service
+                                     .get_config_information_by_type)(session,
+                                                                      ConfigInformationType.TYPE_LOGGING_INTERVAL))
 
     @Post("/logging_interval/update/")
     async def update_logging_interval(self,
-                                      body: UpdateLoggingIntervalFilter,
+                                      body: UpdateConfigInformationType,
                                       session: AsyncSession = Depends(config.get_db),
                                       user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.project_setup_service.get_project_setup_by_id)
                       (body.id,
                        session,
-                       self.project_setup_service.update_logging_interval,
-                       body))
+                       self.project_setup_service.update_config_information,
+                       body,
+                       ConfigInformationType.TYPE_LOGGING_INTERVAL))
 
     @Post("/remote_access/get/")
     async def get_remote_access(self,
@@ -77,7 +80,7 @@ class ProjectSetupController:
                       .async_wrapper(self.project_setup_service
                                      .get_project_setup_by_id)(body.id,
                                                                session,
-                                                               self.update_remote_access,
+                                                               self.project_setup_service.update_remote_access,
                                                                body))
 
     @Post("/first_page_on_login/get/")

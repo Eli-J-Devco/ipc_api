@@ -1,18 +1,20 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from ..project_setup.project_setup_model import ConfigInformationShort
 
 
 class Rs485(BaseModel):
-    id: int
-    name: str
-    namekey: str
-    id_driver_list: int
-    id_type_baud_rates: int
-    id_type_parity: int
-    id_type_stopbits: int
-    id_type_timeout: int
-    id_type_debug_level: int
+    id: Optional[int] = None
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+    id_driver_list: Optional[int] = None
+    id_type_baud_rates: Optional[int] = None
+    id_type_parity: Optional[int] = None
+    id_type_stopbits: Optional[int] = None
+    id_type_timeout: Optional[int] = None
+    id_type_debug_level: Optional[int] = None
 
 
 class Rs485Config(BaseModel):

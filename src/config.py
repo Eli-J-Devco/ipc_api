@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     FTPSERVER_PORT: int
     FTPSERVER_USERNAME: str
     FTPSERVER_PASSWORD: str
+    PAGINATION_PAGE: int
+    PAGINATION_LIMIT: int
 
 
 env_config = Settings()

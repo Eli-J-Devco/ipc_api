@@ -1,6 +1,7 @@
-from src.config import config
 from sqlalchemy import Integer, DOUBLE, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from ..config import config
 
 
 class Devices(config.Base):
@@ -11,21 +12,30 @@ class Devices(config.Base):
     view_table: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[str] = mapped_column(String, unique=True)
     device_virtual: Mapped[bool] = mapped_column(Integer, nullable=True)
-    id_project_setup: Mapped[int] = mapped_column(Integer, ForeignKey("project_setup.id", ondelete="CASCADE",
-                                                                      onupdate="CASCADE"), nullable=True)
+    id_project_setup: Mapped[int] = mapped_column(Integer, ForeignKey("project_setup.id",
+                                                                      ondelete="CASCADE",
+                                                                      onupdate="CASCADE"),
+                                                  nullable=True)
     id_device_type: Mapped[int] = mapped_column(Integer,
-                                                ForeignKey("device_type.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                                ForeignKey("device_type.id",
+                                                           ondelete="CASCADE",
+                                                           onupdate="CASCADE"),
                                                 nullable=True)
-    id_communication: Mapped[int] = mapped_column(Integer, ForeignKey("communication.id", ondelete="CASCADE",
-                                                                      onupdate="CASCADE"), nullable=True)
-    id_template: Mapped[int] = mapped_column(Integer, ForeignKey("template_library.id", ondelete="CASCADE", onupdate="CASCADE"),
+    id_communication: Mapped[int] = mapped_column(Integer, ForeignKey("communication.id",
+                                                                      ondelete="CASCADE",
+                                                                      onupdate="CASCADE"),
+                                                  nullable=True)
+    id_template: Mapped[int] = mapped_column(Integer, ForeignKey("template_library.id",
+                                                                 ondelete="CASCADE",
+                                                                 onupdate="CASCADE"),
                                              nullable=True)
     rtu_bus_address: Mapped[int] = mapped_column(Integer, nullable=True)
     tcp_gateway_ip: Mapped[str] = mapped_column(String, nullable=True)
     tcp_gateway_port: Mapped[int] = mapped_column(Integer, nullable=True)
     enable: Mapped[bool] = mapped_column(Integer, nullable=True)
 
-    max_watt: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    rated_power: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    rated_power_custom: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     min_watt_in_percent: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     compensate_watt_factor: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_mode: Mapped[bool] = mapped_column(Integer, nullable=True)
@@ -39,27 +49,38 @@ class Devices(config.Base):
 
     point: Mapped[int] = mapped_column(Integer, nullable=True)
     pv: Mapped[int] = mapped_column(Integer, nullable=True)
+    mode: Mapped[int] = mapped_column(Integer, nullable=True)
     model: Mapped[str] = mapped_column(String, nullable=True)
     function: Mapped[str] = mapped_column(String, nullable=True)
-    point_p: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="SET NULL", onupdate="SET NULL"),
+    point_p: Mapped[int] = mapped_column(Integer,
+                                         ForeignKey("point_list.id",
+                                                    ondelete="SET NULL",
+                                                    onupdate="SET NULL"),
                                          nullable=True)
     value_p: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     send_p: Mapped[bool] = mapped_column(Integer, nullable=True)
-    point_q: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="SET NULL", onupdate="SET NULL"),
+
+    point_q: Mapped[int] = mapped_column(Integer,
+                                         ForeignKey("point_list.id",
+                                                    ondelete="SET NULL",
+                                                    onupdate="SET NULL"),
                                          nullable=True)
     value_q: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     send_q: Mapped[bool] = mapped_column(Integer, nullable=True)
+
     point_pf: Mapped[int] = mapped_column(Integer,
-                                          ForeignKey("point_list.id", ondelete="SET NULL", onupdate="SET NULL"),
+                                          ForeignKey("point_list.id",
+                                                     ondelete="SET NULL",
+                                                     onupdate="SET NULL"),
                                           nullable=True)
     value_pf: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     send_pf: Mapped[bool] = mapped_column(Integer, nullable=True)
+
     max: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     enable_poweroff: Mapped[bool] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[bool] = mapped_column(Integer, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
-    mode: Mapped[bool] = mapped_column(Integer, nullable=True)
 
     communication = relationship("Rs485", foreign_keys=[id_communication])
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])
@@ -84,7 +105,9 @@ class DeviceGroup(config.Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     id_device_type: Mapped[int] = mapped_column(Integer,
-                                                ForeignKey("device_type.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                                ForeignKey("device_type.id",
+                                                           ondelete="CASCADE",
+                                                           onupdate="CASCADE"),
                                                 nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
     type: Mapped[bool] = mapped_column(Integer, nullable=True)

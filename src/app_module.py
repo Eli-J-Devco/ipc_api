@@ -14,18 +14,24 @@ from src.authentication.authentication_module import AuthenticationModule
 from src.ethernet.ethernet_module import EthernetModule
 from src.rs485.rs485_module import Rs485Module
 from src.user.user_module import UserModule
+from src.role.role_module import RoleModule
+from src.upload_channel.upload_channel_module import UploadChannelModule
+from src.point_config.point_config_module import PointConfigModule
 
 
 @Module(
     imports=[
         DevicesModule,
         TemplateModule,
-        PointModule,
         ProjectSetupModule,
         AuthenticationModule,
         EthernetModule,
         Rs485Module,
         UserModule,
+        RoleModule,
+        UploadChannelModule,
+        PointModule,
+        PointConfigModule,
     ],
     controllers=[AppController],
     providers=[AppService],

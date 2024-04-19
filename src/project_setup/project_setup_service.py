@@ -1,4 +1,3 @@
-import logging
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 
@@ -11,10 +10,11 @@ from fastapi import HTTPException, status
 from .project_setup_filter import (ConfigInformationEnum,
                                    UpdateProjectSetupFilter,
                                    UpdateFirstPageLoginFilter,
-                                   UpdateLoggingIntervalFilter,
+                                   UpdateConfigInformationType,
                                    UpdateRemoteAccessFilter,
-                                   UpdateSearchRTUFilter)
-from .project_setup_model import TypeLoggingInterval
+                                   UpdateSearchRTUFilter,
+                                   ConfigInformationTypeLang)
+from .project_setup_model import ProjectSetup, ConfigInformationShort, FirstPageOnLogin, RemoteAccessInformation
 from .project_setup_entity import (
     ProjectSetup as ProjectSetupEntity, Screen as ScreensEntity,
     ConfigInformation as ConfigInformationEntity
@@ -38,6 +38,9 @@ class ProjectSetupService:
 
     @async_db_request_handler
     async def get_project_setup_by_id(self, project_id: int, session: AsyncSession, func, *args, **kwargs):
+        if not project_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project ID is required")
+
         query = select(ProjectSetupEntity.id).where(ProjectSetupEntity.id == project_id)
         result = await session.execute(query)
 
@@ -52,54 +55,66 @@ class ProjectSetupService:
 
     @async_db_request_handler
     async def update_project(self, project_id: int, session: AsyncSession, project: UpdateProjectSetupFilter):
+        updating_project = await self.get_project_setup_by_id(project_id, session)
+        updating_project = ProjectSetup(**updating_project.__dict__)
+        updating_project = updating_project.copy(update=project.dict(exclude_unset=True))
+
         query = (update(ProjectSetupEntity)
                  .where(ProjectSetupEntity.id == project_id)
-                 .values(project.__dict__))
+                 .values(updating_project.dict()))
 
         await session.execute(query)
         await session.commit()
         return project
 
     @async_db_request_handler
-    async def get_logging_interval(self, session: AsyncSession):
-        query = (select(ConfigInformationEntity.id,
-                        ConfigInformationEntity.namekey)
-                 .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_LOGGING_INTERVAL.MIN)
-                 .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_LOGGING_INTERVAL.MAX))
+    async def get_config_information_by_type(self, session: AsyncSession, config_type: str):
+        query = (select(ConfigInformationEntity)
+                 .where(ConfigInformationEntity.id > ConfigInformationEnum().__getattribute__(config_type).MIN)
+                 .where(ConfigInformationEntity.id <= ConfigInformationEnum().__getattribute__(config_type).MAX))
         result = await session.execute(query)
-        return [TypeLoggingInterval(
-            id=row[0],
-            namekey=row[1],
-        ) for row in result.all()]
+        return [ConfigInformationShort(**config.__dict__) for config in result.scalars().all()]
 
     @async_db_request_handler
-    async def update_logging_interval(self, project_id: int, session: AsyncSession, body: UpdateLoggingIntervalFilter):
-        query = select(ConfigInformationEntity.id).where(ConfigInformationEntity.id == body.id_logging_interval)
+    async def update_config_information(self,
+                                        project_id: int,
+                                        session: AsyncSession,
+                                        body: UpdateConfigInformationType,
+                                        config_type: str):
+        query = select(ConfigInformationEntity.id).where(ConfigInformationEntity.id == body.id)
         result = await session.execute(query)
         if not result.scalars().first():
-            raise Exception("Logging interval not found")
+            raise Exception(f"{ConfigInformationTypeLang().__getattribute__(config_type)} not found")
 
         query = (update(ProjectSetupEntity)
                  .where(ProjectSetupEntity.id == project_id)
                  .values(body.__dict__))
         await session.execute(query)
         await session.commit()
-        return JSONResponse(status_code=200, content={"message": "Updated logging interval successfully"})
+        return f"Updated {ConfigInformationTypeLang().__getattribute__(config_type)} successfully"
+
+    @staticmethod
+    def validate_config_information(config_information_id: int, config_type: str):
+        if not config_information_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"{ConfigInformationTypeLang().__getattribute__(config_type)} is required")
+
+        if not (ConfigInformationEnum()
+                .__getattribute__(config_type).MIN <= config_information_id
+                and (config_information_id <= ConfigInformationEnum()
+                                              .__getattribute__(config_type).MAX)):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail=f"Invalid {ConfigInformationTypeLang().__getattribute__(config_type).lower()} ID")
 
     @async_db_request_handler
     async def get_remote_access(self,
                                 project_id: int,
                                 session: AsyncSession):
-        query = (select(ProjectSetupEntity.allow_remote_access,
-                        ProjectSetupEntity.link_remote_access)
+        query = (select(ProjectSetupEntity)
                  .where(ProjectSetupEntity.id == project_id))
         result = await session.execute(query)
         result = result.first()
-        return JSONResponse(status_code=200,
-                            content={
-                                "link_remote_access": result[1],
-                                "allow_remote_access": True if result[0] == 1 else False
-                            })
+        return RemoteAccessInformation(**result.__dict__)
 
     @async_db_request_handler
     async def update_remote_access(self,
@@ -111,7 +126,7 @@ class ProjectSetupService:
                  .values(body.__dict__))
         await session.execute(query)
         await session.commit()
-        return JSONResponse(status_code=200, content={"message": "Updated remote access successfully"})
+        return f"Updated remote access successfully"
 
     @async_db_request_handler
     async def get_first_page_on_login(self, project_id: int, session: AsyncSession):
@@ -120,21 +135,19 @@ class ProjectSetupService:
 
         id_first_page_on_login = result.scalars().first()
         screen = await self.get_screen_by_id(id_first_page_on_login, session)
-        return JSONResponse(status_code=200,
-                            content={
-                                "screen_name": screen.screen_name,
-                                "description": screen.description,
-                                "path": screen.path
-                            })
+        return FirstPageOnLogin(**screen.__dict__)
 
     @async_db_request_handler
-    async def update_first_page_on_login(self, project_id: int, session: AsyncSession, body: UpdateFirstPageLoginFilter):
+    async def update_first_page_on_login(self,
+                                         project_id: int,
+                                         session: AsyncSession,
+                                         body: UpdateFirstPageLoginFilter):
         query = (update(ProjectSetupEntity)
                  .where(ProjectSetupEntity.id == project_id)
                  .values(id_first_page_on_login=body.id_first_page_on_login))
         await session.execute(query)
         await session.commit()
-        return JSONResponse(status_code=200, content={"message": "Updated first page on login successfully"})
+        return f"Updated first page on login successfully"
 
     @async_db_request_handler
     async def get_screens(self, session: AsyncSession):

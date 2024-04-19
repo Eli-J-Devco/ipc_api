@@ -13,14 +13,9 @@ class ScreenBase(BaseModel):
         orm_mode = True
 
 
-class TypeLoggingInterval(BaseModel):
-    id: int = Field(..., alias="id")
-    namekey: str = Field(..., alias="time")
-
-    class Config:
-        allow_population_by_field_name = True
-        populate_by_name = True
-        from_attributes = True
+class ConfigInformationShort(BaseModel):
+    id: int
+    name: str
 
 
 class ProjectSetup(BaseModel):
@@ -60,8 +55,8 @@ class ProjectSetup(BaseModel):
     modhopper_rf_config: Optional[int] = None
     modhopper_rf_channel: Optional[int] = None
     status: Optional[bool] = None
-    logging_interval: TypeLoggingInterval
-    logging_interval_list: list[TypeLoggingInterval]
+    logging_interval: ConfigInformationShort
+    logging_interval_list: list[ConfigInformationShort]
     first_page_on_login: ScreenBase
     screen_list: list[ScreenBase]
 
@@ -82,11 +77,6 @@ class ConfigType(BaseModel):
         validate_assignment = True
 
 
-class ConfigInformationShort(BaseModel):
-    id: int
-    name: str
-
-
 class ConfigInformation(ConfigInformationShort):
     parent: Optional[int] = None
     namekey: Optional[str] = None
@@ -96,6 +86,23 @@ class ConfigInformation(ConfigInformationShort):
     type: Optional[int] = None
     status: Optional[bool] = None
     id_pointclass_type: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+
+class FirstPageOnLogin(BaseModel):
+    screen_name: Optional[str] = None
+    description: Optional[str] = None
+    path: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class RemoteAccessInformation(BaseModel):
+    link_remote_access: Optional[str] = None
+    allow_remote_access: Optional[bool] = None
 
     class Config:
         orm_mode = True

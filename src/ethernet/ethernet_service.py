@@ -20,6 +20,9 @@ from ..config import env_config
 class EthernetService:
     @async_db_request_handler
     async def get_ethernet_by_id(self, ethernet_id: int, session: AsyncSession):
+        if not ethernet_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ethernet ID is required")
+
         query = (select(EthernetEntity)
                  .options(selectinload(EthernetEntity.type_ethernet))
                  .where(EthernetEntity.id == ethernet_id))
@@ -32,6 +35,9 @@ class EthernetService:
 
     @async_db_request_handler
     async def update_ethernet(self, update_ethernet: UpdateEthernetFilter, session: AsyncSession):
+        if not update_ethernet.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ethernet ID is required")
+
         query = select(EthernetEntity).where(EthernetEntity.id == update_ethernet.id)
         result = await session.execute(query)
         ethernet = result.scalars().first()
@@ -39,9 +45,12 @@ class EthernetService:
         if not ethernet:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ethernet not found")
 
+        ethernet = Ethernet(**ethernet.__dict__)
+        ethernet = ethernet.copy(update=update_ethernet.dict(exclude_unset=True))
+
         query = (update(EthernetEntity)
                  .where(EthernetEntity.id == ethernet.id)
-                 .values(**update_ethernet.__dict__))
+                 .values(**ethernet.dict()))
 
         await session.execute(query)
 

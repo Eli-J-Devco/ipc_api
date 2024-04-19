@@ -25,18 +25,19 @@ class Rs485Service:
 
     @async_db_request_handler
     async def update_rs485(self, rs485: Rs485, session: AsyncSession):
+        if not rs485.id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="RS485 ID is required")
+
         verify_rs485 = await self.get_rs485_by_id(rs485.id, session)
         if not verify_rs485:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="RS485 not found")
 
-        query = (update(Rs485Entity).where(Rs485Entity.id == rs485.id).values(**rs485.__dict__))
-        await session.execute(query)
+        verify_rs485 = rs485.copy(update=rs485.dict(exclude_unset=True))
+        query = (update(Rs485Entity).where(Rs485Entity.id == rs485.id).values(**verify_rs485.dict()))
 
-        query = select(Rs485Entity).where(Rs485Entity.id == rs485.id)
-        result = await session.execute(query)
-        output = result.scalars().first()
+        await session.execute(query)
         await session.commit()
-        return Rs485(**output.__dict__)
+        return verify_rs485
 
     @async_db_request_handler
     async def rs485_config(self, session: AsyncSession):
