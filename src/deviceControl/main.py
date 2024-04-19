@@ -158,6 +158,7 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
     value_zero_export = ""
     enable_power_limit = ""
     value_power_limit = ""
+    value_offset_power_limit = ""
     powermeter_target_point = ""
     powermeter_tolerance = ""
     powermeter_max_point = ""
@@ -234,6 +235,8 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
     mqtt_port_cloud = result[0]['mqtt_port_cloud']
     mqtt_username_cloud = result[0]['mqtt_username_cloud']
     mqtt_password_cloud = result[0]['mqtt_password_cloud']
+    value_offset_power_limit = result[0]['value_offset_power_limit']
+    
     if result:
         try:
             current_time = get_utc()
@@ -264,6 +267,7 @@ async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port
                     "value_zero_export":value_zero_export,
                     "enable_power_limit":enable_power_limit,
                     "value_power_limit":value_power_limit,
+                    "value_offset_power_limit":value_offset_power_limit,
                     "powermeter_target_point":powermeter_target_point,
                     "powermeter_tolerance":powermeter_tolerance,
                     "powermeter_max_point":powermeter_max_point,
@@ -400,15 +404,18 @@ async def get_value_meter():
                     if result_type_meter[0]["name"] == "Production Meter":
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if value_production_aray :
-                            value_production = value_production_aray[0]
+                            value_production += value_production_aray[0]
                             print("P san xuat",value_production)
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if value_production_aray :
-                            value_consumption = value_consumption_aray[0]
+                            value_consumption += value_consumption_aray[0]
                             print("P tieu thu",value_consumption)
+        # end for 
+        value_production_aray = []
+        value_consumption_aray = []
     else:
-        pass  # Handle the case when result_topic4 is empty
+        pass  
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
