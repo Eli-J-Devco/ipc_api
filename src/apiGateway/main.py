@@ -382,7 +382,7 @@ class apiGateway:
                     # 
                     "rated_power":rated_power,
                     "rated_power_custom":rated_power_custom,
-                    "min_watt_in_percent":rated_power_custom,
+                    "min_watt_in_percent":item.min_watt_in_percent,
                 })
             
             while True:
