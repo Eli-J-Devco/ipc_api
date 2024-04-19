@@ -355,12 +355,12 @@ async def get_list_device_in_automode(mqtt_result):
                 if await check_inverter_device(id_device) and status_device == 'online' and mode == 1 and operator not in [7, 8]:
                     
                     # Pmax custom
-                    result_pmax_custom = MySQL_Select("SELECT custom_watt FROM `device_list` WHERE id = %s", (id_device,))
-                    p_max_custom = result_pmax_custom[0]["custom_watt"]
+                    result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
+                    p_max_custom = result_pmax_custom[0]["rated_power_custom"]
                     
                     # Pmax
-                    result_pmax = MySQL_Select("SELECT max_watt FROM `device_list` WHERE id = %s", (id_device,))
-                    p_max = result_pmax[0]["max_watt"]
+                    result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
+                    p_max = result_pmax[0]["rated_power"]
                     
                     # Pmax
                     result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
@@ -424,6 +424,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
+    print("gia tri setpoint",value_power_limit)
+    
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
@@ -445,8 +447,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     if p_for_each_device <= power_min:
                         p_for_each_device = power_min
                 
-                print("gia tri setpoint",value_power_limit)
-                print("gia tri dieu khien",p_for_each_device)
+                print(f"gia tri dieu khien {p_for_each_device} cho thiet bij {device["id_device"]}")
                 
                 if device['controlinv'] == 1:
                     new_device = {
@@ -491,6 +492,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
+    print("gia tri setpoint",value_zero_export)
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -507,20 +509,17 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             device_list_control_power_limit = []
             for device in devices:
                 power_max = device["p_max"]
-                power_min = device["p_min"]
                 power_max = int(power_max)
                 
                 if efficiency_total and power_max:
                     p_for_each_device = efficiency_total*power_max
                     if p_for_each_device > power_max:
                         p_for_each_device = power_max
-                    if p_for_each_device <= power_min:
-                        p_for_each_device = power_min
+                        
                 elif efficiency_total == 0 :
                     p_for_each_device = 0
                     
-                print("gia tri setpoint",value_zero_export)
-                print("gia tri dieu khien",p_for_each_device)
+                print(f"gia tri dieu khien {p_for_each_device} cho thiet bi {device["id_device"]}")
                 
                 if device['controlinv'] == 1:
                     new_device = {
@@ -617,6 +616,50 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
             pass
     else:
         pass 
+async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global result_topic4
+    global devices
+    global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    power_max = 0
+    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    
+    if result_topic4:
+        devices = await get_list_device_in_automode(result_topic4)
+
+    if devices :
+            device_list_control_power_limit = []
+            for device in devices:
+                power_max = device["p_max"]
+                power_max = int(power_max)
+                
+                if power_max:
+                    p_for_each_device = power_max
+                        
+                if device['controlinv'] == 1:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "parameter": [
+                            {"id_pointkey": "WMax", "value": p_for_each_device}
+                        ]
+                    }
+                else:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "parameter": [
+                            {"id_pointkey": "ControlINV", "value": 1},
+                            {"id_pointkey": "WMax", "value": p_for_each_device}
+                        ]
+                    }
+                device_list_control_power_limit.append(new_device)
+
+            if len(devices) == len(device_list_control_power_limit):
+                push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            else:
+                pass
+    else:
+        pass 
 async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     
     global enable_zero_export
@@ -697,7 +740,6 @@ async def process_getfirst_zeroexport_powerlimit():
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")   
-        
 async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     global enable_zero_export
     global value_zero_export
@@ -708,16 +750,15 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
         print("==============================zero_export==============================")
         await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
-        # lay arr check phai inv hay khong neu la inv va trong che do nao thi lay gia tri max P tu bang device_list 
         print("==============================power_limit==============================")
         await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif ( enable_zero_export == 1 and value_zero_export != 0 ) and (enable_power_limit == 1 and value_power_limit != 0):
         print("=======================zero_export + power_limit========================")
         await process_caculator_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     else :
-        print("wwaiting user chosse the mode")
+        print("======================= Auto - Full P ========================")
+        await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4, username, password):
-    
     
     result_topic1 = ""
     result_topic2 = ""

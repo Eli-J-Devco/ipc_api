@@ -858,7 +858,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         if bitchecktopic1 == 1 and code_value == 16 :
                                             push_data_to_mqtt(mqtt_host,
                                                     mqtt_port,
-                                                    topicPublic + "/" +"Feedback" ,
+                                                    topicPublic + "/" +"Feedback",
                                                     mqtt_username,
                                                     mqtt_password,
                                                     data_send)
