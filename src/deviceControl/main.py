@@ -386,9 +386,12 @@ async def get_list_device_in_automode(mqtt_result):
     print("device_list",device_list)
     return device_list
 async def get_value_meter():
+    print("da vao ham nay")
     global result_topic4
     value_production_aray = []
     value_consumption_aray = []
+    total_value_production = 0
+    total_value_consumption = 0
     global value_production
     global value_consumption
 
@@ -398,22 +401,20 @@ async def get_value_meter():
                 id_device = item['id_device']
                 result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
                 
-                value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                
                 if result_type_meter:
                     if result_type_meter[0]["name"] == "Production Meter":
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if value_production_aray :
-                            value_production += value_production_aray[0]
+                            total_value_production += value_production_aray[0]
+                            value_production = total_value_production
                             print("P san xuat",value_production)
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                        if value_production_aray :
-                            value_consumption += value_consumption_aray[0]
+                        if value_consumption_aray :
+                            total_value_consumption += value_consumption_aray[0]
+                            value_consumption = total_value_consumption
                             print("P tieu thu",value_consumption)
         # end for 
-        value_production_aray = []
-        value_consumption_aray = []
     else:
         pass  
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
@@ -454,7 +455,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     if p_for_each_device <= power_min:
                         p_for_each_device = power_min
                 
-                print(f"gia tri dieu khien {p_for_each_device} cho thiet bi {device['id_device']}")
+                print("gia tri dieu khien",p_for_each_device*10)
                 
                 if device['controlinv'] == 1:
                     new_device = {
@@ -526,7 +527,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 elif efficiency_total == 0 :
                     p_for_each_device = 0
                     
-                print(f"gia tri dieu khien {p_for_each_device} cho thiet bi {device["id_device"]}")
+                print("gia tri dieu khien",p_for_each_device*10)
                 
                 if device['controlinv'] == 1:
                     new_device = {
