@@ -379,6 +379,7 @@ class apiGateway:
                     "device_name":item.name,
                     "mode":item.mode,
                     "parameters":[],
+                    # 
                     "rated_power":rated_power,
                     "rated_power_custom":rated_power_custom,
                     "min_watt_in_percent":rated_power_custom,
