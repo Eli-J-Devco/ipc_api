@@ -1556,18 +1556,7 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
                             MySQL_Insert_v5(querydevice, (device_mode, id_device))  
                             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
 
-                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
-                                data_send = {
-                                            "id_device": "Systemp",
-                                            "mode": 2
-                                            }
-                                push_data_to_mqtt(host,
-                                        port,
-                                        topicpud ,
-                                        username,
-                                        password,
-                                        data_send)
-                            elif all(item['mode'] == 0 for item in result_checkmode_control):
+                            if all(item['mode'] == 0 for item in result_checkmode_control):
                                 data_send = {
                                             "id_device": "Systemp",
                                             "mode": 0
@@ -1590,7 +1579,16 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
                                         password,
                                         data_send)
                             else:
-                                pass
+                                data_send = {
+                                            "id_device": "Systemp",
+                                            "mode": 2
+                                            }
+                                push_data_to_mqtt(host,
+                                        port,
+                                        topicpud ,
+                                        username,
+                                        password,
+                                        data_send)
                         else:
                             print("Failed to insert data")
                     else :
