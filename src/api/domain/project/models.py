@@ -89,6 +89,7 @@ class Project_setup(Base):
     
     enable_power_limit = Column(Boolean, nullable=False, default=False)
     value_power_limit = Column(DOUBLE(), nullable=False, default=100)
+    value_offset_power_limit= Column(DOUBLE(), nullable=False, default=5)
     
     modhopper1 = Column(Integer, nullable=True)
     modhopper2 = Column(Integer, nullable=True)

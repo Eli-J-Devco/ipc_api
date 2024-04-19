@@ -366,11 +366,22 @@ class apiGateway:
             db.close()
             param=[]
             for item in result_project:
+                
+                rated_power=None
+                rated_power_custom=None
+                if item.rated_power!= None:
+                    rated_power=item.rated_power/1000
+                if item.rated_power_custom!= None:
+                    rated_power_custom=item.rated_power_custom/1000 
+                
                 self.DeviceList.append({
                     "id_device":item.id,
                     "device_name":item.name,
                     "mode":item.mode,
-                    "parameters":[]
+                    "parameters":[],
+                    "rated_power":rated_power,
+                    "rated_power_custom":rated_power_custom,
+                    "min_watt_in_percent":rated_power_custom,
                 })
             
             while True:
