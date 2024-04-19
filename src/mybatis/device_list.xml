@@ -58,7 +58,7 @@
         device_list.id=%s;
   </select>
   <select id="select_point_list">
-	SELECT  
+	      SELECT  
 
         device_point_list_map.id,
         point_list.id_pointkey AS pointkey,
@@ -146,7 +146,7 @@
         LEFT JOIN config_information table_pointtype ON point_list.id_pointtype=table_pointtype.id
         LEFT JOIN point_list_control_group  ON point_list.id_control_group=point_list_control_group.id
         
-        LEFT JOIN device_panel  ON device_panel.id_point_list=point_list.id
+        Left JOIN device_panel  ON device_panel.id_point_list=device_point_list_map.id_point_list and device_panel.id_device_list=device_point_list_map.id_device_list
         
         WHERE device_point_list_map.status=1 AND
                     device_point_list_map.id_device_list=%s ORDER BY device_point_list_map.id ASC;

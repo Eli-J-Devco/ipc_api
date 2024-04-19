@@ -1304,17 +1304,23 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                             else:
                                 Quality.append(1)
                         
-                        Power =0
-                        # if mppt_volt and mppt_amps:
-                        #     Power =mppt_volt*mppt_amps
-                        if mppt_string:
+                        power =0
+                        total_area_string=0
+                        irradiance=0
+                        if mppt_volt and mppt_amps:
                             pass
-                            # total_area_string=0
-                            
-                            # for item in mppt_string:
-                            #     if item["value"]!=None and item["area"]!=0:
-                            #         total_area_string=total_area_string+item["area"]
-                            
+                            mppt_v=(lambda x: x[0]['value'] if x else None)(mppt_volt)
+                            mppt_a=(lambda x: x[0]['value'] if x else None)(mppt_amps)
+
+                            if mppt_v!= None and mppt_a!=None:
+                                power =mppt_v*mppt_a
+                        
+                        if mppt_strings:
+                            for item in mppt_strings:
+                                if item["value"]!=None and item["area"]!=0:
+                                    total_area_string=total_area_string+item["area"]
+                        if power>0 and total_area_string>0:
+                            irradiance=power/total_area_string
                         mppt_item={
                                 "config":point_item["config"],
                                 "id_point":point_item["id_point"],
@@ -1322,8 +1328,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "id": point_item["id"],
                                 "point_key":point_item["point_key"],
                                 "name": point_item["name"],
-                                "Power":Power,
-                                # "area"
+                                "power":round(power,2),
+                                "area":round(total_area_string,2),
+                                "irradiance":round(irradiance,2),
                                 'value':{
                                     "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                     "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
