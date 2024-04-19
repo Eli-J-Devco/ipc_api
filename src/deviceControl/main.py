@@ -454,7 +454,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     if p_for_each_device <= power_min:
                         p_for_each_device = power_min
                 
-                print(f"gia tri dieu khien {p_for_each_device} cho thiet bij {device["id_device"]}")
+                print(f"gia tri dieu khien {p_for_each_device}")
                 
                 if device['controlinv'] == 1:
                     new_device = {
