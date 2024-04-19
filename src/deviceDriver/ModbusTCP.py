@@ -871,7 +871,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         if bitchecktopic1 == 1 and code_value == 16 :
                                             push_data_to_mqtt(mqtt_host,
                                                     mqtt_port,
-                                                    topicPublic + "/" +"Feedback" ,
+                                                    topicPublic + "/" +"Feedback",
                                                     mqtt_username,
                                                     mqtt_password,
                                                     data_send)
@@ -1563,18 +1563,7 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
                             MySQL_Insert_v5(querydevice, (device_mode, id_device))  
                             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
 
-                            if any(item['mode'] for item in result_checkmode_control) and any(item['mode'] == 1 for item in result_checkmode_control):
-                                data_send = {
-                                            "id_device": "Systemp",
-                                            "mode": 2
-                                            }
-                                push_data_to_mqtt(host,
-                                        port,
-                                        topicpud ,
-                                        username,
-                                        password,
-                                        data_send)
-                            elif all(item['mode'] == 0 for item in result_checkmode_control):
+                            if all(item['mode'] == 0 for item in result_checkmode_control):
                                 data_send = {
                                             "id_device": "Systemp",
                                             "mode": 0
@@ -1597,7 +1586,16 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
                                         password,
                                         data_send)
                             else:
-                                pass
+                                data_send = {
+                                            "id_device": "Systemp",
+                                            "mode": 2
+                                            }
+                                push_data_to_mqtt(host,
+                                        port,
+                                        topicpud ,
+                                        username,
+                                        password,
+                                        data_send)
                         else:
                             print("Failed to insert data")
                     else :
@@ -1621,6 +1619,11 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     global bitchecktopic2
     
     # variable topic 1
+    global arr
+    id_systemp = arr[1]
+    id_systemp = int(id_systemp)
+    custom_watt = 0 
+    
     # variable topic 2
     global device_mode
     
@@ -1648,7 +1651,14 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 #process
                 if result_topic1 :
                     bitchecktopic1 = 1 
-                    await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    if not "rated_power_custom" in result_topic1:
+                        await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    # update custom_watt in database
+                    for item in result_topic1:
+                        if item["id_device"] == id_systemp and "rated_power_custom" in item:
+                            custom_watt = item["rated_power_custom"] 
+                        if custom_watt : 
+                            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s where `id` = %s ',(custom_watt,id_systemp))
                 
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
