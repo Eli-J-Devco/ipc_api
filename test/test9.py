@@ -1,77 +1,30 @@
+import os
 import sys
 
-# if sys.version_info[0] == 3:
-#     import tkinter as tk
-# else:
-#     import Tkinter as tk
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("ipc_api")
+sys.path.append(path)
+print(path)
+from src.utils.libMySQL import *
 
-# r = tk.Tk()
-# r.title('Counting Seconds')
-# button = tk.Button(r, text='Stop', width=25,height=20, command=r.destroy)
-# button.pack()
-# r.mainloop()
+results_project = MySQL_Select("SELECT MPPT1Voltage, MPPT1Current, MPPT2Voltage, MPPT2Current, `error`, `time` FROM `dev_296` WHERE id_device=296 AND `error`=0 AND `time`>='2024-04-17 07:00:00'  AND `time`<='2024-04-17 08:00:00' AND MPPT1Voltage>0 AND MPPT2Voltage>0;", ())
+print(results_project)
+irradiance =[]
+for item in results_project:
+    
+    irradiance.append({
+        "irr1":item["MPPT1Voltage"]*item["MPPT1Current"],
+        "irr2":item["MPPT2Voltage"]*item["MPPT2Current"],
+    })
+    
+print(irradiance)
+print(len(irradiance))
+irr1=0
+irr2=0
+for item in irradiance:
+    irr1=irr1+item["irr1"]
+    irr2=irr2+item["irr2"]
+print(f'irr1: {irr1/len(irradiance)/1.2}')
+print(f'irr2: {irr2/len(irradiance)/1.2}')
 
-
-data=[{'id': 2, 'name': 'Manager', 'description': None, 'status': True, 
-  'screen': [{'id': 1, 'name': 'Overview', 'description': None, 'status': True, 'auth': 1}, 
-             {'id': 2, 'name': 'Login', 'description': None, 'status': True, 'auth': 1}]}, 
- {'id': 3, 'name': 'Customer', 'description': None, 'status': True, 
-  'screen': [{'id': 1, 'name': 'Overview', 'description': None, 'status': True, 'auth': 2}, 
-             {'id': 3, 'name': 'Quick Start', 'description': None, 'status': True, 'auth': 2}]}]
-# 
-array1 = [1, 2, 3]
-array2 = [2, 3, 4]
-
-# combined_array = list(set(array1 + array2))
-# print(combined_array)
-combined_array=[1,2,3]
-
-role_screen={}
-screen_list=[]
-for role_item in data:
-  for screen_item in role_item["screen"]:
-    screen_list.append(screen_item)
-    if screen_item["id"] in combined_array:
-      id_role="id"+str(screen_item["id"])
-      if str(id_role) in role_screen.keys():
-        auth=[]
-        auth=role_screen[id_role]["auth"]
-        auth.append(screen_item["auth"])
-        role_screen[id_role]={
-          "id":screen_item["id"],
-          "auth":auth
-        }
-      else:
-        role_screen[id_role]={
-          "id":screen_item["id"],
-          "auth":[screen_item["auth"]]
-        }
-# print(len(screen_list))
-new_Data = [x for i, x in enumerate(screen_list) if x['id'] not in {y['id'] for y in screen_list[:i]}]
-# print(new_Data)
-def convert_binary_auth(auth):
-    try:
-        result_auth=""
-        for i,item in enumerate(auth):
-            if i < len(auth)-1:
-                result_auth=result_auth + str(item)+"|"
-            else:
-                result_auth=result_auth + str(item)
-        if not result_auth:
-            return 0
-        else:
-            return int(bin(eval(result_auth)),2)
-    except Exception as err:
-        print('Convert_binary_auth: '+err)
-        return 0
-new_role_screen=[]
-for item in new_Data:
-    new_item={
-      "id":item["id"],
-      "auth":convert_binary_auth(role_screen["id"+str(item["id"])]["auth"]),
-      "name":item["name"],
-      "description":item["description"],
-    }
-    new_role_screen.append(new_item)
-# print(new_role_screen)
-# print(new_role_screen[0][])
+print(f'irr1: {irr1/len(irradiance)}')
+print(f'irr2: {irr2/len(irradiance)}')

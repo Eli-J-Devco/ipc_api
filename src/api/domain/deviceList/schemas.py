@@ -190,6 +190,7 @@ class MultipleDeviceCreate(BaseModel):
     in_mode: Optional[int] = Field()
     id_template: Optional[int] = None
     mppt: Optional[list[MPPTBase]] = None
+    rated_power:Optional[float] = None
     # 
     class Config:
         orm_mode = True

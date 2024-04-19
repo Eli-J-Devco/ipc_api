@@ -141,6 +141,8 @@ def point_object(Config,
                  control_min=None,
                  control_max=None,
                  control_enabled=1,# show/hide = 1/0, get from Device
+                 panel_height=None,
+                 panel_width=None,
                  ):
     
     return {"config":Config,
@@ -163,7 +165,10 @@ def point_object(Config,
             "control_menu_order":control_menu_order,
             "control_min":control_min,
             "control_max":control_max,
-            "control_enabled":control_enabled
+            "control_enabled":control_enabled,
+            "panel_height":panel_height,
+            "panel_width":panel_width,
+            
             }
 # Describe functions before writing code
 # /**
@@ -476,7 +481,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             control_menu_order=point_list_item['control_menu_order'],
                                                             control_min=point_list_item['control_min'],
                                                             control_max=point_list_item['control_max'],
-                                                            control_enabled=1
+                                                            control_enabled=1,
+                                                            panel_height=point_list_item['panel_height'],
+                                                            panel_width=point_list_item['panel_width']
                                                             )
                 else:
                     if point_value != None:
@@ -505,7 +512,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 control_menu_order=point_list_item['control_menu_order'],
                                                 control_min=point_list_item['control_min'],
                                                 control_max=point_list_item['control_max'],
-                                                control_enabled=1
+                                                control_enabled=1,
+                                                panel_height=point_list_item['panel_height'],
+                                                panel_width=point_list_item['panel_width']
                                                 )
                 return point_list
             case "Internal":
@@ -527,7 +536,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
-                                        control_enabled=1
+                                        control_enabled=1,
+                                        panel_height=point_list_item['panel_height'],
+                                        panel_width=point_list_item['panel_width']
                                         )
                 return point_list
             case "Equation":
@@ -549,7 +560,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
-                                        control_enabled=1
+                                        control_enabled=1,
+                                        panel_height=point_list_item['panel_height'],
+                                        panel_width=point_list_item['panel_width']
                                         )
                 return point_list
         
@@ -1128,6 +1141,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
                                                 control_enabled=item['control_enabled'],
+                                                panel_height=item['panel_height'],
+                                                panel_width=item['panel_width']
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -1153,7 +1168,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_menu_order=item['control_menu_order'],
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
-                                                control_enabled=1
+                                                control_enabled=1,
+                                                panel_height=item['panel_height'],
+                                                panel_width=item['panel_width']
                                                 )
                             )
                         
@@ -1251,12 +1268,22 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         mppt_volt=[item for item in new_point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
                         mppt_amps=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
                         mppt_string=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
-                        for item in mppt_string:
+                        
+                        for item_string in mppt_string:
+                            mppt_string_panel=[item for item in new_point_list_device if item['parent'] == item_string["id_point"]and item['config'] =="Panel"]
+                            area=0
+                            # print(mppt_string_panel)
+                            if mppt_string_panel:
+                                for item_panel in mppt_string_panel:
+                                    if item_panel["panel_height"]!=None and item_panel["panel_width"] !=None:
+                                        area=area+(item_panel["panel_height"]/1000*item_panel["panel_width"]/1000)
                             mppt_strings.append({
-                                "point_key":item["point_key"],
-                                "name":item["name"],
-                                "value":item["value"],
+                                "point_key":item_string["point_key"],
+                                "name":item_string["name"],
+                                "value":item_string["value"],
+                                "area":area
                                             })
+                        
                         Quality=[]
                         if mppt_volt:
                             volt_quality=  [item for item in mppt_volt if item['quality'] == 1]
@@ -1276,6 +1303,18 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 Quality.append(0)
                             else:
                                 Quality.append(1)
+                        
+                        Power =0
+                        # if mppt_volt and mppt_amps:
+                        #     Power =mppt_volt*mppt_amps
+                        if mppt_string:
+                            pass
+                            # total_area_string=0
+                            
+                            # for item in mppt_string:
+                            #     if item["value"]!=None and item["area"]!=0:
+                            #         total_area_string=total_area_string+item["area"]
+                            
                         mppt_item={
                                 "config":point_item["config"],
                                 "id_point":point_item["id_point"],
@@ -1283,6 +1322,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "id": point_item["id"],
                                 "point_key":point_item["point_key"],
                                 "name": point_item["name"],
+                                "Power":Power,
+                                # "area"
                                 'value':{
                                     "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                     "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),

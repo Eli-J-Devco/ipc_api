@@ -10,29 +10,12 @@ from datetime import datetime
 
 # with warnings.catch_warnings():
 #     warnings.simplefilter("ignore", category=sa_exc.SAWarning)
-from sqlalchemy import (
-    DOUBLE,
-    BigInteger,
-    Boolean,
-    Column,
-    DateTime,
-    Float,
-    ForeignKey,
-    Integer,
-    MetaData,
-    String,
-    Table,
-    Text,
-    create_engine,
-)
+from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime, Float,
+                        ForeignKey, Integer, MetaData, String, Table, Text,
+                        create_engine)
 from sqlalchemy import exc as sa_exc
-from sqlalchemy.orm import (
-    Mapped,
-    declarative_base,
-    mapped_column,
-    relationship,
-    sessionmaker,
-)
+from sqlalchemy.orm import (Mapped, declarative_base, mapped_column,
+                            relationship, sessionmaker)
 from sqlalchemy.schema import CreateTable, DropTable
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
@@ -103,7 +86,10 @@ class Device_list(Base):
     tcp_gateway_port = Column(Integer, nullable=True)
     enable = Column(Boolean, nullable=True, default=True)
 
-    max_watt = Column(DOUBLE, nullable=True)
+    # max_watt = Column(DOUBLE, nullable=True)
+    rated_power = Column(DOUBLE, nullable=True)
+    rated_power_custom = Column(DOUBLE, nullable=True)
+    
     min_watt_in_percent = Column(DOUBLE, nullable=True)
     compensate_watt_factor = Column(DOUBLE, nullable=True)
     battery_mode = Column(Boolean, nullable=True, default=True)

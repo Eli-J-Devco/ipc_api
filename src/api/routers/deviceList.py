@@ -338,14 +338,19 @@ async def create_multiple_device(
                 in_mode = create_device.in_mode
 
                 # ----------------------------------------
-                for item in range(add_count):                       
+                for item in range(add_count):
+                        rated_power=None
+                        if create_device.rated_power!= None:
+                            rated_power=(create_device.rated_power)*1000
+                        rated_power_custom=  rated_power
+                        min_watt_in_percent=5               
                         pv=16
                         model=0
                         send_p=0
                         send_q=0
                         send_pf=0
                         value_pf=1       
-                        max=100
+                        # max=100
                         enable_poweroff=0
                         mode=0
                         # tcp_gateway_ip=create_device.tcp_gateway_ip
@@ -391,7 +396,7 @@ async def create_multiple_device(
                                                         send_q=send_q,
                                                         send_pf=send_pf,
                                                         value_pf=value_pf,
-                                                        max=max,
+                                                        # max=max,
                                                         enable_poweroff=enable_poweroff,
                                                         name=name,
                                                         device_virtual=device_virtual,
@@ -400,8 +405,11 @@ async def create_multiple_device(
                                                         tcp_gateway_port=tcp_gateway_port,
                                                         tcp_gateway_ip=tcp_gateway_ip,
                                                         id_device_type=id_device_type,
-                                                        id_template=id_template
+                                                        id_template=id_template,
                                                         # id_device_group=id_device_group                                                                                                                                                                                                                                                               # **create_device.dict()
+                                                        rated_power=rated_power,
+                                                        rated_power_custom= rated_power_custom,
+                                                        min_watt_in_percent=min_watt_in_percent 
                                                         )
                         new_device_list.append(new_device)
                 db.add_all(new_device_list)
