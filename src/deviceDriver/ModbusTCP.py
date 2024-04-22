@@ -1019,9 +1019,15 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 slave_ID =  results_device[0]['rtu_bus_address']
                 NAME_DEVICE_TYPE =  results_device[0]['device_type']
                 ID_DEVICE_TYPE =  results_device[0]['id_device_type']
-                rated_power=results_device[0]['rated_power']
-                rated_power_custom=results_device[0]['rated_power_custom']
-                min_watt_in_percent=results_device[0]['min_watt_in_percent']
+                
+                if results_device[0]['rated_power']!=None:
+                    rated_power=results_device[0]['rated_power']/1000
+                    
+                if results_device[0]['rated_power_custom']!=None:
+                    rated_power_custom=results_device[0]['rated_power_custom']/1000
+                    
+                if results_device[0]['min_watt_in_percent']!=None:
+                    min_watt_in_percent=results_device[0]['min_watt_in_percent']
                 
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
