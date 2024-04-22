@@ -434,7 +434,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if value_power_limit :
-        value_power_limit*1000
+        value_power_limit*100
     print("gia tri setpoint",value_power_limit)
     
     if result_topic4:
