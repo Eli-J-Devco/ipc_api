@@ -385,7 +385,6 @@ async def get_list_device_in_automode(mqtt_result):
                         'operator': operator,
                     })
         total_power = sum(device['p_max'] for device in device_list)
-    print("device_list",device_list)
     return device_list
 async def get_value_meter():
     global result_topic4
@@ -408,13 +407,13 @@ async def get_value_meter():
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
-                            print("P san xuat",value_production)
+                            print("P Feeaback production",value_production)
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
-                            print("P tieu thu",value_consumption)
+                            print("P Feeaback consumption",value_consumption)
         # end for 
     else:
         pass  
@@ -433,10 +432,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     result_slope = []
     slope = 1
     power_max = 0
-    power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    print("gia tri setpoint",value_power_limit)
+    print("Value setpoint",value_power_limit)
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -463,7 +461,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if p_for_each_device > power_max/slope:
                     p_for_each_device = power_max/slope
                 
-            print("gia tri dieu khien",p_for_each_device)
+            print("Value INV Out",p_for_each_device)
             
             if device['controlinv'] == 1:
                 new_device = {
@@ -511,7 +509,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    print("gia tri setpoint",value_consumption)
+    print("Value setpoint",value_consumption)
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -544,7 +542,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             elif efficiency_total == 0 :
                 p_for_each_device = 0
                 
-            print("gia tri dieu khien",p_for_each_device)
+            print("Value INV Out",p_for_each_device)
             
             total_p_inv_prodution += p_for_each_device
             if device['controlinv'] == 1:
