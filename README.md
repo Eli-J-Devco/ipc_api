@@ -114,6 +114,7 @@ password_file /etc/mosquitto/pwfile
 listener 1883 0.0.0.0
 
 <!-- Mosquito Server Refuses Connections Ubuntu 18.04 -->
+sudo apt install ufw
 sudo ufw status
 <!-- Open Port 1883 and start firewall -->
 sudo ufw allow 1883 

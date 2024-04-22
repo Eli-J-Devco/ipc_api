@@ -108,7 +108,9 @@ device_mode=None
 # 1: Auto mode
 id_template=None
 # ----------------------------------------------------------------------
-
+rated_power=None
+rated_power_custom=None
+min_watt_in_percent=None
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -1007,12 +1009,20 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 global data_write_device
                 global NAME_DEVICE_TYPE
                 global ID_DEVICE_TYPE
+                global rated_power
+                global rated_power_custom
+                global min_watt_in_percent
+                
                 device_name=results_device[0]["name"]
                 slave_ip = results_device[0]["tcp_gateway_ip"]
                 slave_port = results_device[0]['tcp_gateway_port']
                 slave_ID =  results_device[0]['rtu_bus_address']
                 NAME_DEVICE_TYPE =  results_device[0]['device_type']
                 ID_DEVICE_TYPE =  results_device[0]['id_device_type']
+                rated_power=results_device[0]['rated_power']
+                rated_power_custom=results_device[0]['rated_power_custom']
+                min_watt_in_percent=results_device[0]['min_watt_in_percent']
+                
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
                     with ModbusTcpClient(slave_ip, port=slave_port) as client:
@@ -1213,6 +1223,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global NAME_DEVICE_TYPE
             global ID_DEVICE_TYPE
             global device_mode
+            global rated_power
+            global rated_power_custom
+            global min_watt_in_percent
+            
             new_point_list_device=[]
             new_point=[]
             mppt=[]
@@ -1317,7 +1331,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         
                         if mppt_strings:
                             for item in mppt_strings:
-                                if item["value"]!=None and item["area"]!=0:
+                                if item["value"]!=None and item["area"]!=0 and item["value"]!=0:
                                     total_area_string=total_area_string+item["area"]
                         if power>0 and total_area_string>0:
                             irradiance=power/total_area_string
@@ -1476,7 +1490,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "parameters":parameters,
                 "fields":new_point,
                 "mppt":mppt,
-                "control_group":new_control_group
+                "control_group":new_control_group,
+                "rated_power":rated_power,
+                "rated_power_custom":rated_power_custom,
+                "min_watt_in_percent":min_watt_in_percent,
             }
             data_device_short={
                 "id_device":device_id,
@@ -1493,6 +1510,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "fields":new_point,
                 # "mppt":mppt,
                 # "control_group":new_control_group
+                "rated_power":rated_power,
+                "rated_power_custom":rated_power_custom,
+                "min_watt_in_percent":min_watt_in_percent,
             }
             
             if device_name !="" and serial_number_project!= None:

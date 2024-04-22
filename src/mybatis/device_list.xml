@@ -45,8 +45,11 @@
         device_type.name AS device_type,
         device_type.id AS id_device_type,
         device_group.name AS device_group,
-        template_library.name AS template_name
-		
+        template_library.name AS template_name,
+        device_list.rated_power,
+	      device_list.rated_power_custom,
+	      device_list.min_watt_in_percent
+
         FROM device_list
         INNER JOIN device_type ON device_list.id_device_type=device_type.id
         INNER JOIN communication ON device_list.id_communication=communication.id
