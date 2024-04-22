@@ -281,7 +281,9 @@ async def Get_MQTT(host, port, topic, username, password):
                                         "MPPTAmps": MPPTAmps,
                                         "MPPTKey_string" :MPPTKey_string
                                     }
-
+                                    
+                                print("mppt_dict",mppt_dict)
+                                
                                 # Pass the values ​​from the dictionary into result_list_MPPT
                                 result_list_MPPT = list(mppt_dict.values())
 
