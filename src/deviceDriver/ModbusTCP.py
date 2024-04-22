@@ -1317,7 +1317,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         
                         if mppt_strings:
                             for item in mppt_strings:
-                                if item["value"]!=None and item["area"]!=0:
+                                if item["value"]!=None and item["area"]!=0 and item["value"]!=0:
                                     total_area_string=total_area_string+item["area"]
                         if power>0 and total_area_string>0:
                             irradiance=power/total_area_string

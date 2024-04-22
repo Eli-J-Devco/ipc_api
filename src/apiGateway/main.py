@@ -115,8 +115,12 @@ class apiGateway:
                                         "id_device":item_device["id"],
                                         "device_name":item_device["name"],
                                         "mode":item_device["mode"],
-                                        "parameters":[]
+                                        "parameters":[],
+                                        "rated_power":item_device["rated_power"]  if 'rated_power' in item_device.keys() else None,
+                                        "rated_power_custom":item_device["rated_power_custom"]  if 'rated_power_custom' in item_device.keys() else None,
+                                        "min_watt_in_percent" :  item_device["min_watt_in_percent"]  if 'min_watt_in_percent' in item_device.keys() else None,
                                     })
+                                #   x >5 ? 4,4 
                             #  init start pm2 new app
                             for item in new_device:
                                 
@@ -251,6 +255,8 @@ class apiGateway:
                                     # restart pm2 app log
                                     pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
                                     await restart_program_pm2_many(pm2_app_list)
+                            # 
+                            
                         case "UpdateDev":
                             pass
                         case "UpdateTemplate":
@@ -323,6 +329,13 @@ class apiGateway:
                         if 'control_group' in result.keys():
                             self.DeviceList[i]["control_group"]=result["control_group"]
                             
+                        if 'rated_power' in result.keys():
+                            self.DeviceList[i]["rated_power"]=result["rated_power"]
+                        if 'rated_power_custom' in result.keys():
+                            self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
+                        if 'min_watt_in_percent' in result.keys():
+                            self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
+                        
                         # for item in result["parameters"]:
                         #     print(len(item['fields']))
                         # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
