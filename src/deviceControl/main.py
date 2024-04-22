@@ -461,6 +461,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if p_for_each_device_power_limit > power_max/slope:
                     p_for_each_device_power_limit = power_max/slope
             
+            p_for_each_device_power_limit = p_for_each_device_power_limit - 10
+            
             if device['controlinv'] == 1:
                 new_device = {
                     "id_device": device["id_device"],
@@ -544,7 +546,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             elif efficiency_total == 0 :
                 p_for_each_device_zero_export = 0
                 
-            p_for_each_device_zero_export = p_for_each_device_zero_export 
+            p_for_each_device_zero_export = p_for_each_device_zero_export - 20
 
             total_p_inv_prodution += p_for_each_device_zero_export
             if device['controlinv'] == 1:
