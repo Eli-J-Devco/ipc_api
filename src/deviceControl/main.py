@@ -405,13 +405,13 @@ async def get_value_meter():
                 if result_type_meter:
                     if result_type_meter[0]["name"] == "Production Meter":
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                        if value_production_aray != None:
+                        if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
                             print("P san xuat",value_production)
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
-                        if value_consumption_aray != None:
+                        if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
                             print("P tieu thu",value_consumption)
@@ -429,64 +429,68 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     global total_power
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     efficiency_total = 0
+    id_device = 0
+    result_slope = []
+    slope = 1
     power_max = 0
     power_min = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    if value_power_limit :
-        value_power_limit*100
     print("gia tri setpoint",value_power_limit)
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
-    if devices :
+    if devices : 
         if total_power and value_power_limit:  
             efficiency_total = value_power_limit/total_power
             if efficiency_total > 1 :
                 efficiency_total = 1
-            device_list_control_power_limit = []
-            for device in devices:
-                power_max = device["p_max"]
-                power_min = device["p_min"]
-                power_max = int(power_max)
-                
-                if efficiency_total and power_max:
-                    p_for_each_device = efficiency_total*power_max
-                    if p_for_each_device > power_max:
-                        p_for_each_device = power_max
-                    if p_for_each_device <= power_min:
-                        p_for_each_device = power_min
-                
-                print("gia tri dieu khien",p_for_each_device*10)
-                
-                if device['controlinv'] == 1:
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": p_for_each_device}
-                        ]
-                    }
-                else:
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": p_for_each_device}
-                        ]
-                    }
-                device_list_control_power_limit.append(new_device)
 
-            if len(devices) == len(device_list_control_power_limit):
-                push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+        device_list_control_power_limit = []
+        for device in devices:
+            power_max = device["p_max"]
+            id_device = device["id_device"]
+            
+            if id_device :
+                result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
+                if result_slope :
+                    slope = int(result_slope[0]["slope"])
+                    
+            if efficiency_total and power_max:
+                p_for_each_device = (efficiency_total*power_max)/slope
+
+                if p_for_each_device > power_max/slope:
+                    p_for_each_device = power_max/slope
+                
+            print("gia tri dieu khien",p_for_each_device)
+            
+            if device['controlinv'] == 1:
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "WMax", "value": p_for_each_device}
+                    ]
+                }
             else:
-                pass
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": p_for_each_device}
+                    ]
+                }
+            device_list_control_power_limit.append(new_device)
+
+        if len(devices) == len(device_list_control_power_limit):
+            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
         else:
             pass
     else:
-        pass 
+        pass
+    
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -500,6 +504,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     efficiency_total = 0
     power_max = 0
+    id_device = 0
+    result_slope = []
+    slope = 1
     p_for_each_device = 0
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
@@ -521,17 +528,23 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         device_list_control_power_limit = []
         for device in devices:
             power_max = device["p_max"]
-            power_max = int(power_max)
+            id_device = device["id_device"]
             
+            if id_device :
+                result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
+                if result_slope :
+                    slope = int(result_slope[0]["slope"])
+                    
             if efficiency_total and power_max:
-                p_for_each_device = efficiency_total*power_max
-                if p_for_each_device > power_max:
-                    p_for_each_device = power_max
+                p_for_each_device = (efficiency_total*power_max)/slope
+
+                if p_for_each_device > power_max/slope:
+                    p_for_each_device = power_max/slope
                     
             elif efficiency_total == 0 :
                 p_for_each_device = 0
                 
-            print("gia tri dieu khien",p_for_each_device*10)
+            print("gia tri dieu khien",p_for_each_device)
             
             total_p_inv_prodution += p_for_each_device
             if device['controlinv'] == 1:
@@ -724,8 +737,8 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                 elif type_mode_auto == "textbox":
                     value_power_limit = mqtt_result.get('value', value_power_limit)
                     if value_power_limit is not None:
+                        value_power_limit = value_power_limit *1000
                         MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
-
                 percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
                 
                 if 0 <= percent_offset_power_limit <= 100:
