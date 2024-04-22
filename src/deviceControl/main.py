@@ -461,7 +461,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if p_for_each_device_power_limit > power_max/slope:
                     p_for_each_device_power_limit = power_max/slope
             
-            p_for_each_device_power_limit = p_for_each_device_power_limit - 10
+            p_for_each_device_power_limit = p_for_each_device_power_limit - 20
             
             if device['controlinv'] == 1:
                 new_device = {
