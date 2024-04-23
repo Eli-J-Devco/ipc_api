@@ -36,6 +36,7 @@ total_power = 0
 p_for_each_device_zero_export = 0
 p_for_each_device_power_limit = 0
 
+result_topic1 = []
 result_topic4 = []
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
@@ -107,14 +108,15 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
             print(f"Error MQTT subscribe: '{err}'")
     else :
         pass
-async def process_update_mode_for_device_for_systemp(mqtt_result):
+async def process_update_mode_for_device_for_systemp():
     
+    global result_topic1
     global ModeSysTemp
     try:
-        if mqtt_result:
+        if result_topic1:
             try:
-                if mqtt_result.get('id_device') == 'Systemp':
-                    ModeSysTemp = mqtt_result.get('mode')  
+                if result_topic1.get('id_device') == 'Systemp':
+                    ModeSysTemp = result_topic1.get('mode')  
 
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
@@ -819,10 +821,10 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4, username, password):
     
-    result_topic1 = ""
     result_topic2 = ""
     result_topic3 = ""
     global result_topic4
+    global result_topic1
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
@@ -852,7 +854,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
             
             if message.topic == topic1:
                 result_topic1 = json.loads(message.message.decode())
-                await process_update_mode_for_device_for_systemp (result_topic1)
+                await process_update_mode_for_device_for_systemp ()
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
