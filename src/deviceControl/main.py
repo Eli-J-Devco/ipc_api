@@ -117,7 +117,7 @@ async def process_update_mode_for_device_for_systemp():
     global bitcheck1
     global ModeSysTemp
     try:
-        if result_topic1 and bitcheck1 == 1:
+        if result_topic1 and bitcheck1 == 1 :
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     bitcheck1 = 0
@@ -137,7 +137,7 @@ async def process_update_mode_for_device_for_systemp():
             except Exception as json_err:
                 print(f"Error processing JSON data: {json_err}")
         else:
-            print("Received empty or invalid JSON data from MQTT")
+            pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")

@@ -883,7 +883,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         else :
                                             pass
                                         
-                                    if device_mode == 1 and value != 0:
+                                    if device_mode == 1 and value != 0 and any('status' in item for item in result_topic1):
                                         print("---------- Auto control mode ----------")
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
@@ -1574,7 +1574,7 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
     checktype_device = ""
     
     try:
-        if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+        if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result) :
             for item in mqtt_result:
                 id_device = int(item["id_device"])
                 result_checktype_device = MySQL_Select ("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;" ,(id_device,) )
@@ -1679,7 +1679,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 #process
                 if result_topic1 :
                     bitchecktopic1 = 1 
-                    if "rated_power_custom" not in result_topic1 and "status" not in result_topic1:
+                    if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                         await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
                     else:
                         pass
