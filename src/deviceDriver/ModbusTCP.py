@@ -1679,8 +1679,10 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 #process
                 if result_topic1 :
                     bitchecktopic1 = 1 
-                    if not "rated_power_custom" in result_topic1:
-                        await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    if "rated_power_custom" not in result_topic1 and "status" not in result_topic1:
+                        await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+                    else:
+                        pass
                     # update custom_watt in database
                     for item in result_topic1:
                         if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:

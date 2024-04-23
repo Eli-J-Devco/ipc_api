@@ -473,6 +473,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "power limit",
+                    "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
@@ -481,6 +483,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "power limit",
+                    "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
@@ -562,6 +566,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export",
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -570,6 +576,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export",
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -581,6 +589,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export",
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
@@ -639,6 +649,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export + power limit",
+                    "setpoint": value_consumption + value_power_limit,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device}
                     ]
@@ -647,6 +659,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export + power limit",
+                    "setpoint": value_consumption + value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device}
@@ -658,6 +672,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
             new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
+                    "status": "zero export + power limit",
+                    "setpoint": value_consumption + value_power_limit,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
@@ -694,6 +710,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                     new_device = {
                         "id_device": device["id_device"],
                         "mode": device["mode"],
+                        "status": "full Power",
                         "parameter": [
                             {"id_pointkey": "WMax", "value": p_for_each_device}
                         ]
@@ -702,6 +719,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                     new_device = {
                         "id_device": device["id_device"],
                         "mode": device["mode"],
+                        "status": "full Power",
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
                             {"id_pointkey": "WMax", "value": p_for_each_device}
