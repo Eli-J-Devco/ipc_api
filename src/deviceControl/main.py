@@ -38,6 +38,9 @@ p_for_each_device_power_limit = 0
 
 result_topic1 = []
 result_topic4 = []
+
+bitcheck1 = 0
+
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
@@ -111,11 +114,13 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
 async def process_update_mode_for_device_for_systemp():
     
     global result_topic1
+    global bitcheck1
     global ModeSysTemp
     try:
-        if result_topic1:
+        if result_topic1 and bitcheck1 == 1:
             try:
                 if result_topic1.get('id_device') == 'Systemp':
+                    bitcheck1 = 0
                     ModeSysTemp = result_topic1.get('mode')  
 
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
@@ -825,6 +830,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
     result_topic3 = ""
     global result_topic4
     global result_topic1
+    global bitcheck1 
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
@@ -854,6 +860,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
             
             if message.topic == topic1:
                 result_topic1 = json.loads(message.message.decode())
+                bitcheck1 = 1
                 await process_update_mode_for_device_for_systemp ()
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
