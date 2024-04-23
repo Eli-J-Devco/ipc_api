@@ -134,7 +134,7 @@ async def process_update_mode_for_device_for_systemp(mqtt_result):
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-async def pud_feedback_project_setup(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     result = []
     topic = topicPublic 
     name = ""
@@ -314,12 +314,11 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
     topicpud = serial_number_project + MQTT_TOPIC_PUD_PROJECT_SETUP
     try:
         if mqtt_result and 'get_information' in mqtt_result:
-            await pud_feedback_project_setup(serial_number_project,
-                                                host,
-                                                port,
-                                                topicpud,
-                                                username,
-                                                password)                       
+            await pud_feedback_project_setup(host,
+                                            port,
+                                            topicpud,
+                                            username,
+                                            password)                       
         else:
             pass
     except Exception as err:
@@ -545,8 +544,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     
             elif efficiency_total == 0 :
                 p_for_each_device_zero_export = 0
-                
-            p_for_each_device_zero_export = p_for_each_device_zero_export 
+            
+            if p_for_each_device_zero_export <= 0 :
+                p_for_each_device_zero_export == 0 
+            else:
+                pass
 
             total_p_inv_prodution += p_for_each_device_zero_export
             if device['controlinv'] == 1:
