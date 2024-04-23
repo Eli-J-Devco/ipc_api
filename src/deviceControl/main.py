@@ -525,6 +525,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
+    value_consumption = value_consumption - (value_consumption*value_zero_export/100)
+    
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
@@ -551,7 +553,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 p_for_each_device_zero_export = (efficiency_total*power_max)/slope
                 
                 if p_for_each_device_zero_export > power_max/slope:
-                    p_for_each_device_zero_export = power_max/slope
+                    p_for_each_device_zero_export = power_max/slope 
                     
             elif efficiency_total == 0 :
                 p_for_each_device_zero_export = 0
@@ -692,6 +694,8 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     global devices
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     power_max = 0
+    result_slope = []
+    slope = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
@@ -700,11 +704,17 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     if devices :
             device_list_control_power_limit = []
             for device in devices:
+                id_device = device["id_device"]
                 power_max = device["p_max"]
                 power_max = int(power_max)
                 
-                if power_max:
-                    p_for_each_device = power_max
+                if id_device :
+                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
+                if result_slope :
+                    slope = int(result_slope[0]["slope"])
+                    
+                if power_max and slope :
+                    p_for_each_device = power_max/slope
                         
                 if device['controlinv'] == 1:
                     new_device = {
@@ -729,6 +739,9 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 
             if len(devices) == len(device_list_control_power_limit):
                 push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+                print("P Feedback production",value_production)
+                print("P Feedback consumption",value_consumption)
+                print("Value INV Out",p_for_each_device)
             else:
                 pass
     else:
@@ -776,9 +789,9 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                     value_power_limit = mqtt_result.get('value', value_power_limit)
                     if value_power_limit is not None:
                         MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
-                        value_power_limit = value_power_limit *1000
+                        percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
+                        value_power_limit = (value_power_limit + (value_power_limit*percent_offset_power_limit)/100)*1000
                         print("value_power_limit",value_power_limit)
-                percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
                 
                 if 0 <= percent_offset_power_limit <= 100:
                     MySQL_Update_V1("update project_setup set value_offset_power_limit = %s", (percent_offset_power_limit,))
@@ -810,6 +823,8 @@ async def process_getfirst_zeroexport_powerlimit():
     global value_zero_export
     global enable_power_limit
     global value_power_limit
+    value_power_limit_temp = 0
+    global percent_offset_power_limit 
     result_project_setup = []
     
     try:
@@ -818,8 +833,10 @@ async def process_getfirst_zeroexport_powerlimit():
             enable_zero_export = result_project_setup[0]["enable_zero_export"]
             value_zero_export = result_project_setup[0]["value_zero_export"]
             enable_power_limit = result_project_setup[0]["enable_power_limit"]
-            value_power_limit = result_project_setup[0]["value_power_limit"]*1000
-        
+            value_power_limit_temp = result_project_setup[0]["value_power_limit"]
+            percent_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
+            value_power_limit = (value_power_limit_temp + (value_power_limit_temp*percent_offset_power_limit)/100)*1000
+            
         else:
             pass
             
@@ -831,7 +848,7 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
     global enable_power_limit
     global value_power_limit
     
-    if enable_zero_export == 1 and value_zero_export != 0 and enable_power_limit == 0:
+    if enable_zero_export == 1 and enable_power_limit == 0:
         print("==============================zero_export==============================")
         await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:

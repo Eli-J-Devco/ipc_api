@@ -772,10 +772,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     # Man (device_mode == 0 ) + result_topic1 + bitchecktopic1 == 1 + enable_zero_export == 0 : 
     global result_topic1
     global bitchecktopic1
-    result_temp = []
-    result_temp = result_topic1
-    
-    if result_temp and bitchecktopic1 == 1 :
+
+    if result_topic1 and bitchecktopic1 == 1 :
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
         statement = mybatis_mapper2sql.get_statement(
@@ -790,7 +788,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         else:           
             print("Error not found data in file mybatis")
             return -1
-        for item in result_temp:
+        for item in result_topic1:
             device_control = item['id_device']
             parameter = item['parameter']
             device_control = int(device_control)
