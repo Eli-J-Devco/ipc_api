@@ -883,7 +883,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         else :
                                             pass
                                         
-                                    if device_mode == 1 and value > 0:
+                                    if device_mode == 1 and value != 0:
                                         print("---------- Auto control mode ----------")
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)

@@ -492,7 +492,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 }
             device_list_control_power_limit.append(new_device)
 
-        if len(devices) == len(device_list_control_power_limit) and enable_zero_export == 0:
+        if len(devices) == len(device_list_control_power_limit) and enable_zero_export == 0 :
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint",value_power_limit)
             print("Value INV Out",p_for_each_device_power_limit)
@@ -557,7 +557,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 p_for_each_device_zero_export = 0
             
             if p_for_each_device_zero_export <= 0 :
-                p_for_each_device_zero_export == 0 
+                p_for_each_device_zero_export = 0 
             else:
                 pass
 
@@ -597,7 +597,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 }
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             
-        if len(devices) == len(device_list_control_power_limit) and enable_power_limit == 0:
+        if len(devices) == len(device_list_control_power_limit) and enable_power_limit == 0 :
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint",value_consumption)
             print("P Feedback production",value_production)
@@ -680,7 +680,7 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                 }
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             
-        if len(devices) == len(device_list_control_power_limit):
+        if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
         else:
             pass
