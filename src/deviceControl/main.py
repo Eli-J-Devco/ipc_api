@@ -777,6 +777,7 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                     if value_power_limit is not None:
                         MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
                         value_power_limit = value_power_limit *1000
+                        print("value_power_limit",value_power_limit)
                 percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
                 
                 if 0 <= percent_offset_power_limit <= 100:
@@ -817,7 +818,7 @@ async def process_getfirst_zeroexport_powerlimit():
             enable_zero_export = result_project_setup[0]["enable_zero_export"]
             value_zero_export = result_project_setup[0]["value_zero_export"]
             enable_power_limit = result_project_setup[0]["enable_power_limit"]
-            value_power_limit = result_project_setup[0]["value_power_limit"]
+            value_power_limit = result_project_setup[0]["value_power_limit"]*1000
         
         else:
             pass
