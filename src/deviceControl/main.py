@@ -4,6 +4,12 @@ import sys
 import mqttools
 import asyncio
 import json
+import psutil
+import platform
+from datetime import datetime
+import datetime
+
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -51,7 +57,9 @@ MQTT_PASSWORD =Config.MQTT_PASSWORD
 MQTT_TOPIC_SUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_PUD_PROJECT_SETUP = "/Project/Setup"
+MQTT_TOPIC_PUD_CPU_SETUP = "/CPU/Information"
 MQTT_TOPIC_SUD_MODEGET_INFORMATION = "/Project/Get"
+MQTT_TOPIC_SUD_MODEGET_CPU = "/CPU/Get"
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
@@ -80,7 +88,107 @@ Mode = Man -> value direct to function read device
 Mode = Zero Export ->   
 Mode = Limit -> 
 """
+def get_size(bytes, suffix="B"):
+    """
+    Scale bytes to its proper format
+    e.g:
+        1253656 => '1.20MB'
+        1253656678 => '1.17GB'
+    """
+    factor = 1024
+    for unit in ["", "K", "M", "G", "T", "P"]:
+        if bytes < factor:
+            return f"{bytes:.2f}{unit}{suffix}"
+        bytes /= factor
 
+async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+    
+    try:
+        system_info = {
+            "System Information": {},
+            "Boot Time": {},
+            "CPU Info": {},
+            "Memory Information": {},
+            "Disk Information": {},
+            "Network Information": {}
+        }
+        
+        # System Information
+        uname = platform.uname()
+        system_info["System Information"]["System"] = uname.system
+        system_info["System Information"]["Node Name"] = uname.node
+        system_info["System Information"]["Release"] = uname.release
+        system_info["System Information"]["Version"] = uname.version
+        system_info["System Information"]["Machine"] = uname.machine
+        system_info["System Information"]["Processor"] = uname.processor
+
+        boot_time_timestamp = psutil.boot_time()
+        bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
+        system_info["Boot Time"]["Boot Time"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
+
+        # let's print CPU information
+        system_info["CPU Info"]["Physical cores"] = psutil.cpu_count(logical=False)
+        system_info["CPU Info"]["Total cores"] = psutil.cpu_count(logical=True)
+        cpufreq = psutil.cpu_freq()
+        system_info["CPU Info"]["Max Frequency"] = f"{cpufreq.max:.2f}Mhz"
+        system_info["CPU Info"]["Min Frequency"] = f"{cpufreq.min:.2f}Mhz"
+        system_info["CPU Info"]["Current Frequency"] = f"{cpufreq.current:.2f}Mhz"
+        system_info["CPU Info"]["Total CPU Usage"] = f"{psutil.cpu_percent()}%"
+
+        # Memory Information
+        svmem = psutil.virtual_memory()
+        system_info["Memory Information"]["Total"] = get_size(svmem.total)
+        system_info["Memory Information"]["Available"] = get_size(svmem.available)
+        system_info["Memory Information"]["Used"] = get_size(svmem.used)
+        system_info["Memory Information"]["Percentage"] = f"{svmem.percent}%"
+        swap = psutil.swap_memory()
+        system_info["Memory Information"]["SWAP"] = {
+            "Total": get_size(swap.total),
+            "Free": get_size(swap.free),
+            "Used": get_size(swap.used),
+            "Percentage": f"{swap.percent}%"
+        }
+
+        # Disk Information
+        for partition in psutil.disk_partitions():
+            try:
+                partition_usage = psutil.disk_usage(partition.mountpoint)
+                system_info["Disk Information"][partition.device] = {
+                    "Mountpoint": partition.mountpoint,
+                    "File system type": partition.fstype,
+                    "Total Size": get_size(partition_usage.total),
+                    "Used": get_size(partition_usage.used),
+                    "Free": get_size(partition_usage.free),
+                    "Percentage": f"{partition_usage.percent}%"
+                }
+            except PermissionError:
+                continue
+
+        # Network information
+        for interface_name, interface_addresses in psutil.net_if_addrs().items():
+            for address in interface_addresses:
+                if str(address.family) == 'AddressFamily.AF_INET':
+                    system_info["Network Information"][interface_name] = {
+                        "IP Address": address.address,
+                        "Netmask": address.netmask,
+                        "Broadcast IP": address.broadcast
+                    }
+                elif str(address.family) == 'AddressFamily.AF_PACKET':
+                    system_info["Network Information"][interface_name] = {
+                        "MAC Address": address.address,
+                        "Netmask": address.netmask,
+                        "Broadcast MAC": address.broadcast
+                    }
+        
+        push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPublic,
+                    mqtt_username,
+                    mqtt_password,
+                    system_info)
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+        
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global ModeSysTemp
     global flag 
@@ -330,6 +438,22 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
+        
+async def pud_information_cpu_when_request(mqtt_result ,serial_number_project,host, port, username, password):
+    global MQTT_TOPIC_PUD_CPU_SETUP
+    topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
+    try:
+        if mqtt_result and 'get_cpu' in mqtt_result:
+            await get_system_information(host,
+                                            port,
+                                            topicPublic,
+                                            username,
+                                            password)                       
+        else:
+            pass
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'") 
+        
 async def check_inverter_device(device_control):
     results_device_type = []
     
@@ -860,10 +984,11 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
     else :
         print("======================= Auto - Full P ========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4, username, password):
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5, username, password):
     
     result_topic2 = ""
     result_topic3 = ""
+    result_topic5 = ""
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -872,6 +997,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
     topic2 = serial_number_project + topic2
     topic3 = serial_number_project + topic3
     topic4 = serial_number_project + topic4
+    topic5 = serial_number_project + topic5
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -883,6 +1009,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
         await client.subscribe(topic2)
         await client.subscribe(topic3)
         await client.subscribe(topic4)
+        await client.subscribe(topic5)
         
         while True:
             try:
@@ -907,7 +1034,9 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
             elif message.topic == topic4:
                 result_topic4 = json.loads(message.message.decode())
                 # await get_list_device_in_automode(result_topic4)
-                
+            elif message.topic == topic5:
+                result_topic5 = json.loads(message.message.decode())
+                await pud_information_cpu_when_request(result_topic5,serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
@@ -923,6 +1052,7 @@ async def main():
                                                     MQTT_TOPIC_SUD_MODEGET_INFORMATION,
                                                     MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
                                                     MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                    MQTT_TOPIC_SUD_MODEGET_CPU,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
