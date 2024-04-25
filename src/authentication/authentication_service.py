@@ -69,7 +69,7 @@ class AuthenticationService:
         return response
 
     @async_db_request_handler
-    async def refresh(self, refresh_token):
+    async def refresh(self, refresh_token: str):
         if not refresh_token:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
         access_token = self.authentication.refresh_access_token(refresh_token)

@@ -117,3 +117,12 @@ class ProjectSetupController:
                                                                session,
                                                                self.project_setup_service.update_search_rtu,
                                                                body))
+
+    @Post("/screen/get/")
+    async def get_screen(self,
+                         session: AsyncSession = Depends(config.get_db),
+                         user: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.project_setup_service
+                                     .get_screens)(session))
+    

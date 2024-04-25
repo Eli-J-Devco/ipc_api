@@ -21,7 +21,7 @@ class RoleScreenMapBase(BaseModel):
     id_role: int
     id_screen: int
     auths: int = 1
-    status: bool = True
+    status: Optional[bool] = True
 
 
 class UserRoleMapBase(BaseModel):

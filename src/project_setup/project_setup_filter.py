@@ -69,7 +69,7 @@ class ConfigInformationEnum:
     TYPE_TIME_WAIT_BEFORE_RETRY = ConfigInformationGroup(MIN=195, MAX=212)
     TYPE_UPLOAD_DEBUG_INFORMATION = ConfigInformationGroup(MIN=213, MAX=217)
     TYPE_SCHEDULED_UPLOAD_TIME = ConfigInformationGroup(MIN=218, MAX=247)
-    TYPE_ETHERNET = ConfigInformationGroup(MIN=248, MAX=252)
+    TYPE_ETHERNET = ConfigInformationGroup(MIN=248, MAX=251)
     TYPE_POINT = ConfigInformationGroup(MIN=262, MAX=264)
     TYPE_MODBUS_CUSTOM = ConfigInformationGroup(MIN=265, MAX=269)
     TYPE_CREATE_TEMPLATE = ConfigInformationGroup(MIN=270, MAX=272)
@@ -90,7 +90,7 @@ class UpdateProjectSetupFilter(ProjectBaseFilter):
 
 
 class UpdateConfigInformationType(ProjectBaseFilter):
-    id: int
+    id_logging_interval: int
 
 
 class UpdateFirstPageLoginFilter(ProjectBaseFilter):

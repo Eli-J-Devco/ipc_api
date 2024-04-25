@@ -1,3 +1,5 @@
+import logging
+
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,6 +34,9 @@ class EthernetController:
 
     @Post("/ifconfig/")
     async def get_ifconfig(self,
+                           session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
-        return ServiceWrapper.sync_wrapper(self.ethernet_service.get_network_config)()
- 
+        network = ServiceWrapper.sync_wrapper(self.ethernet_service.get_network_config)()
+        mode = await ServiceWrapper.async_wrapper(self.ethernet_service.get_ethernet_mode)(session)
+
+        return {"network": network, "mode": mode}

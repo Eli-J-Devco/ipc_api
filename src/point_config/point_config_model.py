@@ -41,5 +41,6 @@ class PointListControlGroup(BaseModel):
 
 class PointListControlGroupChildren(PointListControlGroup):
     children: Optional[list[PointBase]] = None
+
     class Config:
         orm_mode = True

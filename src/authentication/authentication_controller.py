@@ -30,4 +30,4 @@ class AuthenticationController:
 
     @Post("/refresh")
     async def refresh(self, refresh_token: str = Body(embed=True), session: AsyncSession = Depends(config.get_db)):
-        return await ServiceWrapper.async_wrapper(self.authentication_service.refresh)(refresh_token, session)
+        return await ServiceWrapper.async_wrapper(self.authentication_service.refresh)(refresh_token)

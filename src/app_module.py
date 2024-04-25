@@ -7,31 +7,37 @@ from .config import config
 from .app_controller import AppController
 from .app_service import AppService
 from .devices.devices_module import DevicesModule
-from src.template.template_module import TemplateModule
-from src.point.point_module import PointModule
-from src.project_setup.project_setup_module import ProjectSetupModule
-from src.authentication.authentication_module import AuthenticationModule
-from src.ethernet.ethernet_module import EthernetModule
-from src.rs485.rs485_module import Rs485Module
-from src.user.user_module import UserModule
-from src.role.role_module import RoleModule
-from src.upload_channel.upload_channel_module import UploadChannelModule
-from src.point_config.point_config_module import PointConfigModule
+from .template.template_module import TemplateModule
+from .point.point_module import PointModule
+from .project_setup.project_setup_module import ProjectSetupModule
+from .authentication.authentication_module import AuthenticationModule
+from .ethernet.ethernet_module import EthernetModule
+from .rs485.rs485_module import Rs485Module
+from .user.user_module import UserModule
+from .role.role_module import RoleModule
+from .upload_channel.upload_channel_module import UploadChannelModule
+from .point_config.point_config_module import PointConfigModule
+from .point_mppt.point_mppt_module import PointMpptModule
+from .point_control.point_control_module import PointControlModule
+from src.register_block.register_block_module import RegisterBlockModule
 
 
 @Module(
     imports=[
-        DevicesModule,
-        TemplateModule,
-        ProjectSetupModule,
         AuthenticationModule,
+        DevicesModule,
         EthernetModule,
-        Rs485Module,
-        UserModule,
-        RoleModule,
-        UploadChannelModule,
         PointModule,
         PointConfigModule,
+        PointMpptModule,
+        PointControlModule,
+        ProjectSetupModule,
+        RoleModule,
+        Rs485Module,
+        TemplateModule,
+        UploadChannelModule,
+        UserModule,
+        RegisterBlockModule,
     ],
     controllers=[AppController],
     providers=[AppService],

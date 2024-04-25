@@ -14,6 +14,8 @@ from .ethernet_filter import UpdateEthernetFilter
 from .ethernet_helper import NetworkInterfaceConfig, UpdateNetworkInterfaceConfig
 from .ethernet_model import EthernetConfig, Ethernet, EthernetDetails
 from ..config import env_config
+from ..project_setup.project_setup_filter import ConfigInformationType
+from ..project_setup.project_setup_service import ProjectSetupService
 
 
 @Injectable
@@ -64,6 +66,11 @@ class EthernetService:
 
         await session.commit()
         return EthernetDetails(**updated_ethernet.__dict__)
+
+    @async_db_request_handler
+    async def get_ethernet_mode(self, session: AsyncSession):
+        mode = await ProjectSetupService().get_config_information_by_type(session, ConfigInformationType.TYPE_ETHERNET)
+        return mode
 
     @staticmethod
     def get_network_config():

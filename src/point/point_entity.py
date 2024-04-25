@@ -118,4 +118,3 @@ class ManualPoint(config.Base):
     type_config_information = relationship("ConfigInformation", foreign_keys=[id_config_information])
     type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group])
     reply_to_point = relationship("Point", remote_side=[parent])
-

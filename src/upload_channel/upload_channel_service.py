@@ -1,3 +1,5 @@
+import logging
+
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
@@ -87,12 +89,10 @@ class UploadChannelService:
             updating_channel = result.scalars().first()
 
             if updating_channel:
-                updating_channel = (UploadChannelConfig(**updating_channel.__dict__)
-                                    .copy(update=channel
-                                          .dict(exclude_unset=True)))
+                updating_channel = UploadChannel(**channel.dict())
                 query = (update(UploadChannelEntity)
                          .where(UploadChannelEntity.id == channel.id)
-                         .values(updating_channel.dict(exclude_unset=True, exclude={"devices"})))
+                         .values(updating_channel.dict(exclude_unset=True)))
 
                 await session.execute(query)
                 await self.update_device_upload_map(session, channel.devices, channel.id)

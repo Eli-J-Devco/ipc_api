@@ -8,7 +8,6 @@ class PointBase(BaseModel):
     id: Optional[int] = None
     index: Optional[int] = None
     parent: Optional[int] = None
-    id_device_type: Optional[int] = None
     id_pointclass_type: Optional[int] = None
     id_pointkey: Optional[str] = None
     id_point_list_type: Optional[int] = None
@@ -42,13 +41,8 @@ class PointBase(BaseModel):
         orm_mode = True
 
 
-class MPPTPanel(PointBase):
-    pass
+class ManualPoint(PointBase):
+    id_device_type: Optional[int] = None
 
-
-class MPPTString(PointBase):
-    children: Optional[list[MPPTPanel]] = None
-
-
-class MPPTPoint(PointBase):
-    children: Optional[list[MPPTString | PointBase]] = None
+    class Config:
+        orm_mode = True

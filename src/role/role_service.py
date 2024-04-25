@@ -134,3 +134,20 @@ class RoleService:
         for row in result.all():
             permissions.append(Permission(id=row[0], name=row[1], description=row[2], auth=row[3]))
         return permissions
+
+    @async_db_request_handler
+    async def update_role_permission(self,
+                                     role_id: int,
+                                     session: AsyncSession,
+                                     role_screen: RoleScreenMapBase):
+        screen = await ProjectSetupService().get_screen_by_id(role_screen.id_screen, session)
+        if not screen:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Screen not found")
+
+        query = (update(RoleScreenMapEntity)
+                 .where(RoleScreenMapEntity.id_role == role_screen.id_role)
+                 .where(RoleScreenMapEntity.id_screen == role_screen.id_screen)
+                 .values(auths=role_screen.auths))
+        await session.execute(query)
+        await session.commit()
+        return "Role permission updated successfully"

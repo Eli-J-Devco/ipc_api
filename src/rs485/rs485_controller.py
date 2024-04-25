@@ -25,7 +25,8 @@ class Rs485Controller:
         return await ServiceWrapper.async_wrapper(self.rs485_service.get_rs485_by_id)(rs485.id, session)
 
     @Post("/update/")
-    async def update_rs485(self, rs485: Rs485,
+    async def update_rs485(self,
+                           rs485: Rs485,
                            session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.rs485_service.update_rs485)(rs485, session)
