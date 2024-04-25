@@ -495,12 +495,10 @@ async def get_list_device_in_automode(mqtt_result):
                     # Pmax custom
                     result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
                     p_max_custom = result_pmax_custom[0]["rated_power_custom"]
-                    p_max_custom = p_max_custom*1000
                     
                     # Pmax
                     result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
                     p_max = result_pmax[0]["rated_power"]
-                    p_max =p_max *1000
                     
                     # Pmax
                     result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
