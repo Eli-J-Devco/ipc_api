@@ -455,12 +455,12 @@ class apiGateway:
                                 self.MQTT_USERNAME,
                                 self.MQTT_PASSWORD,
                                 mqtt_data)
-                mqtt_public_common(self.MQTT_BROKER_CLOUD,
-                                self.MQTT_PORT_CLOUD,
-                                topic,
-                                self.MQTT_USERNAME_CLOUD,
-                                self.MQTT_PASSWORD_CLOUD,
-                                mqtt_data)
+                # mqtt_public_common(self.MQTT_BROKER_CLOUD,
+                #                 self.MQTT_PORT_CLOUD,
+                #                 topic,
+                #                 self.MQTT_USERNAME_CLOUD,
+                #                 self.MQTT_PASSWORD_CLOUD,
+                #                 mqtt_data)
                 await asyncio.sleep(2)
         except Exception as err:
             print('Error MQTT deviceListPub')

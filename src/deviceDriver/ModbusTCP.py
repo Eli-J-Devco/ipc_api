@@ -1542,14 +1542,14 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     username[0],
                                     password[0],
                                     data_device_short)
-                # 
-                if host[1] != None and port[1]:
-                    func_mqtt_public(   host[1],
-                                        port[1],
-                                        serial_number_project+"/"+"Devices/"+""+device_id,
-                                        username[1],
-                                        password[1],
-                                        data_device)
+                # Cloud
+                # if host[1] != None and port[1]:
+                #     func_mqtt_public(   host[1],
+                #                         port[1],
+                #                         serial_number_project+"/"+"Devices/"+""+device_id,
+                #                         username[1],
+                #                         password[1],
+                #                         data_device)
             
             await asyncio.sleep(1)
         
