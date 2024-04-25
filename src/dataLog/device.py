@@ -195,6 +195,7 @@ async def Get_MQTT(host, port, topic, username, password):
     
     result_values_dict = {}
     mppt_dict = {}
+    result_id_device_mppt = 0
     device_id = 0 
     id = ""
     MPPTVolt = 0 
@@ -297,21 +298,24 @@ async def Get_MQTT(host, port, topic, username, password):
                                         result_id_mppt = await MySQL_Select_v1(query)
 
                                         if result_id_mppt:
-                                            item['id_device_mppt'] = result_id_mppt[0]['id']
+                                            result_id_device_mppt = result_id_mppt[0]['id']
                                         else:
-                                            item['id_device_mppt'] = None
+                                            pass
                                         
-                                        for item in result_list_MPPT:
-                                            if item['MPPTAmps'] == MPPTAmps:
-                                                item['id_device_mppt'] = item['id_device_mppt']
-            else: 
-                pass
+                                        if result_id_device_mppt :
+                                            for item in result_list_MPPT:
+                                                if item['MPPTAmps'] == MPPTAmps:
+                                                    item['id_device_mppt'] = result_id_device_mppt
+                                        else:
+                                            pass
+                else: 
+                    pass
             
             print("result_list_MPPT",result_list_MPPT)
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+
 # Describe Insert_TableDevice_AllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
