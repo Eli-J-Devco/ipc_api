@@ -1659,8 +1659,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     
     global result_topic1 
     global result_topic2 
-    global rated_power
-    global rated_power_custom
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
@@ -1678,6 +1676,8 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     global device_mode
     
     try:
+        global rated_power
+        global rated_power_custom
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client:
             return -1 
@@ -1710,6 +1710,9 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                         if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                             custom_watt = item["rated_power_custom"] 
                             watt = item["rated_power"]
+                            rated_power = watt
+                            rated_power_custom = custom_watt
+                            
                             
                     if custom_watt and watt : 
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s where `id` = %s ',(custom_watt,id_systemp))
