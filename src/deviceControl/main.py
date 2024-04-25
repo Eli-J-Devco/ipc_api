@@ -585,7 +585,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if result_slope :
                     slope = float(result_slope[0]["slope"])
                     
-            if efficiency_total and power_max:
+            if efficiency_total and power_max and slope:
+                if total_power and value_power_limit:  
+                    efficiency_total = (value_power_limit/total_power)*slope
+                    if efficiency_total > 1 :
+                        efficiency_total = 1
+                
                 p_for_each_device_power_limit = (efficiency_total*power_max)/slope
 
                 if p_for_each_device_power_limit > power_max/slope:
@@ -655,13 +660,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         devices = await get_list_device_in_automode(result_topic4)
 
     if devices : 
-        if total_power and value_consumption:  
-            efficiency_total = value_consumption/total_power
-            if efficiency_total > 1 :
-                efficiency_total = 1
-                
-        elif value_consumption <= 0 :
-            efficiency_total = 0
 
         device_list_control_power_limit = []
         for device in devices:
@@ -674,6 +672,14 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     slope = float(result_slope[0]["slope"])
                     
             if efficiency_total and power_max:
+                if total_power and value_consumption and slope:  
+                    efficiency_total = (value_consumption/total_power)*slope
+                    if efficiency_total > 1 :
+                        efficiency_total = 1
+                        
+                elif value_consumption <= 0 :
+                    efficiency_total = 0
+                
                 p_for_each_device_zero_export = (efficiency_total*power_max)/slope
                 
                 if p_for_each_device_zero_export > power_max/slope:
