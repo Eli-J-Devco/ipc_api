@@ -768,6 +768,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     
     global device_mode
     global status_device
+    global rated_power
+    global rated_power_custom
     
     # Man (device_mode == 0 ) + result_topic1 + bitchecktopic1 == 1 + enable_zero_export == 0 : 
     global result_topic1
@@ -857,20 +859,18 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     comment = 400
 
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
-                                            # if id_pointkey == "WMax":
-                                            #     value = (value * 1000)/10
-                                            # if id_pointkey == "WMaxPercent":
-                                            #     value = value * 10
-                                            # print("id_pointkey", id_pointkey)
-                                            # print("value", value)
-                                            result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_point_key` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey,id_systemp,))
+                                            if id_pointkey:
+                                                result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_point_key` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey,id_systemp,))
                                             if result_slope :
                                                 slope = int(result_slope[0]["slope"])
                                             
                                             if id_pointkey == "WMax":
                                                 value = value/slope
                                             elif id_pointkey == "WMaxPercent":
-                                                value = value /slope
+                                                if rated_power == rated_power_custom :
+                                                    value = value /slope
+                                                elif rated_power_custom < rated_power :
+                                                    value = (value*(rated_power_custom/rated_power))/slope
                                             elif id_pointkey == "VarMax":
                                                 value = value/slope
                                             elif id_pointkey == "VarMaxPercent":
@@ -1698,7 +1698,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                             rated_power = watt
                             rated_power_custom = custom_watt
                             
-                    if custom_watt and watt : 
+                    if custom_watt and watt and watt >= custom_watt: 
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                         custom_watt = 0
                         watt = 0
