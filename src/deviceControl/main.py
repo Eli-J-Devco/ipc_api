@@ -495,12 +495,10 @@ async def get_list_device_in_automode(mqtt_result):
                     # Pmax custom
                     result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
                     p_max_custom = result_pmax_custom[0]["rated_power_custom"]
-                    p_max_custom = p_max_custom*1000
                     
                     # Pmax
                     result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
                     p_max = result_pmax[0]["rated_power"]
-                    p_max =p_max *1000
                     
                     # Pmax
                     result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
@@ -585,7 +583,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             if id_device :
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope :
-                    slope = int(result_slope[0]["slope"])
+                    slope = float(result_slope[0]["slope"])
                     
             if efficiency_total and power_max:
                 p_for_each_device_power_limit = (efficiency_total*power_max)/slope
@@ -646,7 +644,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max = 0
     id_device = 0
     result_slope = []
-    slope = 1
+    slope = 1.0
     global p_for_each_device_zero_export 
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
@@ -673,7 +671,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             if id_device :
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope :
-                    slope = int(result_slope[0]["slope"])
+                    slope = float(result_slope[0]["slope"])
                     
             if efficiency_total and power_max:
                 p_for_each_device_zero_export = (efficiency_total*power_max)/slope
@@ -821,9 +819,9 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     global MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     power_max = 0
     result_slope = []
-    slope = 1
+    slope = 1.0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-    
+    p_for_each_device = 0
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
 
@@ -837,7 +835,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 if id_device :
                     result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope :
-                    slope = int(result_slope[0]["slope"])
+                    slope = float(result_slope[0]["slope"])
                     
                 if power_max and slope :
                     p_for_each_device = power_max/slope
