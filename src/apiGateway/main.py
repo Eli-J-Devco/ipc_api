@@ -47,6 +47,7 @@ import api.domain.project.models as project_models
 import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
+from apiGateway.devices import devices_service
 
 
 def getUTC():
@@ -87,6 +88,13 @@ class apiGateway:
                             port=self.MQTT_PORT,
                             username= self.MQTT_USERNAME, 
                             password=bytes(self.MQTT_PASSWORD, 'utf-8'))
+            # device=devices_service.DevicesService(
+            #                 host=self.MQTT_BROKER, 
+            #                 port=self.MQTT_PORT,
+            #                 username= self.MQTT_USERNAME, 
+            #                 password=self.MQTT_PASSWORD,
+            #                 update_device=self.DeviceList)
+            
             await client.start()
             await client.subscribe(Topic)
             while True:
@@ -103,6 +111,7 @@ class apiGateway:
                     match result['CODE']:
                         case "CreateTCPDev":
                             new_device=result['PAYLOAD']
+                            await device.create_dev_tcp(new_device)
                             # Insert Device to MQTT
                             for item_device in new_device:
                                 have_device=False
@@ -215,8 +224,9 @@ class apiGateway:
                             device_tcp=[]
                             device_rs485=[]
                             communication_list=[]
-                            
+                            id_device=[]
                             for item in device:
+                                id_device.append(item['id'])
                                 if item["driver_name"]=="RS485":
                                     # id_communication=item['id_communication']
                                     communication_list.append(item['id_communication'])
@@ -256,7 +266,10 @@ class apiGateway:
                                     pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
                                     await restart_program_pm2_many(pm2_app_list)
                             # 
-                            
+                            if self.DeviceList:
+                                if id_device:
+                                    update_device_list=[item for item in self.DeviceList if item['id_device'] not in id_device ]
+                                    self.DeviceList=update_device_list
                         case "UpdateDev":
                             pass
                         case "UpdateTemplate":
@@ -470,6 +483,8 @@ async def main():
                             MQTT_USERNAME_CLOUD,
                             MQTT_PASSWORD_CLOUD,
                             )
+
+    # 
     tasks.append(asyncio.create_task(
         api_gateway.managerApplicationsWithPM2()))
     tasks.append(asyncio.create_task(

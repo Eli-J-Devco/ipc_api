@@ -1000,6 +1000,17 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             # return -1 
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
+        global rated_power
+        global rated_power_custom
+        global min_watt_in_percent
+        if results_device[0]['rated_power']!=None:
+            rated_power=results_device[0]['rated_power']/1000
+            
+        if results_device[0]['rated_power_custom']!=None:
+            rated_power_custom=results_device[0]['rated_power_custom']/1000
+            
+        if results_device[0]['min_watt_in_percent']!=None:
+            min_watt_in_percent=results_device[0]['min_watt_in_percent']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1009,9 +1020,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 global data_write_device
                 global NAME_DEVICE_TYPE
                 global ID_DEVICE_TYPE
-                global rated_power
-                global rated_power_custom
-                global min_watt_in_percent
+                
                 
                 device_name=results_device[0]["name"]
                 slave_ip = results_device[0]["tcp_gateway_ip"]
@@ -1020,14 +1029,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 NAME_DEVICE_TYPE =  results_device[0]['device_type']
                 ID_DEVICE_TYPE =  results_device[0]['id_device_type']
                 
-                if results_device[0]['rated_power']!=None:
-                    rated_power=results_device[0]['rated_power']/1000
-                    
-                if results_device[0]['rated_power_custom']!=None:
-                    rated_power_custom=results_device[0]['rated_power_custom']/1000
-                    
-                if results_device[0]['min_watt_in_percent']!=None:
-                    min_watt_in_percent=results_device[0]['min_watt_in_percent']
+
                 
                 try:
                     print(f'-----{getUTC()} Read data from Device -----')
@@ -1060,6 +1062,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                     exception_code=result_rb["exception_code"]
                                     if exception_code=="GatewayNoResponse":
                                         status_device="offline"
+                                        
                                         status_rb.append({"ADDR":ADDR,
                                                         "ERROR_CODE":139,
                                                         "Timestamp": getUTC(),
@@ -1072,47 +1075,29 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                         })
                                     # print(f'ERROR CODE: {result_rb["exception_code"]}')
                                     print(f"Error reading from {slave_ip}: {result_rb}")
-                                    status_register_block=status_rb
+                                    # status_register_block=status_rb
+                                    
                                 case 100:
                                     status_device="online"
                                     INC = ADDR-1
                                     for itemR in result_rb["data"]:
                                         INC = INC+1
                                         Data.append({"MRA": INC, "Value": itemR, })
-                                    # print(f'Data1: {len(Data)}')    
-                            # print(f"Register Block {slave_ip}: {new_Data}") 
-                            # if result_rb==[]:
-                            #     print("The device does not return results")
-                            # else:
-                            #     if not result_rb.isError():
-                            #         status_device="online"
-                            #         INC = ADDR-1
-                            #         for itemR in result_rb.registers:
-                            #             INC = INC+1
-                            #             Data.append({"MRA": INC, "Value": itemR, })
-                            #     else:
-                            #         print("Error ------------------------------------")
-                            #         print(f'ADDR: {ADDR} COUNT: {COUNT}')
-                            #         if hasattr(result_rb, 'function_code'):
-                            #             status_device="online"
-                            #             # Exception Response(131, 3, IllegalAddress)
-                            #             print(f'ERROR CODE: {result_rb.function_code}')
-                            #             #
-                            #             print(f"Error reading from {slave_ip}: {result_rb}")
-                            #             status_rb.append({"ADDR":ADDR,
-                            #                             "ERROR_CODE":result_rb.function_code,
-                            #                             "Timestamp": getUTC(),
-                            #                             })
-                            #             status_register_block=status_rb
-                            #         else:
-                            #             print(f'This Slave {device_name} - [{slave_ip}] was not found')
-                            #             status_device="offline"
-                            #             status_rb.append({"ADDR":ADDR,
-                            #                                   "ERROR_CODE":139,
-                            #                                    "Timestamp": getUTC(),
-                            #                                   })      
-                        # print(f'Data: {len(Data)}')
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
+                        # 
+                        # for item_rb in status_rb:
+                        #     for item_rbs in status_register_block:
+                        #         if status_register_block:
+                        #             if 'ERROR_CODE' in status_register_block[0].keys():
+                        #                 error_code=status_register_block[0]["ERROR_CODE"]
+                        #                 if error_code==139:
+                        #                     status_register_block[0]={"ADDR":ADDR,
+                        #                                     "ERROR_CODE":exception_code,
+                        #                                     "Timestamp": getUTC(),
+                        #                         }
+                                            
+                                        
+                        # 
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)

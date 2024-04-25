@@ -12,24 +12,25 @@ from pathlib import Path
 
 import mybatis_mapper2sql
 from passlib.context import CryptContext
-
 # from database import get_db
 # from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
 #                      Response, status)
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
-sys.path.append(
-    (
-        lambda project_name: (
-            os.path.dirname(__file__)[
-                : len(project_name) + os.path.dirname(__file__).find(project_name)
-            ]
-            if project_name and project_name in os.path.dirname(__file__)
-            else -1
-        )
-    )("src")
-)
+# sys.path.append(
+#     (
+#         lambda project_name: (
+#             os.path.dirname(__file__)[
+#                 : len(project_name) + os.path.dirname(__file__).find(project_name)
+#             ]
+#             if project_name and project_name in os.path.dirname(__file__)
+#             else -1
+#         )
+#     )("src")
+# )
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
 from api.domain.template import models as template_models
 from api.domain.uploadChannel import models as uploadChannel_models
 

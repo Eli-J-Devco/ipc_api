@@ -341,7 +341,7 @@ async def create_multiple_device(
                 for item in range(add_count):
                         rated_power=None
                         if create_device.rated_power!= None:
-                            rated_power=(create_device.rated_power)*1000
+                            rated_power=(create_device.rated_power)
                         rated_power_custom=  rated_power
                         min_watt_in_percent=5               
                         pv=16
@@ -453,6 +453,7 @@ async def create_multiple_device(
                             for i,string_item in enumerate(mppt_item.string):
                                 string_name=[item for item in point_list_query if item.id == string_item.id][0].name
                                 panel_number=len(string_item.panel)
+                                id_point_list=string_item["id"]
                                 new_string = deviceList_models.Device_mppt_string(
                                                                         id_device_mppt=new_mppt.id,
                                                                         id_device_list=id_device_list,
@@ -468,6 +469,7 @@ async def create_multiple_device(
                                 for i,panel_item in enumerate(string_item.panel):
                                     print(f'PANEL ---------------------')
                                     panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
+                                    id_point_list=panel_item["id"]
                                     new_panel = deviceList_models.Device_panel(
                                                                         id_device_list=id_device_list,
                                                                         id_point_list=id_point_list,
