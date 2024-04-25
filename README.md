@@ -136,6 +136,27 @@ mosquitto_passwd -U passwd
 net stop mosquitto
 net start mosquitto
 mosquitto_sub  -t "IPC|1|UNO-DM-3.3-TL-PLUS|control" -u nextwave -P 123654789 -d
+
+
+connection bridge-01
+address 192.168.80.230:1883
+bridge_insecure false
+#bridge_capath /etc/ssl/certs/
+remote_password 123654789
+remote_username nextwave
+remote_clientid level03-line01-broker
+#try_private true
+#topic down/3/# in 0
+#topic up/3/# out 0
+#connection br-me-to-broker0
+#address 192.168.80.230:1883
+#remote_clientid broker0
+#remote_password 123654789
+#remote_username nextwave
+topic #
+try_private false
+
+
 <!-- Visual studio Code -->
 https://code.visualstudio.com/#alt-downloads
 sudo apt install ./code_1.67.2-1652811604_armhf.deb
