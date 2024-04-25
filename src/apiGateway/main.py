@@ -111,7 +111,7 @@ class apiGateway:
                     match result['CODE']:
                         case "CreateTCPDev":
                             new_device=result['PAYLOAD']
-                            await device.create_dev_tcp(new_device)
+                            # await device.create_dev_tcp(new_device)
                             # Insert Device to MQTT
                             for item_device in new_device:
                                 have_device=False
