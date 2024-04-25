@@ -1026,10 +1026,10 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global rated_power_custom
         global min_watt_in_percent
         if results_device[0]['rated_power']!=None:
-            rated_power=results_device[0]['rated_power']/1000
+            rated_power=results_device[0]['rated_power']
             
         if results_device[0]['rated_power_custom']!=None:
-            rated_power_custom=results_device[0]['rated_power_custom']/1000
+            rated_power_custom=results_device[0]['rated_power_custom']
             
         if results_device[0]['min_watt_in_percent']!=None:
             min_watt_in_percent=results_device[0]['min_watt_in_percent']
