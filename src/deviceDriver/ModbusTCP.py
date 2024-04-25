@@ -772,6 +772,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     # Man (device_mode == 0 ) + result_topic1 + bitchecktopic1 == 1 + enable_zero_export == 0 : 
     global result_topic1
     global bitchecktopic1
+    
+    result_slope = []
+    slope = 1
 
     if result_topic1 and bitchecktopic1 == 1 :
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -854,6 +857,27 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     comment = 400
 
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
+                                            # if id_pointkey == "WMax":
+                                            #     value = (value * 1000)/10
+                                            # if id_pointkey == "WMaxPercent":
+                                            #     value = value * 10
+                                            # print("id_pointkey", id_pointkey)
+                                            # print("value", value)
+                                            result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_point_key` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey,id_systemp,))
+                                            if result_slope :
+                                                slope = int(result_slope[0]["slope"])
+                                            
+                                            if id_pointkey == "WMax":
+                                                value = (value * 1000)/slope
+                                            elif id_pointkey == "WMaxPercent":
+                                                value = value /slope
+                                            elif id_pointkey == "VarMax":
+                                                value = (value * 1000)/slope
+                                            elif id_pointkey == "VarMaxPercent":
+                                                value = value /slope
+                                            elif id_pointkey == "PFSet":
+                                                value = value /slope
+                                                
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
@@ -1688,8 +1712,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                             watt = item["rated_power"]
                             
                     if custom_watt and watt : 
-                        custom_watt = custom_watt * 1000
-                        watt = watt * 1000
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s where `id` = %s ',(custom_watt,id_systemp))
                         MySQL_Update_V1('update `device_list` set `rated_power` = %s where `id` = %s ',(watt,id_systemp))
                         custom_watt = 0
