@@ -393,12 +393,12 @@ class apiGateway:
             param=[]
             for item in result_project:
                 
-                rated_power=None
-                rated_power_custom=None
-                if item.rated_power!= None:
-                    rated_power=item.rated_power/1000
-                if item.rated_power_custom!= None:
-                    rated_power_custom=item.rated_power_custom/1000 
+                # rated_power=None
+                # rated_power_custom=None
+                # if item.rated_power!= None:
+                #     rated_power=item.rated_power
+                # if item.rated_power_custom!= None:
+                #     rated_power_custom=item.rated_power_custom
                 
                 self.DeviceList.append({
                     "id_device":item.id,
@@ -406,9 +406,9 @@ class apiGateway:
                     "mode":item.mode,
                     "parameters":[],
                     # 
-                    "rated_power":rated_power,
-                    "rated_power_custom":rated_power_custom,
-                    "min_watt_in_percent":item.min_watt_in_percent,
+                    # "rated_power":rated_power,
+                    # "rated_power_custom":rated_power_custom,
+                    # "min_watt_in_percent":item.min_watt_in_percent,
                 })
             
             while True:
@@ -454,6 +454,12 @@ class apiGateway:
                                 topic,
                                 self.MQTT_USERNAME,
                                 self.MQTT_PASSWORD,
+                                mqtt_data)
+                mqtt_public_common(self.MQTT_BROKER_CLOUD,
+                                self.MQTT_PORT_CLOUD,
+                                topic,
+                                self.MQTT_USERNAME_CLOUD,
+                                self.MQTT_PASSWORD_CLOUD,
                                 mqtt_data)
                 await asyncio.sleep(2)
         except Exception as err:
