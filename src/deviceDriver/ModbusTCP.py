@@ -772,10 +772,11 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
     # Man (device_mode == 0 ) + result_topic1 + bitchecktopic1 == 1 + enable_zero_export == 0 : 
     global result_topic1
     global bitchecktopic1
-    result_temp = []
-    result_temp = result_topic1
     
-    if result_temp and bitchecktopic1 == 1 :
+    result_slope = []
+    slope = 1
+
+    if result_topic1 and bitchecktopic1 == 1 :
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
         xml=pathSource + '/mybatis/device_list.xml')
         statement = mybatis_mapper2sql.get_statement(
@@ -790,7 +791,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         else:           
             print("Error not found data in file mybatis")
             return -1
-        for item in result_temp:
+        for item in result_topic1:
             device_control = item['id_device']
             parameter = item['parameter']
             device_control = int(device_control)
@@ -856,6 +857,27 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     comment = 400
 
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
+                                            # if id_pointkey == "WMax":
+                                            #     value = (value * 1000)/10
+                                            # if id_pointkey == "WMaxPercent":
+                                            #     value = value * 10
+                                            # print("id_pointkey", id_pointkey)
+                                            # print("value", value)
+                                            result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_point_key` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey,id_systemp,))
+                                            if result_slope :
+                                                slope = int(result_slope[0]["slope"])
+                                            
+                                            if id_pointkey == "WMax":
+                                                value = (value * 1000)/slope
+                                            elif id_pointkey == "WMaxPercent":
+                                                value = value /slope
+                                            elif id_pointkey == "VarMax":
+                                                value = (value * 1000)/slope
+                                            elif id_pointkey == "VarMaxPercent":
+                                                value = value /slope
+                                            elif id_pointkey == "PFSet":
+                                                value = value /slope
+                                                
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
@@ -883,11 +905,11 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                         else :
                                             pass
                                         
-                                    if device_mode == 1 :
+                                    if device_mode == 1 and value != 0 and any('status' in item for item in result_topic1):
                                         print("---------- Auto control mode ----------")
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                         # get status INV 
                                         if results_write_modbus:
                                             code_value = results_write_modbus['code']
@@ -1559,7 +1581,7 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
     checktype_device = ""
     
     try:
-        if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+        if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result) :
             for item in mqtt_result:
                 id_device = int(item["id_device"])
                 result_checktype_device = MySQL_Select ("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;" ,(id_device,) )
@@ -1622,8 +1644,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     
     global result_topic1 
     global result_topic2 
-    global rated_power
-    global rated_power_custom
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
@@ -1641,6 +1661,8 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     global device_mode
     
     try:
+        global rated_power
+        global rated_power_custom
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client:
             return -1 
@@ -1664,17 +1686,25 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 #process
                 if result_topic1 :
                     bitchecktopic1 = 1 
-                    if not "rated_power_custom" in result_topic1:
-                        await process_update_mode_for_device(result_topic1,serial_number_project,host, port, username, password)
+                    if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
+                        await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+                    else:
+                        pass
                     # update custom_watt in database
                     for item in result_topic1:
                         if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                             custom_watt = item["rated_power_custom"] 
                             watt = item["rated_power"]
-                        if custom_watt and watt : 
-                            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s where `id` = %s ',(custom_watt,id_systemp))
-                            MySQL_Update_V1('update `device_list` set `rated_power` = %s where `id` = %s ',(watt,id_systemp))
-                
+                            rated_power = watt
+                            rated_power_custom = custom_watt
+                            
+                            print("rated_power_custom",rated_power_custom)
+                            print("rated_power",rated_power)
+                            
+                    if custom_watt and watt : 
+                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                        custom_watt = 0
+                        watt = 0
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 # process 
