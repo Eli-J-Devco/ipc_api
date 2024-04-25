@@ -868,11 +868,11 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 slope = int(result_slope[0]["slope"])
                                             
                                             if id_pointkey == "WMax":
-                                                value = (value * 1000)/slope
+                                                value = value/slope
                                             elif id_pointkey == "WMaxPercent":
                                                 value = value /slope
                                             elif id_pointkey == "VarMax":
-                                                value = (value * 1000)/slope
+                                                value = value/slope
                                             elif id_pointkey == "VarMaxPercent":
                                                 value = value /slope
                                             elif id_pointkey == "PFSet":
@@ -1712,9 +1712,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                             watt = item["rated_power"]
                             rated_power = watt
                             rated_power_custom = custom_watt
-                            
-                            print("rated_power_custom",rated_power_custom)
-                            print("rated_power",rated_power)
                             
                     if custom_watt and watt : 
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
