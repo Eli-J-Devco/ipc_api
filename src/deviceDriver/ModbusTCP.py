@@ -1717,8 +1717,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                             print("rated_power",rated_power)
                             
                     if custom_watt and watt : 
-                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s where `id` = %s ',(custom_watt,id_systemp))
-                        MySQL_Update_V1('update `device_list` set `rated_power` = %s where `id` = %s ',(watt,id_systemp))
+                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                         custom_watt = 0
                         watt = 0
             elif message.topic == topic2:
