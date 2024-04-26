@@ -564,6 +564,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     result_slope = []
     slope = 1
     power_max = 0
+    p_max_real = 0
+    delta = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
@@ -572,7 +574,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         pass
 
     if devices : 
-
         device_list_control_power_limit = []
         for device in devices:
             power_max = device["p_max"]
@@ -587,7 +588,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     
             if power_max and slope:
                 if total_power and value_power_limit:  
-                    efficiency_total = (value_power_limit/total_power)*slope
+                    # difference coefficient between actual and value in inv 333 with 3330 = 0.1
+                    delta = ((power_max/slope)/((power_max*1000)))
+                    p_max_real = ((total_power/slope)/delta)
+                    
+                    efficiency_total = (value_power_limit/p_max_real)
+
                     if efficiency_total > 1 :
                         efficiency_total = 1
                     else:
@@ -595,14 +601,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 else:
                     pass
                 
-                p_for_each_device_power_limit = (efficiency_total*power_max)/slope
-
-                if p_for_each_device_power_limit > power_max/slope:
-                    p_for_each_device_power_limit = power_max/slope
+                p_for_each_device_power_limit = efficiency_total*p_max_real*delta
+                
+                if p_for_each_device_power_limit > p_max_real*delta:
+                    p_for_each_device_power_limit = p_max_real*delta
                 else:
                     pass
-            
-            p_for_each_device_power_limit = p_for_each_device_power_limit 
             
             if device['controlinv'] == 1:
                 new_device = {
@@ -658,6 +662,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     id_device = 0
     result_slope = []
     slope = 1.0
+    p_max_real = 0
+    delta = 1
     global p_for_each_device_zero_export 
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
@@ -671,7 +677,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         devices = await get_list_device_in_automode(result_topic4)
 
     if devices : 
-
         device_list_control_power_limit = []
         for device in devices:
             power_max = device["p_max"]
@@ -684,18 +689,22 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
                     
-            if power_max:
-                if total_power and value_consumption and slope:  
-                    efficiency_total = (value_consumption/total_power)*slope
+            if power_max and slope:
+                if total_power and value_consumption :  
+                    # difference coefficient between actual and value in inv 333 with 3330 = 0.1
+                    delta = ((power_max/slope)/((power_max*1000)))
+                    p_max_real = ((total_power/slope)/delta)
+                    efficiency_total = value_consumption/p_max_real
+
                     if efficiency_total > 1 :
                         efficiency_total = 1
                     else:
                         pass
                 if efficiency_total:
-                    p_for_each_device_zero_export = (efficiency_total*power_max)/slope
+                    p_for_each_device_zero_export = efficiency_total*p_max_real*delta
                 
-                if p_for_each_device_zero_export > power_max/slope:
-                    p_for_each_device_zero_export = power_max/slope 
+                if p_for_each_device_zero_export > p_max_real*delta:
+                    p_for_each_device_zero_export = p_max_real*delta
                 else:
                     pass
             
