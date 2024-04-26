@@ -105,44 +105,44 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
     
     try:
         system_info = {
-            "System Information": {},
-            "Boot Time": {},
-            "CPU Info": {},
-            "Memory Information": {},
-            "Disk Information": {},
-            "Network Information": {}
+            "SystemInformation": {},
+            "BootTime": {},
+            "CPUInfo": {},
+            "MemoryInformation": {},
+            "DiskInformation": {},
+            "NetworkInformation": {}
         }
         
         # System Information
         uname = platform.uname()
-        system_info["System Information"]["System"] = uname.system
-        system_info["System Information"]["Node Name"] = uname.node
-        system_info["System Information"]["Release"] = uname.release
-        system_info["System Information"]["Version"] = uname.version
-        system_info["System Information"]["Machine"] = uname.machine
-        system_info["System Information"]["Processor"] = uname.processor
+        system_info["SystemInformation"]["System"] = uname.system
+        system_info["SystemInformation"]["NodeName"] = uname.node
+        system_info["SystemInformation"]["Release"] = uname.release
+        system_info["SystemInformation"]["Version"] = uname.version
+        system_info["SystemInformation"]["Machine"] = uname.machine
+        system_info["SystemInformation"]["Processor"] = uname.processor
 
         boot_time_timestamp = psutil.boot_time()
         bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
         system_info["Boot Time"]["Boot Time"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
 
         # let's print CPU information
-        system_info["CPU Info"]["Physical cores"] = psutil.cpu_count(logical=False)
-        system_info["CPU Info"]["Total cores"] = psutil.cpu_count(logical=True)
+        system_info["CPUInfo"]["Physicalcores"] = psutil.cpu_count(logical=False)
+        system_info["CPUInfo"]["Totalcores"] = psutil.cpu_count(logical=True)
         cpufreq = psutil.cpu_freq()
-        system_info["CPU Info"]["Max Frequency"] = f"{cpufreq.max:.2f}Mhz"
-        system_info["CPU Info"]["Min Frequency"] = f"{cpufreq.min:.2f}Mhz"
-        system_info["CPU Info"]["Current Frequency"] = f"{cpufreq.current:.2f}Mhz"
-        system_info["CPU Info"]["Total CPU Usage"] = f"{psutil.cpu_percent()}%"
+        system_info["CPUInfo"]["MaxFrequency"] = f"{cpufreq.max:.2f}Mhz"
+        system_info["CPUInfo"]["MinFrequency"] = f"{cpufreq.min:.2f}Mhz"
+        system_info["CPUInfo"]["CurrentFrequency"] = f"{cpufreq.current:.2f}Mhz"
+        system_info["CPUInfo"]["TotalCPUUsage"] = f"{psutil.cpu_percent()}%"
 
         # Memory Information
         svmem = psutil.virtual_memory()
-        system_info["Memory Information"]["Total"] = get_size(svmem.total)
-        system_info["Memory Information"]["Available"] = get_size(svmem.available)
-        system_info["Memory Information"]["Used"] = get_size(svmem.used)
-        system_info["Memory Information"]["Percentage"] = f"{svmem.percent}%"
+        system_info["MemoryInformation"]["Total"] = get_size(svmem.total)
+        system_info["MemoryInformation"]["Available"] = get_size(svmem.available)
+        system_info["MemoryInformation"]["Used"] = get_size(svmem.used)
+        system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent}%"
         swap = psutil.swap_memory()
-        system_info["Memory Information"]["SWAP"] = {
+        system_info["MemoryInformation"]["SWAP"] = {
             "Total": get_size(swap.total),
             "Free": get_size(swap.free),
             "Used": get_size(swap.used),
@@ -153,10 +153,10 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
         for partition in psutil.disk_partitions():
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
-                system_info["Disk Information"][partition.device] = {
+                system_info["DiskInformation"][partition.device] = {
                     "Mountpoint": partition.mountpoint,
-                    "File system type": partition.fstype,
-                    "Total Size": get_size(partition_usage.total),
+                    "Filesystemtype": partition.fstype,
+                    "TotalSize": get_size(partition_usage.total),
                     "Used": get_size(partition_usage.used),
                     "Free": get_size(partition_usage.free),
                     "Percentage": f"{partition_usage.percent}%"
@@ -168,16 +168,16 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
             for address in interface_addresses:
                 if str(address.family) == 'AddressFamily.AF_INET':
-                    system_info["Network Information"][interface_name] = {
-                        "IP Address": address.address,
+                    system_info["NetworkInformation"][interface_name] = {
+                        "IPAddress": address.address,
                         "Netmask": address.netmask,
-                        "Broadcast IP": address.broadcast
+                        "BroadcastIP": address.broadcast
                     }
                 elif str(address.family) == 'AddressFamily.AF_PACKET':
-                    system_info["Network Information"][interface_name] = {
-                        "MAC Address": address.address,
+                    system_info["NetworkInformation"][interface_name] = {
+                        "MACAddress": address.address,
                         "Netmask": address.netmask,
-                        "Broadcast MAC": address.broadcast
+                        "BroadcastMAC": address.broadcast
                     }
         
         push_data_to_mqtt(mqtt_host,
