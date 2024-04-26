@@ -33,6 +33,12 @@ class UserUpdatePassword(User):
     password: str
 
 
+class UserList(UserBase):
+    id: int
+    email: str
+    role: list[RoleBase]
+
+
 class UserFull(UserBase):
     id: Optional[int] = None
     salt: Optional[str] = None

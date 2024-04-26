@@ -46,7 +46,7 @@ class AuthenticationService:
         if not user.status == 1:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
 
-        roles = await UserService().get_user_roles(user.id, session)
+        roles = await UserService(RoleService()).get_user_roles(user.id, session)
         permissions = []
         for role in roles:
             screens = await RoleService().get_role_permissions(role, session)

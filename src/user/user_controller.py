@@ -3,8 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 from fastapi import status
 
+from .user_filter import GetUserFilter
 from .user_service import UserService
-from .user_model import UserCreate, UserUpdate, UserUpdatePassword
+from .user_model import UserCreate, UserUpdate, UserUpdatePassword, UserBase, User
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 
@@ -22,15 +23,17 @@ class UserController:
     @Post("/get/all/")
     async def get_user(self,
                        pagination: Pagination = Depends(),
+                       user_filter: GetUserFilter = Depends(),
                        session: AsyncSession = Depends(config.get_db),
                        user: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.user_service.get_user)(pagination, session)
+        return await ServiceWrapper.async_wrapper(self.user_service.get_user)(pagination, session, user_filter)
 
-    @Post("/get/{user_id}/")
-    async def get_user_by_id(self, user_id: int,
+    @Post("/get/")
+    async def get_user_by_id(self,
+                             body: User,
                              session: AsyncSession = Depends(config.get_db),
                              user: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.user_service.get_user_by_id)(user_id, session)
+        return await ServiceWrapper.async_wrapper(self.user_service.get_user_by_id)(body.id, session)
 
     @Post("/add/")
     async def add_user(self, user: UserCreate,
@@ -57,38 +60,40 @@ class UserController:
                                                       self.user_service.update_user,
                                                       user))
 
-    @Post("/delete/{user_id}/")
-    async def delete_user(self, user_id: int,
+    @Post("/delete/")
+    async def delete_user(self,
+                          body: User,
                           session: AsyncSession = Depends(config.get_db),
                           user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
-                                     .get_user_by_id)(user_id,
+                                     .get_user_by_id)(body.id,
                                                       session,
-                                                      self.user_service.delete_user,
-                                                      user_id))
+                                                      self.user_service.delete_user,))
 
-    @Post("/activate/{user_id}/")
-    async def activate_user(self, user_id: int,
+    @Post("/activate/")
+    async def activate_user(self,
+                            body: User,
                             session: AsyncSession = Depends(config.get_db),
                             user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
-                                     .get_user_by_id)(user_id,
+                                     .get_user_by_id)(body.id,
                                                       session,
                                                       self.user_service.activate_user,
-                                                      user_id, ))
+                                                      body.id, ))
 
-    @Post("/deactivate/{user_id}/")
-    async def deactivate_user(self, user_id: int,
+    @Post("/deactivate/")
+    async def deactivate_user(self,
+                              body: User,
                               session: AsyncSession = Depends(config.get_db),
                               user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
-                                     .get_user_by_id)(user_id,
+                                     .get_user_by_id)(body.id,
                                                       session,
                                                       self.user_service.deactivate_user,
-                                                      user_id, ))
+                                                      body.id, ))
 
     @Post("/password/update/")
     async def update_password(self,
@@ -102,12 +107,13 @@ class UserController:
                                                       self.user_service.update_password,
                                                       user, ))
 
-    @Post("/password/reset/{user_id}/")
-    async def reset_password(self, user_id: int,
+    @Post("/password/reset/")
+    async def reset_password(self,
+                             body: User,
                              session: AsyncSession = Depends(config.get_db),
                              user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
-                                     .get_user_by_id)(user_id,
+                                     .get_user_by_id)(body.id,
                                                       session,
                                                       self.user_service.reset_password,))

@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 from datetime import datetime
@@ -5,15 +6,18 @@ from datetime import datetime
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .user_model import UserCreate, UserFull, UserUpdate, UserUpdatePassword
+from .user_filter import GetUserFilter
+from .user_model import UserCreate, UserFull, UserUpdate, UserUpdatePassword, UserList
 from .user_entity import User as UserEntity
 
 from ..config import env_config
-from ..role.role_entity import (UserRoleMap as UserRoleMapEntity,)
-from ..role.role_model import UserRoleMapBase
+from ..role.role_entity import (UserRoleMap as UserRoleMapEntity, )
+from ..role.role_model import UserRoleMapBase, RoleBase
+from ..role.role_service import RoleService
 from ..utils.PaginationModel import Pagination
 from ..utils.password_hasher import hash_password
 from ..utils.service_wrapper import ServiceWrapper
@@ -23,6 +27,8 @@ from ..utils.utils import validate_email, validate_phone, validate_password, gen
 
 @Injectable
 class UserService:
+    def __init__(self, role_service: RoleService):
+        self.role_service = role_service
 
     @async_db_request_handler
     async def add_user(self, user: UserCreate, session: AsyncSession):
@@ -60,22 +66,41 @@ class UserService:
         return "User added successfully"
 
     @async_db_request_handler
-    async def get_user(self, pagination: Pagination, session: AsyncSession):
+    async def get_user(self, pagination: Pagination, session: AsyncSession, user_filter: GetUserFilter = None):
         if not pagination.page or pagination.page < 0:
             pagination.page = env_config.PAGINATION_PAGE
 
         if not pagination.limit or pagination.limit < 0:
             pagination.limit = env_config.PAGINATION_LIMIT
 
-        query = select(UserEntity).limit(pagination.limit).offset(pagination.page * pagination.limit)
+        if user_filter.status is not None:
+            query = (select(UserEntity)
+                     .where(UserEntity.status == user_filter.status)
+                     .limit(pagination.limit)
+                     .offset(pagination.page * pagination.limit))
+            total_query = (select(UserEntity)
+                           .where(UserEntity.status == user_filter.status)
+                           .with_only_columns(func.count()))
+        else:
+            query = (select(UserEntity)
+                     .limit(pagination.limit)
+                     .offset(pagination.page * pagination.limit))
+            total_query = (select(UserEntity)
+                           .where(UserEntity.id > 0)
+                           .with_only_columns(func.count()))
+
         result = await session.execute(query)
         data = result.scalars().all()
 
-        total_query = select(UserEntity).where(UserEntity.status == 1).with_only_columns(func.count())
         result = await session.execute(total_query)
         total = result.scalar()
 
-        return generate_pagination_response(data,
+        output = []
+        for user in data:
+            roles = await self.role_service.get_role_by_user_id(user.id, session)
+            output.append(UserList(**user.__dict__, role=roles))
+
+        return generate_pagination_response(output,
                                             total,
                                             pagination.page,
                                             pagination.limit,
@@ -95,7 +120,8 @@ class UserService:
 
         if func:
             return await ServiceWrapper.async_wrapper(func)(user_id, session, *args, **kwargs)
-        return user
+
+        return UserList(**user.__dict__, role=await self.role_service.get_role_by_user_id(user_id, session))
 
     @async_db_request_handler
     async def get_user_by_email(self, email: str, session: AsyncSession, func=None, *args, **kwargs):
@@ -124,20 +150,22 @@ class UserService:
         user_full = user_full.copy(update=user.dict(exclude_unset=True))
 
         query = (update(UserEntity)
-                 .where(UserEntity.id == user_id)
-                 .values(user_full.dict()))
+                 .where(UserEntity.id == user_full.id)
+                 .values(user_full.dict(exclude={"id", "role"})))
         await session.execute(query)
 
-        if user.role:
-            for role in user.role:
-                user_role_map = UserRoleMapEntity(
-                    **UserRoleMapBase(id_user=user.id,
-                                      id_role=role.id,
-                                      status=True).dict())
-                session.add(user_role_map)
+        result = await ServiceWrapper.async_wrapper(self.role_service
+                                                    .update_user_role_map)(user_full.id,
+                                                                           [role.id for role in user.role],
+                                                                           session)
+        if isinstance(result, JSONResponse):
+            if result.status_code != status.HTTP_200_OK:
+                await session.rollback()
+                return result
 
         await session.commit()
 
+        logging.info(f"User updated successfully {user_full.dict()}")
         fullname = f" {user_full.first_name} {user_full.last_name} " \
             if user_full.first_name and user_full.last_name else f" {user_full.email} "
 
@@ -203,11 +231,13 @@ class UserService:
                  .values(password=hash_password(new_password)))
         await session.execute(query)
         await session.commit()
-        return new_password
+        return {
+            "message": "Password reset successfully",
+            "new_password": new_password
+        }
 
     @async_db_request_handler
     async def get_user_roles(self, user_id: int, session: AsyncSession):
         query = select(UserRoleMapEntity.id_role).where(UserRoleMapEntity.id_user == user_id)
         result = await session.execute(query)
         return result.scalars().all()
-

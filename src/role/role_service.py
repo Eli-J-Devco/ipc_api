@@ -1,3 +1,5 @@
+import logging
+
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
@@ -5,8 +7,9 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .role_filter import UpdateRoleScreenFilter
 from .role_model import RoleCreate, RoleScreenMapBase, RoleUpdate
-from .role_entity import Role as RoleEntity, RoleScreenMap as RoleScreenMapEntity
+from .role_entity import Role as RoleEntity, RoleScreenMap as RoleScreenMapEntity, UserRoleMap as UserRoleMapEntity
 from ..authentication.authentication_model import Permission
 from ..project_setup.project_setup_entity import Screen
 from ..project_setup.project_setup_service import ProjectSetupService
@@ -75,6 +78,22 @@ class RoleService:
         return role
 
     @async_db_request_handler
+    async def get_role_by_user_id(self, user_id: int, session: AsyncSession):
+        query = (select(RoleEntity.id, RoleEntity.name, RoleEntity.description, RoleEntity.status)
+                 .join(UserRoleMapEntity, RoleEntity.id == UserRoleMapEntity.id_role)
+                 .where(UserRoleMapEntity.id_user == user_id)
+                 .where(UserRoleMapEntity.status == 1)
+                 .where(RoleEntity.status == 1)
+                 )
+        result = await session.execute(query)
+
+        roles = []
+        for row in result.all():
+            roles.append(RoleUpdate(id=row[0], name=row[1], description=row[2], status=row[3]))
+
+        return roles
+
+    @async_db_request_handler
     async def update_role(self, role_id: int, session: AsyncSession, role: RoleUpdate):
         if role.name:
             is_role_name_exist = await self.get_role_by_name(role.name, session)
@@ -140,14 +159,25 @@ class RoleService:
                                      role_id: int,
                                      session: AsyncSession,
                                      role_screen: RoleScreenMapBase):
-        screen = await ProjectSetupService().get_screen_by_id(role_screen.id_screen, session)
-        if not screen:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Screen not found")
-
         query = (update(RoleScreenMapEntity)
-                 .where(RoleScreenMapEntity.id_role == role_screen.id_role)
+                 .where(RoleScreenMapEntity.id_role == role_id)
                  .where(RoleScreenMapEntity.id_screen == role_screen.id_screen)
                  .values(auths=role_screen.auths))
         await session.execute(query)
         await session.commit()
         return "Role permission updated successfully"
+
+    @async_db_request_handler
+    async def update_user_role_map(self, user_id: int, role_id: list[int], session: AsyncSession):
+        query = delete(UserRoleMapEntity).where(UserRoleMapEntity.id_user == user_id)
+        await session.execute(query)
+
+        for role in role_id:
+            user_role_map = UserRoleMapEntity(
+                id_user=user_id,
+                id_role=role,
+                status=1
+            )
+            session.add(user_role_map)
+        await session.commit()
+        return "User role updated successfully"

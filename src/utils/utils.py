@@ -48,7 +48,7 @@ def generate_pagination_response(data: list | type(None),
     next_page = f"{endpoint}?page={page + 1}&limit={limit}" \
         if len(data) < total - page * limit else None
     prev_page = f"{endpoint}?page={page - 1}&limit={limit}" \
-        if page > 0 else None
+        if page > 0 and total > 0 else None
 
     return PaginationResponse(
         data=data,

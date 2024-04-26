@@ -3,6 +3,7 @@ from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .role_filter import UpdateRoleScreenFilter
 from .role_service import RoleService
 from .role_model import RoleBase, RoleCreate, RoleUpdate, RoleScreenMapBase
 from ..authentication.authentication_model import Authentication

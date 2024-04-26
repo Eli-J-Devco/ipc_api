@@ -26,12 +26,14 @@ class ServiceWrapper:
 
                 return result.__dict__
             except HTTPException as e:
+                logging.error("====================================")
                 logging.error("HTTPException: " + e.detail)
+                logging.error("====================================")
                 try:
                     status_code, message = e.detail.split(": ")
+                    status_code = int(status_code)
                 except ValueError:
                     status_code, message = e.status_code, e.detail
-
                 return JSONResponse(status_code=int(status_code), content={"message": message})
             except Exception as e:
                 logging.error("====================================")
@@ -50,6 +52,7 @@ class ServiceWrapper:
                 logging.error("HTTPException: " + e.detail)
                 try:
                     status_code, message = e.detail.split(": ")
+                    status_code = int(status_code)
                 except ValueError:
                     status_code, message = e.status_code, e.detail
 

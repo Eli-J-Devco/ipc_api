@@ -20,7 +20,7 @@ class RoleUpdate(RoleBase, RoleCreate):
 class RoleScreenMapBase(BaseModel):
     id_role: int
     id_screen: int
-    auths: int = 1
+    auths: int = 8
     status: Optional[bool] = True
 
 
