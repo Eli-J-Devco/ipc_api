@@ -124,7 +124,7 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
 
         boot_time_timestamp = psutil.boot_time()
         bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
-        system_info["Boot Time"]["Boot Time"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
+        system_info["BootTime"]["BootTime"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
 
         # let's print CPU information
         system_info["CPUInfo"]["Physicalcores"] = psutil.cpu_count(logical=False)
