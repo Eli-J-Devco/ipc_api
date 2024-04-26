@@ -585,7 +585,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 else:
                     pass
                     
-            if efficiency_total and power_max and slope:
+            if power_max and slope:
                 if total_power and value_power_limit:  
                     efficiency_total = (value_power_limit/total_power)*slope
                     if efficiency_total > 1 :
@@ -684,15 +684,15 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
                     
-            if efficiency_total and power_max:
+            if power_max:
                 if total_power and value_consumption and slope:  
                     efficiency_total = (value_consumption/total_power)*slope
                     if efficiency_total > 1 :
                         efficiency_total = 1
                     else:
                         pass
-                
-                p_for_each_device_zero_export = (efficiency_total*power_max)/slope
+                if efficiency_total:
+                    p_for_each_device_zero_export = (efficiency_total*power_max)/slope
                 
                 if p_for_each_device_zero_export > power_max/slope:
                     p_for_each_device_zero_export = power_max/slope 
@@ -1046,6 +1046,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 result_topic1 = json.loads(message.message.decode())
                 bitcheck1 = 1
                 await process_update_mode_for_device_for_systemp ()
+                print("result_topic1",result_topic1)
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
@@ -1056,7 +1057,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 print("result_topic3",result_topic3)
             elif message.topic == topic4:
                 result_topic4 = json.loads(message.message.decode())
-                print("result_topic4",result_topic4)
+                # print("result_topic4",result_topic4)
                 # await get_list_device_in_automode(result_topic4)
             elif message.topic == topic5:
                 result_topic5 = json.loads(message.message.decode())
