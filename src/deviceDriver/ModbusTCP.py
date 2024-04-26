@@ -866,8 +866,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         
                                             if slope:
                                                 if id_pointkey == "WMax":
-                                                    if value > rated_power_custom :
+                                                    if value >= rated_power_custom :
                                                         value = rated_power_custom
+                                                    else :
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
                                                     if rated_power == rated_power_custom :
@@ -885,7 +886,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value /slope
                                                     elif value < 0.75 :
                                                         value = 0.75
-                                                        
+
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
