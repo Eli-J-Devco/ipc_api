@@ -568,12 +568,10 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
+    else:
+        pass
 
     if devices : 
-        if total_power and value_power_limit:  
-            efficiency_total = value_power_limit/total_power
-            if efficiency_total > 1 :
-                efficiency_total = 1
 
         device_list_control_power_limit = []
         for device in devices:
@@ -584,17 +582,25 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope :
                     slope = float(result_slope[0]["slope"])
+                else:
+                    pass
                     
             if efficiency_total and power_max and slope:
                 if total_power and value_power_limit:  
                     efficiency_total = (value_power_limit/total_power)*slope
                     if efficiency_total > 1 :
                         efficiency_total = 1
+                    else:
+                        pass
+                else:
+                    pass
                 
                 p_for_each_device_power_limit = (efficiency_total*power_max)/slope
 
                 if p_for_each_device_power_limit > power_max/slope:
                     p_for_each_device_power_limit = power_max/slope
+                else:
+                    pass
             
             p_for_each_device_power_limit = p_for_each_device_power_limit 
             
@@ -608,7 +614,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
                 }
-            else:
+            elif device['controlinv'] == 0:
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
@@ -619,6 +625,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
                 }
+            else:
+                pass
             device_list_control_power_limit.append(new_device)
 
         if len(devices) == len(device_list_control_power_limit) and enable_zero_export == 0 :
@@ -654,7 +662,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     total_p_inv_prodution = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
-    value_consumption = value_consumption - (value_consumption*value_zero_export/100)
+    if value_consumption > 0 :
+        value_consumption = value_consumption - (value_consumption*value_zero_export/100)
+    else:
+        value_consumption = 0
     
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -670,23 +681,23 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope :
                     slope = float(result_slope[0]["slope"])
+                else:
+                    pass
                     
             if efficiency_total and power_max:
                 if total_power and value_consumption and slope:  
                     efficiency_total = (value_consumption/total_power)*slope
                     if efficiency_total > 1 :
                         efficiency_total = 1
-                        
-                elif value_consumption <= 0 :
-                    efficiency_total = 0
+                    else:
+                        pass
                 
                 p_for_each_device_zero_export = (efficiency_total*power_max)/slope
                 
                 if p_for_each_device_zero_export > power_max/slope:
                     p_for_each_device_zero_export = power_max/slope 
-                    
-            elif efficiency_total == 0 :
-                p_for_each_device_zero_export = 0
+                else:
+                    pass
             
             if p_for_each_device_zero_export <= 0 :
                 p_for_each_device_zero_export = 0 
@@ -704,7 +715,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
                 }
-            else:
+            elif device['controlinv'] == 0:
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
@@ -715,6 +726,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
                 }
+            else:
+                pass
             device_list_control_power_limit.append(new_device)
         
         if value_consumption < total_p_inv_prodution :
@@ -728,6 +741,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     ]
                 }
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+        else:
+            pass
             
         if len(devices) == len(device_list_control_power_limit) and enable_power_limit == 0 :
             push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
@@ -1031,18 +1046,23 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 result_topic1 = json.loads(message.message.decode())
                 bitcheck1 = 1
                 await process_update_mode_for_device_for_systemp ()
+                print("result_topic1",result_topic1)
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
+                print("result_topic2",result_topic2)
             elif message.topic == topic3:
                 result_topic3 = json.loads(message.message.decode())
                 await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
+                print("result_topic3",result_topic3)
             elif message.topic == topic4:
                 result_topic4 = json.loads(message.message.decode())
+                print("result_topic4",result_topic4)
                 # await get_list_device_in_automode(result_topic4)
             elif message.topic == topic5:
                 result_topic5 = json.loads(message.message.decode())
                 await pud_information_cpu_when_request(result_topic5,serial_number_project, host, port, username, password)
+                print("result_topic5",result_topic5)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
