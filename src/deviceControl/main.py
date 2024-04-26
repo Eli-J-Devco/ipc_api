@@ -1046,7 +1046,6 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 result_topic1 = json.loads(message.message.decode())
                 bitcheck1 = 1
                 await process_update_mode_for_device_for_systemp ()
-                print("result_topic1",result_topic1)
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
