@@ -804,12 +804,18 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                     try:
                         # result Modbus
                         results_write_modbus = []
-                        
+                        results_write_modbus_temp = []
+                        parameter_temp = [] 
+                        inverter_info_temp = []
                         # information Modbus 
                         register = ""
                         datatype = ""
                         code_value = 0
                         id_pointkey = ""
+                        
+                        register_temp = ""
+                        datatype_Temp = ""
+                        value_temp = 0
                         
                         #mqtt
                         comment = 200
@@ -819,6 +825,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         # database
                         is_inverter = []
                         inverter_info = []
+                        inverter_info_temp = []
                         result_query_findname = []
                         name_device_points_list_map = ""
                         
@@ -873,8 +880,19 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
                                                     value = value /slope
-                                                    
-                                                    # results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=rated_power_custom)
+                                                    if rated_power_custom :
+                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom}]
+                                                        inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
+                                                        print("inverter_info_temp",inverter_info_temp)
+                                                        if inverter_info_temp:
+                                                            value_temp = inverter_info_temp["value"]
+                                                            register_temp = inverter_info_temp["register"]
+                                                            datatype_temp = inverter_info_temp["datatype"]
+                                                            print("value_temp",value_temp)
+                                                            print("register_temp",register_temp)
+                                                            print("datatype_temp",datatype_temp)
+                                                            if value_temp and register_temp and datatype_temp :
+                                                                results_write_modbus_temp = write_modbus_tcp(client, slave_ID, datatype_temp, register_temp, value=value_temp)
                                                     
                                                 elif id_pointkey == "VarMax":
                                                     value = value/slope
