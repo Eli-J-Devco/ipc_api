@@ -885,9 +885,9 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                         print("inverter_info_temp",inverter_info_temp)
                                                         if inverter_info_temp:
-                                                            value_temp = inverter_info_temp["value"]
-                                                            register_temp = inverter_info_temp["register"]
-                                                            datatype_temp = inverter_info_temp["datatype"]
+                                                            value_temp = inverter_info_temp[0]["value"]
+                                                            register_temp = inverter_info_temp[0]["register"]
+                                                            datatype_temp = inverter_info_temp[0]["datatype"]
                                                             print("value_temp",value_temp)
                                                             print("register_temp",register_temp)
                                                             print("datatype_temp",datatype_temp)
