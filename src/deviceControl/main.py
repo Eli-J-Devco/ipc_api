@@ -499,23 +499,6 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
-        
-# async def pud_information_cpu_cycle(serial_number_project,host, port, username, password):
-#     global MQTT_TOPIC_PUD_CPU_SETUP
-#     global result_topic5
-#     topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
-#     try:
-#         if result_topic5 and 'get_cpu' in result_topic5:
-#             await get_cpu_information(host,
-#                                             port,
-#                                             topicPublic,
-#                                             username,
-#                                             password)                       
-#         else:
-#             pass
-#     except Exception as err:
-#         print(f"Error MQTT subscribe: '{err}'") 
-        
 async def check_inverter_device(device_control):
     results_device_type = []
     
@@ -708,7 +691,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             pass
     else:
         pass
-    
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -828,7 +810,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             pass
     else:
         pass
-
 async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -926,7 +907,6 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
             pass
     else:
         pass
-    
 async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global devices
@@ -1165,6 +1145,23 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 # print("result_topic6",result_topic6)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+#tesst
+async def cycle_get_information(serial_number_project,mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global MQTT_TOPIC_SUD_MODEGET_INFORMATION
+    topic = serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION  
+    try:
+        data_send = {
+                    "get_information": 1
+                    }
+    
+        push_data_to_mqtt(mqtt_host,
+                mqtt_port,
+                topic ,
+                mqtt_username,
+                mqtt_password,
+                data_send)
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
 
 async def main():
     tasks = []
@@ -1196,6 +1193,12 @@ async def main():
                                                                         MQTT_PORT,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
+    scheduler.add_job(cycle_get_information, 'cron',  second = f'*/1' , args=[serial_number_project,
+                                                                        MQTT_BROKER,
+                                                                        MQTT_PORT,
+                                                                        MQTT_USERNAME,
+                                                                        MQTT_PASSWORD])
+    
     scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
                                                                         MQTT_BROKER,
                                                                         MQTT_PORT,

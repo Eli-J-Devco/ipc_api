@@ -871,7 +871,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                             if result_slope :
                                                 slope = float(result_slope[0]['slope'])
-        
                                             if slope and value:
                                                 if id_pointkey == "WMax":
                                                     if value >= rated_power_custom :
@@ -883,14 +882,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     if rated_power_custom :
                                                         parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom}]
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
-                                                        print("inverter_info_temp",inverter_info_temp)
                                                         if inverter_info_temp:
                                                             value_temp = inverter_info_temp[0]["value"]
                                                             register_temp = inverter_info_temp[0]["register"]
                                                             datatype_temp = inverter_info_temp[0]["datatype"]
-                                                            print("value_temp",value_temp)
-                                                            print("register_temp",register_temp)
-                                                            print("datatype_temp",datatype_temp)
                                                             if value_temp and register_temp and datatype_temp :
                                                                 results_write_modbus_temp = write_modbus_tcp(client, slave_ID, datatype_temp, register_temp, value=value_temp)
                                                     
