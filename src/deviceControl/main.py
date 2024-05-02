@@ -434,40 +434,43 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
     topic = topicPublic
     try:
         result_set = mqtt_result.get('parameter', [])
-        update_fields = ", ".join([f"{field} = %s" for row in result_set for field, value in row.items()])
-        update_values = [value for row in result_set for field, value in row.items()]
-        values = [tuple(update_values)]
-        query = f"""
-        UPDATE project_setup
-        SET {update_fields}
-        """
-        if query and values:
-            try:
-                MySQL_Update_v2(query, values)
-                current_time = get_utc()
-                data_send = {
-                    "status": 200,
-                    "time_stamp": current_time
-                }
-                push_data_to_mqtt(mqtt_host,
-                                    mqtt_port,
-                                    topic,
-                                    mqtt_username,
-                                    mqtt_password,
-                                    data_send)
-            except Exception as err:
-                print(f"Error updating database: '{err}'")
-                current_time = get_utc()
-                data_send = {
-                    "status": 400,
-                    "time_stamp": current_time
-                }
-                push_data_to_mqtt(mqtt_host,
-                                    mqtt_port,
-                                    topic,
-                                    mqtt_username,
-                                    mqtt_password,
-                                    data_send)
+        if result_set:
+            update_fields = ", ".join([f"{field} = %s" for row in result_set for field, value in row.items()])
+            update_values = [value for row in result_set for field, value in row.items()]
+            values = [tuple(update_values)]
+            query = f"""
+            UPDATE project_setup
+            SET {update_fields}
+            """
+            if query and values:
+                try:
+                    MySQL_Update_v2(query, values)
+                    current_time = get_utc()
+                    data_send = {
+                        "status": 200,
+                        "time_stamp": current_time
+                    }
+                    push_data_to_mqtt(mqtt_host,
+                                        mqtt_port,
+                                        topic,
+                                        mqtt_username,
+                                        mqtt_password,
+                                        data_send)
+                except Exception as err:
+                    print(f"Error updating database: '{err}'")
+                    current_time = get_utc()
+                    data_send = {
+                        "status": 400,
+                        "time_stamp": current_time
+                    }
+                    push_data_to_mqtt(mqtt_host,
+                                        mqtt_port,
+                                        topic,
+                                        mqtt_username,
+                                        mqtt_password,
+                                        data_send)
+        else:
+            pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
