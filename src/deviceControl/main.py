@@ -44,7 +44,7 @@ p_for_each_device_power_limit = 0
 
 result_topic1 = []
 result_topic4 = []
-
+result_topic5 = []
 bitcheck1 = 0
 
 MQTT_BROKER = Config.MQTT_BROKER
@@ -64,6 +64,8 @@ MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
 MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
+MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
+MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -100,11 +102,13 @@ def get_size(bytes, suffix="B"):
         if bytes < factor:
             return f"{bytes:.2f}{unit}{suffix}"
         bytes /= factor
-
-async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    
+async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global MQTT_TOPIC_PUD_CPU_SETUP
+    topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
+    timestamp = get_utc()
     try:
         system_info = {
+            "Timestamp": timestamp,
             "SystemInformation": {},
             "BootTime": {},
             "CPUInfo": {},
@@ -126,7 +130,7 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
         bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
         system_info["BootTime"]["BootTime"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
 
-        # let's print CPU information
+        # CPU Information
         system_info["CPUInfo"]["Physicalcores"] = psutil.cpu_count(logical=False)
         system_info["CPUInfo"]["Totalcores"] = psutil.cpu_count(logical=True)
         cpufreq = psutil.cpu_freq()
@@ -150,21 +154,24 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
         }
 
         # Disk Information
+        total_disk_size = 0
+        total_disk_used = 0
         for partition in psutil.disk_partitions():
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
-                system_info["DiskInformation"][partition.device] = {
-                    "Mountpoint": partition.mountpoint,
-                    "Filesystemtype": partition.fstype,
-                    "TotalSize": get_size(partition_usage.total),
-                    "Used": get_size(partition_usage.used),
-                    "Free": get_size(partition_usage.free),
-                    "Percentage": f"{partition_usage.percent}%"
-                }
+                total_disk_size += partition_usage.total
+                total_disk_used += partition_usage.used
             except PermissionError:
                 continue
+        
+        system_info["DiskInformation"] = {
+            "TotalSize": get_size(total_disk_size),
+            "Used": get_size(total_disk_used),
+            "Free": get_size(total_disk_size - total_disk_used),
+            "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
+        }
 
-        # Network information
+        # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
             for address in interface_addresses:
                 if str(address.family) == 'AddressFamily.AF_INET':
@@ -181,14 +188,13 @@ async def get_system_information(mqtt_host, mqtt_port, topicPublic, mqtt_usernam
                     }
         
         push_data_to_mqtt(mqtt_host,
-                    mqtt_port,
-                    topicPublic,
-                    mqtt_username,
-                    mqtt_password,
-                    system_info)
+                            mqtt_port,
+                            topicPublic,
+                            mqtt_username,
+                            mqtt_password,
+                            system_info)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global ModeSysTemp
     global flag 
@@ -424,6 +430,46 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
             print(f"Error MQTT subscribe: '{err}'")
     else :
         pass     
+async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+    topic = topicPublic
+    try:
+        result_set = mqtt_result.get('parameter', [])
+        update_fields = ", ".join([f"{field} = %s" for row in result_set for field, value in row.items()])
+        update_values = [value for row in result_set for field, value in row.items()]
+        values = [tuple(update_values)]
+        query = f"""
+        UPDATE project_setup
+        SET {update_fields}
+        """
+        if query and values:
+            try:
+                MySQL_Update_v2(query, values)
+                current_time = get_utc()
+                data_send = {
+                    "status": 200,
+                    "time_stamp": current_time
+                }
+                push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topic,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+            except Exception as err:
+                print(f"Error updating database: '{err}'")
+                current_time = get_utc()
+                data_send = {
+                    "status": 400,
+                    "time_stamp": current_time
+                }
+                push_data_to_mqtt(mqtt_host,
+                                    mqtt_port,
+                                    topic,
+                                    mqtt_username,
+                                    mqtt_password,
+                                    data_send)
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
     global MQTT_TOPIC_PUD_PROJECT_SETUP
     topicpud = serial_number_project + MQTT_TOPIC_PUD_PROJECT_SETUP
@@ -438,21 +484,37 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
-        
-async def pud_information_cpu_when_request(mqtt_result ,serial_number_project,host, port, username, password):
-    global MQTT_TOPIC_PUD_CPU_SETUP
-    topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
+async def insert_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
+    global MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE
+    topicpud = serial_number_project + MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE
     try:
-        if mqtt_result and 'get_cpu' in mqtt_result:
-            await get_system_information(host,
+        if mqtt_result and 'set_information' in mqtt_result:
+            await insert_information_project_setup(mqtt_result,
+                                            host,
                                             port,
-                                            topicPublic,
+                                            topicpud,
                                             username,
                                             password)                       
         else:
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
+        
+# async def pud_information_cpu_cycle(serial_number_project,host, port, username, password):
+#     global MQTT_TOPIC_PUD_CPU_SETUP
+#     global result_topic5
+#     topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
+#     try:
+#         if result_topic5 and 'get_cpu' in result_topic5:
+#             await get_cpu_information(host,
+#                                             port,
+#                                             topicPublic,
+#                                             username,
+#                                             password)                       
+#         else:
+#             pass
+#     except Exception as err:
+#         print(f"Error MQTT subscribe: '{err}'") 
         
 async def check_inverter_device(device_control):
     results_device_type = []
@@ -1036,11 +1098,12 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
     else :
         print("======================= Auto - Full P ========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5, username, password):
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5,topic6, username, password):
     
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
+    result_topic6 = ""
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -1050,6 +1113,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
     topic3 = serial_number_project + topic3
     topic4 = serial_number_project + topic4
     topic5 = serial_number_project + topic5
+    topic6 = serial_number_project + topic6
     
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
@@ -1062,6 +1126,7 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
         await client.subscribe(topic3)
         await client.subscribe(topic4)
         await client.subscribe(topic5)
+        await client.subscribe(topic6)
         
         while True:
             try:
@@ -1092,8 +1157,12 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
                 # await get_list_device_in_automode(result_topic4)
             elif message.topic == topic5:
                 result_topic5 = json.loads(message.message.decode())
-                await pud_information_cpu_when_request(result_topic5,serial_number_project, host, port, username, password)
-                print("result_topic5",result_topic5)
+                # await pud_information_cpu_cycle(result_topic5,serial_number_project, host, port, username, password)
+                # print("result_topic5",result_topic5)
+            elif message.topic == topic6:
+                result_topic6 = json.loads(message.message.decode())
+                await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
+                # print("result_topic6",result_topic6)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 
@@ -1110,6 +1179,7 @@ async def main():
                                                     MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
                                                     MQTT_TOPIC_SUD_DEVICES_ALL,
                                                     MQTT_TOPIC_SUD_MODEGET_CPU,
+                                                    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                     MQTT_USERNAME,
                                                     MQTT_PASSWORD
                                                     )))
@@ -1119,6 +1189,11 @@ async def main():
                                                                         MQTT_BROKER,
                                                                         MQTT_PORT,
                                                                         MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
+                                                                        MQTT_USERNAME,
+                                                                        MQTT_PASSWORD])
+    scheduler.add_job(get_cpu_information, 'cron',  second = f'*/5' , args=[serial_number_project,
+                                                                        MQTT_BROKER,
+                                                                        MQTT_PORT,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
     scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
