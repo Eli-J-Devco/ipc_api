@@ -796,6 +796,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
         for item in result_topic1:
             device_control = item['id_device']
             parameter = item['parameter']
+            print("parameter",parameter)
             device_control = int(device_control)
             if id_systemp == device_control :
                 if parameter :
@@ -829,7 +830,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         # if device is INV 
                         if is_inverter:
                             inverter_info = await find_inverter_information(device_control, parameter)
-
+                            print("inverter_info",inverter_info)
                             for item in inverter_info:
                                 value = item["value"]
                                 register = item["register"]
@@ -871,10 +872,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                     else :
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
-                                                    if rated_power == rated_power_custom :
-                                                        value = value /slope
-                                                    elif rated_power_custom < rated_power :
-                                                        value = (value*(rated_power_custom/rated_power))/slope
+                                                    value = value /slope
+                                                    
+                                                    # results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=rated_power_custom)
+                                                    
                                                 elif id_pointkey == "VarMax":
                                                     value = value/slope
                                                 elif id_pointkey == "VarMaxPercent":
