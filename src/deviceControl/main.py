@@ -706,8 +706,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 if efficiency_total:
                     p_for_each_device_zero_export = (efficiency_total*power_max_convert)/delta
                 
-                if p_for_each_device_zero_export > power_max_convert*delta:
-                    p_for_each_device_zero_export = power_max_convert*delta
+                if p_for_each_device_zero_export > power_max_convert/delta:
+                    p_for_each_device_zero_export = power_max_convert/delta
                 else:
                     pass
             
@@ -795,8 +795,27 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
         device_list_control_power_limit = []
         for device in devices:
             power_max = device["p_max"]
+            id_device = device["id_device"]
+            
+            if id_device :
+                result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
+                if result_slope :
+                    slope = float(result_slope[0]["slope"])
+                else:
+                    pass
+            
+            if power_max and slope:
+                if total_power and value_consumption :  
+                    # difference coefficient between actual and value in inv 333 with 3330 = 0.1
+                    delta = slope*1000
+                    power_max_convert = ((power_max/slope)*delta)
+            
             if p_for_each_device_zero_export and p_for_each_device_power_limit :
                 p_for_each_device = p_for_each_device_zero_export + p_for_each_device_power_limit
+            if p_for_each_device > power_max_convert/delta:
+                    p_for_each_device = power_max_convert/delta
+            else:
+                pass
 
             print("Value setpoint",p_for_each_device)
             print("P Feedback production",value_production)
