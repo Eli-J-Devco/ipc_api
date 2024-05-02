@@ -434,9 +434,9 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
     topic = topicPublic
     try:
         result_set = mqtt_result.get('parameter', [])
-        if result_set:
-            update_fields = ", ".join([f"{field} = %s" for row in result_set for field, value in row.items()])
-            update_values = [value for row in result_set for field, value in row.items()]
+        if len(result_set[0]) > 0:
+            update_fields = ", ".join([f"{field} = %s" for field, value in result_set[0].items()])
+            update_values = [value for field, value in result_set[0].items()]
             values = [tuple(update_values)]
             query = f"""
             UPDATE project_setup
@@ -470,7 +470,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                                         mqtt_password,
                                         data_send)
         else:
-            pass
+            print("result_set is empty, skipping update")
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
