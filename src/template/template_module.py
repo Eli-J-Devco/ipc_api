@@ -3,7 +3,10 @@ from .template_controller import TemplateController
 from .template_service import TemplateService
 from ..devices.devices_service import DevicesService
 from ..point.point_service import PointService
-from ..point_mppt.point_mppt_service import ManualPointMpptService, NormalPointMpptService
+from ..point_control.point_control_service import PointControlService
+from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
+from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
+from ..register_block.register_block_service import RegisterBlockService
 
 
 @Module(
@@ -12,6 +15,8 @@ from ..point_mppt.point_mppt_service import ManualPointMpptService, NormalPointM
                ManualPointMpptService,
                NormalPointMpptService,
                PointService,
+               RegisterBlockService,
+               PointControlService,
                DevicesService],
     imports=[],
     exports=[TemplateService]

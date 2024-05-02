@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from ..point.point_model import PointBase
+from ..project_setup.project_setup_model import ConfigInformationShort
 
 
 class PointListType(BaseModel):
@@ -41,6 +42,18 @@ class PointListControlGroup(BaseModel):
 
 class PointListControlGroupChildren(PointListControlGroup):
     children: Optional[list[PointBase]] = None
+
+    class Config:
+        orm_mode = True
+
+
+class PointConfigFull(BaseModel):
+    data_type: Optional[list[ConfigInformationShort]] = None
+    byte_order: Optional[list[ConfigInformationShort]] = None
+    point_unit: Optional[list[ConfigInformationShort]] = None
+    type_point: Optional[list[ConfigInformationShort]] = None
+    type_point_list: Optional[list[ConfigInformationShort]] = None
+    type_class: Optional[list[ConfigInformationShort]] = None
 
     class Config:
         orm_mode = True

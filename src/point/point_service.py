@@ -1,13 +1,16 @@
 import logging
+import time
 
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_model import PointBase
+from .point_filter import DeletePointFilter, AddPointFilter
+from .point_model import PointBase, PointOutput
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 
 from ..point_config.point_config_filter import (PointType)
@@ -18,51 +21,28 @@ from ..utils.service_wrapper import ServiceWrapper
 class PointService:
     @async_db_request_handler
     async def add_point(self,
-                        id_point: int | None,
                         session: AsyncSession,
-                        id_template: int,
-                        point: PointBase | list[PointBase] | dict[str, PointBase] | PointEntity | ManualPointEntity):
-        if isinstance(point, list):
-            session.add_all([PointEntity(**p.dict(exclude={"id", "register_value"}),
-                                         id_template=id_template,
-                                         register=p.register_value)
-                             for p in point])
-            await session.commit()
-            return "Points added successfully"
+                        point: AddPointFilter):
+        id_template = point.id_template
+        last_point = await self.get_last_point(id_template, session)
+        last_index = last_point.index if last_point else 0
+        if not last_point:
+            last_point = PointBase(register_value=65535)
 
-        if isinstance(point, dict):
-            new_point = PointEntity(
-                **point,
-                id_template=id_template,
-                register=point["register_value"]
-            )
-            session.add(new_point)
-            await session.commit()
-            return "Point added successfully"
-
-        if point.id is not None:
-            is_id_exist = await (ServiceWrapper
-                                 .async_wrapper(self.get_point_by_id)(point.id,
-                                                                      session))
-            if isinstance(is_id_exist, dict):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Point already exists")
-
-        if point.id_pointkey is not None:
-            is_pointkey_exist = await (ServiceWrapper
-                                       .async_wrapper(self.get_point_by_pointkey)(id_template,
-                                                                                  point.id_pointkey,
-                                                                                  session))
-            if isinstance(is_pointkey_exist, dict):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Pointkey already exists")
-
-        new_point = PointEntity(
-            **point.dict(exclude={"id", "register_value"}),
-            id_template=id_template,
-            register=point.register_value
-        )
-        session.add(new_point)
+        session.add_all([PointEntity(**last_point.dict(exclude={"id",
+                                                                "index",
+                                                                "name",
+                                                                "id_pointkey",
+                                                                "id_template",
+                                                                "register_value"}, exclude_unset=True),
+                                     index=last_index + _ + 1,
+                                     name=f"Point {_ + last_index}",
+                                     id_pointkey=f"Point{_ + last_index}",
+                                     id_template=id_template,
+                                     register=last_point.register_value, )
+                         for _ in range(point.num_of_points)])
         await session.commit()
-        return "Point added successfully"
+        return await self.get_points(id_template, session)
 
     @async_db_request_handler
     async def get_point_by_id(self,
@@ -79,7 +59,8 @@ class PointService:
         if func:
             return await ServiceWrapper.async_wrapper(func)(id_point, session, *args, **kwargs)
 
-        return point_entity.__dict__
+        await session.refresh(point_entity)
+        return PointOutput(**jsonable_encoder(point_entity))
 
     @async_db_request_handler
     async def get_point_by_pointkey(self,
@@ -99,6 +80,7 @@ class PointService:
         if func:
             return await ServiceWrapper.async_wrapper(func)(id_template, session, *args, **kwargs)
 
+        await session.refresh(point_entity)
         return point_entity
 
     @async_db_request_handler
@@ -109,24 +91,45 @@ class PointService:
                  .where(PointEntity.id_control_group.__eq__(None))
                  .where(PointEntity.status == 1))
         result = await session.execute(query)
-        return result.scalars().all()
+        points = result.scalars().all()
+        return jsonable_encoder(points)
 
     @async_db_request_handler
     async def update_point(self, id_point: int, session: AsyncSession, point: PointBase):
+        updating_point = point.dict(exclude_unset=True, exclude={"id", "register_value"})
+        updating_point["register"] = point.register_value
+
         query = (update(PointEntity)
                  .where(PointEntity.id == id_point)
-                 .values(point.dict(exclude_unset=True)))
+                 .values(**updating_point))
         await session.execute(query)
+
+        updated_point = await self.get_point_by_id(id_point, session)
         await session.commit()
-        return "Point updated successfully"
+
+        return updated_point
 
     @async_db_request_handler
-    async def delete_point(self, id_point: int, session: AsyncSession):
+    async def delete_point(self, body: DeletePointFilter, session: AsyncSession):
+        id_template = body.id_template
+        if not id_template:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Template ID is required")
+
+        id_points = body.id_points
+
+        if isinstance(id_points, list):
+            query = (delete(PointEntity)
+                     .where(PointEntity.id_template == id_template)
+                     .where(PointEntity.id.in_(id_points)))
+            await session.execute(query)
+            await session.commit()
+            return await self.get_points(id_template, session)
+
         query = (delete(PointEntity)
-                 .where(PointEntity.id == id_point))
+                 .where(PointEntity.id == id_points))
         await session.execute(query)
         await session.commit()
-        return "Point deleted successfully"
+        return await self.get_points(id_template, session)
 
     @async_db_request_handler
     async def get_manual_point_list(self, id_device_type: int, session: AsyncSession) -> list[PointBase]:
@@ -137,3 +140,15 @@ class PointService:
         result = await session.execute(query)
         points = result.scalars().all()
         return [PointBase(**point.__dict__) for point in points]
+
+    @async_db_request_handler
+    async def get_last_point(self, id_template: int, session: AsyncSession):
+        query = (select(PointEntity)
+                 .where(PointEntity.id_template == id_template)
+                 .where(PointEntity.id_config_information == PointType().POINT)
+                 .where(PointEntity.id_control_group.__eq__(None))
+                 .order_by(PointEntity.index.desc())
+                 .limit(1))
+        result = await session.execute(query)
+        point = result.scalars().first()
+        return PointBase(**point.__dict__) if point else None

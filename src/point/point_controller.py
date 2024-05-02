@@ -2,6 +2,7 @@ from nest.core import Controller, Post, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .point_filter import DeletePointFilter, AddPointFilter
 from .point_model import PointBase
 from .point_service import PointService
 
@@ -26,33 +27,13 @@ class PointController:
 
     @Post("/add/")
     async def add_point(self,
-                        id_template: int,
-                        point: PointBase,
+                        point: AddPointFilter,
                         session: AsyncSession = Depends(config.get_db),
                         user: Authentication = Depends(get_current_user)):
 
-        if point.id is not None:
-            is_id_exist = await (ServiceWrapper
-                                 .async_wrapper(self.point_service
-                                                .get_point_by_id)(point.id,
-                                                                  session))
-            if isinstance(is_id_exist, dict):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Point already exists")
-
-        if point.id_pointkey is not None:
-            is_pointkey_exist = await (ServiceWrapper
-                                       .async_wrapper(self.point_service
-                                                      .get_point_by_pointkey)(id_template,
-                                                                              point.id_pointkey,
-                                                                              session))
-            if isinstance(is_pointkey_exist, dict):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Pointkey already exists")
-
         return await (ServiceWrapper
                       .async_wrapper(self.point_service
-                                     .add_point)(point.id,
-                                                 session,
-                                                 id_template,
+                                     .add_point)(session,
                                                  point, ))
 
     @Post("/update/")
@@ -69,11 +50,8 @@ class PointController:
 
     @Post("/delete/")
     async def delete_point(self,
-                           id_point: int,
+                           body: DeletePointFilter,
                            session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
-                      .async_wrapper(self.point_service
-                                     .get_point_by_id)(id_point,
-                                                       session,
-                                                       self.point_service.delete_point, ))
+                      .async_wrapper(self.point_service.delete_point)(body, session))

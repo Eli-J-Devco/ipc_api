@@ -4,6 +4,7 @@ from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi.responses import JSONResponse
 from fastapi import status
+from fastapi.encoders import jsonable_encoder
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +36,7 @@ class PointControlService:
                      .where(PointControlEntity.id_control_group == control_group.id)
                      .where(PointControlEntity.status == 1))
             result = await session.execute(query)
-            points = result.scalars().all()
+            points = jsonable_encoder(result.scalars().all())
             response.append(PointListControlGroupChildren(**control_group.__dict__, children=points))
         return response
 
@@ -91,4 +92,4 @@ class PointControlService:
                  .where(PointControlEntity.id_control_group == id_control_group)
                  .where(PointControlEntity.status == 1))
         result = await session.execute(query)
-        return result.scalars().all()
+        return jsonable_encoder(result.scalars().all())

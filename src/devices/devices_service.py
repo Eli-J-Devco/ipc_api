@@ -44,3 +44,15 @@ class DevicesService:
         query = select(DeviceGroupEntity.id_device_type).filter(DeviceGroupEntity.id == id_device_group)
         result = await session.execute(query)
         return result.scalars().first()
+
+    @async_db_request_handler
+    async def get_device_type(self, session: AsyncSession):
+        query = select(DeviceTypeEntity)
+        result = await session.execute(query)
+        return result.scalars().all()
+
+    @async_db_request_handler
+    async def get_device_group(self, session: AsyncSession):
+        query = select(DeviceGroupEntity)
+        result = await session.execute(query)
+        return result.scalars().all()

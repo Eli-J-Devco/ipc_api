@@ -8,7 +8,6 @@ class Point(config.Base):
     __tablename__ = "point_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    index: Mapped[int] = mapped_column(Integer, nullable=False)
     parent: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id"), nullable=False)
     id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
                                                                         onupdate="CASCADE"), nullable=True, default=1)
@@ -51,14 +50,14 @@ class Point(config.Base):
     status: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
 
     template_library = relationship("Template", back_populates="point_list", foreign_keys=[id_template])
-    type_units = relationship("ConfigInformation", foreign_keys=[id_type_units])
-    type_datatype = relationship("ConfigInformation", foreign_keys=[id_type_datatype])
-    type_byteorder = relationship("ConfigInformation", foreign_keys=[id_type_byteorder])
-    type_point_list = relationship("PointListType", foreign_keys=[id_point_list_type])
-    type_point = relationship("ConfigInformation", foreign_keys=[id_pointtype])
-    type_class = relationship("PointclassType", foreign_keys=[id_pointclass_type])
-    type_config_information = relationship("ConfigInformation", foreign_keys=[id_config_information])
-    type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group])
+    type_units = relationship("ConfigInformation", foreign_keys=[id_type_units], lazy="immediate")
+    type_datatype = relationship("ConfigInformation", foreign_keys=[id_type_datatype], lazy="immediate")
+    type_byteorder = relationship("ConfigInformation", foreign_keys=[id_type_byteorder], lazy="immediate")
+    type_point_list = relationship("PointListType", foreign_keys=[id_point_list_type], lazy="immediate")
+    type_point = relationship("ConfigInformation", foreign_keys=[id_pointtype], lazy="immediate")
+    type_class = relationship("PointclassType", foreign_keys=[id_pointclass_type], lazy="immediate")
+    type_config_information = relationship("ConfigInformation", foreign_keys=[id_config_information], lazy="immediate")
+    type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group], lazy="immediate")
     reply_to_point = relationship("Point", remote_side=[parent])
 
 
@@ -66,7 +65,6 @@ class ManualPoint(config.Base):
     __tablename__ = "manual_point_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    index: Mapped[int] = mapped_column(Integer, nullable=False)
     parent: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id"), nullable=False)
     id_device_type: Mapped[int] = mapped_column(Integer,
                                                 ForeignKey("device_type.id", ondelete="CASCADE", onupdate="CASCADE"),
@@ -109,12 +107,12 @@ class ManualPoint(config.Base):
     status: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
 
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])
-    type_units = relationship("ConfigInformation", foreign_keys=[id_type_units])
-    type_datatype = relationship("ConfigInformation", foreign_keys=[id_type_datatype])
-    type_byteorder = relationship("ConfigInformation", foreign_keys=[id_type_byteorder])
-    type_point_list = relationship("PointListType", foreign_keys=[id_point_list_type])
-    type_point = relationship("ConfigInformation", foreign_keys=[id_pointtype])
-    type_class = relationship("PointclassType", foreign_keys=[id_pointclass_type])
-    type_config_information = relationship("ConfigInformation", foreign_keys=[id_config_information])
-    type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group])
+    type_units = relationship("ConfigInformation", foreign_keys=[id_type_units], lazy="immediate")
+    type_datatype = relationship("ConfigInformation", foreign_keys=[id_type_datatype], lazy="immediate")
+    type_byteorder = relationship("ConfigInformation", foreign_keys=[id_type_byteorder], lazy="immediate")
+    type_point_list = relationship("PointListType", foreign_keys=[id_point_list_type], lazy="immediate")
+    type_point = relationship("ConfigInformation", foreign_keys=[id_pointtype], lazy="immediate")
+    type_class = relationship("PointclassType", foreign_keys=[id_pointclass_type], lazy="immediate")
+    type_config_information = relationship("ConfigInformation", foreign_keys=[id_config_information], lazy="immediate")
+    type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group], lazy="immediate")
     reply_to_point = relationship("Point", remote_side=[parent])

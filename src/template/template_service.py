@@ -5,15 +5,21 @@ from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .template_entity import Template as TemplateEntity
 from .template_filter import GetTemplateFilter
-from .template_model import Template, TemplateOutput
+from .template_model import Template, TemplateOutput, TemplateConfig
+
 from ..devices.devices_service import DevicesService
 from ..point.point_service import PointService
-from ..point_mppt.point_mppt_service import ManualPointMpptService, NormalPointMpptService
+from ..point_config.point_config_service import PointConfigService
+from ..point_control.point_control_service import PointControlService
+from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
+from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
+from ..project_setup.project_setup_service import ProjectSetupService
+from ..register_block.register_block_service import RegisterBlockService
 from ..utils.service_wrapper import ServiceWrapper
 
 
@@ -23,15 +29,30 @@ class TemplateService:
                  manual_point_mppt_service: ManualPointMpptService,
                  point_mppt_service: NormalPointMpptService,
                  point_service: PointService,
+                 register_block_service: RegisterBlockService,
+                 point_control_service: PointControlService,
                  devices_service: DevicesService):
         self.manual_point_mppt_service = manual_point_mppt_service
         self.point_mppt_service = point_mppt_service
         self.point_service = point_service
+        self.register_block_service = register_block_service
+        self.point_control_service = point_control_service
         self.devices_service = devices_service
 
     @async_db_request_handler
-    async def get_template(self, session: AsyncSession):
-        query = select(TemplateEntity)
+    async def get_template(self, body: GetTemplateFilter, session: AsyncSession):
+        if body.id is not None:
+            query = select(TemplateEntity).where(TemplateEntity.id == body.id)
+            result = await session.execute(query)
+            if result.scalars().first().type != 1:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not allowed")
+            return await ServiceWrapper.async_wrapper(self.get_template_detail)(body.id, session)
+
+        if body.type is None:
+            query = select(TemplateEntity)
+        else:
+            query = select(TemplateEntity).where(TemplateEntity.type == body.type)
+
         result = await session.execute(query)
         return result.scalars().all()
 
@@ -77,6 +98,34 @@ class TemplateService:
         return TemplateOutput(points=points, point_mppt=point_mppt)
 
     @async_db_request_handler
+    async def get_template_detail(self, id_template: int, session: AsyncSession):
+        points = await self.point_service.get_points(id_template, session)
+        point_mppt = await self.point_mppt_service.get_mppt_point_formatted(id_template, session)
+        register_blocks = await self.register_block_service.get_register_block(id_template, session)
+        point_controls = await self.point_control_service.get_control_group_point(id_template, session)
+
+        return TemplateOutput(points=points,
+                              point_mppt=point_mppt,
+                              register_blocks=register_blocks,
+                              point_controls=point_controls)
+
+    @async_db_request_handler
+    async def get_template_config(self, session: AsyncSession):
+        project_setup_service = ProjectSetupService()
+        point_config = await (ServiceWrapper
+                              .async_wrapper(PointConfigService(project_setup_service)
+                                             .get_all_config)(session))
+
+        type_function = await (ServiceWrapper
+                               .async_wrapper(RegisterBlockService(project_setup_service)
+                                              .get_type_function)(session))
+
+        return TemplateConfig(**json.loads(point_config.body.decode("utf8"))
+                              if isinstance(point_config, JSONResponse) else point_config,
+                              type_function=json.loads(type_function.body.decode("utf8"))
+                              if isinstance(type_function, JSONResponse) else type_function)
+
+    @async_db_request_handler
     async def add_template(self, session: AsyncSession, new_template: Template):
         if new_template.name is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name is required")
@@ -105,8 +154,7 @@ class TemplateService:
 
         if isinstance(result, JSONResponse):
             if result.status_code != status.HTTP_200_OK:
-                raise HTTPException(status_code=result.status_code, detail=json
-                                    .loads(result.body.decode("utf-8"))["message"])
+                return result
 
         result = await ServiceWrapper.async_wrapper(self.point_mppt_service
                                                     .add_formatted_mppt)(points_to_add.point_mppt,
@@ -115,8 +163,13 @@ class TemplateService:
 
         if isinstance(result, JSONResponse):
             if result.status_code != status.HTTP_200_OK:
-                raise HTTPException(status_code=result.status_code, detail=json
-                                    .loads(result.body.decode("utf-8"))["message"])
+                return result
 
         await session.commit()
         return "Template added successfully"
+
+    @async_db_request_handler
+    async def delete_template(self, id_template: int, session: AsyncSession):
+        delete(TemplateEntity).where(TemplateEntity.id == id_template)
+        await session.commit()
+        return "Template deleted successfully"

@@ -5,10 +5,10 @@ from pydantic import BaseModel
 
 class RegisterBlockBase(BaseModel):
     id_template: Optional[int] = None
-    addr: Optional[int] = None
-    count: Optional[int] = None
-    id_type_function: Optional[int] = None
-    status: Optional[bool] = None
+    addr: Optional[int] = 65535
+    count: Optional[int] = 0
+    id_type_function: Optional[int] = 269
+    status: Optional[bool] = True
 
     class Config:
         orm_mode = True

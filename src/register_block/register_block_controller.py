@@ -1,7 +1,8 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .register_block_filter import GetRegisterBlockFilter
+from .register_block_filter import GetRegisterBlockFilter, AddRegisterBlocksFilter, DeleteRegisterBlockFilter, \
+    UpdateRegisterBlockFilter
 from .register_block_model import RegisterBlockBase, RegisterBlock, ValidateRegisterBlock
 from .register_block_service import RegisterBlockService
 
@@ -29,35 +30,29 @@ class RegisterBlockController:
 
     @Post("/add/")
     async def add_register_block(self,
-                                 register_block: RegisterBlockBase,
+                                 register_block: AddRegisterBlocksFilter,
                                  session: AsyncSession = Depends(config.get_db),
                                  user: Authentication = Depends(get_current_user)):
-        validation = ValidateRegisterBlock(**register_block.dict(exclude_unset=True))
         return await (ServiceWrapper
                       .async_wrapper(self.register_block_service
-                                     .validate_information)(validation,
-                                                            session,
-                                                            self.register_block_service.add_register_block,
-                                                            register_block))
+                                     .add_register_blocks)(register_block, session))
 
     @Post("/update/")
     async def update_register_block(self,
-                                    register_block: RegisterBlock | list[RegisterBlock],
+                                    register_block: UpdateRegisterBlockFilter,
                                     session: AsyncSession = Depends(config.get_db),
                                     user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.register_block_service
-                                     .get_register_block_by_id)(register_block.id,
-                                                                session,
-                                                                self.register_block_service.update_register_blocks,
-                                                                register_block))
+                                     .update_register_blocks)(session,
+                                                              register_block))
 
     @Post("/delete/")
     async def delete_register_block(self,
-                                    id_register_block: int | list[int],
+                                    body: DeleteRegisterBlockFilter,
                                     session: AsyncSession = Depends(config.get_db),
                                     user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.register_block_service
-                                     .delete_register_blocks)(id_register_block,
+                                     .delete_register_blocks)(body,
                                                               session))

@@ -2,6 +2,8 @@ from nest.core import Controller, Post, Depends
 from fastapi import status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from .template_filter import GetTemplateFilter
 from ..config import config
 
 from .template_service import TemplateService
@@ -19,9 +21,10 @@ class TemplateController:
 
     @Post("/get/")
     async def get_template(self,
+                           body: GetTemplateFilter,
                            session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
-        return await self.template_service.get_template(session)
+        return await ServiceWrapper.async_wrapper(self.template_service.get_template)(body, session)
 
     @Post("/get/manual/")
     async def get_manual(self,
@@ -29,6 +32,12 @@ class TemplateController:
                          session: AsyncSession = Depends(config.get_db),
                          user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.template_service.get_manual)(id_device_type, session)
+
+    @Post("/config/get/")
+    async def get_config(self,
+                         session: AsyncSession = Depends(config.get_db),
+                         user: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.template_service.get_template_config)(session)
 
     @Post("/add/")
     async def add_template(self,
@@ -44,3 +53,14 @@ class TemplateController:
             return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)
 
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"message": "Template already exists"})
+
+    @Post("/delete/")
+    async def delete_template(self,
+                              template: GetTemplateFilter,
+                              session: AsyncSession = Depends(config.get_db),
+                              user: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.template_service
+                                     .get_template_by_id)(template.id,
+                                                          session,
+                                                          self.template_service.delete_template))

@@ -9,7 +9,6 @@ from .point_config_model import PointListControlGroup
 from ..point.point_entity import Point as PointEntity
 from ..point.point_model import PointBase
 from ..point.point_service import PointService
-from ..template.template_service import TemplateService
 from ..utils.service_wrapper import ServiceWrapper
 
 
@@ -38,14 +37,8 @@ class PointControlGroupConfigService:
 
     @async_db_request_handler
     async def add_control_group(self, control_group: PointControlGroupEntity, session: AsyncSession):
-        id_template = control_group.id_template
-        is_exist = await TemplateService().get_template_by_id(id_template, session)
-
-        if not isinstance(is_exist, dict):
-            return is_exist
-
         query = (select(PointControlGroupEntity)
-                 .where(PointControlGroupEntity.id_template == id_template)
+                 .where(PointControlGroupEntity.id_template == control_group.id_template)
                  .where(PointControlGroupEntity.namekey == "".join(control_group.name)))
         result = await session.execute(query)
         if result.scalars().first() is not None:
@@ -64,12 +57,6 @@ class PointControlGroupConfigService:
                                    id_control_group: int,
                                    session: AsyncSession,
                                    control_group: PointListControlGroup):
-        if control_group.id_template is not None:
-            is_exist = await TemplateService().get_template_by_id(control_group.id_template, session)
-
-            if not isinstance(is_exist, dict):
-                return is_exist
-
         query = (update(PointControlGroupEntity)
                  .where(PointControlGroupEntity.id == id_control_group)
                  .values(**control_group.dict(exclude={"id", "namekey"}, exclude_unset=True)))

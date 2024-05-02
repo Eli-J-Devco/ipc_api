@@ -3,12 +3,13 @@ from typing import Optional
 from pydantic import BaseModel
 from pydantic.fields import Field
 
+from ..project_setup.project_setup_model import ConfigInformationShort
+
 
 class PointBase(BaseModel):
     id: Optional[int] = None
-    index: Optional[int] = None
     parent: Optional[int] = None
-    id_pointclass_type: Optional[int] = None
+    id_pointclass_type: Optional[int] = 1
     id_pointkey: Optional[str] = None
     id_point_list_type: Optional[int] = None
     name: Optional[str] = None
@@ -16,7 +17,7 @@ class PointBase(BaseModel):
     id_type_units: Optional[int] = None
     unitsedit: Optional[bool] = None
     id_pointtype: Optional[int] = None
-    id_config_information: Optional[int] = None
+    id_config_information: Optional[int] = 266
     register_value: Optional[int] = Field(None, alias="register")
     id_type_datatype: Optional[int] = None
     id_type_byteorder: Optional[int] = None
@@ -35,10 +36,20 @@ class PointBase(BaseModel):
     function: Optional[str] = None
     constants: Optional[str] = None
     active: Optional[bool] = None
-    status: Optional[bool] = None
+    status: Optional[bool] = True
+
+
+class PointOutput(PointBase):
+    type_units: Optional[ConfigInformationShort] = None
+    type_datatype: Optional[ConfigInformationShort] = None
+    type_byteorder: Optional[ConfigInformationShort] = None
+    type_point_list: Optional[ConfigInformationShort] = None
+    type_point: Optional[ConfigInformationShort] = None
+    type_class: Optional[ConfigInformationShort] = None
 
     class Config:
         orm_mode = True
+        from_attribute = True
 
 
 class ManualPoint(PointBase):

@@ -8,6 +8,7 @@ from .devices_model import Devices
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config
+from ..utils.service_wrapper import ServiceWrapper
 
 
 @Controller("devices")
@@ -18,10 +19,20 @@ class DevicesController:
     @Post("/get/")
     async def get_devices(self, session: AsyncSession = Depends(config.get_db),
                           auth: Authentication = Depends(get_current_user)):
-        return await self.devices_service.get_devices(session)
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_devices)(session)
 
     @Post("/add/")
     async def add_devices(self,
                           devices: Devices, session: AsyncSession = Depends(config.get_db),
                           auth: Authentication = Depends(get_current_user)):
-        return await self.devices_service.add_devices(devices, session)
+        return await ServiceWrapper.async_wrapper(self.devices_service.add_devices)(devices, session)
+
+    @Post("/config/type/get/")
+    async def get_device_type(self, session: AsyncSession = Depends(config.get_db),
+                              auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_device_type)(session)
+
+    @Post("/config/group/get/")
+    async def get_device_group(self, session: AsyncSession = Depends(config.get_db),
+                               auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_device_group)(session)

@@ -46,8 +46,26 @@ class ProjectSetup(BaseModel):
     enable_zero_export: Optional[bool] = None
     value_zero_export: Optional[float] = None
 
-    enable_limit_energy: Optional[bool] = None
-    value_limit_energy: Optional[float] = None
+    enable_power_limit: Optional[bool] = None
+    value_power_limit: Optional[float] = None
+    value_offset_power_limit: Optional[float] = None
+
+    powermeter_target_point: Optional[float] = None
+    powermeter_tolerance: Optional[float] = None
+    powermeter_max_point: Optional[float] = None
+
+    slow_approx_limit_in_percent: Optional[int] = None
+    slow_approx_factor_in_percent: Optional[int] = None
+
+    loop_interval_in_seconds: Optional[int] = None
+    set_limit_delay_in_seconds: Optional[int] = None
+    set_limit_timeout_seconds: Optional[int] = None
+    set_limit_delay_in_seconds_multiple_inverter: Optional[int] = None
+    poll_interval_in_seconds: Optional[int] = None
+    on_grid_usage_jump_to_limit_percent: Optional[int] = None
+    max_difference_between_limit_and_outputpower: Optional[int] = None
+    set_limit_retry: Optional[int] = None
+    set_power_status_delay_in_seconds: Optional[int] = None
 
     modhopper1: Optional[int] = None
     modhopper2: Optional[int] = None
@@ -55,10 +73,11 @@ class ProjectSetup(BaseModel):
     modhopper_rf_config: Optional[int] = None
     modhopper_rf_channel: Optional[int] = None
     status: Optional[bool] = None
-    logging_interval: ConfigInformationShort
-    logging_interval_list: list[ConfigInformationShort]
-    first_page_on_login: ScreenBase
-    screen_list: list[ScreenBase]
+
+    logging_interval: Optional[ConfigInformationShort] = None
+    logging_interval_list: Optional[list[ConfigInformationShort]] = None
+    first_page_on_login: Optional[ScreenBase] = None
+    screen_list: Optional[list[ScreenBase]] = None
 
     class Config:
         orm_mode = True

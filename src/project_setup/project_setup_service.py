@@ -55,13 +55,9 @@ class ProjectSetupService:
 
     @async_db_request_handler
     async def update_project(self, project_id: int, session: AsyncSession, project: UpdateProjectSetupFilter):
-        updating_project = await self.get_project_setup_by_id(project_id, session)
-        updating_project = ProjectSetup(**updating_project.__dict__)
-        updating_project = updating_project.copy(update=project.dict(exclude_unset=True))
-
         query = (update(ProjectSetupEntity)
                  .where(ProjectSetupEntity.id == project_id)
-                 .values(updating_project.dict()))
+                 .values(project.dict(exclude_unset=True)))
 
         await session.execute(query)
         await session.commit()
@@ -69,9 +65,12 @@ class ProjectSetupService:
 
     @async_db_request_handler
     async def get_config_information_by_type(self, session: AsyncSession, config_type: str):
+        config_enum = ConfigInformationEnum().__getattribute__(config_type)
         query = (select(ConfigInformationEntity)
-                 .where(ConfigInformationEntity.id > ConfigInformationEnum().__getattribute__(config_type).MIN)
-                 .where(ConfigInformationEntity.id <= ConfigInformationEnum().__getattribute__(config_type).MAX))
+                 .where(ConfigInformationEntity.id_type == config_enum.ID_TYPE)
+                 .where(ConfigInformationEntity.id > config_enum.MIN)
+                 .where(ConfigInformationEntity.id <= config_enum.MAX)
+                 .where(ConfigInformationEntity.status == 1))
         result = await session.execute(query)
         return [ConfigInformationShort(**config.__dict__) for config in result.scalars().all()]
 
@@ -100,9 +99,9 @@ class ProjectSetupService:
                                 detail=f"{ConfigInformationTypeLang().__getattribute__(config_type)} is required")
 
         if not (ConfigInformationEnum()
-                .__getattribute__(config_type).MIN <= config_information_id
+                        .__getattribute__(config_type).MIN <= config_information_id
                 and (config_information_id <= ConfigInformationEnum()
-                                              .__getattribute__(config_type).MAX)):
+                        .__getattribute__(config_type).MAX)):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail=f"Invalid {ConfigInformationTypeLang().__getattribute__(config_type).lower()} ID")
 

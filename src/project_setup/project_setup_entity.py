@@ -51,6 +51,24 @@ class ProjectSetup(config.Base):
 
     enable_power_limit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     value_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+    value_offset_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=0)
+
+    powermeter_target_point: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=0)
+    powermeter_tolerance: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=0)
+    powermeter_max_point: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=0)
+
+    slow_approx_limit_in_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    slow_approx_factor_in_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+    loop_interval_in_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    set_limit_delay_in_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    set_limit_timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    set_limit_delay_in_seconds_multiple_inverter: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    poll_interval_in_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    on_grid_usage_jump_to_limit_percent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    max_difference_between_limit_and_outputpower: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    set_limit_retry: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    set_power_status_delay_in_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     modhopper1: Mapped[int] = mapped_column(Integer, nullable=True)
     modhopper2: Mapped[int] = mapped_column(Integer, nullable=True)

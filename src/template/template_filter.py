@@ -1,5 +1,8 @@
+from typing import Optional
+
 from pydantic.main import BaseModel
 
 
 class GetTemplateFilter(BaseModel):
-    type: int = 1
+    id: Optional[int] = None
+    type: Optional[int] = None
