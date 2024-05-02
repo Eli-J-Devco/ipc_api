@@ -435,8 +435,8 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
     try:
         result_set = mqtt_result.get('parameter', [])
         if result_set:
-            update_fields = ", ".join([f"{field} = %s" for row in result_set for field, value in row.items()])
-            update_values = [value for row in result_set for field, value in row.items()]
+            update_fields = ", ".join([f"{field} = %s" for field, value in result_set[0].items()])
+            update_values = [value for field, value in result_set[0].items()]
             values = [tuple(update_values)]
             query = f"""
             UPDATE project_setup
