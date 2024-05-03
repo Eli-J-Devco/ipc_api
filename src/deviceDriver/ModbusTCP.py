@@ -1679,7 +1679,14 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-
+# Describe sud_mqtt
+# /**
+# 	 * @description sud_mqtt
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {serial_number_project, host, port, topic1, topic2, username, password}
+# 	 * @return confirm_mode_device or MySQL_Update rated_power
+# 	 */
 async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
     
     global result_topic1 
