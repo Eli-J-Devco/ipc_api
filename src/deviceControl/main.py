@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
 import os
 import sys
@@ -90,6 +95,13 @@ Mode = Man -> value direct to function read device
 Mode = Zero Export ->   
 Mode = Limit -> 
 """
+# Describe get_size cpu 
+# 	 * @description get size
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {bytes,suffix}
+# 	 * @return (size)
+# 	 */  
 def get_size(bytes, suffix="B"):
     """
     Scale bytes to its proper format
@@ -102,6 +114,22 @@ def get_size(bytes, suffix="B"):
         if bytes < factor:
             return f"{bytes:.2f}{unit}{suffix}"
         bytes /= factor
+# Describe get_cpu_information 
+# 	 * @description get cpu information
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return 
+#      system_info = {
+#     "Timestamp": timestamp,
+#     "SystemInformation": {},
+#     "BootTime": {},
+#     "CPUInfo": {},
+#     "MemoryInformation": {},
+#     "DiskInformation": {},
+#     "NetworkInformation": {}
+#      }
+# 	 */  
 async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global MQTT_TOPIC_PUD_CPU_SETUP
     topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
@@ -195,6 +223,13 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             system_info)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe pud_confirm_mode_control 
+# 	 * @description pud_confirm_mode_control
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return ModeSysTemp
+# 	 */ 
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     global ModeSysTemp
     global flag 
@@ -225,6 +260,13 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
             print(f"Error MQTT subscribe: '{err}'")
     else :
         pass
+# Describe process_update_mode_for_device_for_systemp 
+# 	 * @description process_update_mode_for_device_for_systemp
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
+# 	 * @return ModeSysTemp
+# 	 */ 
 async def process_update_mode_for_device_for_systemp():
     
     global result_topic1
@@ -255,6 +297,13 @@ async def process_update_mode_for_device_for_systemp():
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe pud_feedback_project_setup 
+# 	 * @description pud_feedback_project_setup
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return data_send
+# 	 */ 
 async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     result = []
     topic = topicPublic 
@@ -429,7 +478,14 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
         except Exception as err:
             print(f"Error MQTT subscribe: '{err}'")
     else :
-        pass     
+        pass  
+# Describe insert_information_project_setup 
+# 	 * @description insert_information_project_setup
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return data_send
+# 	 */ 
 async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     topic = topicPublic
     try:
@@ -473,6 +529,13 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
             print("result_set is empty, skipping update")
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe pud_information_project_setup_when_request 
+# 	 * @description pud_information_project_setup_when_request
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result ,serial_number_project,host, port, username, password}
+# 	 * @return call pud_feedback_project_setup
+# 	 */ 
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
     global MQTT_TOPIC_PUD_PROJECT_SETUP
     topicpud = serial_number_project + MQTT_TOPIC_PUD_PROJECT_SETUP
@@ -487,6 +550,14 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
+        
+# Describe insert_information_project_setup_when_request 
+# 	 * @description insert_information_project_setup_when_request
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result ,serial_number_project,host, port, username, password}
+# 	 * @return call insert_information_project_setup
+# 	 */ 
 async def insert_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
     global MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE
     topicpud = serial_number_project + MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE
@@ -502,6 +573,13 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'") 
+# Describe check_inverter_device 
+# 	 * @description check_inverter_device
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {device_control}
+# 	 * @return devivce is inverter 
+# 	 */ 
 async def check_inverter_device(device_control):
     results_device_type = []
     
@@ -511,6 +589,13 @@ async def check_inverter_device(device_control):
         return True  
     else:
         return False  
+# Describe get_list_device_in_automode 
+# 	 * @description get_list_device_in_automode
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result }
+# 	 * @return device_list 
+# 	 */ 
 async def get_list_device_in_automode(mqtt_result):
     global total_power 
     device_list = []
@@ -567,6 +652,13 @@ async def get_list_device_in_automode(mqtt_result):
         total_power = sum(device['p_max'] for device in device_list)
         print("device_list",device_list)
     return device_list
+# Describe get_value_meter 
+# 	 * @description get_value_meter
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return value_production ,value_consumption
+# 	 */ 
 async def get_value_meter():
     global result_topic4
     value_production_aray = []
@@ -596,6 +688,13 @@ async def get_value_meter():
         # end for 
     else:
         pass  
+# Describe process_caculator_p_power_limit 
+# 	 * @description process_caculator_p_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return p_for_each_device_power_limit
+# 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -694,6 +793,13 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             pass
     else:
         pass
+# Describe process_caculator_zero_export 
+# 	 * @description process_caculator_zero_export
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return p_for_each_device_zero_export
+# 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -813,6 +919,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             pass
     else:
         pass
+# Describe process_caculator_zero_export_power_limit 
+# 	 * @description process_caculator_zero_export_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return p_for_each_device
+# 	 */ 
 async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global enable_power_limit
@@ -910,6 +1023,13 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
             pass
     else:
         pass
+# Describe process_not_choose_zero_export_power_limit 
+# 	 * @description process_not_choose_zero_export_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return power_max
+# 	 */ 
 async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4
     global devices
@@ -967,6 +1087,13 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 pass
     else:
         pass 
+# Describe process_update_zeroexport_powerlimit 
+# 	 * @description process_update_zeroexport_powerlimit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
+# 	 * @return MySQL_Update enable_zero_export ,value_zero_export,enable_power_limit,value_power_limit
+# 	 */ 
 async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     
     global enable_zero_export
@@ -1038,6 +1165,13 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe process_getfirst_zeroexport_powerlimit 
+# 	 * @description process_getfirst_zeroexport_powerlimit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return enable_zero_export ,value_zero_export,enable_power_limit,value_power_limit
+# 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
     
     global enable_zero_export
@@ -1063,6 +1197,13 @@ async def process_getfirst_zeroexport_powerlimit():
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")   
+# Describe process_zero_export_power_limit 
+# 	 * @description process_zero_export_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
+# 	 */ 
 async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     global enable_zero_export
     global value_zero_export
@@ -1081,8 +1222,22 @@ async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_
     else :
         print("======================= Auto - Full P ========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5,topic6, username, password):
-    
+# Describe process_message 
+# 	 * @description processmessage from mqtt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {topic, message,serial_number_project, host, port, username, password}
+# 	 * @return each topic , each message
+# 	 */ 
+async def process_message(topic, message,serial_number_project, host, port, username, password):
+
+    global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    global MQTT_TOPIC_SUD_MODEGET_INFORMATION
+    global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO
+    global MQTT_TOPIC_SUD_DEVICES_ALL
+    global MQTT_TOPIC_SUD_MODEGET_CPU
+    global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
+                                                    
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
@@ -1090,100 +1245,74 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topi
     global result_topic4
     global result_topic1
     global bitcheck1 
-    
-    topic1 = serial_number_project + topic1
-    topic2 = serial_number_project + topic2
-    topic3 = serial_number_project + topic3
-    topic4 = serial_number_project + topic4
-    topic5 = serial_number_project + topic5
-    topic6 = serial_number_project + topic6
-    
-    try:
-        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-        if not client:
-            return -1 
-        
-        await client.start()
-        await client.subscribe(topic1)
-        await client.subscribe(topic2)
-        await client.subscribe(topic3)
-        await client.subscribe(topic4)
-        await client.subscribe(topic5)
-        await client.subscribe(topic6)
-        
-        while True:
-            try:
-                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-            except asyncio.TimeoutError:
-                continue
-            
-            if not message:
-                print("Not find message from MQTT")
-                continue
-            
-            if message.topic == topic1:
-                result_topic1 = json.loads(message.message.decode())
-                bitcheck1 = 1
-                await process_update_mode_for_device_for_systemp ()
-                print("result_topic1",result_topic1)
-            elif message.topic == topic2:
-                result_topic2 = json.loads(message.message.decode())
-                await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
-                print("result_topic2",result_topic2)
-            elif message.topic == topic3:
-                result_topic3 = json.loads(message.message.decode())
-                await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
-                print("result_topic3",result_topic3)
-            elif message.topic == topic4:
-                result_topic4 = json.loads(message.message.decode())
-                # print("result_topic4",result_topic4)
-                # await get_list_device_in_automode(result_topic4)
-            elif message.topic == topic5:
-                result_topic5 = json.loads(message.message.decode())
-                # await pud_information_cpu_cycle(result_topic5,serial_number_project, host, port, username, password)
-                # print("result_topic5",result_topic5)
-            elif message.topic == topic6:
-                result_topic6 = json.loads(message.message.decode())
-                await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
-                # print("result_topic6",result_topic6)
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
-#tesst
-async def cycle_get_information(serial_number_project,mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global MQTT_TOPIC_SUD_MODEGET_INFORMATION
-    topic = serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION  
-    try:
-        data_send = {
-                    "get_information": 1
-                    }
-    
-        push_data_to_mqtt(mqtt_host,
-                mqtt_port,
-                topic ,
-                mqtt_username,
-                mqtt_password,
-                data_send)
-    except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
 
+    topic1 = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    topic2 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION
+    topic3 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO
+    topic4 = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
+    topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
+    topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
+    
+    try:
+        if topic == topic1:
+            result_topic1 = message
+            bitcheck1 = 1
+            await process_update_mode_for_device_for_systemp ()
+            print("result_topic1",result_topic1)
+        elif topic == topic2:
+            result_topic2 = message
+            await pud_information_project_setup_when_request(result_topic2,serial_number_project, host, port, username, password)
+            print("result_topic2",result_topic2)
+        elif topic == topic3:
+            result_topic3 = message
+            await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
+            print("result_topic3",result_topic3)
+        elif topic == topic4:
+            result_topic4 = message
+        elif topic == topic5:
+            result_topic5 = message
+        elif topic == topic6:
+            result_topic6 = message
+            await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
+            print("result_topic6",result_topic6)
+    except Exception as err:
+        print(f"Error MQTT subscribe: '{err}'")
+# Describe sub_mqtt 
+# 	 * @description sub_mqtt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return all topic , all message
+# 	 */ 
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5,topic6, username, password):
+    
+    topics = [topic1, topic2, topic3, topic4, topic5, topic6]
+    
+    client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+    if not client:
+        return -1 
+    
+    await client.start()
+    for topic in topics:
+        await client.subscribe(serial_number_project + topic)
+
+    while True:
+        try:
+            message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+            if message:
+                payload = json.loads(message.message.decode())
+                topic = message.topic
+                await process_message(topic, payload,serial_number_project, host, port, username, password)
+        except asyncio.TimeoutError:
+            continue
+        except Exception as e:
+            print(f"Error while processing message: {e}")
 async def main():
     tasks = []
     await process_getfirst_zeroexport_powerlimit()
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     serial_number_project=results_project[0]["serial_number"]
-    tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-                                                    MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-                                                    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-                                                    MQTT_TOPIC_SUD_DEVICES_ALL,
-                                                    MQTT_TOPIC_SUD_MODEGET_CPU,
-                                                    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
-    
+    #-------------------------------------------------------
     scheduler = AsyncIOScheduler()
     scheduler.add_job(pud_confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
                                                                         MQTT_BROKER,
@@ -1196,12 +1325,6 @@ async def main():
                                                                         MQTT_PORT,
                                                                         MQTT_USERNAME,
                                                                         MQTT_PASSWORD])
-    scheduler.add_job(cycle_get_information, 'cron',  second = f'*/1' , args=[serial_number_project,
-                                                                        MQTT_BROKER,
-                                                                        MQTT_PORT,
-                                                                        MQTT_USERNAME,
-                                                                        MQTT_PASSWORD])
-    
     scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
                                                                         MQTT_BROKER,
                                                                         MQTT_PORT,
@@ -1209,7 +1332,23 @@ async def main():
                                                                         MQTT_PASSWORD])
     scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
     scheduler.start()
+    #-------------------------------------------------------
+    tasks = []
+    tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                    MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+                                                    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+                                                    MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                    MQTT_TOPIC_SUD_MODEGET_CPU,
+                                                    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
+    # Move the gather outside the loop to wait for all tasks to complete
     await asyncio.gather(*tasks, return_exceptions=False)
+    
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(

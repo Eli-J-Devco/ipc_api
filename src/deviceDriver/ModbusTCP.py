@@ -705,6 +705,13 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
+# Describe check_inverter_device 
+# 	 * @description check_inverter_device
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {device_control}
+# 	 * @return Device is inverter 
+# 	 */ 
 async def check_inverter_device(device_control):
     results_device_type = []
     
@@ -714,7 +721,13 @@ async def check_inverter_device(device_control):
         return True  
     else:
         return False  
-
+# Describe find_inverter_information 
+# 	 * @description find_inverter_information
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {device_control , parameter}
+# 	 * @return value , register , datatype , id_point_key 
+# 	 */ 
 async def find_inverter_information(device_control , parameter):
     results_register = []
     results_datatype = []
@@ -758,7 +771,13 @@ async def find_inverter_information(device_control , parameter):
         inverter_information_full.append(item_with_datatype)
         
     return inverter_information_full
-    
+# Describe write_device_tcp
+# 	 * @description write_device
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return results_write_modbus
+# 	 */ 
 async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     
     topicPublic = serial_number_project + topicPublic
@@ -1241,7 +1260,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
 # 	 * @return data ()
 # 	 */
 async def monitoring_device(point_type,serial_number_project,host=[], port=[], username=[], password=[]
-
                         ):
     try:
         global id_template
@@ -1579,15 +1597,15 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         print('Error monitoring_device : ',err)
         
     #   return -1
-# Describe functions before writing code
+# Describe process_update_mode_for_device
 # /**
-# 	 * @description mqtt subscribe
-# 	 * @author vnguyen
-# 	 * @since 14-11-2023
-# 	 * @param {host, port,topic, username, password, device_name}
-# 	 * @return data ()
+# 	 * @description process_update_mode_for_device
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
+# 	 * @return MySQL_Insert (device_mode, id_device)
 # 	 */
-        
+
 async def process_update_mode_for_device(mqtt_result,serial_number_project,host, port, username, password):
     global device_mode
     global status_device
@@ -1661,7 +1679,7 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+
 async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
     
     global result_topic1 
