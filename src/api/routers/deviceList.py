@@ -451,14 +451,13 @@ async def create_multiple_device(
                             db.flush()
                             print(f'MPPT ---------------------')
                             for i,string_item in enumerate(mppt_item.string):
-                                string_name=[item for item in point_list_query if item.id == string_item.id][0].name
+                                string_object=[item for item in point_list_query if item.id == string_item.id][0]
                                 panel_number=len(string_item.panel)
-                                id_point_list=string_item["id"]
                                 new_string = deviceList_models.Device_mppt_string(
                                                                         id_device_mppt=new_mppt.id,
                                                                         id_device_list=id_device_list,
-                                                                        id_point_list=id_point_list,
-                                                                        name=string_name, 
+                                                                        id_point_list=string_object.id,
+                                                                        name=string_object.name, 
                                                                         status= string_item.status,
                                                                         namekey=string_item.id_pointkey,
                                                                         panel=panel_number
@@ -468,14 +467,14 @@ async def create_multiple_device(
                                 print(f'STRING ---------------------')
                                 for i,panel_item in enumerate(string_item.panel):
                                     print(f'PANEL ---------------------')
-                                    panel_name=[item for item in point_list_query if item.id == panel_item.id][0].name
-                                    id_point_list=panel_item["id"]
+                                    panel_object=[item for item in point_list_query if item.id == panel_item.id][0]
+                                    id_point_list=panel_item.id
                                     new_panel = deviceList_models.Device_panel(
                                                                         id_device_list=id_device_list,
                                                                         id_point_list=id_point_list,
                                                                         id_device_string=new_string.id,
                                                                         status= panel_item.status,
-                                                                        name=panel_name
+                                                                        name=panel_object.name
                                                                 )
                                     db.add(new_panel)
                                     db.flush()   
@@ -580,7 +579,7 @@ async def create_multiple_device(
                                 "id":item.id,
                                 "name":item.name,
                                 "connect_type":driver_list.name,
-                                "id_com":id_communication,
+                                "id_communication":id_communication,
                                 "mode":item.mode
                                 })
                         if rowcount_point_list == 0:
@@ -1041,7 +1040,12 @@ async def create_multiple_device(
                         if rowcount_point_list != 0:
                             param = {
                                     "CODE": "CreateTCPDev", 
-                                    "PAYLOAD": new_device}
+                                    "PAYLOAD": {
+                                        "device":new_device
+                                        },
+                                    
+                                    
+                                    }
                             mqtt_public("/Init/API/Requests", param)
                         return 100
                 else:
@@ -1178,8 +1182,11 @@ async def delete_device(
             if delete_list:
                 param={
                     "CODE":"DeleteDev",
-                    "PAYLOAD":delete_list,
-                    "DELETE_MODE":mode
+                    "PAYLOAD":{
+                        "device":delete_list,
+                        "delete_mode":mode
+                        },
+                    
                 }
                 mqtt_public("/Init/API/Requests",param)
             return {"status": "success","code": str(100)}

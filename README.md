@@ -100,6 +100,7 @@ sudo service mosquitto start
 <!-- Tester client publish/Subscribe -->
 https://mqtt-explorer.com/
 sudo nano /etc/mosquitto/mosquitto.conf
+sudo nano /etc/mosquitto/conf.d/default.conf
 
 pid_file /run/mosquitto/mosquitto.pid
 #bind_address 0.0.0.0
@@ -136,8 +137,32 @@ mosquitto_passwd -U passwd
 net stop mosquitto
 net start mosquitto
 mosquitto_sub  -t "IPC|1|UNO-DM-3.3-TL-PLUS|control" -u nextwave -P 123654789 -d
+<!--  -->
 
 
+allow_anonymous false
+#allow_anonymous true
+password_file /etc/mosquitto/pwfile
+listener 1883 0.0.0.0
+protocol mqtt
+#
+listener 1884 0.0.0.0
+protocol websockets
+#cafile /etc/mosquitto/certs/ca.crt
+#certfile /etc/mosquitto/certs/cert.pem
+#keyfile /etc/mosquitto/certs/private.pem
+#tls_version tlsv1
+connection bridge-01
+address mqtt.nextwavemonitoring.com:1883
+bridge_insecure false
+remote_password 123654789
+remote_username admin
+remote_clientid level03-line01-broker
+topic # both
+try_private false
+
+
+<!--  -->
 connection bridge-01
 address 192.168.80.230:1883
 bridge_insecure false
@@ -153,9 +178,65 @@ remote_clientid level03-line01-broker
 #remote_clientid broker0
 #remote_password 123654789
 #remote_username nextwave
-topic #
-try_private false
+topic # both
+try_private true
+<!--  -->
+http {
 
+    server {
+    listen 443 ssl;
+    server_name mqtt.nextwavemonitoring.com; 
+    
+    ssl_certificate /etc/mosquitto/certs/cert.pem;  # certificate path
+    ssl_certificate_key /etc/mosquitto/certs/private.pem; # key path   
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+        
+    location /mqtt/ {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_pass http://127.0.0.1:8083/mqtt/;
+        #proxy_pass https://127.0.0.1:8883/mqtt/;
+        #proxy_ssl_certificate  /etc/mosquitto/certs/cert.pem;  # certificate path
+        #proxy_ssl_certificate_key  /etc/mosquitto/certs/private.pem; # key path 
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+    }
+
+}
+
+<!-- Load balancer -->
+http {
+    upstream mqtt_server {
+        server localhost:8083 weight=1;
+        server localhost:8084 weight=1;
+        server localhost:8085 weight=1;
+    }
+    server {
+    listen 443 ssl;
+    server_name mqtt.nextwavemonitoring.com; 
+    
+    ssl_certificate /etc/mosquitto/certs/cert.pem;  # certificate path
+    ssl_certificate_key /etc/mosquitto/certs/private.pem; # key path   
+    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+        
+    location /mqtt/ {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_pass http://mqtt_server;
+        #proxy_pass https://mqtt_server;
+        #proxy_ssl_certificate  /etc/mosquitto/certs/cert.pem;  
+        #proxy_ssl_certificate_key  /etc/mosquitto/certs/private.pem;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        }
+    }
+
+}
 
 <!-- Visual studio Code -->
 https://code.visualstudio.com/#alt-downloads

@@ -45,6 +45,12 @@ MQTT_PASSWORD =Config.MQTT_PASSWORD
 query_device_rs485=""
 all_device_data=[]
 device_mode=[]
+
+rated_power=[]
+rated_power_custom=[]
+min_watt_in_percent=[]
+
+
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -80,7 +86,10 @@ def point_object(Config,
                  control_type_input=0,
                  control_menu_order=None,
                  control_min=None,
-                 control_max=None
+                 control_max=None,
+                 control_enabled=1,# show/hide = 1/0, get from Device
+                 panel_height=None,
+                 panel_width=None,
                  ):
     
     return {"config":Config,
@@ -103,6 +112,9 @@ def point_object(Config,
             "control_menu_order":control_menu_order,
             "control_min":control_min,
             "control_max":control_max,
+            "control_enabled":control_enabled,
+            "panel_height":panel_height,
+            "panel_width":panel_width,
             }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
@@ -135,39 +147,116 @@ def func_check_float(Value): #Check if a number is int or float
 # 	 * @return data (registers)
 # 	 */
 def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
-    try:
-        match FUNCTION:
-            case 0:# not used           
-                return []
-            case 1:# Read Coils
-                ADDR = ADDRs                        
-                result_rb = client.read_coils(
-                                ADDR, COUNT, unit=slave_ID)
-                return result_rb
+    result_rb=None
+    while True:
+        try:
+            # match FUNCTION:
+            #     case 0:# not used           
+            #         return []
+            #     case 1:# Read Coils
+            #         ADDR = ADDRs                        
+            #         result_rb = client.read_coils(
+            #                         ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
 
-            case 2:# Read Discrete Inputs      
-                ADDR = ADDRs
-                result_rb = client.read_discrete_inputs(
-                                    ADDR, COUNT, unit=slave_ID)
-                return result_rb
-            
-            case 3:# Read Holding Registers
-                ADDR = ADDRs
-                result_rb = client.read_holding_registers(
-                                    ADDR, COUNT, unit=slave_ID)
-                return result_rb
+            #     case 2:# Read Discrete Inputs      
+            #         ADDR = ADDRs
+            #         result_rb = client.read_discrete_inputs(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
+                
+            #     case 3:# Read Holding Registers
+            #         ADDR = ADDRs
+            #         result_rb = client.read_holding_registers(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
 
-            case 4:# Read Input Registers
-                ADDR = ADDRs
-                result_rb = client.read_input_registers(
+            #     case 4:# Read Input Registers
+            #         ADDR = ADDRs
+            #         result_rb = client.read_input_registers(
+            #                             ADDR, COUNT, unit=slave_ID)
+            #         return result_rb
+            #     case _:
+            #         return []
+            match FUNCTION:
+                case 0:# not used           
+                    result_rb = None
+                case 1:# Read Coils
+                    ADDR = ADDRs                        
+                    result_rb = client.read_coils(
                                     ADDR, COUNT, unit=slave_ID)
-                return result_rb
-            case _:
-                return []
-    except Exception as err:
-    # except ModbusException as err:
-        print(f'Error select_function {err}')
-        return []
+
+                        
+                    # return result_rb
+
+                case 2:# Read Discrete Inputs      
+                    ADDR = ADDRs
+                    result_rb = client.read_discrete_inputs(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+                
+                case 3:# Read Holding Registers
+                    ADDR = ADDRs
+                    result_rb = client.read_holding_registers(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+
+                case 4:# Read Input Registers
+                    ADDR = ADDRs
+                    result_rb = client.read_input_registers(
+                                        ADDR, COUNT, unit=slave_ID)
+                    # return result_rb
+                case _:
+                    result_rb = None
+            if result_rb==None:
+                return {
+                    "code":None,
+                    "data":[],
+                    "exception_code":""
+                }
+            elif hasattr(result_rb, "function_code"): 
+                
+                if hasattr(result_rb, "exception_code"):
+                    desc=""
+                    match result_rb.exception_code:
+                        case 1:
+                            desc="IllegalFunction"
+                        case 2:
+                            desc="IllegalAddress"
+                        case 3:
+                            desc="IllegalValue"
+                        case 4:
+                            desc="SlaveFailure"
+                        case 5:
+                            desc="Acknowledge"
+                        case 6:
+                            desc="SlaveBusy"
+                        case 8:
+                            desc="MemoryParityError"
+                        case 10:
+                            desc="GatewayPathUnavailable"
+                        case 11:
+                            desc="GatewayNoResponse"
+                    return {
+                        "code":result_rb.function_code,
+                        "data":[],
+                        "exception_code":desc,
+                        "address":ADDR
+                    }
+                elif hasattr(result_rb, "registers"):
+                    return {
+                        "code":100,
+                        "data":result_rb.registers,
+                        "exception_code":"",
+                        "address":ADDR
+                    }
+        except Exception as err:
+            print(f'Error select_function {err}')
+            return {
+                    "code":404,
+                    "data":[],
+                    "exception_code":err
+                }
 # Describe functions before writing code
 # /**
 # 	 * @description convert data of register to point list
@@ -353,6 +442,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             control_menu_order=point_list_item['control_menu_order'],
                                                             control_min=point_list_item['control_min'],
                                                             control_max=point_list_item['control_max'],
+                                                            control_enabled=1,
+                                                            panel_height=point_list_item['panel_height'],
+                                                            panel_width=point_list_item['panel_width']
                                                             )
                 else:
                     if point_value != None:
@@ -381,6 +473,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 control_menu_order=point_list_item['control_menu_order'],
                                                 control_min=point_list_item['control_min'],
                                                 control_max=point_list_item['control_max'],
+                                                control_enabled=1,
+                                                panel_height=point_list_item['panel_height'],
+                                                panel_width=point_list_item['panel_width']
                                                 )
                 return point_list
             case "Internal":
@@ -402,6 +497,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
+                                        control_enabled=1,
+                                        panel_height=point_list_item['panel_height'],
+                                        panel_width=point_list_item['panel_width']
                                         )
                 return point_list
             case "Equation":
@@ -423,6 +521,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_menu_order=point_list_item['control_menu_order'],
                                         control_min=point_list_item['control_min'],
                                         control_max=point_list_item['control_max'],
+                                        control_enabled=1,
+                                        panel_height=point_list_item['panel_height'],
+                                        panel_width=point_list_item['panel_width']
                                         )
                 return point_list
         
@@ -485,6 +586,10 @@ async def device(ConfigPara):
         else:
             return -1
         global query_device_rs485
+        global rated_power
+        global rated_power_custom
+        global min_watt_in_percent
+        
         pathSource=path#ConfigPara[2]
         id_communication=ConfigPara[1]
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -554,6 +659,23 @@ async def device(ConfigPara):
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
             data_of_one_device["id_template"]=item['id_template']
+            
+            rated_power.append({
+                "id_device":item['id'],
+                "rated_power":item['rated_power']
+                
+            })
+            rated_power_custom.append({
+                "id_device":item['id'],
+                "rated_power_custom":item['rated_power_custom']
+                
+            })
+            min_watt_in_percent.append({
+                "id_device":item['id'],
+                "min_watt_in_percent":item['min_watt_in_percent']
+                
+            })
+            
             control_group=[]
             # 
             results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={item["id_template"]} and status=1', ())
@@ -563,6 +685,7 @@ async def device(ConfigPara):
                         "id":item["id"],
                         "name":item["name"],
                         "description":item["description"],
+                        "attributes":item["attributes"],
                         "fields":[]
                         
                     } for item in results_control_group]
@@ -667,37 +790,67 @@ async def device(ConfigPara):
                             # print('----------- itemRB ---------------------')
                             # pprint(f'{itemRB}', sort_dicts=False)
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ip)
-                            try:                                  
-                                if result_rb==[]:
-                                        print("The device does not return results")
-                                else:
-                                    if not result_rb.isError():
-                                        status_device="online"
-                                        INC = ADDR-1
-                                        for itemR in result_rb.registers:
-                                            INC = INC+1
-                                            data_rg_one_device.append({"MRA": INC, "Value": itemR, })
+                            
+                            # try:                                  
+                            #     if result_rb==[]:
+                            #             print("The device does not return results")
+                            #     else:
+                            #         if not result_rb.isError():
+                            #             status_device="online"
+                            #             INC = ADDR-1
+                            #             for itemR in result_rb.registers:
+                            #                 INC = INC+1
+                            #                 data_rg_one_device.append({"MRA": INC, "Value": itemR, })
+                            #         else:
+                            #             print("Error ------------------------------------")
+                            #             # print(f"Error reading from {slave_ip} : {result_rb}")
+                            #             status_device="online"
+                            #             print(f'Name: {device_name_rs485 } ADDR: {ADDR} COUNT: {COUNT} ')
+                            #             if hasattr(result_rb, 'function_code'):
+                            #                 print(f'ERROR CODE: {result_rb.function_code}')
+                            #                 status_rb.append({"ADDR":ADDR,
+                            #                                   "ERROR_CODE":result_rb.function_code,
+                            #                                    "Timestamp": getUTC(),
+                            #                                   })
+                            #             else:
+                            #                 print(f'This Slave {device_name_rs485} - [{slave_ip}] was not found')
+                            #                 status_device="offline"
+                            #                 status_rb.append({"ADDR":ADDR,
+                            #                                   "ERROR_CODE":139,
+                            #                                    "Timestamp": getUTC(),
+                            #                                   })                                 
+                            # except AttributeError as ae:
+                            #     print('An exception occurred',ae)
+                            match result_rb["code"]:
+                                case None:
+                                    status_device="offline"
+                                case 404:
+                                    status_device="offline"
+                                case 131:
+                                    exception_code=result_rb["exception_code"]
+                                    if exception_code=="GatewayNoResponse":
+                                        status_device="offline"
+                                        
+                                        status_rb.append({"ADDR":ADDR,
+                                                        "ERROR_CODE":139,
+                                                        "Timestamp": getUTC(),
+                                                        })
                                     else:
-                                        print("Error ------------------------------------")
-                                        # print(f"Error reading from {slave_ip} : {result_rb}")
                                         status_device="online"
-                                        print(f'Name: {device_name_rs485 } ADDR: {ADDR} COUNT: {COUNT} ')
-                                        if hasattr(result_rb, 'function_code'):
-                                            print(f'ERROR CODE: {result_rb.function_code}')
-                                            status_rb.append({"ADDR":ADDR,
-                                                              "ERROR_CODE":result_rb.function_code,
-                                                               "Timestamp": getUTC(),
-                                                              })
-                                        else:
-                                            print(f'This Slave {device_name_rs485} - [{slave_ip}] was not found')
-                                            status_device="offline"
-                                            status_rb.append({"ADDR":ADDR,
-                                                              "ERROR_CODE":139,
-                                                               "Timestamp": getUTC(),
-                                                              })                                 
-                            except AttributeError as ae:
-                                print('An exception occurred',ae)
-
+                                        status_rb.append({"ADDR":ADDR,
+                                                        "ERROR_CODE":exception_code,
+                                                        "Timestamp": getUTC(),
+                                                        })
+                                    # print(f'ERROR CODE: {result_rb["exception_code"]}')
+                                    print(f"Error reading from {slave_ip}: {result_rb}")
+                                    # status_register_block=status_rb
+                                    
+                                case 100:
+                                    status_device="online"
+                                    INC = ADDR-1
+                                    for itemR in result_rb["data"]:
+                                        INC = INC+1
+                                        data_rg_one_device.append({"MRA": INC, "Value": itemR, })
                         new_Data = [x for i, x in enumerate(data_rg_one_device) if x['MRA'] not in {y['MRA'] for y in data_rg_one_device[:i]}]
                         # print(f'----- Value new_Data -----')
                         # pprint(new_Data, sort_dicts=False)
@@ -744,7 +897,9 @@ async def device(ConfigPara):
                                                 control_menu_order=item['control_menu_order'],
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
-                                                
+                                                control_enabled=item['control_enabled'],
+                                                panel_height=item['panel_height'],
+                                                panel_width=item['panel_width']
                                                 )
                                 )
                             # print("2 +++++++++++++++++++++++++++++++++++")
@@ -788,7 +943,9 @@ async def device(ConfigPara):
                                                 control_menu_order=item['control_menu_order'],
                                                 control_min=item['control_min'],
                                                 control_max=item['control_max'],
-                                                
+                                                control_enabled=1,
+                                                panel_height=item['panel_height'],
+                                                panel_width=item['panel_width']
                                                 )
                                 )
                             print("-----------------------------------------")
@@ -838,6 +995,9 @@ async def monitoring_device(point_type,serial_number_project,
             print(f'-----{getUTC()} monitoring_device -----')
             global all_device_data
             global device_mode
+            global rated_power
+            global rated_power_custom
+            global min_watt_in_percent
             # pprint(all_device_data, sort_dicts=False)
             # global  device_name,status_Device,msg_device,status_register_block,point_list_device
             if all_device_data:
@@ -882,11 +1042,19 @@ async def monitoring_device(point_type,serial_number_project,
                                 mppt_volt=[item for item in new_point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
                                 mppt_amps=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
                                 mppt_string=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
-                                for item in mppt_string:
+                                
+                                for item_string in mppt_string:
+                                    mppt_string_panel=[item for item in new_point_list_device if item['parent'] == item_string["id_point"]and item['config'] =="Panel"]
+                                    area=0
+                                    if mppt_string_panel:
+                                        for item_panel in mppt_string_panel:
+                                            if item_panel["panel_height"]!=None and item_panel["panel_width"] !=None:
+                                                area=area+(item_panel["panel_height"]/1000*item_panel["panel_width"]/1000)
                                     mppt_strings.append({
-                                        "point_key":item["point_key"],
-                                        "name":item["name"],
-                                        "value":item["value"],
+                                        "point_key":item_string["point_key"],
+                                        "name":item_string["name"],
+                                        "value":item_string["value"],
+                                        "area":area
                                                     })
                                 Quality=[]
                                 if mppt_volt:
@@ -907,6 +1075,26 @@ async def monitoring_device(point_type,serial_number_project,
                                         Quality.append(0)
                                     else:
                                         Quality.append(1)
+                                        
+                                        
+                                power =0
+                                total_area_string=0
+                                irradiance=0
+                                if mppt_volt and mppt_amps:
+                                    pass
+                                    mppt_v=(lambda x: x[0]['value'] if x else None)(mppt_volt)
+                                    mppt_a=(lambda x: x[0]['value'] if x else None)(mppt_amps)
+
+                                    if mppt_v!= None and mppt_a!=None:
+                                        power =mppt_v*mppt_a
+                                
+                                if mppt_strings:
+                                    for item in mppt_strings:
+                                        if item["value"]!=None and item["area"]!=0 and item["value"]!=0:
+                                            total_area_string=total_area_string+item["area"]
+                                if power>0 and total_area_string>0:
+                                    irradiance=power/total_area_string
+                            
                                 mppt_item={
                                         "config":point_item["config"],
                                         "id_point":point_item["id_point"],
@@ -914,6 +1102,9 @@ async def monitoring_device(point_type,serial_number_project,
                                         "id": point_item["id"],
                                         "point_key":point_item["point_key"],
                                         "name": point_item["name"],
+                                        "power":round(power,2),
+                                        "area":round(total_area_string,2),
+                                        "irradiance":round(irradiance,2),
                                         'value':{
                                             "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                             "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
@@ -955,10 +1146,82 @@ async def monitoring_device(point_type,serial_number_project,
                                     **point_item
                                 })
                         new_point_control.sort(key=lambda x: x["control_menu_order"])   
+                        new_point_control_attr=[]
+                        match item_group["attributes"]:
+                            case 0:
+                                for item_point_attr in new_point_control:
+                                    new_point_control_attr.append(
+                                        {
+                                            **item_point_attr,
+                                            "control_enabled":1
+                                        }
+                                    )
+                            case 1: 
+                                if len(new_point_control)==2:
+                                    control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                                    if control_enable!=None and control_enable!="null":
+                                        for item_point_attr in new_point_control:
+                                            if item_point_attr['control_type_input'] == 4:
+                                                new_point_control_attr.append(
+                                                    {
+                                                        **item_point_attr,
+                                                        "control_enabled":1
+                                                    }
+                                                )
+                                            else:
+                                                new_point_control_attr.append(
+                                                    {
+                                                        **item_point_attr,
+                                                        "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                                    }
+                                                )
+                                    else:
+                                        for item_point_attr in new_point_control:
+                                            new_point_control_attr.append(
+                                                    {
+                                                        **item_point_attr,
+                                                        "control_enabled":1
+                                                    }
+                                                )
+                            case 2:  
+                                if len(new_point_control)==3:                   
+                                    control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
+                                    if control_enable!=None and control_enable!="null":
+                                            for item_point_attr in new_point_control:
+                                                if item_point_attr['control_type_input'] == 4:
+                                                    new_point_control_attr.append(
+                                                        {
+                                                            **item_point_attr,
+                                                            "control_enabled":1
+                                                        }
+                                                    )
+                                                elif item_point_attr['control_menu_order'] == 2:
+                                                    new_point_control_attr.append(
+                                                        {
+                                                            **item_point_attr,
+                                                            "control_enabled":(lambda x: 1  if x==0 else 0)(control_enable)
+                                                        }
+                                                    )
+                                                elif item_point_attr['control_menu_order'] == 3:
+                                                    new_point_control_attr.append(
+                                                        {
+                                                            **item_point_attr,
+                                                            "control_enabled":(lambda x: 1  if x==1 else 0)(control_enable)
+                                                        }
+                                                    )
+                                    else:
+                                            for item_point_attr in new_point_control:
+                                                new_point_control_attr.append(
+                                                        {
+                                                            **item_point_attr,
+                                                            "control_enabled":1
+                                                        }
+                                                    )
                         new_control_group.append({
                             **item_group,
                             "fields":new_point_control
                         })
+                    
                     data_device={
                                 "id_device":id_device,
                                 "mode":mode,
@@ -974,7 +1237,10 @@ async def monitoring_device(point_type,serial_number_project,
                                 "parameters":parameters,
                                 "fields":fields,
                                 "mppt":mppt,
-                                "control_group":new_control_group
+                                "control_group":new_control_group,
+                                "rated_power": (lambda x:  x[0]["rated_power"] if x else None) ([item for item in rated_power if item['id_device'] == id_device]),
+                                "rated_power_custom":(lambda x:  x[0]["rated_power_custom"] if x else None) ([item for item in rated_power_custom if item['id_device'] == id_device]),
+                                "min_watt_in_percent":(lambda x:  x[0]["min_watt_in_percent"] if x else None) ([item for item in min_watt_in_percent if item['id_device'] == id_device]),
                                 }
                     data_device_short={
                                 "id_device":id_device,
@@ -990,7 +1256,10 @@ async def monitoring_device(point_type,serial_number_project,
                                 "point_count":len(new_point),
                                 "parameters":parameters,
                                 "fields":fields,
-                                "mppt":[]
+                                "mppt":[],
+                                # "rated_power":rated_power,
+                                # "rated_power_custom":rated_power_custom,
+                                # "min_watt_in_percent":min_watt_in_percent,
                             }
                     if device_name !="" and serial_number_project!= None:
                         
@@ -1007,13 +1276,13 @@ async def monitoring_device(point_type,serial_number_project,
                                             password[0],
                                             data_device_short)
                         # 
-                        if host[1] != None and port[1]:
-                            func_mqtt_public(   host[1],
-                                                port[1],
-                                                serial_number_project+"/"+"Devices/"+""+id_device,
-                                                username[1],
-                                                password[1],
-                                                data_device)
+                        # if host[1] != None and port[1]:
+                        #     func_mqtt_public(   host[1],
+                        #                         port[1],
+                        #                         serial_number_project+"/"+"Devices/"+""+id_device,
+                        #                         username[1],
+                        #                         password[1],
+                        #                         data_device)
                 
             await asyncio.sleep(2)
         
@@ -1026,10 +1295,10 @@ async def main():
     serial_number_project=results_project[0]["serial_number"]
     
     # 
-    MQTT_BROKER_CLOUD=results_project[0]["mqtt_broker_cloud"] #"mqtt.nextwavemonitoring.com"
-    MQTT_PORT_CLOUD=results_project[0]["mqtt_port_cloud"] #1883
-    MQTT_USERNAME_CLOUD=results_project[0]["mqtt_username_cloud"] #"admin"
-    MQTT_PASSWORD_CLOUD=results_project[0]["mqtt_password_cloud"] #"123654789"
+    # MQTT_BROKER_CLOUD=results_project[0]["mqtt_broker_cloud"] #"mqtt.nextwavemonitoring.com"
+    # MQTT_PORT_CLOUD=results_project[0]["mqtt_port_cloud"] #1883
+    # MQTT_USERNAME_CLOUD=results_project[0]["mqtt_username_cloud"] #"admin"
+    # MQTT_PASSWORD_CLOUD=results_project[0]["mqtt_password_cloud"] #"123654789"
     # 
     MQTT_BROKER_LIST=[]
     MQTT_PORT_LIST=[]
@@ -1041,10 +1310,10 @@ async def main():
     MQTT_USERNAME_LIST.append(MQTT_USERNAME)
     MQTT_PASSWORD_LIST.append(MQTT_PASSWORD)
     
-    MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
-    MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
-    MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
-    MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
+    # MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
+    # MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
+    # MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
+    # MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
     
     tasks.append(asyncio.create_task(device(arr)))
     tasks.append(asyncio.create_task(monitoring_device( results_point_list_type,

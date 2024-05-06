@@ -670,3 +670,30 @@ async def delete_program_pm2_many(app_name=[]):
     except Exception as err:
         print("Error stop pm2 : ", err)
         return 300
+# Describe functions before writing code
+# /**
+# 	 * @description restart app running in pm2
+# 	 * @author vnguyen
+# 	 * @since 30-11-2023
+# 	 * @param {app_name of pm2}
+# 	 * @return data ()
+# 	 */
+
+async def restart_all_program_pm2():
+    try:
+        if sys.platform == "win32":
+            # use run with window
+            subprocess.Popen(
+                f'pm2 start all',
+                shell=True,
+            ).communicate()
+            return 100
+        else:
+            subprocess.Popen(
+                f'sudo pm2 start all',
+                shell=True,
+            ).communicate()
+            return 100
+    except Exception as e:
+        print("Error init restart all : ", e)
+        return 300

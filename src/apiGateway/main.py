@@ -48,8 +48,23 @@ import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
 from apiGateway.devices import devices_service
+from apiGateway.project_setup import project_service
+from apiGateway.rs485 import rs485_service
+from apiGateway.template import template_service
+from apiGateway.upload_channel import upload_channel_service
 
 
+# ----------------- API
+# ----------------- APIGateway
+# ----------------- Dev
+# ----------------- LogDevice
+    # cron job device  According to time
+# ----------------- LogFile
+    # create file device According to channel
+# ----------------- MQTTControl
+    # 
+# ----------------- UpData
+    # upData According to channel
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -78,25 +93,20 @@ class apiGateway:
         self.MQTT_TOPIC_CLOUD = MQTT_TOPIC_CLOUD
         self.MQTT_USERNAME_CLOUD = MQTT_USERNAME_CLOUD
         self.MQTT_PASSWORD_CLOUD = MQTT_PASSWORD_CLOUD
-        
-        
-    async def managerApplicationsWithPM2(self):
-        try:
-            
-            Topic=f'{self.MQTT_TOPIC}/Init/API/Requests'
-            client = mqttools.Client(host=self.MQTT_BROKER, 
+    async def handle_messages_api(self,client):
+        try :
+            device_init=devices_service.DevicesService(
+                            host=self.MQTT_BROKER, 
                             port=self.MQTT_PORT,
                             username= self.MQTT_USERNAME, 
-                            password=bytes(self.MQTT_PASSWORD, 'utf-8'))
-            # device=devices_service.DevicesService(
-            #                 host=self.MQTT_BROKER, 
-            #                 port=self.MQTT_PORT,
-            #                 username= self.MQTT_USERNAME, 
-            #                 password=self.MQTT_PASSWORD,
-            #                 update_device=self.DeviceList)
+                            password=self.MQTT_PASSWORD,
+                            update_device_list=self.DeviceList)
+            # 
+            project_init=project_service.ProjectService()
+            template_init=template_service.TemplateService()
+            upload_channel_init=upload_channel_service.UploadChannelService()
+            rs485_init=rs485_service.RS485Service()
             
-            await client.start()
-            await client.subscribe(Topic)
             while True:
                 message = await client.messages.get()
 
@@ -107,191 +117,139 @@ class apiGateway:
                 result=json.loads(message.message.decode())
                 # print(f'Message: {result}')
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                    db=get_db()
                     match result['CODE']:
+                        case "UpdateSiteInformation":
+                            await project_init.init_pm2()
+                        case "UpdateLoggingRate":
+                            # table project
+                            await project_init.init_logging_rate()
                         case "CreateTCPDev":
+                            # {
+                            #     "CODE": "CreateTCPDev", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #             "device":[
+                            #             {
+                            #                 "id":item.id,
+                            #                 "name":item.name,
+                            #                 "connect_type":driver_list.name,
+                            #                 "id_communication":id_communication,
+                            #                 "mode":item.mode
+                            #             }
+                            #                 ]
+                            #         }
+                            # }
                             new_device=result['PAYLOAD']
-                            # await device.create_dev_tcp(new_device)
-                            # Insert Device to MQTT
-                            for item_device in new_device:
-                                have_device=False
-                                print(f'item_device: {item_device}')
-                                for item in self.DeviceList:
-                                    if item_device["id"]!=item["id_device"]:
-                                        have_device=True
-                                if have_device:
-                                    self.DeviceList.append({
-                                        "id_device":item_device["id"],
-                                        "device_name":item_device["name"],
-                                        "mode":item_device["mode"],
-                                        "parameters":[],
-                                        "rated_power":item_device["rated_power"]  if 'rated_power' in item_device.keys() else None,
-                                        "rated_power_custom":item_device["rated_power_custom"]  if 'rated_power_custom' in item_device.keys() else None,
-                                        "min_watt_in_percent" :  item_device["min_watt_in_percent"]  if 'min_watt_in_percent' in item_device.keys() else None,
-                                    })
-                                #   x >5 ? 4,4 
-                            #  init start pm2 new app
-                            for item in new_device:
-                                
-                                pid = f'Dev|{item["id_com"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
-                                await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
-                            # restart pm2 app log
-                            pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                            result=await restart_program_pm2_many(pm2_app_list)
-                            # 
-                            now = datetime.datetime.now(
-                            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                            param=  {
-                                        "CODE":"CreateTCPDev",
-                                        "PAYLOAD":new_device,
-                                        "TIME_STAMP":now
-                                    }
-                            mqtt_public("/Init/API/Responses",param)
+                            await device_init.create_dev_tcp(new_device)
                         case "CreateRS485Dev":
-                            payload=result['PAYLOAD']
-                            id_communication=payload['id_communication']
-                            # 
-                            new_device=payload['device']
-                            for item_device in new_device:
-                                have_device=False
-                                print(f'item_device: {item_device}')
-                                for item in self.DeviceList:
-                                    if item_device["id"]!=item["id_device"]:
-                                        have_device=True
-                                if have_device:
-                                    self.DeviceList.append({
-                                        "id_device":item_device["id"],
-                                        "device_name":item_device["name"],
-                                        "mode":item_device["mode"],
-                                        "parameters":[]
-                                    })
-                            # 
-                            result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
-                            if result_find_app_pm2==100:
-                                result_delete_app_pm2=await delete_program_pm2(f'Dev|{str(id_communication)}|') 
-                                device_list_query = db.query(
-                                            deviceList_models.Device_list).filter(
-                                            deviceList_models.Device_list.id_communication ==
-                                                                        id_communication).filter(
-                                            deviceList_models.Device_list.status == 1).order_by(
-                                                                        deviceList_models.Device_list.id.asc()).all()
-                                db.commit()
-                                # check device same group rs485 com port   
-                                item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
-                                                id_communication]
-                                if item_rs485:
-                                    # check group rs485 same com port
-
-                                    sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                            {"id_communication":id_communication})
-                                    result_device_group_rs485 = db.execute(
-                                                                        text(sql_query_select_device), 
-                                                                            ).all()
-                                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                                    db.close()                                          
-                                    # init restart pm2 app same rs485
-                                    await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                    # restart pm2 app log
-                                    pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                    await restart_program_pm2_many(pm2_app_list) 
-                            elif result_find_app_pm2!=100:
-                                print('---------- create group RS485 same com port when list device empty ----------')
-                                # check group rs485 same com port
-                                sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                        {"id_communication":id_communication})
-                                result_device_group_rs485 =  db.execute(
-                                                                        text(sql_query_select_device), 
-                                                                            ).all()
-                                results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
-                                db.close()                                                       
-                                # init restart pm2 app same rs485
-                                await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                # restart pm2 app log
-                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                result=await restart_program_pm2_many(pm2_app_list)
-                            else:
-                                pass
-                            now = datetime.datetime.now(
-                            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-                            param=  {
-                                        "CODE":"CreateRS485Dev",
-                                        "PAYLOAD":id_communication,
-                                        "TIME_STAMP":now
-                                    }
-                            mqtt_public("/Init/API/Responses",param)
+                            #  data of device
+                            # {
+                            #     "CODE": "CreateRS485Dev", 
+                            #     "PAYLOAD": 
+                            #         {
+                            #             "id_communication":id_communication,
+                            #             "device":[
+                            #                 {
+                            #                     "id":item.id,
+                            #                     "name":item.name,
+                            #                     "connect_type":driver_list.name,
+                            #                     "id_communication":id_communication,
+                            #                     "mode":item.mode
+                            #                 }
+                            #             ]
+                            #         }
+                            # }
+                            new_device=result['PAYLOAD']
+                            await device_init.create_dev_rs485(new_device)
                         case "DeleteDev":
-                            device=result['PAYLOAD']
-                            device_tcp=[]
-                            device_rs485=[]
-                            communication_list=[]
-                            id_device=[]
-                            for item in device:
-                                id_device.append(item['id'])
-                                if item["driver_name"]=="RS485":
-                                    # id_communication=item['id_communication']
-                                    communication_list.append(item['id_communication'])
-                                elif item["driver_name"]=="Modbus/TCP":
-                                    device_tcp.append(f'Dev|{item["id_communication"]}|Modbus/TCP|{item["id"]}')
-                                    
-                            if device_tcp:
-                                await delete_program_pm2_many(device_tcp)
-                                # restart pm2 app log
-                                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                result=await restart_program_pm2_many(pm2_app_list)
-                            if communication_list:
-                                device_rs485=list(set(communication_list))
-                                print(f'device_rs485: {device_rs485}')
-                            if device_rs485:
-                                device_list=[]
-                                for item in device_rs485:
-                                    device_list.append(f'Dev|{str(item)}|')
-                                if device_list:
-                                    await delete_program_pm2_many(device_list)
-                                if device_list:
-                                    for item in device_rs485:
-                                        id_communication=item
-                                        sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                                                                                        {"id_communication":id_communication})
-                                        result_device_group_rs485 = db.execute(
-                                                                                    text(sql_query_select_device), 
-                                                                                        ).all()
-                                        results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                                        db.close()
-                                        # print(f'results_device_group_dict: {results_device_group_dict}')                                       
-                                        # init restart pm2 app same rs485
-                                        if results_device_group_dict:
-                                            await create_device_group_rs485_run_pm2(path,results_device_group_dict)
-                                if device_list:
-                                    # restart pm2 app log
-                                    pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
-                                    await restart_program_pm2_many(pm2_app_list)
-                            # 
-                            if self.DeviceList:
-                                if id_device:
-                                    update_device_list=[item for item in self.DeviceList if item['id_device'] not in id_device ]
-                                    self.DeviceList=update_device_list
+                            # data of device
+                            # mode == 1:  # Disable
+                            # mode == 2:  # Delete
+                            # {
+                            #     "CODE":"DeleteDev",
+                            #     "PAYLOAD":{
+                            #         "device":[
+                            #             {
+                            #             "mode": mode,
+                            #             "id": item.id,
+                            #             "name": device.name,
+                            #             "id_communication": id_communication,
+                            #             "driver_name": driver_name,
+                            #             }
+                            #             ],
+                            #         "delete_mode":mode
+                            #     }
+                            # }
+                            delete_device=result['PAYLOAD']
+                            await device_init.delete_dev(delete_device)
                         case "UpdateDev":
-                            pass
+                            # {
+                            #     "CODE": "UpdateDev", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":296
+                            #         }
+                            # }
+                            update_device=result['PAYLOAD']
+                            await device_init.update_dev(update_device)
                         case "UpdateTemplate":
-                            pass
+                            # {
+                            #     "CODE": "UpdateTemplate", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":3
+                            #         }
+                            # }
+                            update_template=result['PAYLOAD']
+                            await template_init.init_pm2(update_template)
                         case "DeleteTemplate":
                             pass
+                        case "UpdatePortRS485":
+                            # {
+                            #     "CODE": "UpdatePortRS485", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":1
+                            #         }
+                            # }
+                            update_communication=result['PAYLOAD']
+                            await rs485_init.init_pm2(update_communication)
+                        case "UpdateUploadChannels":
+
+                            # {
+                            #     "CODE": "UpdateUploadChannels", 
+                            #     "PAYLOAD":[
+                            #               {"id":1},
+                            #               {"id":2},
+                            #               {"id":3}
+                            #               ]
+                            # }
+                            
+                            
+                            upload_channel_list=result['PAYLOAD']
+                            await upload_channel_init.init_pm2(upload_channel_list)
+            
+        except Exception as err:
+            print(f"Error PM2: '{err}'")   
+    async def managerApplicationsWithPM2(self):
+        try:
+            
+            Topic=f'{self.MQTT_TOPIC}/Init/API/Requests'
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                            port=self.MQTT_PORT,
+                            username= self.MQTT_USERNAME, 
+                            subscriptions=[Topic],
+                            password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                            connect_delays=[1, 2, 4, 8]
+                            )
+            while True:
+                await client.start()
+                await self.handle_messages_api(client)
+                await client.stop()
         except Exception as err:
             print(f"Error PM2: '{err}'")
-    async def deviceListSub(self):
+    async def handle_messages_driver(self,client,Topic):
         try:
-            db=get_db()
-            result_project=db.query(deviceList_models.Device_list).all()
-            db.close()
-            # 
-            Topic=self.MQTT_TOPIC+"/"+"Devices"
-            client = mqttools.Client(host=self.MQTT_BROKER, 
-                                port=self.MQTT_PORT ,
-                                username= self.MQTT_USERNAME, 
-                                password=bytes(self.MQTT_PASSWORD, 'utf-8'))
-        
-            await client.start()
-            await client.subscribe(Topic+"/#")
             while True:
                 message = await client.messages.get()
                 if message is None:
@@ -348,49 +306,30 @@ class apiGateway:
                             self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
                         if 'min_watt_in_percent' in result.keys():
                             self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
-                        
-                        # for item in result["parameters"]:
-                        #     print(len(item['fields']))
-                        # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
-                    
+
+        except Exception as err:
+            print(f"Error PM2: '{err}'")
+    async def deviceListSub(self):
+        try:
+            Topic=self.MQTT_TOPIC+"/"+"Devices"
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                                port=self.MQTT_PORT ,
+                                username= self.MQTT_USERNAME, 
+                                password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                                subscriptions=[Topic+"/#"],
+                                connect_delays=[1, 2, 4, 8]
+                                )
+            while True:
+                await client.start()
+                await self.handle_messages_driver(client,Topic)
+                await client.stop()
         except Exception as err:
             print('Error MQTT deviceListSub')
     async def deviceListPub(self):
         try:
-                # [
-                #     {   "id":296,
-                #         "name":"ABB",
-                #         "point_p":"",
-                #         "model":"",
-                #         "realtime":[]
-                #     }
-                # ]
-                
-            # topic=f"{self.MQTT_TOPIC_CLOUD}/Devices/All"
-            # db=get_db()
-            # result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
-            # db.close()
-            # param=[]
-            # for item in result_project:
-            #     self.DeviceList.append({
-            #         "id_device":item.id,
-            #         "device_name":item.name,
-            #     })
-            
-            # while True:
-            #     param=self.DeviceList
-            #     mqtt_public_common(self.MQTT_BROKER_CLOUD,
-            #                     self.MQTT_PORT_CLOUD,
-            #                     topic,
-            #                     self.MQTT_USERNAME_CLOUD,
-            #                     self.MQTT_PASSWORD_CLOUD,
-            #                     param)
-            #     await asyncio.sleep(2)
             topic=f"{self.MQTT_TOPIC}/Devices/All"
             db=get_db()
             result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
-            db.close()
-            param=[]
             for item in result_project:
                 
                 # rated_power=None
@@ -455,12 +394,6 @@ class apiGateway:
                                 self.MQTT_USERNAME,
                                 self.MQTT_PASSWORD,
                                 mqtt_data)
-                # mqtt_public_common(self.MQTT_BROKER_CLOUD,
-                #                 self.MQTT_PORT_CLOUD,
-                #                 topic,
-                #                 self.MQTT_USERNAME_CLOUD,
-                #                 self.MQTT_PASSWORD_CLOUD,
-                #                 mqtt_data)
                 await asyncio.sleep(2)
         except Exception as err:
             print('Error MQTT deviceListPub')

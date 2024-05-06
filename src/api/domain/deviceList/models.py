@@ -87,8 +87,8 @@ class Device_list(Base):
     enable = Column(Boolean, nullable=True, default=True)
 
     # max_watt = Column(DOUBLE, nullable=True)
-    rated_power = Column(DOUBLE, nullable=True)
-    rated_power_custom = Column(DOUBLE, nullable=True)
+    rated_power = Column(DOUBLE, nullable=True,default=0)
+    rated_power_custom = Column(DOUBLE, nullable=True,default=0)
     
     min_watt_in_percent = Column(DOUBLE, nullable=True)
     compensate_watt_factor = Column(DOUBLE, nullable=True)
@@ -143,7 +143,7 @@ class Device_list(Base):
     # device_group= relationship("Device_group", back_populates="device_list")
     device_type = relationship("Device_type", foreign_keys=[id_device_type])
     mode = Column(Integer, nullable=True, default=False)
-
+    template= relationship("Template_library", foreign_keys=[id_template])
 
 class Device_mppt(Base):
     __tablename__ = "device_mppt"

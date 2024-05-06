@@ -671,8 +671,11 @@ def func_check_data_mybatis(data,item,object_name):
 def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
-
+        client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+                            "%Y%m%d_%H%M%S"
+                        )
         publish.single(topic, payload, hostname=host,
+                       client_id=str(client_id),
                        retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
@@ -1524,6 +1527,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                                     "control_enabled":1
                                                 }
                                             )
+                
                 new_control_group.append({
                     **item_group,
                     "fields":new_point_control_attr
@@ -1582,15 +1586,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     username[0],
                                     password[0],
                                     data_device_short)
-                # Cloud
-                # if host[1] != None and port[1]:
-                #     func_mqtt_public(   host[1],
-                #                         port[1],
-                #                         serial_number_project+"/"+"Devices/"+""+device_id,
-                #                         username[1],
-                #                         password[1],
-                #                         data_device)
-            
             await asyncio.sleep(1)
         
     except Exception as err:
@@ -1679,7 +1674,14 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-
+# Describe sud_mqtt
+# /**
+# 	 * @description sud_mqtt
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {serial_number_project, host, port, topic1, topic2, username, password}
+# 	 * @return confirm_mode_device or MySQL_Update rated_power
+# 	 */
 async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
     
     global result_topic1 
