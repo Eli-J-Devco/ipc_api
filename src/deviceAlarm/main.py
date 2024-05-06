@@ -34,6 +34,7 @@ import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
 import api.domain.project.models as project_models
 import api.domain.template.models as template_models
+import api.domain.user.models as user_models
 import model.models as models
 # 
 from configs.config import Config
@@ -241,16 +242,16 @@ class AlarmLog:
             print(f"Error MQTT subscribe: '{err}'")
 async def main():
     tasks = []
-    
     device_query=db.query(deviceList_models.Device_list).filter_by(status=1).all()
     project_setup_query=db.query(project_models.Project_setup).filter(project_models.Project_setup.id==1).first()
-    
     if project_setup_query and device_query:
-        group_list= list(set([item.id_device_group for item in device_query]))
+        MQTT_TOPIC=project_setup_query.serial_number
+        group_list= list(set([item.template.id_device_group for item in device_query]))
         ERROR_QUERY=db.query(alarms_models.Error).filter(alarms_models.Error.status==1).all()
+        
         mqtt_alert=AlarmLog(MQTT_BROKER,
                             MQTT_PORT,
-                            MQTT_TOPIC,
+                            MQTT_TOPIC+"/Alarm/Group/",
                             MQTT_USERNAME,
                             MQTT_PASSWORD,
                             ERROR_QUERY,

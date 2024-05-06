@@ -218,7 +218,13 @@
     table_parity.name AS serialport_parity,
     table_stopbits.name AS serialport_stopbits,
     table_timeout.name AS serialport_timeout,
-    table_debug_level.name AS serialport_debug_level
+    table_debug_level.name AS serialport_debug_level,
+    device_group.name AS device_group,
+    template_library.name AS template_name,
+    device_list.rated_power,
+    device_list.rated_power_custom,
+    device_list.min_watt_in_percent
+    
     FROM device_list
     INNER JOIN device_type ON device_list.id_device_type=device_type.id
     INNER JOIN communication ON device_list.id_communication=communication.id
@@ -229,7 +235,9 @@
     LEFT JOIN config_information table_stopbits ON communication.id_type_stopbits=table_stopbits.id
     LEFT JOIN config_information table_timeout ON communication.id_type_timeout=table_timeout.id
     LEFT JOIN config_information table_debug_level ON communication.id_type_debug_level=table_debug_level.id
-    
+    INNER JOIN template_library ON template_library.id=device_list.id_template
+    INNER JOIN device_group ON device_group.id=template_library.id_device_group
+
     WHERE device_list.status=1 AND device_list.id_communication =%s;
   
 	</select>

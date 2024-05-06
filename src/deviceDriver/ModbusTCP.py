@@ -671,8 +671,11 @@ def func_check_data_mybatis(data,item,object_name):
 def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
-
+        client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+                            "%Y%m%d_%H%M%S"
+                        )
         publish.single(topic, payload, hostname=host,
+                       client_id=str(client_id),
                        retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
@@ -1492,6 +1495,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                                     "control_enabled":1
                                                 }
                                             )
+                
                 new_control_group.append({
                     **item_group,
                     "fields":new_point_control_attr
