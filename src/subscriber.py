@@ -68,7 +68,7 @@ class Subscriber(MQTTSubscriber):
             logging.error(f"Dead letter message: {data.metadata.retry}")
             self.dead_letter_publisher.publish(base64.b64encode(json.dumps(data.dict()).encode("ascii")))
 
-    async def create_table(self, devices: list[int]):
+    def create_table(self, devices: list[int]):
         try:
             username = config.SETUP_USERNAME
             password = config.SETUP_PASSWORD
@@ -111,11 +111,15 @@ class Subscriber(MQTTSubscriber):
                     devices_info.append(adding_device)
 
             for device in devices_info:
-                asyncio.run(CreateTableService(self.db.db_config.get_db())
-                            .create_table(device.table_name,
-                                          list(map(lambda x: TableColumn(x.id_pointkey,
-                                                                         Double),
-                                                   device.points))))
+                async def create_table():
+                    db = await self.db.db_config.get_db()
+                    create_table_service = CreateTableService(db)
+                    await create_table_service.create_table(device.table_name,
+                                                            list(map(lambda x: TableColumn(x.id_pointkey,
+                                                                                           Double),
+                                                                     device.points)))
+
+                asyncio.run(create_table())
 
         except Exception as e:
             logging.error(f"Error creating table: {e}")

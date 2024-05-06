@@ -1,9 +1,11 @@
+import logging
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateTable
-from sqlalchemy import MetaData, Table, Column
+from sqlalchemy import MetaData, Table, Column, select
 
+from .create_table_entity import Devices
 from .create_table_model import CreateTableModel
 
 
@@ -34,4 +36,21 @@ class CreateTableService:
         self.session = session
 
     async def create_table(self, table_name: str, table_schema: List[TableColumn]):
-        await self.session.execute(self.table_repository.create_table(table_name, table_schema))
+        try:
+            await self.session.execute(self.table_repository.create_table(table_name, table_schema))
+            await self.session.commit()
+        except Exception as e:
+            await self.session.rollback()
+            raise e
+
+    async def get_devices(self):
+        try:
+            query = select(Devices)
+            result = await self.session.execute(query)
+            devices = result.scalars().all()
+            return devices
+        except Exception as e:
+            logging.error(e)
+            return e
+        finally:
+            await self.session.close()

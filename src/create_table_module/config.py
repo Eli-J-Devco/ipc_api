@@ -45,7 +45,7 @@ class OrmProvider:
     async def get_db(self) -> AsyncSession:
         db = self.session()
         try:
-            yield db
+            return db
         finally:
             await db.close()
 
