@@ -708,6 +708,13 @@ def path_directory_relative(project_name):
 # from models import Alarm, Device_list, Error, Project_setup, Screen
 
 # db=get_db()
+# Describe check_inverter_device 
+# 	 * @description check_inverter_device
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {device_control}
+# 	 * @return Device is inverter 
+# 	 */ 
 async def check_inverter_device(device_control):
     results_device_type = []
     
@@ -717,7 +724,13 @@ async def check_inverter_device(device_control):
         return True  
     else:
         return False  
-
+# Describe find_inverter_information 
+# 	 * @description find_inverter_information
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {device_control , parameter}
+# 	 * @return value , register , datatype , id_point_key 
+# 	 */ 
 async def find_inverter_information(device_control , parameter):
     results_register = []
     results_datatype = []
@@ -761,7 +774,13 @@ async def find_inverter_information(device_control , parameter):
         inverter_information_full.append(item_with_datatype)
         
     return inverter_information_full
-    
+# Describe write_device_tcp
+# 	 * @description write_device
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return results_write_modbus
+# 	 */ 
 async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     
     topicPublic = serial_number_project + topicPublic
@@ -806,12 +825,18 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                     try:
                         # result Modbus
                         results_write_modbus = []
-                        
+                        results_write_modbus_temp = []
+                        parameter_temp = [] 
+                        inverter_info_temp = []
                         # information Modbus 
                         register = ""
                         datatype = ""
                         code_value = 0
                         id_pointkey = ""
+                        
+                        register_temp = ""
+                        datatype_Temp = ""
+                        value_temp = 0
                         
                         #mqtt
                         comment = 200
@@ -821,6 +846,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         # database
                         is_inverter = []
                         inverter_info = []
+                        inverter_info_temp = []
                         result_query_findname = []
                         name_device_points_list_map = ""
                         
@@ -832,7 +858,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         # if device is INV 
                         if is_inverter:
                             inverter_info = await find_inverter_information(device_control, parameter)
-
                             for item in inverter_info:
                                 value = item["value"]
                                 register = item["register"]
@@ -844,7 +869,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 
                                 try:
-                                    if device_mode == 0 :
+                                    if device_mode == 0 and value != None:
                                         print("---------- Manual control mode ----------")
                                         if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV":
                                             if value == True :
@@ -866,17 +891,24 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                             if result_slope :
                                                 slope = float(result_slope[0]['slope'])
-        
-                                            if slope:
+                                            if slope and value:
                                                 if id_pointkey == "WMax":
-                                                    if value > rated_power_custom :
+                                                    if value >= rated_power_custom :
                                                         value = rated_power_custom
+                                                    else :
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
-                                                    if rated_power == rated_power_custom :
-                                                        value = value /slope
-                                                    elif rated_power_custom < rated_power :
-                                                        value = (value*(rated_power_custom/rated_power))/slope
+                                                    value = value /slope
+                                                    if rated_power_custom :
+                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom}]
+                                                        inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
+                                                        if inverter_info_temp:
+                                                            value_temp = inverter_info_temp[0]["value"]
+                                                            register_temp = inverter_info_temp[0]["register"]
+                                                            datatype_temp = inverter_info_temp[0]["datatype"]
+                                                            if value_temp and register_temp and datatype_temp :
+                                                                results_write_modbus_temp = write_modbus_tcp(client, slave_ID, datatype_temp, register_temp, value=value_temp)
+                                                    
                                                 elif id_pointkey == "VarMax":
                                                     value = value/slope
                                                 elif id_pointkey == "VarMaxPercent":
@@ -884,13 +916,13 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 elif id_pointkey == "PFSet":
                                                     if value > 1 :
                                                         value = 1 
-                                                    elif value <= 1 and value >= 0.75:
+                                                    elif value <= 1 and value >= 0:
                                                         value = value /slope
-                                                    elif value < 0.75 :
-                                                        value = 0.75
-                                                        
-                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
+                                                    elif value < 0 :
+                                                        value = 0
+
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
                                             if results_write_modbus:
                                                 code_value = results_write_modbus['code']
@@ -903,7 +935,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             "time_stamp" :current_time,
                                             "status":comment, 
                                             }
-                                        if bitchecktopic1 == 1 and code_value == 16 :
+                                        if bitchecktopic1 == 1 and code_value :
                                             push_data_to_mqtt(mqtt_host,
                                                     mqtt_port,
                                                     topicPublic + "/" +"Feedback",
@@ -913,9 +945,10 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             # resset data
                                             bitchecktopic1 == 0
                                             result_topic1 = []
-                                        else :
+                                        else:
                                             pass
-                                        
+                                    else:
+                                        pass
                                     if device_mode == 1 and value != 0 and any('status' in item for item in result_topic1):
                                         print("---------- Auto control mode ----------")
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
@@ -1230,7 +1263,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
 # 	 * @return data ()
 # 	 */
 async def monitoring_device(point_type,serial_number_project,host=[], port=[], username=[], password=[]
-
                         ):
     try:
         global id_template
@@ -1569,15 +1601,15 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         print('Error monitoring_device : ',err)
         
     #   return -1
-# Describe functions before writing code
+# Describe process_update_mode_for_device
 # /**
-# 	 * @description mqtt subscribe
-# 	 * @author vnguyen
-# 	 * @since 14-11-2023
-# 	 * @param {host, port,topic, username, password, device_name}
-# 	 * @return data ()
+# 	 * @description process_update_mode_for_device
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
+# 	 * @return MySQL_Insert (device_mode, id_device)
 # 	 */
-        
+
 async def process_update_mode_for_device(mqtt_result,serial_number_project,host, port, username, password):
     global device_mode
     global status_device
@@ -1651,7 +1683,14 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+# Describe sud_mqtt
+# /**
+# 	 * @description sud_mqtt
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {serial_number_project, host, port, topic1, topic2, username, password}
+# 	 * @return confirm_mode_device or MySQL_Update rated_power
+# 	 */
 async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
     
     global result_topic1 
@@ -1665,10 +1704,15 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     
     # variable topic 1
     global arr
+    global MQTT_TOPIC_PUB_CONTROL
+    topicPublic = serial_number_project + MQTT_TOPIC_PUB_CONTROL
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
     custom_watt = 0 
     watt = 0 
+    comment = 200
+    current_time = ""
+    
     # variable topic 2
     global device_mode
     
@@ -1684,6 +1728,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
         await client.subscribe(topic2)
         
         while True:
+            current_time = get_utc()
             try:
                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
             except asyncio.TimeoutError:
@@ -1704,16 +1749,27 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                         pass
                     # update custom_watt in database
                     for item in result_topic1:
+                        print("result_topic1", result_topic1)
                         if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                             custom_watt = item["rated_power_custom"] 
                             watt = item["rated_power"]
                             rated_power = watt
                             rated_power_custom = custom_watt
-                            
-                    if custom_watt and watt and watt >= custom_watt: 
-                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                        custom_watt = 0
-                        watt = 0
+
+                            if custom_watt and watt and watt >= custom_watt: 
+                                MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                                custom_watt = 0
+                                watt = 0
+                            for param in item["parameter"]:
+                                if param["value"] is None:
+                                    data_send = {
+                                        "time_stamp": current_time,
+                                        "status": comment, 
+                                    }
+                                    push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                                else:
+                                    pass
+                    
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
                 # process 
