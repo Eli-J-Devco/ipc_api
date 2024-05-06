@@ -93,141 +93,144 @@ class apiGateway:
         self.MQTT_TOPIC_CLOUD = MQTT_TOPIC_CLOUD
         self.MQTT_USERNAME_CLOUD = MQTT_USERNAME_CLOUD
         self.MQTT_PASSWORD_CLOUD = MQTT_PASSWORD_CLOUD
-    async def handle_messages(self,client):
-        device_init=devices_service.DevicesService(
-                        host=self.MQTT_BROKER, 
-                        port=self.MQTT_PORT,
-                        username= self.MQTT_USERNAME, 
-                        password=self.MQTT_PASSWORD,
-                        update_device_list=self.DeviceList)
-        project_init=project_service.ProjectService()
-        template_init=template_service.TemplateService()
-        upload_channel_init=upload_channel_service.UploadChannelService()
-        rs485_init=rs485_service.RS485Service()
-        
-        while True:
-                message = await client.messages.get()
-
-                if message is None:
-                    print('Broker connection lost!')
-                    break
-                # print(f'Topic:   {message.topic}')
-                result=json.loads(message.message.decode())
-                # print(f'Message: {result}')
-                if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                    match result['CODE']:
-                        case "UpdateSiteInformation":
-                            await project_init.init_pm2()
-                        case "UpdateLoggingRate":
-                            # table project
-                            await project_init.init_logging_rate()
-                        case "CreateTCPDev":
-                            # {
-                            #     "CODE": "CreateTCPDev", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #             "device":[
-                            #             {
-                            #                 "id":item.id,
-                            #                 "name":item.name,
-                            #                 "connect_type":driver_list.name,
-                            #                 "id_communication":id_communication,
-                            #                 "mode":item.mode
-                            #             }
-                            #                 ]
-                            #         }
-                            # }
-                            new_device=result['PAYLOAD']
-                            await device_init.create_dev_tcp(new_device)
-                        case "CreateRS485Dev":
-                            #  data of device
-                            # {
-                            #     "CODE": "CreateRS485Dev", 
-                            #     "PAYLOAD": 
-                            #         {
-                            #             "id_communication":id_communication,
-                            #             "device":[
-                            #                 {
-                            #                     "id":item.id,
-                            #                     "name":item.name,
-                            #                     "connect_type":driver_list.name,
-                            #                     "id_communication":id_communication,
-                            #                     "mode":item.mode
-                            #                 }
-                            #             ]
-                            #         }
-                            # }
-                            new_device=result['PAYLOAD']
-                            await device_init.create_dev_rs485(new_device)
-                        case "DeleteDev":
-                            # data of device
-                            # mode == 1:  # Disable
-                            # mode == 2:  # Delete
-                            # {
-                            #     "CODE":"DeleteDev",
-                            #     "PAYLOAD":{
-                            #         "device":[
-                            #             {
-                            #             "mode": mode,
-                            #             "id": item.id,
-                            #             "name": device.name,
-                            #             "id_communication": id_communication,
-                            #             "driver_name": driver_name,
-                            #             }
-                            #             ],
-                            #         "delete_mode":mode
-                            #     }
-                            # }
-                            delete_device=result['PAYLOAD']
-                            await device_init.delete_dev(delete_device)
-                        case "UpdateDev":
-                            # {
-                            #     "CODE": "UpdateDev", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #            "id":296
-                            #         }
-                            # }
-                            update_device=result['PAYLOAD']
-                            await device_init.update_dev(update_device)
-                        case "UpdateTemplate":
-                            # {
-                            #     "CODE": "UpdateTemplate", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #            "id":3
-                            #         }
-                            # }
-                            update_template=result['PAYLOAD']
-                            await template_init.init_pm2(update_template)
-                        case "DeleteTemplate":
-                            pass
-                        case "UpdatePortRS485":
-                            # {
-                            #     "CODE": "UpdatePortRS485", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #            "id":1
-                            #         }
-                            # }
-                            update_communication=result['PAYLOAD']
-                            await rs485_init.init_pm2(update_communication)
-                        case "UpdateUploadChannels":
-
-                            # {
-                            #     "CODE": "UpdateUploadChannels", 
-                            #     "PAYLOAD":[
-                            #               {"id":1},
-                            #               {"id":2},
-                            #               {"id":3}
-                            #               ]
-                            # }
-                            
-                            
-                            upload_channel_list=result['PAYLOAD']
-                            await upload_channel_init.init_pm2(upload_channel_list)
+    async def handle_messages_api(self,client):
+        try :
+            device_init=devices_service.DevicesService(
+                            host=self.MQTT_BROKER, 
+                            port=self.MQTT_PORT,
+                            username= self.MQTT_USERNAME, 
+                            password=self.MQTT_PASSWORD,
+                            update_device_list=self.DeviceList)
+            # 
+            project_init=project_service.ProjectService()
+            template_init=template_service.TemplateService()
+            upload_channel_init=upload_channel_service.UploadChannelService()
+            rs485_init=rs485_service.RS485Service()
             
-            
+            while True:
+                    message = await client.messages.get()
+
+                    if message is None:
+                        print('Broker connection lost!')
+                        break
+                    # print(f'Topic:   {message.topic}')
+                    result=json.loads(message.message.decode())
+                    # print(f'Message: {result}')
+                    if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
+                        match result['CODE']:
+                            case "UpdateSiteInformation":
+                                await project_init.init_pm2()
+                            case "UpdateLoggingRate":
+                                # table project
+                                await project_init.init_logging_rate()
+                            case "CreateTCPDev":
+                                # {
+                                #     "CODE": "CreateTCPDev", 
+                                #     "PAYLOAD":
+                                #         { 
+                                #             "device":[
+                                #             {
+                                #                 "id":item.id,
+                                #                 "name":item.name,
+                                #                 "connect_type":driver_list.name,
+                                #                 "id_communication":id_communication,
+                                #                 "mode":item.mode
+                                #             }
+                                #                 ]
+                                #         }
+                                # }
+                                new_device=result['PAYLOAD']
+                                await device_init.create_dev_tcp(new_device)
+                            case "CreateRS485Dev":
+                                #  data of device
+                                # {
+                                #     "CODE": "CreateRS485Dev", 
+                                #     "PAYLOAD": 
+                                #         {
+                                #             "id_communication":id_communication,
+                                #             "device":[
+                                #                 {
+                                #                     "id":item.id,
+                                #                     "name":item.name,
+                                #                     "connect_type":driver_list.name,
+                                #                     "id_communication":id_communication,
+                                #                     "mode":item.mode
+                                #                 }
+                                #             ]
+                                #         }
+                                # }
+                                new_device=result['PAYLOAD']
+                                await device_init.create_dev_rs485(new_device)
+                            case "DeleteDev":
+                                # data of device
+                                # mode == 1:  # Disable
+                                # mode == 2:  # Delete
+                                # {
+                                #     "CODE":"DeleteDev",
+                                #     "PAYLOAD":{
+                                #         "device":[
+                                #             {
+                                #             "mode": mode,
+                                #             "id": item.id,
+                                #             "name": device.name,
+                                #             "id_communication": id_communication,
+                                #             "driver_name": driver_name,
+                                #             }
+                                #             ],
+                                #         "delete_mode":mode
+                                #     }
+                                # }
+                                delete_device=result['PAYLOAD']
+                                await device_init.delete_dev(delete_device)
+                            case "UpdateDev":
+                                # {
+                                #     "CODE": "UpdateDev", 
+                                #     "PAYLOAD":
+                                #         { 
+                                #            "id":296
+                                #         }
+                                # }
+                                update_device=result['PAYLOAD']
+                                await device_init.update_dev(update_device)
+                            case "UpdateTemplate":
+                                # {
+                                #     "CODE": "UpdateTemplate", 
+                                #     "PAYLOAD":
+                                #         { 
+                                #            "id":3
+                                #         }
+                                # }
+                                update_template=result['PAYLOAD']
+                                await template_init.init_pm2(update_template)
+                            case "DeleteTemplate":
+                                pass
+                            case "UpdatePortRS485":
+                                # {
+                                #     "CODE": "UpdatePortRS485", 
+                                #     "PAYLOAD":
+                                #         { 
+                                #            "id":1
+                                #         }
+                                # }
+                                update_communication=result['PAYLOAD']
+                                await rs485_init.init_pm2(update_communication)
+                            case "UpdateUploadChannels":
+
+                                # {
+                                #     "CODE": "UpdateUploadChannels", 
+                                #     "PAYLOAD":[
+                                #               {"id":1},
+                                #               {"id":2},
+                                #               {"id":3}
+                                #               ]
+                                # }
+                                
+                                
+                                upload_channel_list=result['PAYLOAD']
+                                await upload_channel_init.init_pm2(upload_channel_list)
+                
+        except Exception as err:
+            print(f"Error PM2: '{err}'")   
     async def managerApplicationsWithPM2(self):
         try:
             
@@ -236,27 +239,17 @@ class apiGateway:
                             port=self.MQTT_PORT,
                             username= self.MQTT_USERNAME, 
                             subscriptions=[Topic],
-                            password=bytes(self.MQTT_PASSWORD, 'utf-8'))
+                            password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                            connect_delays=[1, 2, 4, 8]
+                            )
             while True:
                 await client.start()
-                await self.handle_messages(client)
+                await self.handle_messages_api(client)
                 await client.stop()
         except Exception as err:
             print(f"Error PM2: '{err}'")
-    async def deviceListSub(self):
+    async def handle_messages_driver(self,client,Topic):
         try:
-            db=get_db()
-            result_project=db.query(deviceList_models.Device_list).all()
-            db.close()
-            # 
-            Topic=self.MQTT_TOPIC+"/"+"Devices"
-            client = mqttools.Client(host=self.MQTT_BROKER, 
-                                port=self.MQTT_PORT ,
-                                username= self.MQTT_USERNAME, 
-                                password=bytes(self.MQTT_PASSWORD, 'utf-8'))
-        
-            await client.start()
-            await client.subscribe(Topic+"/#")
             while True:
                 message = await client.messages.get()
                 if message is None:
@@ -313,10 +306,85 @@ class apiGateway:
                             self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
                         if 'min_watt_in_percent' in result.keys():
                             self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
+
+        except Exception as err:
+            print(f"Error PM2: '{err}'")
+    async def deviceListSub(self):
+        try:
+            Topic=self.MQTT_TOPIC+"/"+"Devices"
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                                port=self.MQTT_PORT ,
+                                username= self.MQTT_USERNAME, 
+                                password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                                subscriptions=[Topic+"/#"],
+                                connect_delays=[1, 2, 4, 8]
+                                )
+            while True:
+                await client.start()
+                await self.handle_messages_driver(client,Topic)
+                await client.stop()
+            # await client.start()
+            # await client.subscribe(Topic+"/#")
+            # while True:
+            #     message = await client.messages.get()
+            #     if message is None:
+            #         print('Broker connection lost!')
+            #         break
+            #     # print(f'Topic:   {message.topic}')
+            #     result=json.loads(message.message.decode())
+                
+            #     for i,item in enumerate(self.DeviceList):
+            #         # print('------------------')
+            #         # print(item)
+            #         # print(f'{Topic}/{item["id_device"]}')
+            #         if message.topic==f'{Topic}/{item["id_device"]}':
+            #             # print(item)
+            #             if 'id_device_type' in result.keys():
+            #                 self.DeviceList[i]["id_device_type"]=result["id_device_type"]
+                            
+            #             if 'name_device_type' in result.keys():
+            #                 self.DeviceList[i]["name_device_type"]=result["name_device_type"]
+                            
+            #             if 'status_device' in result.keys():
+            #                 self.DeviceList[i]["status_device"]=result["status_device"]
+                            
+            #             if 'timestamp' in result.keys():
+            #                 self.DeviceList[i]["timestamp"]=result["timestamp"]
+                            
+            #             if 'message' in result.keys():
+            #                 self.DeviceList[i]["message"]=result["message"]
+                            
+            #             if 'status_register' in result.keys():
+            #                 self.DeviceList[i]["status_register"]=result["status_register"]
+                            
+            #             if 'point_count' in result.keys():
+            #                 self.DeviceList[i]["point_count"]=result["point_count"]
+                            
+            #             if 'parameters' in result.keys():
+            #                 self.DeviceList[i]["parameters"]=result["parameters"]
+                            
+            #             if 'fields' in result.keys():
+            #                 self.DeviceList[i]["fields"]=result["fields"]
+                            
+            #             if 'mppt' in result.keys():
+            #                 self.DeviceList[i]["mppt"]=result["mppt"]
+                            
+            #             if 'mode' in result.keys():
+            #                 self.DeviceList[i]["mode"]=result["mode"]
+                            
+            #             if 'control_group' in result.keys():
+            #                 self.DeviceList[i]["control_group"]=result["control_group"]
+                            
+            #             if 'rated_power' in result.keys():
+            #                 self.DeviceList[i]["rated_power"]=result["rated_power"]
+            #             if 'rated_power_custom' in result.keys():
+            #                 self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
+            #             if 'min_watt_in_percent' in result.keys():
+            #                 self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
                         
-                        # for item in result["parameters"]:
-                        #     print(len(item['fields']))
-                        # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
+            #             # for item in result["parameters"]:
+            #             #     print(len(item['fields']))
+            #             # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
                     
         except Exception as err:
             print('Error MQTT deviceListSub')
@@ -325,8 +393,6 @@ class apiGateway:
             topic=f"{self.MQTT_TOPIC}/Devices/All"
             db=get_db()
             result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
-            db.close()
-            param=[]
             for item in result_project:
                 
                 # rated_power=None
