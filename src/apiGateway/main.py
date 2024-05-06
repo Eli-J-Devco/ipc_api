@@ -323,69 +323,6 @@ class apiGateway:
                 await client.start()
                 await self.handle_messages_driver(client,Topic)
                 await client.stop()
-            # await client.start()
-            # await client.subscribe(Topic+"/#")
-            # while True:
-            #     message = await client.messages.get()
-            #     if message is None:
-            #         print('Broker connection lost!')
-            #         break
-            #     # print(f'Topic:   {message.topic}')
-            #     result=json.loads(message.message.decode())
-                
-            #     for i,item in enumerate(self.DeviceList):
-            #         # print('------------------')
-            #         # print(item)
-            #         # print(f'{Topic}/{item["id_device"]}')
-            #         if message.topic==f'{Topic}/{item["id_device"]}':
-            #             # print(item)
-            #             if 'id_device_type' in result.keys():
-            #                 self.DeviceList[i]["id_device_type"]=result["id_device_type"]
-                            
-            #             if 'name_device_type' in result.keys():
-            #                 self.DeviceList[i]["name_device_type"]=result["name_device_type"]
-                            
-            #             if 'status_device' in result.keys():
-            #                 self.DeviceList[i]["status_device"]=result["status_device"]
-                            
-            #             if 'timestamp' in result.keys():
-            #                 self.DeviceList[i]["timestamp"]=result["timestamp"]
-                            
-            #             if 'message' in result.keys():
-            #                 self.DeviceList[i]["message"]=result["message"]
-                            
-            #             if 'status_register' in result.keys():
-            #                 self.DeviceList[i]["status_register"]=result["status_register"]
-                            
-            #             if 'point_count' in result.keys():
-            #                 self.DeviceList[i]["point_count"]=result["point_count"]
-                            
-            #             if 'parameters' in result.keys():
-            #                 self.DeviceList[i]["parameters"]=result["parameters"]
-                            
-            #             if 'fields' in result.keys():
-            #                 self.DeviceList[i]["fields"]=result["fields"]
-                            
-            #             if 'mppt' in result.keys():
-            #                 self.DeviceList[i]["mppt"]=result["mppt"]
-                            
-            #             if 'mode' in result.keys():
-            #                 self.DeviceList[i]["mode"]=result["mode"]
-                            
-            #             if 'control_group' in result.keys():
-            #                 self.DeviceList[i]["control_group"]=result["control_group"]
-                            
-            #             if 'rated_power' in result.keys():
-            #                 self.DeviceList[i]["rated_power"]=result["rated_power"]
-            #             if 'rated_power_custom' in result.keys():
-            #                 self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
-            #             if 'min_watt_in_percent' in result.keys():
-            #                 self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
-                        
-            #             # for item in result["parameters"]:
-            #             #     print(len(item['fields']))
-            #             # print(f'MQTT message size: {sys.getsizeof(self.DeviceList)} bytes')
-                    
         except Exception as err:
             print('Error MQTT deviceListSub')
     async def deviceListPub(self):
