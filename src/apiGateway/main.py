@@ -119,8 +119,16 @@ class apiGateway:
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":
+                            # {
+                            #     "CODE": "UpdateSiteInformation", 
+                            #     "PAYLOAD":""
+                            # }
                             await project_init.init_pm2()
                         case "UpdateLoggingRate":
+                            # {
+                            #     "CODE": "UpdateLoggingRate", 
+                            #     "PAYLOAD":""
+                            # }
                             # table project
                             await project_init.init_logging_rate()
                         case "CreateTCPDev":
