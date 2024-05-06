@@ -108,127 +108,127 @@ class apiGateway:
             rs485_init=rs485_service.RS485Service()
             
             while True:
-                    message = await client.messages.get()
+                message = await client.messages.get()
 
-                    if message is None:
-                        print('Broker connection lost!')
-                        break
-                    # print(f'Topic:   {message.topic}')
-                    result=json.loads(message.message.decode())
-                    # print(f'Message: {result}')
-                    if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                        match result['CODE']:
-                            case "UpdateSiteInformation":
-                                await project_init.init_pm2()
-                            case "UpdateLoggingRate":
-                                # table project
-                                await project_init.init_logging_rate()
-                            case "CreateTCPDev":
-                                # {
-                                #     "CODE": "CreateTCPDev", 
-                                #     "PAYLOAD":
-                                #         { 
-                                #             "device":[
-                                #             {
-                                #                 "id":item.id,
-                                #                 "name":item.name,
-                                #                 "connect_type":driver_list.name,
-                                #                 "id_communication":id_communication,
-                                #                 "mode":item.mode
-                                #             }
-                                #                 ]
-                                #         }
-                                # }
-                                new_device=result['PAYLOAD']
-                                await device_init.create_dev_tcp(new_device)
-                            case "CreateRS485Dev":
-                                #  data of device
-                                # {
-                                #     "CODE": "CreateRS485Dev", 
-                                #     "PAYLOAD": 
-                                #         {
-                                #             "id_communication":id_communication,
-                                #             "device":[
-                                #                 {
-                                #                     "id":item.id,
-                                #                     "name":item.name,
-                                #                     "connect_type":driver_list.name,
-                                #                     "id_communication":id_communication,
-                                #                     "mode":item.mode
-                                #                 }
-                                #             ]
-                                #         }
-                                # }
-                                new_device=result['PAYLOAD']
-                                await device_init.create_dev_rs485(new_device)
-                            case "DeleteDev":
-                                # data of device
-                                # mode == 1:  # Disable
-                                # mode == 2:  # Delete
-                                # {
-                                #     "CODE":"DeleteDev",
-                                #     "PAYLOAD":{
-                                #         "device":[
-                                #             {
-                                #             "mode": mode,
-                                #             "id": item.id,
-                                #             "name": device.name,
-                                #             "id_communication": id_communication,
-                                #             "driver_name": driver_name,
-                                #             }
-                                #             ],
-                                #         "delete_mode":mode
-                                #     }
-                                # }
-                                delete_device=result['PAYLOAD']
-                                await device_init.delete_dev(delete_device)
-                            case "UpdateDev":
-                                # {
-                                #     "CODE": "UpdateDev", 
-                                #     "PAYLOAD":
-                                #         { 
-                                #            "id":296
-                                #         }
-                                # }
-                                update_device=result['PAYLOAD']
-                                await device_init.update_dev(update_device)
-                            case "UpdateTemplate":
-                                # {
-                                #     "CODE": "UpdateTemplate", 
-                                #     "PAYLOAD":
-                                #         { 
-                                #            "id":3
-                                #         }
-                                # }
-                                update_template=result['PAYLOAD']
-                                await template_init.init_pm2(update_template)
-                            case "DeleteTemplate":
-                                pass
-                            case "UpdatePortRS485":
-                                # {
-                                #     "CODE": "UpdatePortRS485", 
-                                #     "PAYLOAD":
-                                #         { 
-                                #            "id":1
-                                #         }
-                                # }
-                                update_communication=result['PAYLOAD']
-                                await rs485_init.init_pm2(update_communication)
-                            case "UpdateUploadChannels":
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                # print(f'Topic:   {message.topic}')
+                result=json.loads(message.message.decode())
+                # print(f'Message: {result}')
+                if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
+                    match result['CODE']:
+                        case "UpdateSiteInformation":
+                            await project_init.init_pm2()
+                        case "UpdateLoggingRate":
+                            # table project
+                            await project_init.init_logging_rate()
+                        case "CreateTCPDev":
+                            # {
+                            #     "CODE": "CreateTCPDev", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #             "device":[
+                            #             {
+                            #                 "id":item.id,
+                            #                 "name":item.name,
+                            #                 "connect_type":driver_list.name,
+                            #                 "id_communication":id_communication,
+                            #                 "mode":item.mode
+                            #             }
+                            #                 ]
+                            #         }
+                            # }
+                            new_device=result['PAYLOAD']
+                            await device_init.create_dev_tcp(new_device)
+                        case "CreateRS485Dev":
+                            #  data of device
+                            # {
+                            #     "CODE": "CreateRS485Dev", 
+                            #     "PAYLOAD": 
+                            #         {
+                            #             "id_communication":id_communication,
+                            #             "device":[
+                            #                 {
+                            #                     "id":item.id,
+                            #                     "name":item.name,
+                            #                     "connect_type":driver_list.name,
+                            #                     "id_communication":id_communication,
+                            #                     "mode":item.mode
+                            #                 }
+                            #             ]
+                            #         }
+                            # }
+                            new_device=result['PAYLOAD']
+                            await device_init.create_dev_rs485(new_device)
+                        case "DeleteDev":
+                            # data of device
+                            # mode == 1:  # Disable
+                            # mode == 2:  # Delete
+                            # {
+                            #     "CODE":"DeleteDev",
+                            #     "PAYLOAD":{
+                            #         "device":[
+                            #             {
+                            #             "mode": mode,
+                            #             "id": item.id,
+                            #             "name": device.name,
+                            #             "id_communication": id_communication,
+                            #             "driver_name": driver_name,
+                            #             }
+                            #             ],
+                            #         "delete_mode":mode
+                            #     }
+                            # }
+                            delete_device=result['PAYLOAD']
+                            await device_init.delete_dev(delete_device)
+                        case "UpdateDev":
+                            # {
+                            #     "CODE": "UpdateDev", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":296
+                            #         }
+                            # }
+                            update_device=result['PAYLOAD']
+                            await device_init.update_dev(update_device)
+                        case "UpdateTemplate":
+                            # {
+                            #     "CODE": "UpdateTemplate", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":3
+                            #         }
+                            # }
+                            update_template=result['PAYLOAD']
+                            await template_init.init_pm2(update_template)
+                        case "DeleteTemplate":
+                            pass
+                        case "UpdatePortRS485":
+                            # {
+                            #     "CODE": "UpdatePortRS485", 
+                            #     "PAYLOAD":
+                            #         { 
+                            #            "id":1
+                            #         }
+                            # }
+                            update_communication=result['PAYLOAD']
+                            await rs485_init.init_pm2(update_communication)
+                        case "UpdateUploadChannels":
 
-                                # {
-                                #     "CODE": "UpdateUploadChannels", 
-                                #     "PAYLOAD":[
-                                #               {"id":1},
-                                #               {"id":2},
-                                #               {"id":3}
-                                #               ]
-                                # }
-                                
-                                
-                                upload_channel_list=result['PAYLOAD']
-                                await upload_channel_init.init_pm2(upload_channel_list)
-                
+                            # {
+                            #     "CODE": "UpdateUploadChannels", 
+                            #     "PAYLOAD":[
+                            #               {"id":1},
+                            #               {"id":2},
+                            #               {"id":3}
+                            #               ]
+                            # }
+                            
+                            
+                            upload_channel_list=result['PAYLOAD']
+                            await upload_channel_init.init_pm2(upload_channel_list)
+            
         except Exception as err:
             print(f"Error PM2: '{err}'")   
     async def managerApplicationsWithPM2(self):
