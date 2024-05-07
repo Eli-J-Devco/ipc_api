@@ -387,7 +387,8 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
     mqtt_port_cloud = ""
     mqtt_username_cloud = ""
     mqtt_password_cloud = ""
-
+    status = ""
+    
     query = "SELECT * FROM `project_setup`"
     result = await MySQL_Select_v1(query) 
     name = result[0]['name']
@@ -440,12 +441,12 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
     mqtt_username_cloud = result[0]['mqtt_username_cloud']
     mqtt_password_cloud = result[0]['mqtt_password_cloud']
     value_offset_power_limit = result[0]['value_offset_power_limit']
+    status = result[0]['status']
     
     if result:
         try:
             current_time = get_utc()
             data_send = {
-                    "status" : 200,
                     "name":name,
                     "serial_number":serial_number,
                     "location":location,
@@ -496,7 +497,9 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                     "mqtt_port_cloud":mqtt_port_cloud,
                     "mqtt_username_cloud":mqtt_username_cloud,
                     "mqtt_password_cloud" :mqtt_password_cloud,
-                    "time_stamp" : current_time
+                    "status" : status,
+                    "time_stamp" : current_time,
+                    "status_mqtt":200
                     }
         
             push_data_to_mqtt(mqtt_host,
