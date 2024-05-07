@@ -52,6 +52,18 @@ result_topic4 = []
 result_topic5 = []
 bitcheck1 = 0
 
+# Lưu trữ thông tin về bytes_sent và bytes_recv của lần truy vấn trước
+net_io_counters_prev = {}
+net_io_counters_prev["TotalSent"] = 0
+net_io_counters_prev["TotalReceived"] = 0
+net_io_counters_prev["Timestamp"] = datetime.datetime.now()
+
+# Lưu trữ thông tin về read_count và write_count của lần truy vấn trước
+disk_io_counters_prev = {}
+disk_io_counters_prev["ReadCount"] = 0
+disk_io_counters_prev["WriteCount"] = 0
+disk_io_counters_prev["Timestamp"] = datetime.datetime.now()
+
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
@@ -137,7 +149,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "MemoryInformation": {},
             "DiskInformation": {},
             "NetworkInformation": {},
-            "Status": {},
             "NetworkSpeed": {},
             "DiskIO": {}
         }
@@ -231,27 +242,37 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                         "BroadcastMAC": address.broadcast
                     }
         
-        # Status Information
-        system_info["Status"]["Status"] = "Running smoothly"
-        
         # Network Speed Information
-        net_io_counters_prev = system_info.get("NetworkSpeed", {})
         net_io_counters = psutil.net_io_counters()
         current_time = datetime.datetime.now()
+        time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
 
-        system_info["NetworkSpeed"]["Upstream"] = get_readable_size(net_io_counters.bytes_sent - net_io_counters_prev.get("TotalSent", 0))
-        system_info["NetworkSpeed"]["Downstream"] = get_readable_size(net_io_counters.bytes_recv - net_io_counters_prev.get("TotalReceived", 0))
+        system_info["NetworkSpeed"]["Upstream"] = get_readable_size((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff)
+        system_info["NetworkSpeed"]["Downstream"] = get_readable_size((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff)
         system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
         system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
         system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
 
+        net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
+        net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
+        net_io_counters_prev["Timestamp"] = current_time
+
         # Disk I/O Information
         disk_io_counters = psutil.disk_io_counters()
+        current_time = datetime.datetime.now()
+        time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
+
+        system_info["DiskIO"]["SpeedRead"] = get_readable_size((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff)
+        system_info["DiskIO"]["SpeedWrite"] = get_readable_size((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff)
         system_info["DiskIO"]["ReadBytes"] = get_readable_size(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
-        system_info["DiskIO"]["ReadCount"] = disk_io_counters.read_count
-        system_info["DiskIO"]["WriteCount"] = disk_io_counters.write_count
+        system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
+
+        disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
+        disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
+        disk_io_counters_prev["Timestamp"] = current_time
         
+        # Push system_info to MQTT 
         push_data_to_mqtt(mqtt_host,
                             mqtt_port,
                             topicPublic,
