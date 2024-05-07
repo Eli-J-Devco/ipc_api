@@ -179,13 +179,19 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         total_disk_size = 0
         total_disk_used = 0
         disk_partitions = psutil.disk_partitions()
+        unique_partitions = {}
+
         for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
                 
-                system_info["DiskInformation"][partition.mountpoint] = {
+                # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
+                if partition.mountpoint in unique_partitions:
+                    continue
+                
+                unique_partitions[partition.mountpoint] = {
                     "TotalSize": get_readable_size(partition_usage.total),
                     "Used": get_readable_size(partition_usage.used),
                     "Free": get_readable_size(partition_usage.free),
@@ -193,6 +199,8 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                 }
             except PermissionError:
                 continue
+
+        system_info["DiskInformation"] = unique_partitions
 
         system_info["DiskInformation"]["Total"] = {
             "TotalSize": get_readable_size(total_disk_size),
