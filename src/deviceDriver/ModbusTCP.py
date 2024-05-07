@@ -1815,14 +1815,14 @@ async def main():
                                                         MQTT_USERNAME_LIST,
                                                         MQTT_PASSWORD_LIST
                                                         )))
-    tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
-                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
+    # tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
+    #                                                 MQTT_BROKER,
+    #                                                 MQTT_PORT,
+    #                                                 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
+    #                                                 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
+    #                                                 MQTT_USERNAME,
+    #                                                 MQTT_PASSWORD
+    #                                                 )))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
