@@ -136,7 +136,10 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "CPUInfo": {},
             "MemoryInformation": {},
             "DiskInformation": {},
-            "NetworkInformation": {}
+            "NetworkInformation": {},
+            "Status": {},
+            "NetworkSpeed": {},
+            "DiskIO": {}
         }
         
         # System Information
@@ -210,7 +213,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
-        system_info["DiskInformation"] = list(unique_partitions.values()) + [total_disk_info]
+        system_info["DiskInformation"] = [total_disk_info]
 
         # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
@@ -227,6 +230,25 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                         "Netmask": address.netmask,
                         "BroadcastMAC": address.broadcast
                     }
+        
+        # Status Information
+        system_info["Status"]["Status"] = "Running smoothly"
+        
+        # Network Speed Information
+        net_io_counters = psutil.net_io_counters()
+        current_time = time.time()
+        system_info["NetworkSpeed"]["Upstream"] = get_readable_size(net_io_counters.bytes_sent)
+        system_info["NetworkSpeed"]["Downstream"] = get_readable_size(net_io_counters.bytes_recv)
+        system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
+        system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
+        system_info["NetworkSpeed"]["Timestamp"] = current_time
+
+        # Disk I/O Information
+        disk_io_counters = psutil.disk_io_counters()
+        system_info["DiskIO"]["ReadBytes"] = get_readable_size(disk_io_counters.read_bytes)
+        system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
+        system_info["DiskIO"]["ReadCount"] = disk_io_counters.read_count
+        system_info["DiskIO"]["WriteCount"] = disk_io_counters.write_count
         
         push_data_to_mqtt(mqtt_host,
                             mqtt_port,
