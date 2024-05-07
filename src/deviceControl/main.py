@@ -204,14 +204,14 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             except PermissionError:
                 continue
 
-        system_info["DiskInformation"] = list(unique_partitions.values())
-
-        system_info["DiskInformation"]["Total"] = {
+        total_disk_info = {
             "TotalSize": get_readable_size(total_disk_size),
             "Used": get_readable_size(total_disk_used),
             "Free": get_readable_size(total_disk_size - total_disk_used),
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
+
+        system_info["DiskInformation"] = list(unique_partitions.values()) + [total_disk_info]
 
         # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
