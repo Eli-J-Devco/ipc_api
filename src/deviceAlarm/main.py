@@ -98,27 +98,11 @@ class AlarmLog:
             except Exception as err:
                 db.rollback()
                 print(err)
-    # Describe functions before writing code
-    # /**
-    # 	 * @description insert log alert
-    # 	 * @author vnguyen
-    # 	 * @since 19-01-2024
-    # 	 * @param {ID_DEVICE_GROUP}
-    # 	 * @return data ()
-    # 	 */
-    async def mqtt_subs_alarm(self,ID_DEVICE_GROUP):
+    
+    async def handle_messages_alarm(self,client,id_device_group):
         try:
-
-            MQTT_TOPIC =self.MQTT_TOPIC+ID_DEVICE_GROUP
-            print(f'MQTT_TOPIC|{ID_DEVICE_GROUP}: {MQTT_TOPIC}')
-            client = mqttools.Client(host=self.MQTT_BROKER, 
-                                    port=self.MQTT_PORT,
-                                    username= self.MQTT_USERNAME, 
-                                    password=bytes(self.MQTT_PASSWORD, 'utf-8'))
-            await client.start()
-            await client.subscribe(MQTT_TOPIC)
-            
             while True:
+                ID_DEVICE_GROUP=id_device_group
                 message = await client.messages.get()
                 if message is None:
                     print('Broker connection lost!')
@@ -131,7 +115,7 @@ class AlarmLog:
                 if "id_device" in result.keys() and "error_code" in result.keys():
                     id_device=result['id_device']
                     error_code=result['error_code']
-                    print(f'ID_DEVICE_GROUP:   {ID_DEVICE_GROUP}')
+                    # print(f'ID_DEVICE_GROUP:   {ID_DEVICE_GROUP}')
                     print(f'error_code:   {error_code}')
                     # ------------------------------------
                     error_setup=[item.__dict__ for item in self.TABLE_CODE_ERROR if item.id_device_group== int(ID_DEVICE_GROUP) and 
@@ -238,6 +222,35 @@ class AlarmLog:
                         error_exist=0
                         
                 print(f'history_data: {self.history_data}')
+        except Exception as err:
+            print(f"Error handle_messages_driver: '{err}'")
+    # Describe functions before writing code
+    # /**
+    # 	 * @description insert log alert
+    # 	 * @author vnguyen
+    # 	 * @since 19-01-2024
+    # 	 * @param {ID_DEVICE_GROUP}
+    # 	 * @return data ()
+    # 	 */
+    async def mqtt_subs_alarm(self,ID_DEVICE_GROUP):
+        try:
+
+            MQTT_TOPIC =self.MQTT_TOPIC+ID_DEVICE_GROUP
+            print(f'MQTT_TOPIC|{ID_DEVICE_GROUP}: {MQTT_TOPIC}')
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                                    port=self.MQTT_PORT,
+                                    username= self.MQTT_USERNAME, 
+                                    password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                                    subscriptions=[MQTT_TOPIC],
+                                    connect_delays=[1, 2, 4, 8]
+                                    )
+            # await client.start()
+            # await client.subscribe(MQTT_TOPIC)
+            while True:
+                await client.start()
+                await self.handle_messages_alarm(client,ID_DEVICE_GROUP)
+                await client.stop()
+                                    
         except Exception as err:
             print(f"Error MQTT subscribe: '{err}'")
 async def main():

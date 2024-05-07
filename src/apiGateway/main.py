@@ -238,7 +238,7 @@ class apiGateway:
                             await upload_channel_init.init_pm2(upload_channel_list)
             
         except Exception as err:
-            print(f"Error PM2: '{err}'")   
+            print(f"Error handle_messages_api: '{err}'")   
     async def managerApplicationsWithPM2(self):
         try:
             
@@ -255,7 +255,7 @@ class apiGateway:
                 await self.handle_messages_api(client)
                 await client.stop()
         except Exception as err:
-            print(f"Error PM2: '{err}'")
+            print(f"Error managerApplicationsWithPM2: '{err}'")   
     async def handle_messages_driver(self,client,Topic):
         try:
             while True:
@@ -316,7 +316,7 @@ class apiGateway:
                             self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
 
         except Exception as err:
-            print(f"Error PM2: '{err}'")
+            print(f"Error handle_messages_driver: '{err}'")
     async def deviceListSub(self):
         try:
             Topic=self.MQTT_TOPIC+"/"+"Devices"
