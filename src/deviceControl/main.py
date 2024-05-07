@@ -185,10 +185,8 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
 
-                # Tạo một key duy nhất dựa trên thông tin của phân vùng
-                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+                partition_key = f"{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
 
-                # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
                 if partition_key in unique_partitions:
                     continue
 
@@ -200,13 +198,11 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                     "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
                 }
 
-                # Cộng tổng dung lượng sau khi đã check key
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
             except PermissionError:
                 continue
 
-        # Tính tổng dung lượng ổ cứng
         total_disk_info = {
             "TotalSize": get_readable_size(total_disk_size),
             "Used": get_readable_size(total_disk_used),
@@ -214,7 +210,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
-        # Thêm danh sách các ổ cứng duy nhất và phần tử tổng dung lượng
         system_info["DiskInformation"] = list(unique_partitions.values()) + [total_disk_info]
 
         # Network Information
