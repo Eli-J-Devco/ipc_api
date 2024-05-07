@@ -17,6 +17,13 @@ or sudo apt install python3-pip
 <!-- Project -->
 python -m venv venv
 source venv/Scripts/activate
+<!-- linux -->
+sudo virtualenv --python python3 venv
+source venv/bin/activate
+<!--  -->
+D:\..\project\ipc_api\venv\Scripts\python D:\..\project\ipc_api\main.py
+sudo /home/ipc/python/project1/venv/bin/python3.10 /home/ipc/python/project1/main.py
+
 <!-- install all package python -->
 pip install -r requirements.txt
 pydantic==2.5.3

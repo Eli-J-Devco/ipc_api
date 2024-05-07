@@ -337,7 +337,7 @@ def init_mqtt_control():
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/deviceControl/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 delete_all_app_pm2()
-# init_driver()
+init_driver()
 init_api_web()
 init_api_gateway()
 init_mqtt_control()
