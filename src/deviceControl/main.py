@@ -1005,6 +1005,7 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
     
     p_for_each_device = 0
     total_p_inv_prodution = 0
+    power_max_convert = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
@@ -1400,7 +1401,7 @@ async def main():
                                                                             MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
-        scheduler.add_job(get_cpu_information, 'cron',  second = f'*/5' , args=[serial_number_project,
+        scheduler.add_job(get_cpu_information, 'cron',  second = f'*/1' , args=[serial_number_project,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_USERNAME,
