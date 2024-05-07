@@ -1284,29 +1284,33 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2,topic3,topic4,topic5,topic6, username, password):
-    
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6, username, password):
     topics = [topic1, topic2, topic3, topic4, topic5, topic6]
     
-    client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-    if not client:
-        return -1 
-    
-    await client.start()
-    for topic in topics:
-        await client.subscribe(serial_number_project + topic)
-
     while True:
         try:
-            message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-            if message:
-                payload = json.loads(message.message.decode())
-                topic = message.topic
-                await process_message(topic, payload,serial_number_project, host, port, username, password)
+            client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+            if not client:
+                return -1
+            
+            await client.start()
+            for topic in topics:
+                await client.subscribe(serial_number_project + topic)
+
+            while True:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+                if message:
+                    payload = json.loads(message.message.decode())
+                    topic = message.topic
+                    await process_message(topic, payload, serial_number_project, host, port, username, password)
         except asyncio.TimeoutError:
             continue
         except Exception as e:
             print(f"Error while processing message: {e}")
+            print('Connection lost. Trying to reconnect...')
+            await client.stop()
+            await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
+            
 async def main():
     tasks = []
     await process_getfirst_zeroexport_powerlimit()

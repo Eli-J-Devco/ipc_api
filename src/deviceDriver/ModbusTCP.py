@@ -1808,12 +1808,13 @@ async def main():
     MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
     
     # 
-    tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,serial_number_project,
-                                                    MQTT_BROKER_LIST,
-                                                    MQTT_PORT_LIST,
-                                                    MQTT_USERNAME_LIST,
-                                                    MQTT_PASSWORD_LIST
-                                                    )))
+    tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,
+                                                        serial_number_project,
+                                                        MQTT_BROKER_LIST,
+                                                        MQTT_PORT_LIST,
+                                                        MQTT_USERNAME_LIST,
+                                                        MQTT_PASSWORD_LIST
+                                                        )))
     tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
                                                     MQTT_BROKER,
                                                     MQTT_PORT,
