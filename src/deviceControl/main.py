@@ -204,6 +204,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             except PermissionError:
                 continue
 
+        # Thêm phần tử tổng dung lượng ổ cứng
         total_disk_info = {
             "TotalSize": get_readable_size(total_disk_size),
             "Used": get_readable_size(total_disk_used),
@@ -211,6 +212,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
+        # Thêm danh sách các ổ cứng duy nhất và phần tử tổng dung lượng
         system_info["DiskInformation"] = list(unique_partitions.values()) + [total_disk_info]
 
         # Network Information
