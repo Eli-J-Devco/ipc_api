@@ -26,6 +26,8 @@ sudo /home/ipc/python/project1/venv/bin/python3.10 /home/ipc/python/project1/mai
 
 <!-- install all package python -->
 pip install -r requirements.txt
+pip3 install -r requirements.txt  --no-cache-dir
+
 pydantic==2.5.3
 pydantic-settings==2.1.0
 pydantic_core==2.14.1
