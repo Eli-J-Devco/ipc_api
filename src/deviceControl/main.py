@@ -235,10 +235,12 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["Status"]["Status"] = "Running smoothly"
         
         # Network Speed Information
+        net_io_counters_prev = system_info.get("NetworkSpeed", {})
         net_io_counters = psutil.net_io_counters()
         current_time = datetime.datetime.now()
-        system_info["NetworkSpeed"]["Upstream"] = get_readable_size(net_io_counters.bytes_sent - system_info.get("NetworkSpeed", {}).get("TotalSent", 0))
-        system_info["NetworkSpeed"]["Downstream"] = get_readable_size(net_io_counters.bytes_recv - system_info.get("NetworkSpeed", {}).get("TotalReceived", 0))
+
+        system_info["NetworkSpeed"]["Upstream"] = get_readable_size(net_io_counters.bytes_sent - net_io_counters_prev.get("TotalSent", 0))
+        system_info["NetworkSpeed"]["Downstream"] = get_readable_size(net_io_counters.bytes_recv - net_io_counters_prev.get("TotalReceived", 0))
         system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
         system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
         system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
