@@ -149,7 +149,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "MemoryInformation": {},
             "DiskInformation": {},
             "NetworkInformation": {},
-            "Status": {},
             "NetworkSpeed": {},
             "DiskIO": {}
         }
@@ -243,9 +242,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                         "BroadcastMAC": address.broadcast
                     }
         
-        # Status Information
-        system_info["Status"]["Status"] = "Running smoothly"
-        
         # Network Speed Information
         net_io_counters = psutil.net_io_counters()
         current_time = datetime.datetime.now()
@@ -272,7 +268,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
 
-        # Cập nhật thông tin của lần truy vấn trước
         disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
         disk_io_counters_prev["Timestamp"] = current_time
