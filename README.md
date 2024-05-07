@@ -17,13 +17,16 @@ or sudo apt install python3-pip
 <!-- Project -->
 python -m venv venv
 source venv/Scripts/activate
+pip3 install -r requirements.txt  --no-cache-dir
 <!-- linux -->
-sudo virtualenv --python python3 venv
+python3 -m venv venv
 source venv/bin/activate
+ &7
+
 <!--  -->
 D:\..\project\ipc_api\venv\Scripts\python D:\..\project\ipc_api\main.py
 sudo /home/ipc/python/project1/venv/bin/python3.10 /home/ipc/python/project1/main.py
-
+sudo /sources/python/api_python_new/venv/bin/python3.10 /sources/python/api_python_new/main.py
 <!-- install all package python -->
 pip install -r requirements.txt
 pip3 install -r requirements.txt  --no-cache-dir
@@ -600,3 +603,16 @@ add following lines to ~/.config/pip/pip.conf:
 break-system-packages = true
 or pip install -r requirements.txt --break-system-packages
 <!--  -->
+
+ async def get_devices(session: AsyncSession, query):
+        try:
+            <!-- query = select(Devices) -->
+            result = await session.execute(text(query))
+            devices = result.scalars().all()
+            return [DeviceModel(**device.__dict__) for device in devices]
+        except Exception as e:
+            logging.error(e)
+            raise e
+        finally:
+            logger.info("Closing session")
+            await session.close()

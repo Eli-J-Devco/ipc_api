@@ -338,6 +338,7 @@ class apiGateway:
             topic=f"{self.MQTT_TOPIC}/Devices/All"
             db=get_db()
             result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
+            db.close()
             for item in result_project:
                 
                 # rated_power=None

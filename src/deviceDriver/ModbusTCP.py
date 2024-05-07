@@ -671,11 +671,11 @@ def func_check_data_mybatis(data,item,object_name):
 def func_mqtt_public(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
-        client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
-                            "%Y%m%d_%H%M%S"
-                        )
+        # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+        #                     "%Y%m%d_%H%M%S"
+        #                 )
         publish.single(topic, payload, hostname=host,
-                       client_id=str(client_id),
+                    #    client_id=str(client_id),
                        retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
@@ -1249,11 +1249,11 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
     except KeyError as err:
         print('KeyError device : ', err)
     except Exception as err:
-        print('Exception device : ', type(err).__name__)
+        print('Exception device : ', err)
         
         # raise Exception("Runtime Error!!!") 
-    finally:
-        print ("--Finally--")      
+    # finally:
+    #     print ("--Finally--")      
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -1815,14 +1815,14 @@ async def main():
                                                         MQTT_USERNAME_LIST,
                                                         MQTT_PASSWORD_LIST
                                                         )))
-    # tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
-    #                                                 MQTT_BROKER,
-    #                                                 MQTT_PORT,
-    #                                                 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
-    #                                                 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
-    #                                                 MQTT_USERNAME,
-    #                                                 MQTT_PASSWORD
-    #                                                 )))
+    tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
+                                                    MQTT_BROKER,
+                                                    MQTT_PORT,
+                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
+                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
+                                                    MQTT_USERNAME,
+                                                    MQTT_PASSWORD
+                                                    )))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
