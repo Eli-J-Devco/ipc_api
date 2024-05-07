@@ -498,8 +498,9 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                     "mqtt_username_cloud":mqtt_username_cloud,
                     "mqtt_password_cloud" :mqtt_password_cloud,
                     "status" : status,
-                    "time_stamp" : current_time,
-                    "status_mqtt":200
+                    "mqtt": [
+                    {"time_stamp" : current_time},
+                    {"status":200}]
                     }
         
             push_data_to_mqtt(mqtt_host,
