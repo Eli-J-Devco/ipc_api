@@ -178,15 +178,23 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         # Disk Information
         total_disk_size = 0
         total_disk_used = 0
-        for partition in psutil.disk_partitions():
+        disk_partitions = psutil.disk_partitions()
+        for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
+                
+                system_info["DiskInformation"][partition.mountpoint] = {
+                    "TotalSize": get_readable_size(partition_usage.total),
+                    "Used": get_readable_size(partition_usage.used),
+                    "Free": get_readable_size(partition_usage.free),
+                    "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
+                }
             except PermissionError:
                 continue
-        
-        system_info["DiskInformation"] = {
+
+        system_info["DiskInformation"]["Total"] = {
             "TotalSize": get_readable_size(total_disk_size),
             "Used": get_readable_size(total_disk_used),
             "Free": get_readable_size(total_disk_size - total_disk_used),
