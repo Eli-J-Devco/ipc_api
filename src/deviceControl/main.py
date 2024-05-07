@@ -186,12 +186,16 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
-                
+
+                # Tạo một key duy nhất dựa trên thông tin của phân vùng
+                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+
                 # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
-                if partition.mountpoint in unique_partitions:
+                if partition_key in unique_partitions:
                     continue
-                
-                unique_partitions[partition.mountpoint] = {
+
+                unique_partitions[partition_key] = {
+                    "MountPoint": partition.mountpoint,
                     "TotalSize": get_readable_size(partition_usage.total),
                     "Used": get_readable_size(partition_usage.used),
                     "Free": get_readable_size(partition_usage.free),
@@ -200,7 +204,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             except PermissionError:
                 continue
 
-        system_info["DiskInformation"] = unique_partitions
+        system_info["DiskInformation"] = list(unique_partitions.values())
 
         system_info["DiskInformation"]["Total"] = {
             "TotalSize": get_readable_size(total_disk_size),
