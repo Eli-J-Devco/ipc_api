@@ -35,7 +35,7 @@ class Point(BaseModel):
 class DeviceModel(BaseModel):
     id: int
     table_name: str
-    view_table: str
+    view_table: Optional[str] = None
     id_template: int
 
     points: Optional[list[Point]] = None

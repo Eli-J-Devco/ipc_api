@@ -16,7 +16,9 @@ def setup_logging(default_path='config.yaml',
     if not log_path:
         log_path = pathlib.Path(__file__).parent.absolute()
     if not file_name:
-        file_name = datetime.now().strftime("%Y%m%d") + ".log"
+        file_name = ""
+    now = datetime.now().strftime("%Y%m%d")
+    file_name = f"{now}_{file_name}.log"
 
     path = pathlib.Path(__file__).parent.absolute()
     path = os.path.join(path, default_path)
@@ -44,3 +46,5 @@ def setup_logging(default_path='config.yaml',
         logging.basicConfig(level=default_level)
         coloredlogs.install(level=default_level)
         print('Failed to load configuration file. Using default configs')
+
+    return logging.getLogger()

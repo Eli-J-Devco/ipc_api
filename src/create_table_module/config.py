@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+from sqlalchemy import MetaData
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -32,7 +33,7 @@ class OrmProvider:
         self.Base = Base
         self.config = db_config.get_config()
         self.engine = create_async_engine(self.config)
-        self.session = async_sessionmaker(self.engine)
+        self.session = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def create_all(self):
         async with self.engine.begin() as conn:
@@ -41,6 +42,10 @@ class OrmProvider:
     async def drop_all(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(self.Base.metadata.drop_all)
+
+    async def reflect_table(self):
+        async with self.engine.begin() as conn:
+            await conn.run_sync(self.Base.metadata.reflect)
 
     async def get_db(self) -> AsyncSession:
         db = self.session()

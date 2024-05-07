@@ -1,115 +1,58 @@
+import asyncio
+import base64
+import json
 import logging
 import time
 from abc import abstractmethod
+import mqttools as mqtt
+from mqttools import Message
 
-import paho.mqtt.client as mqtt
+from .model import MessageModel
+
+logger = logging.getLogger(__name__)
 
 
-class MQTTWorker:
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 username: str,
-                 password: str,
-                 client_id: str,
-                 topic: str,
-                 qos: int = 0):
-        self.host = host
-        self.port = port
-        self.username = username
-        self.password = password
-        self.client_id = client_id
-        self.topic = topic
-        self.qos = qos
-        self.client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-                                  client_id=client_id,)
-        self.client.username_pw_set(username, password)
-
-    def connect(self):
-        logging.info(f"Connecting to {self.host}:{self.port}")
-        self.client.user_data_set([])
-        self.client.connect(self.host, self.port, 300)
-        self.client.loop_start()
-
-    def disconnect(self):
-        logging.info(f"Disconnecting from {self.host}:{self.port}")
-        self.client.loop_stop()
-        self.client.disconnect()
-
-    def __del__(self):
-        self.disconnect()
+class MQTTWorker(mqtt.Client):
+    pass
 
 
 class MQTTPublisher(MQTTWorker):
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 username: str,
-                 password: str,
-                 client_id: str,
-                 topic: str,
-                 qos: int = 0):
-        super().__init__(host, port, username, password, client_id, topic, qos)
-        self.client.on_publish = self.on_publish
-
-    def on_publish(self, client, userdata, mid, reason_code, properties):
+    def on_publish(self, flags, payload):
         try:
-            logging.info(f"Message published to {self.topic} with mid {mid}")
+            logger.info(f"Message published to {self._subscriptions} with {payload}")
         except ValueError:
             pass
 
-    def publish(self, message):
-        logging.info(f"Publishing message to {self.topic} - {message}")
-        self.client.publish(self.topic, message, qos=self.qos)
+    def send(self, topic: str, message: bytes):
+        logger.info(f"Publishing message to {topic} - {message}")
+        self.publish(Message(topic=topic, message=message))
 
 
 class MQTTSubscriber(MQTTWorker):
-    def __init__(self,
-                 host: str,
-                 port: int,
-                 username: str,
-                 password: str,
-                 client_id: str,
-                 topic: str,
-                 qos: int = 0):
-        super().__init__(host, port, username, password, client_id, topic, qos)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.on_subscribe = self.on_subscribe
-        self.client.on_unsubscribe = self.on_unsubscribe
+    async def on_message(self, message: Message):
+        await self._messages.put((message.topic,
+                                  message.message,
+                                  message.retain,
+                                  message.response_topic))
 
-    def on_connect(self, client, userdata, flags, reason_code, properties):
-        logging.info("Connected with result code "+str(reason_code))
-        logging.info(f"Subscribing to {self.topic} with qos {self.qos}")
-        client.subscribe(self.topic, qos=self.qos)
+    @staticmethod
+    async def handle_error(error,
+                           data: MessageModel,
+                           retry_publisher: MQTTPublisher,
+                           dead_letter_publisher: MQTTPublisher):
+        retry = data.metadata.retry
+        topic = data.topic
+        data.error = str(error)
+        if retry > 0:
+            logging.info(f"Retrying message: {retry}")
+            data.metadata.retry = retry - 1
+            await retry_publisher.start()
+            retry_publisher.send(topic.target, base64.b64encode(json.dumps(data.dict()).encode("ascii")))
+            await retry_publisher.stop()
+            return
 
-    def on_message(self, client, userdata, message):
-        logging.info(f"Received message from {message.topic}")
-        self.process_message(message.payload, userdata)
-
-    def on_subscribe(self, client, userdata, mid, reason_code_list, properties):
-        logging.info(f"Subscribed to {self.topic}")
-
-        if len(reason_code_list) == 0:
-            logging.info(f"Broker granted the following QoS: {self.qos}")
-
-        if reason_code_list[0].is_failure:
-            logging.info(f"Broker rejected you subscription: {reason_code_list[0]}")
-        else:
-            logging.info(f"Broker granted the following QoS: {reason_code_list[0].value}")
-
-    def on_unsubscribe(self, client, userdata, mid, reason_code_list, properties):
-        logging.info(f"Unsubscribed from {self.topic}")
-        self.disconnect()
-
-    def subscribe(self):
-        logging.info(f"Connecting to {self.host}:{self.port}")
-        self.client.loop_forever(300)
-
-    def unsubscribe(self):
-        logging.info(f"Unsubscribing from {self.topic}")
-        self.client.unsubscribe(self.topic)
-
-    @abstractmethod
-    def process_message(self, message, userdata):
-        pass
+        logging.error(f"Dead letter message: {retry}")
+        await dead_letter_publisher.start()
+        dead_letter_publisher.send(topic.failed,
+                                   base64.b64encode(json.dumps(data.dict()).encode("ascii")))
+        await dead_letter_publisher.stop()
