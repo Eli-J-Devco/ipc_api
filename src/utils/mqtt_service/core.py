@@ -1,18 +1,20 @@
+import asyncio
 import logging
 import time
 from abc import abstractmethod
-
-import paho.mqtt.client as mqtt
+import mqttools as mqtt
+from mqttools import Message
 
 
 class MQTTWorker:
     def __init__(self,
                  host: str,
                  port: int,
-                 username: str,
-                 password: str,
                  client_id: str,
-                 topic: str,
+                 topic: list[str],
+                 username: str = None,
+                 password: str = None,
+                 will_retain: bool = True,
                  qos: int = 0):
         self.host = host
         self.port = port
@@ -21,102 +23,78 @@ class MQTTWorker:
         self.client_id = client_id
         self.topic = topic
         self.qos = qos
-        self.client = mqtt.Client(callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
-                                  client_id=client_id,)
-        self.client.username_pw_set(username, password)
+        self.will_retain = will_retain
+        self.client = mqtt.Client(host=self.host,
+                                  port=self.port,
+                                  client_id=self.client_id,
+                                  username=self.username,
+                                  password=self.password,
+                                  will_retain=self.will_retain,
+                                  will_qos=self.qos,
+                                  response_timeout=60,
+                                  subscriptions=[(topic, self.qos) for topic in self.topic])
 
-    def connect(self):
+    async def connect(self, resume_session=False):
         logging.info(f"Connecting to {self.host}:{self.port}")
-        self.client.user_data_set([])
-        self.client.connect(self.host, self.port, 300)
-        self.client.loop_start()
+        await self.client.start(resume_session=resume_session)
 
-    def disconnect(self):
+    async def disconnect(self):
         logging.info(f"Disconnecting from {self.host}:{self.port}")
-        self.client.loop_stop()
-        self.client.disconnect()
-
-    def __del__(self):
-        self.disconnect()
+        await self.client.stop()
 
 
 class MQTTPublisher(MQTTWorker):
     def __init__(self,
                  host: str,
                  port: int,
-                 username: str,
-                 password: str,
                  client_id: str,
-                 topic: str,
+                 topic: list[str],
+                 username: str = None,
+                 password: str = None,
+                 will_retain: bool = True,
                  qos: int = 0):
-        super().__init__(host, port, username, password, client_id, topic, qos)
+        super().__init__(host, port, client_id, topic, username, password, will_retain, qos)
         self.client.on_publish = self.on_publish
 
-    def on_publish(self, client, userdata, mid, reason_code, properties):
+    def on_publish(self, flags, payload):
         try:
-            logging.info(f"Message published to {self.topic} with mid {mid}")
+            logging.info(f"Message published to {self.topic} with {payload}")
         except ValueError:
             pass
 
-    def publish(self, message):
+    def publish(self, message: bytes):
         logging.info(f"Publishing message to {self.topic} - {message}")
-        self.client.publish(self.topic, message, qos=self.qos)
+        self.client.publish(Message(topic=self.topic[0], message=message))
 
 
 class MQTTSubscriber(MQTTWorker):
     def __init__(self,
                  host: str,
                  port: int,
-                 username: str,
-                 password: str,
                  client_id: str,
-                 topic: str,
+                 topic: list[str],
+                 username: str = None,
+                 password: str = None,
+                 will_retain: bool = True,
                  qos: int = 0):
-        super().__init__(host, port, username, password, client_id, topic, qos)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.on_subscribe = self.on_subscribe
-        self.client.on_unsubscribe = self.on_unsubscribe
+        super().__init__(host, port, client_id, topic, username, password, will_retain, qos)
 
-    def on_connect(self, client, userdata, flags, reason_code, properties):
-        logging.info("Connected with result code "+str(reason_code))
-        logging.info(f"Subscribing to {self.topic} with qos {self.qos}")
-        try:
-            self.client.subscribe(self.topic, qos=self.qos)
-        except ValueError:
-            pass
+    async def on_message(self, topic, message, retain, response_topic):
+        await self.client.messages.put((topic, message, retain, response_topic))
 
-    def on_message(self, client, userdata, message):
-        logging.info(f"Received message from {message.topic}")
-        self.process_message(message.payload, userdata)
+    async def get_message(self):
+        while True:
+            logging.info(f"Waiting for message from {self.topic}")
+            topic, message, retain, response_topic = await self.client.messages.get()
 
-    def on_subscribe(self, client, userdata, mid, reason_code_list, properties):
-        logging.info(f"Subscribed to {self.topic}")
+            if message is None:
+                logging.info(f"Received empty message from {topic}")
+                time.sleep(3)
+                continue
 
-        if len(reason_code_list) == 0:
-            logging.info(f"Broker granted the following QoS: {self.qos}")
-
-        if reason_code_list[0].is_failure:
-            logging.info(f"Broker rejected you subscription: {reason_code_list[0]}")
-        else:
-            logging.info(f"Broker granted the following QoS: {reason_code_list[0].value}")
-
-    def on_unsubscribe(self, client, userdata, mid, reason_code_list, properties):
-        logging.info(f"Unsubscribed from {self.topic}")
-        self.disconnect()
-
-    def subscribe(self):
-        logging.info(f"Connecting to {self.host}:{self.port}")
-        try:
-            self.client.loop_forever(300)
-        except KeyboardInterrupt:
-            self.unsubscribe()
-            self.disconnect()
-
-    def unsubscribe(self):
-        logging.info(f"Unsubscribing from {self.topic}")
-        self.client.unsubscribe(self.topic)
+            logging.info(f"Received message from {topic}")
+            self.process_message(message)
 
     @abstractmethod
-    def process_message(self, message, userdata):
+    def process_message(self, message: Message):
         pass

@@ -5,12 +5,13 @@ class Publisher(MQTTPublisher):
     def __init__(self,
                  host: str,
                  port: int,
-                 username: str,
-                 password: str,
                  client_id: str,
-                 topic: str,
+                 topic: list[str],
+                 username: str = None,
+                 password: str = None,
+                 will_retain: bool = True,
                  qos: int = 0):
-        super().__init__(host, port, username, password, client_id, topic, qos)
+        super().__init__(host, port, client_id, topic, username, password, will_retain, qos)
 
     def publish(self, message):
         super().publish(message)
