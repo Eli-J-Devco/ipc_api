@@ -1,7 +1,7 @@
 from .mqtt_service.core import MQTTPublisher
 
 
-class Publisher(MQTTPublisher):
+class Publisher:
     def __init__(self,
                  host: str,
                  port: int,
@@ -11,8 +11,11 @@ class Publisher(MQTTPublisher):
                  password: str = None,
                  will_retain: bool = True,
                  qos: int = 0):
-        super().__init__(host, port, client_id, topic, username, password, will_retain, qos)
-
-    def publish(self, message):
-        super().publish(message)
-
+        self.client = MQTTPublisher(host=host,
+                                    port=port,
+                                    client_id=client_id,
+                                    subscriptions=topic,
+                                    username=username,
+                                    password=password,
+                                    will_retain=will_retain,
+                                    will_qos=qos)

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import datetime
 import json
@@ -23,13 +24,10 @@ class DevicesService:
         self.sender = Publisher(
             host="localhost",
             port=1883,
-            username="",
-            password="",
-            topic=f"devices/create",
+            topic=[f"devices/create"],
             client_id=f"publisher-creating-{uuid.uuid4()}",
             qos=2
-        )
-        self.sender.connect()
+        ).client
 
     @async_db_request_handler
     async def get_devices(self, session: AsyncSession):
@@ -106,5 +104,6 @@ class DevicesService:
             "type": "devices/create",
             "devices": devices
         }
-        self.sender.publish(base64.b64encode(json.dumps(creating_msg).encode("ascii")))
+        await self.sender.start()
+        self.sender.send("devices/create", base64.b64encode(json.dumps(creating_msg).encode("ascii")))
         return await self.get_devices(session)
