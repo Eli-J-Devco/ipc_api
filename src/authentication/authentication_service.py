@@ -1,3 +1,5 @@
+import logging
+
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable, Depends
 
@@ -28,23 +30,30 @@ class AuthenticationService:
     @async_db_request_handler
     async def login(self, user_credential: OAuth2PasswordRequestForm, session: AsyncSession):
         if not user_credential.username or not user_credential.password:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")
 
         user_provider = Authentication(username=user_credential.username, password=user_credential.password)
         decrypted_user_credential = self.authentication.decrypt_user_credential(user_provider)
+
+        if isinstance(decrypted_user_credential, HTTPException):
+            return decrypted_user_credential
+
+        if not decrypted_user_credential.username or not decrypted_user_credential.password:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")
+
         query = select(User).where(User.email == decrypted_user_credential.username)
         result = await session.execute(query)
 
         if result is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         user = result.scalars().first()
         if not (self.authentication
                 .verify_password(decrypted_user_credential.password, user.password)):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
+            return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")
 
         if not user.status == 1:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
+            return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
 
         roles = await UserService(RoleService()).get_user_roles(user.id, session)
         permissions = []

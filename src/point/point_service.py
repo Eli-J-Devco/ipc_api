@@ -10,7 +10,7 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_filter import DeletePointFilter, AddPointFilter
-from .point_model import PointBase, PointOutput
+from .point_model import PointBase, PointOutput, PointShort
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 
 from ..point_config.point_config_filter import (PointType)
@@ -92,7 +92,21 @@ class PointService:
                  .where(PointEntity.status == 1))
         result = await session.execute(query)
         points = result.scalars().all()
-        return jsonable_encoder(points)
+        return jsonable_encoder(points)@async_db_request_handler
+
+    @async_db_request_handler
+    async def get_points_short(self, id_template: int, session: AsyncSession):
+        query = (select(PointEntity)
+                 .where(PointEntity.id_template == id_template)
+                 .where(PointEntity.status == 1))
+        result = await session.execute(query)
+        points = result.scalars().all()
+
+        output = []
+        for point in points:
+            output.append(PointShort(**point.__dict__))
+
+        return output
 
     @async_db_request_handler
     async def update_point(self, id_point: int, session: AsyncSession, point: PointBase):

@@ -6,6 +6,7 @@ from jose import jwt
 from pydantic import BaseModel
 
 from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, status
 
 from ..security import SecurityRepository
 from ..utils.utils import get_timedelta
@@ -64,7 +65,7 @@ class AuthenticationConfig:
             password = (decrypt(user.password, self.get_password_secret_key().encode())).decode()
             return Authentication(username=username, password=password)
         except Exception as e:
-            raise Exception("Invalid Credentials")
+            return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
     def create_refresh_token(self, data: dict):
         to_encode = data.copy()

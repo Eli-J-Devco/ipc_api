@@ -1,4 +1,6 @@
-from sqlalchemy import Integer, DOUBLE, String, ForeignKey
+import datetime
+
+from sqlalchemy import Integer, DOUBLE, String, ForeignKey, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..config import config
@@ -38,27 +40,27 @@ class Devices(config.Base):
     rated_power_custom: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     min_watt_in_percent: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     compensate_watt_factor: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    battery_mode: Mapped[bool] = mapped_column(Integer, nullable=True)
+    battery_mode: Mapped[int] = mapped_column(Integer, nullable=True)
     battery_normal_watt: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_reduce_watt: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_threshold_off_limit_in_v: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_threshold_reduce_limit_in_v: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_threshold_normal_limit_in_v: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     battery_threshold_on_limit_in_v: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    battery_priority: Mapped[bool] = mapped_column(Integer, nullable=True)
+    battery_priority: Mapped[int] = mapped_column(Integer, nullable=True)
 
     point: Mapped[int] = mapped_column(Integer, nullable=True)
     pv: Mapped[int] = mapped_column(Integer, nullable=True)
     mode: Mapped[int] = mapped_column(Integer, nullable=True)
-    model: Mapped[str] = mapped_column(String, nullable=True)
-    function: Mapped[str] = mapped_column(String, nullable=True)
+    model: Mapped[int] = mapped_column(Integer, nullable=True)
+    function: Mapped[int] = mapped_column(Integer, nullable=True)
     point_p: Mapped[int] = mapped_column(Integer,
                                          ForeignKey("point_list.id",
                                                     ondelete="SET NULL",
                                                     onupdate="SET NULL"),
                                          nullable=True)
     value_p: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    send_p: Mapped[bool] = mapped_column(Integer, nullable=True)
+    send_p: Mapped[int] = mapped_column(Integer, nullable=True)
 
     point_q: Mapped[int] = mapped_column(Integer,
                                          ForeignKey("point_list.id",
@@ -66,7 +68,7 @@ class Devices(config.Base):
                                                     onupdate="SET NULL"),
                                          nullable=True)
     value_q: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    send_q: Mapped[bool] = mapped_column(Integer, nullable=True)
+    send_q: Mapped[int] = mapped_column(Integer, nullable=True)
 
     point_pf: Mapped[int] = mapped_column(Integer,
                                           ForeignKey("point_list.id",
@@ -74,13 +76,13 @@ class Devices(config.Base):
                                                      onupdate="SET NULL"),
                                           nullable=True)
     value_pf: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    send_pf: Mapped[bool] = mapped_column(Integer, nullable=True)
+    send_pf: Mapped[int] = mapped_column(Integer, nullable=True)
 
     max: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    enable_poweroff: Mapped[bool] = mapped_column(Integer, nullable=True)
-    inverter_shutdown: Mapped[bool] = mapped_column(Integer, nullable=True)
-    status: Mapped[bool] = mapped_column(Integer, nullable=True)
+    enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
+    inverter_shutdown: Mapped[datetime.datetime] = mapped_column(Date, nullable=True)
+    status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     communication = relationship("Rs485", foreign_keys=[id_communication])
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])

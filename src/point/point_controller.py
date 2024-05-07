@@ -25,12 +25,18 @@ class PointController:
                         user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.point_service.get_points)(id_template, session)
 
+    @Post("/get/short/")
+    async def get_point_short(self,
+                              id_template: int,
+                              session: AsyncSession = Depends(config.get_db),
+                              user: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.point_service.get_points_short)(id_template, session)
+
     @Post("/add/")
     async def add_point(self,
                         point: AddPointFilter,
                         session: AsyncSession = Depends(config.get_db),
                         user: Authentication = Depends(get_current_user)):
-
         return await (ServiceWrapper
                       .async_wrapper(self.point_service
                                      .add_point)(session,

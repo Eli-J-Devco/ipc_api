@@ -1,25 +1,35 @@
+import base64
+import datetime
+import json
+import uuid
+
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .devices_model import Devices
+from .devices_filter import AddDevicesFilter, IncreaseMode
+from .devices_model import Devices, DeviceFull
 from .devices_entity import Devices as DevicesEntity, DeviceType as DeviceTypeEntity, DeviceGroup as DeviceGroupEntity
+
+from ..utils.publisher import Publisher
 
 
 @Injectable
 class DevicesService:
-
-    @async_db_request_handler
-    async def add_devices(self, devices: Devices, session: AsyncSession):
-        new_devices = DevicesEntity(
-            **devices.dict()
+    def __init__(self):
+        self.sender = Publisher(
+            host="localhost",
+            port=1883,
+            username="",
+            password="",
+            topic=f"devices/create",
+            client_id=f"publisher-creating-{uuid.uuid4()}",
+            qos=2
         )
-        session.add(new_devices)
-        await session.commit()
-        return new_devices.id
+        self.sender.connect()
 
     @async_db_request_handler
     async def get_devices(self, session: AsyncSession):
@@ -56,3 +66,45 @@ class DevicesService:
         query = select(DeviceGroupEntity)
         result = await session.execute(query)
         return result.scalars().all()
+
+    @async_db_request_handler
+    async def add_devices(self, body: AddDevicesFilter, session: AsyncSession):
+        devices = []
+        for _ in range(body.num_of_devices):
+            new_devices = DevicesEntity(
+                **DeviceFull(
+                    name=body.name,
+                    id_device_type=body.id_device_type,
+                    id_template=body.id_template,
+                    id_communication=body.id_communication,
+                    device_virtual=body.device_virtual,
+                    rtu_bus_address=body.rtu_bus_address + (_ if body.mode == IncreaseMode.RTU else 0),
+                    tcp_gateway_ip=body.tcp_gateway_ip,
+                    tcp_gateway_port=body.tcp_gateway_port + (_ if body.mode == IncreaseMode.TCP else 0),
+                ).dict(exclude_none=True)
+            )
+            session.add(new_devices)
+            await session.flush()
+
+            tg = datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y%m%d"
+            )
+
+            query = (update(DevicesEntity)
+                     .where(DevicesEntity.id == new_devices.id)
+                     .values(table_name=f"dev_{new_devices.id}",
+                             view_table=f"dev_{new_devices.id}_{tg}"))
+
+            await session.execute(query)
+            devices.append(new_devices.id)
+        await session.commit()
+
+        creating_msg = {
+            "metadata": {
+                "retry": 3
+            },
+            "type": "devices/create",
+            "devices": devices
+        }
+        self.sender.publish(base64.b64encode(json.dumps(creating_msg).encode("ascii")))
+        return await self.get_devices(session)

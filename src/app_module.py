@@ -19,7 +19,7 @@ from .upload_channel.upload_channel_module import UploadChannelModule
 from .point_config.point_config_module import PointConfigModule
 from .point_mppt.point_mppt_module import PointMpptModule
 from .point_control.point_control_module import PointControlModule
-from src.register_block.register_block_module import RegisterBlockModule
+from .register_block.register_block_module import RegisterBlockModule
 
 
 @Module(

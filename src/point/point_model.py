@@ -6,11 +6,14 @@ from pydantic.fields import Field
 from ..project_setup.project_setup_model import ConfigInformationShort
 
 
-class PointBase(BaseModel):
+class PointShort(BaseModel):
+    id_pointkey: Optional[str] = None
+
+
+class PointBase(PointShort):
     id: Optional[int] = None
     parent: Optional[int] = None
     id_pointclass_type: Optional[int] = 1
-    id_pointkey: Optional[str] = None
     id_point_list_type: Optional[int] = None
     name: Optional[str] = None
     nameedit: Optional[bool] = None
