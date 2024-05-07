@@ -236,7 +236,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             mqtt_password,
                             system_info)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe get_cpu_information: '{err}'")
 # Describe pud_confirm_mode_control 
 # 	 * @description pud_confirm_mode_control
 # 	 * @author bnguyen
@@ -274,7 +274,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
             ModeSysTemp = None
             flag = 1 
         except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+            print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
     else :
         pass
 # Describe process_update_mode_for_device_for_systemp 
@@ -340,7 +340,7 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
             pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_update_mode_for_device_for_systemp: '{err}'")
 # Describe pud_feedback_project_setup 
 # 	 * @description pud_feedback_project_setup
 # 	 * @author bnguyen
@@ -524,7 +524,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                     mqtt_password,
                     data_send)
         except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+            print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else :
         pass  
         
@@ -596,7 +596,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                                 mqtt_password,
                                 data_send)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe insert_information_project_setup: '{err}'")
 # Describe pud_information_project_setup_when_request 
 # 	 * @description pud_information_project_setup_when_request
 # 	 * @author bnguyen
@@ -647,7 +647,7 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
         else:
             pass
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'") 
+        print(f"Error MQTT subscribe insert_information_project_setup_when_request: '{err}'") 
 # Describe check_inverter_device 
 # 	 * @description check_inverter_device
 # 	 * @author bnguyen
@@ -1254,7 +1254,7 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                 pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
@@ -1286,7 +1286,7 @@ async def process_getfirst_zeroexport_powerlimit():
             pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")   
+        print(f"Error MQTT subscribe process_getfirst_zeroexport_powerlimit: '{err}'")   
 # Describe process_zero_export_power_limit 
 # 	 * @description process_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1366,7 +1366,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
             print("result_topic6",result_topic6)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
