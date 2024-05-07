@@ -102,18 +102,12 @@ Mode = Limit ->
 # 	 * @param {bytes,suffix}
 # 	 * @return (size)
 # 	 */  
-def get_size(bytes, suffix="B"):
-    """
-    Scale bytes to its proper format
-    e.g:
-        1253656 => '1.20MB'
-        1253656678 => '1.17GB'
-    """
-    factor = 1024
-    for unit in ["", "K", "M", "G", "T", "P"]:
-        if bytes < factor:
-            return f"{bytes:.2f}{unit}{suffix}"
-        bytes /= factor
+def get_readable_size(size_bytes):
+    for unit in ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]:
+        if abs(size_bytes) < 1024.0:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024.0
+    return f"{size_bytes:.2f} YB"
 # Describe get_cpu_information 
 # 	 * @description get cpu information
 # 	 * @author bnguyen
@@ -169,15 +163,15 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
 
         # Memory Information
         svmem = psutil.virtual_memory()
-        system_info["MemoryInformation"]["Total"] = get_size(svmem.total)
-        system_info["MemoryInformation"]["Available"] = get_size(svmem.available)
-        system_info["MemoryInformation"]["Used"] = get_size(svmem.used)
+        system_info["MemoryInformation"]["Total"] = get_readable_size(svmem.total)
+        system_info["MemoryInformation"]["Available"] = get_readable_size(svmem.available)
+        system_info["MemoryInformation"]["Used"] = get_readable_size(svmem.used)
         system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent}%"
         swap = psutil.swap_memory()
         system_info["MemoryInformation"]["SWAP"] = {
-            "Total": get_size(swap.total),
-            "Free": get_size(swap.free),
-            "Used": get_size(swap.used),
+            "Total": get_readable_size(swap.total),
+            "Free": get_readable_size(swap.free),
+            "Used": get_readable_size(swap.used),
             "Percentage": f"{swap.percent}%"
         }
 
@@ -193,9 +187,9 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                 continue
         
         system_info["DiskInformation"] = {
-            "TotalSize": get_size(total_disk_size),
-            "Used": get_size(total_disk_used),
-            "Free": get_size(total_disk_size - total_disk_used),
+            "TotalSize": get_readable_size(total_disk_size),
+            "Used": get_readable_size(total_disk_used),
+            "Free": get_readable_size(total_disk_size - total_disk_used),
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
