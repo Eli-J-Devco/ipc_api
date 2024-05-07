@@ -136,7 +136,10 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "CPUInfo": {},
             "MemoryInformation": {},
             "DiskInformation": {},
-            "NetworkInformation": {}
+            "NetworkInformation": {},
+            "Status": {},
+            "NetworkSpeed": {},
+            "DiskIO": {}
         }
         
         # System Information
@@ -184,13 +187,9 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
-                total_disk_size += partition_usage.total
-                total_disk_used += partition_usage.used
 
-                # Tạo một key duy nhất dựa trên thông tin của phân vùng
-                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+                partition_key = f"{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
 
-                # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
                 if partition_key in unique_partitions:
                     continue
 
@@ -201,17 +200,20 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                     "Free": get_readable_size(partition_usage.free),
                     "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
                 }
+
+                total_disk_size += partition_usage.total
+                total_disk_used += partition_usage.used
             except PermissionError:
                 continue
 
-        system_info["DiskInformation"] = list(unique_partitions.values())
-
-        system_info["DiskInformation"]["Total"] = {
+        total_disk_info = {
             "TotalSize": get_readable_size(total_disk_size),
             "Used": get_readable_size(total_disk_used),
             "Free": get_readable_size(total_disk_size - total_disk_used),
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
+
+        system_info["DiskInformation"] = [total_disk_info]
 
         # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
@@ -229,6 +231,27 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                         "BroadcastMAC": address.broadcast
                     }
         
+        # Status Information
+        system_info["Status"]["Status"] = "Running smoothly"
+        
+        # Network Speed Information
+        net_io_counters_prev = system_info.get("NetworkSpeed", {})
+        net_io_counters = psutil.net_io_counters()
+        current_time = datetime.datetime.now()
+
+        system_info["NetworkSpeed"]["Upstream"] = get_readable_size(net_io_counters.bytes_sent - net_io_counters_prev.get("TotalSent", 0))
+        system_info["NetworkSpeed"]["Downstream"] = get_readable_size(net_io_counters.bytes_recv - net_io_counters_prev.get("TotalReceived", 0))
+        system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
+        system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
+        system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
+
+        # Disk I/O Information
+        disk_io_counters = psutil.disk_io_counters()
+        system_info["DiskIO"]["ReadBytes"] = get_readable_size(disk_io_counters.read_bytes)
+        system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
+        system_info["DiskIO"]["ReadCount"] = disk_io_counters.read_count
+        system_info["DiskIO"]["WriteCount"] = disk_io_counters.write_count
+        
         push_data_to_mqtt(mqtt_host,
                             mqtt_port,
                             topicPublic,
@@ -236,7 +259,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             mqtt_password,
                             system_info)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe get_cpu_information: '{err}'")
 # Describe pud_confirm_mode_control 
 # 	 * @description pud_confirm_mode_control
 # 	 * @author bnguyen
@@ -274,7 +297,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
             ModeSysTemp = None
             flag = 1 
         except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+            print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
     else :
         pass
 # Describe process_update_mode_for_device_for_systemp 
@@ -340,7 +363,7 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
             pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_update_mode_for_device_for_systemp: '{err}'")
 # Describe pud_feedback_project_setup 
 # 	 * @description pud_feedback_project_setup
 # 	 * @author bnguyen
@@ -524,7 +547,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                     mqtt_password,
                     data_send)
         except Exception as err:
-            print(f"Error MQTT subscribe: '{err}'")
+            print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else :
         pass  
         
@@ -596,7 +619,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                                 mqtt_password,
                                 data_send)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe insert_information_project_setup: '{err}'")
 # Describe pud_information_project_setup_when_request 
 # 	 * @description pud_information_project_setup_when_request
 # 	 * @author bnguyen
@@ -647,7 +670,7 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
         else:
             pass
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'") 
+        print(f"Error MQTT subscribe insert_information_project_setup_when_request: '{err}'") 
 # Describe check_inverter_device 
 # 	 * @description check_inverter_device
 # 	 * @author bnguyen
@@ -1254,7 +1277,7 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                 pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
@@ -1286,7 +1309,7 @@ async def process_getfirst_zeroexport_powerlimit():
             pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")   
+        print(f"Error MQTT subscribe process_getfirst_zeroexport_powerlimit: '{err}'")   
 # Describe process_zero_export_power_limit 
 # 	 * @description process_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1366,7 +1389,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
             print("result_topic6",result_topic6)
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
