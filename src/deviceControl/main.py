@@ -179,13 +179,23 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         total_disk_size = 0
         total_disk_used = 0
         disk_partitions = psutil.disk_partitions()
+        unique_partitions = {}
+
         for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
-                
-                system_info["DiskInformation"][partition.mountpoint] = {
+
+                # Tạo một key duy nhất dựa trên thông tin của phân vùng
+                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+
+                # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
+                if partition_key in unique_partitions:
+                    continue
+
+                unique_partitions[partition_key] = {
+                    "MountPoint": partition.mountpoint,
                     "TotalSize": get_readable_size(partition_usage.total),
                     "Used": get_readable_size(partition_usage.used),
                     "Free": get_readable_size(partition_usage.free),
@@ -193,6 +203,8 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                 }
             except PermissionError:
                 continue
+
+        system_info["DiskInformation"] = list(unique_partitions.values())
 
         system_info["DiskInformation"]["Total"] = {
             "TotalSize": get_readable_size(total_disk_size),
@@ -1008,6 +1020,7 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
     p_for_each_device = 0
     total_p_inv_prodution = 0
     power_max_convert = 0
+    delta = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
