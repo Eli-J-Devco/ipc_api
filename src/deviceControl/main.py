@@ -188,7 +188,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                 total_disk_used += partition_usage.used
 
                 # Tạo một key duy nhất dựa trên thông tin của phân vùng
-                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+                partition_key = f"{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
 
                 # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
                 if partition_key in unique_partitions:
