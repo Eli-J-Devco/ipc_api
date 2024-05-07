@@ -1020,6 +1020,7 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
     p_for_each_device = 0
     total_p_inv_prodution = 0
     power_max_convert = 0
+    delta = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
