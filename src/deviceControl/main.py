@@ -560,8 +560,20 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                                             data_send)
                 except Exception as err:
                     print(f"Error updating database: '{err}'")
+                    
         else:
             print("result_set is empty, skipping update")
+            current_time = get_utc()
+            data_send = {
+                "status": 200,
+                "time_stamp": current_time
+            }
+            push_data_to_mqtt(mqtt_host,
+                                mqtt_port,
+                                topic,
+                                mqtt_username,
+                                mqtt_password,
+                                data_send)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 # Describe pud_information_project_setup_when_request 
