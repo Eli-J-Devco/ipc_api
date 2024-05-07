@@ -102,18 +102,12 @@ Mode = Limit ->
 # 	 * @param {bytes,suffix}
 # 	 * @return (size)
 # 	 */  
-def get_size(bytes, suffix="B"):
-    """
-    Scale bytes to its proper format
-    e.g:
-        1253656 => '1.20MB'
-        1253656678 => '1.17GB'
-    """
-    factor = 1024
-    for unit in ["", "K", "M", "G", "T", "P"]:
-        if bytes < factor:
-            return f"{bytes:.2f}{unit}{suffix}"
-        bytes /= factor
+def get_readable_size(size_bytes):
+    for unit in ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]:
+        if abs(size_bytes) < 1024.0:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024.0
+    return f"{size_bytes:.2f} YB"
 # Describe get_cpu_information 
 # 	 * @description get cpu information
 # 	 * @author bnguyen
@@ -169,33 +163,53 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
 
         # Memory Information
         svmem = psutil.virtual_memory()
-        system_info["MemoryInformation"]["Total"] = get_size(svmem.total)
-        system_info["MemoryInformation"]["Available"] = get_size(svmem.available)
-        system_info["MemoryInformation"]["Used"] = get_size(svmem.used)
+        system_info["MemoryInformation"]["Total"] = get_readable_size(svmem.total)
+        system_info["MemoryInformation"]["Available"] = get_readable_size(svmem.available)
+        system_info["MemoryInformation"]["Used"] = get_readable_size(svmem.used)
         system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent}%"
         swap = psutil.swap_memory()
         system_info["MemoryInformation"]["SWAP"] = {
-            "Total": get_size(swap.total),
-            "Free": get_size(swap.free),
-            "Used": get_size(swap.used),
+            "Total": get_readable_size(swap.total),
+            "Free": get_readable_size(swap.free),
+            "Used": get_readable_size(swap.used),
             "Percentage": f"{swap.percent}%"
         }
 
         # Disk Information
         total_disk_size = 0
         total_disk_used = 0
-        for partition in psutil.disk_partitions():
+        disk_partitions = psutil.disk_partitions()
+        unique_partitions = {}
+
+        for partition in disk_partitions:
             try:
                 partition_usage = psutil.disk_usage(partition.mountpoint)
                 total_disk_size += partition_usage.total
                 total_disk_used += partition_usage.used
+
+                # Tạo một key duy nhất dựa trên thông tin của phân vùng
+                partition_key = f"{partition.mountpoint}_{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
+
+                # Kiểm tra nếu phân vùng đã có trong từ điển, bỏ qua
+                if partition_key in unique_partitions:
+                    continue
+
+                unique_partitions[partition_key] = {
+                    "MountPoint": partition.mountpoint,
+                    "TotalSize": get_readable_size(partition_usage.total),
+                    "Used": get_readable_size(partition_usage.used),
+                    "Free": get_readable_size(partition_usage.free),
+                    "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
+                }
             except PermissionError:
                 continue
-        
-        system_info["DiskInformation"] = {
-            "TotalSize": get_size(total_disk_size),
-            "Used": get_size(total_disk_used),
-            "Free": get_size(total_disk_size - total_disk_used),
+
+        system_info["DiskInformation"] = list(unique_partitions.values())
+
+        system_info["DiskInformation"]["Total"] = {
+            "TotalSize": get_readable_size(total_disk_size),
+            "Used": get_readable_size(total_disk_used),
+            "Free": get_readable_size(total_disk_size - total_disk_used),
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
@@ -231,6 +245,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
 # 	 * @return ModeSysTemp
 # 	 */ 
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+    print("da vao day pud_confirm_mode_control")
     global ModeSysTemp
     global flag 
     result = []
@@ -239,7 +254,9 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
         query = "SELECT `project_setup`.`mode` FROM `project_setup`"
         result = await MySQL_Select_v1(query) 
         ModeSysTemp = result[0]['mode']
-    
+        
+        print("ModeSysTemp",ModeSysTemp)
+        
     if ModeSysTemp == 0 or ModeSysTemp == 1 or ModeSysTemp == 2:
         try:
             current_time = get_utc()
@@ -267,11 +284,15 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
 # 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
 # 	 * @return ModeSysTemp
 # 	 */ 
-async def process_update_mode_for_device_for_systemp():
-    
+async def process_update_mode_for_device_for_systemp(serial_number_project, host, port, username, password):
+    print("da vao day process_update_mode_for_device_for_systemp")
     global result_topic1
     global bitcheck1
     global ModeSysTemp
+    global MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
+    result_ModeSysTemp = []
+    result_ModeDevice = []
+    topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
             try:
@@ -283,12 +304,35 @@ async def process_update_mode_for_device_for_systemp():
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
 
                     if ModeSysTemp in [0, 1, 2]:
-                        MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
+                        result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
                     else :
                         print("Failed to insert data")
                     if ModeSysTemp in [0, 1]:
-                        MySQL_Insert_v5(querydevice, (ModeSysTemp,))
+                        result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
                     else:
+                        pass
+                        
+                    if result_ModeSysTemp is None or result_ModeDevice is None:
+                        print("da vao loi")
+                        print("result_ModeSysTemp",result_ModeSysTemp)
+                        print("result_ModeDevice",result_ModeDevice)
+                        print("topic",topic)
+                        current_time = get_utc()
+                        data_send = {
+                                "status" : 400,
+                                "confirm_mode": ModeSysTemp,
+                                "time_stamp" :current_time,
+                                }
+                        push_data_to_mqtt(host,
+                                port,
+                                topic ,
+                                username,
+                                password,
+                                data_send)
+                    else:
+                        print("khong vao loi")
+                        print("result_ModeSysTemp",result_ModeSysTemp)
+                        print("result_ModeDevice",result_ModeDevice)
                         pass
             except Exception as json_err:
                 print(f"Error processing JSON data: {json_err}")
@@ -357,7 +401,8 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
     mqtt_port_cloud = ""
     mqtt_username_cloud = ""
     mqtt_password_cloud = ""
-
+    status = ""
+    
     query = "SELECT * FROM `project_setup`"
     result = await MySQL_Select_v1(query) 
     name = result[0]['name']
@@ -410,12 +455,12 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
     mqtt_username_cloud = result[0]['mqtt_username_cloud']
     mqtt_password_cloud = result[0]['mqtt_password_cloud']
     value_offset_power_limit = result[0]['value_offset_power_limit']
+    status = result[0]['status']
     
     if result:
         try:
             current_time = get_utc()
             data_send = {
-                    "status" : 200,
                     "name":name,
                     "serial_number":serial_number,
                     "location":location,
@@ -466,7 +511,10 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                     "mqtt_port_cloud":mqtt_port_cloud,
                     "mqtt_username_cloud":mqtt_username_cloud,
                     "mqtt_password_cloud" :mqtt_password_cloud,
-                    "time_stamp" : current_time
+                    "status" : status,
+                    "mqtt": [
+                    {"time_stamp" : current_time},
+                    {"status":200}]
                     }
         
             push_data_to_mqtt(mqtt_host,
@@ -479,6 +527,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
             print(f"Error MQTT subscribe: '{err}'")
     else :
         pass  
+        
 # Describe insert_information_project_setup 
 # 	 * @description insert_information_project_setup
 # 	 * @author bnguyen
@@ -488,11 +537,15 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
 # 	 */ 
 async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     topic = topicPublic
+    result = []
     try:
-        result_set = mqtt_result.get('parameter', [])
-        if len(result_set[0]) > 0:
-            update_fields = ", ".join([f"{field} = %s" for field, value in result_set[0].items()])
-            update_values = [value for field, value in result_set[0].items()]
+        
+        result_set = mqtt_result.get('parameter', {})
+        result_set.pop('mqtt', None)
+
+        if result_set:
+            update_fields = ", ".join([f"{field} = %s" for field, value in result_set.items()])
+            update_values = [value for field, value in result_set.items()]
             values = [tuple(update_values)]
             query = f"""
             UPDATE project_setup
@@ -500,33 +553,48 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
             """
             if query and values:
                 try:
-                    MySQL_Update_v2(query, values)
-                    current_time = get_utc()
-                    data_send = {
-                        "status": 200,
-                        "time_stamp": current_time
-                    }
-                    push_data_to_mqtt(mqtt_host,
-                                        mqtt_port,
-                                        topic,
-                                        mqtt_username,
-                                        mqtt_password,
-                                        data_send)
+                    result = MySQL_Update_v2(query, values)
+
+                    if result != None:
+                        current_time = get_utc()
+                        data_send = {
+                            "status": 200,
+                            "time_stamp": current_time
+                        }
+                        push_data_to_mqtt(mqtt_host,
+                                            mqtt_port,
+                                            topic,
+                                            mqtt_username,
+                                            mqtt_password,
+                                            data_send)
+                    else:
+                        current_time = get_utc()
+                        data_send = {
+                            "status": 400,
+                            "time_stamp": current_time
+                        }
+                        push_data_to_mqtt(mqtt_host,
+                                            mqtt_port,
+                                            topic,
+                                            mqtt_username,
+                                            mqtt_password,
+                                            data_send)
                 except Exception as err:
                     print(f"Error updating database: '{err}'")
-                    current_time = get_utc()
-                    data_send = {
-                        "status": 400,
-                        "time_stamp": current_time
-                    }
-                    push_data_to_mqtt(mqtt_host,
-                                        mqtt_port,
-                                        topic,
-                                        mqtt_username,
-                                        mqtt_password,
-                                        data_send)
+                    
         else:
             print("result_set is empty, skipping update")
+            current_time = get_utc()
+            data_send = {
+                "status": 200,
+                "time_stamp": current_time
+            }
+            push_data_to_mqtt(mqtt_host,
+                                mqtt_port,
+                                topic,
+                                mqtt_username,
+                                mqtt_password,
+                                data_send)
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 # Describe pud_information_project_setup_when_request 
@@ -539,6 +607,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
     global MQTT_TOPIC_PUD_PROJECT_SETUP
     topicpud = serial_number_project + MQTT_TOPIC_PUD_PROJECT_SETUP
+    current_time = get_utc()
     try:
         if mqtt_result and 'get_information' in mqtt_result:
             await pud_feedback_project_setup(host,
@@ -549,7 +618,13 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
         else:
             pass
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'") 
+        data_send = {
+            "mqtt": [
+                    {"time_stamp" : current_time},
+                    {"status":400}]
+                    }
+
+        push_data_to_mqtt(host, port, topicpud, username, password, data_send)
         
 # Describe insert_information_project_setup_when_request 
 # 	 * @description insert_information_project_setup_when_request
@@ -685,6 +760,8 @@ async def get_value_meter():
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
+                else:
+                    pass
         # end for 
     else:
         pass  
@@ -942,6 +1019,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
     
     p_for_each_device = 0
     total_p_inv_prodution = 0
+    power_max_convert = 0
+    delta = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
     if result_topic4:
@@ -1112,6 +1191,11 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
     type_mode_auto = ""
     comment = 0
     
+    result_checkbox_zero_export = []
+    result_textbox_zero_export = []
+    result_checkbox_power_limit = []
+    result_textbox_power_limit = []
+    
     try:
         if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result:
             mode_auto = mqtt_result['mode'] 
@@ -1122,21 +1206,24 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                 if type_mode_auto == "checkbox":
                     enable_zero_export = mqtt_result.get('enable', enable_zero_export)
                     if enable_zero_export is not None:
-                        MySQL_Update_V1("update project_setup set enable_zero_export = %s", (enable_zero_export,))
+                        result_checkbox_zero_export = MySQL_Update_V1("update project_setup set enable_zero_export = %s", (enable_zero_export,))
+                        print("result_checkbox_zero_export",result_checkbox_zero_export)
                 elif type_mode_auto == "textbox":
                     value_zero_export = mqtt_result.get('value', value_zero_export)
                     if 0 <= value_zero_export <= 100:
-                        MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
-                
+                        result_textbox_zero_export = MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
+                        print("result_textbox_zero_export",result_textbox_zero_export)
             elif mode_auto == "power_limit":
                 if type_mode_auto == "checkbox":
                     enable_power_limit = mqtt_result.get('enable', enable_power_limit)
                     if enable_power_limit is not None:
-                        MySQL_Update_V1("update project_setup set enable_power_limit = %s", (enable_power_limit,))
+                        result_checkbox_power_limit = MySQL_Update_V1("update project_setup set enable_power_limit = %s", (enable_power_limit,))
+                        print("result_checkbox_power_limit",result_checkbox_power_limit)
                 elif type_mode_auto == "textbox":
                     value_power_limit = mqtt_result.get('value', value_power_limit)
                     if value_power_limit is not None:
-                        MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
+                        result_textbox_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
+                        print("result_textbox_power_limit",result_textbox_power_limit)
                         percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
                         value_power_limit = (value_power_limit + (value_power_limit*percent_offset_power_limit)/100)*1000
                         print("value_power_limit",value_power_limit)
@@ -1148,7 +1235,10 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                 
             # When you receive one of the above information, give feedback to mqtt
             if ( enable_zero_export or value_zero_export or enable_power_limit or value_power_limit ) and bitchecktopic3 == 1 :
-                comment = 200 
+                if result_checkbox_zero_export == None or result_textbox_zero_export == None or result_textbox_power_limit == None or result_checkbox_power_limit == None :
+                    comment = 400 
+                else:
+                    comment = 200 
                 data_send = {
                             "time_stamp" :current_time,
                             "status":comment, 
@@ -1160,8 +1250,8 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                         mqtt_password,
                         data_send)
                 bitchecktopic3 = 0
-        else:
-            pass
+            else:
+                pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
@@ -1257,7 +1347,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
         if topic == topic1:
             result_topic1 = message
             bitcheck1 = 1
-            await process_update_mode_for_device_for_systemp ()
+            await process_update_mode_for_device_for_systemp (serial_number_project, host, port, username, password)
             print("result_topic1",result_topic1)
         elif topic == topic2:
             result_topic2 = message
@@ -1312,47 +1402,50 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, to
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
             
 async def main():
+    serial_number_project = ""
     tasks = []
     await process_getfirst_zeroexport_powerlimit()
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
-    serial_number_project=results_project[0]["serial_number"]
-    #-------------------------------------------------------
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(pud_confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
-                                                                        MQTT_BROKER,
-                                                                        MQTT_PORT,
-                                                                        MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
-                                                                        MQTT_USERNAME,
-                                                                        MQTT_PASSWORD])
-    scheduler.add_job(get_cpu_information, 'cron',  second = f'*/5' , args=[serial_number_project,
-                                                                        MQTT_BROKER,
-                                                                        MQTT_PORT,
-                                                                        MQTT_USERNAME,
-                                                                        MQTT_PASSWORD])
-    scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
-                                                                        MQTT_BROKER,
-                                                                        MQTT_PORT,
-                                                                        MQTT_USERNAME,
-                                                                        MQTT_PASSWORD])
-    scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
-    scheduler.start()
-    #-------------------------------------------------------
-    tasks = []
-    tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-                                                    MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-                                                    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-                                                    MQTT_TOPIC_SUD_DEVICES_ALL,
-                                                    MQTT_TOPIC_SUD_MODEGET_CPU,
-                                                    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
-    # Move the gather outside the loop to wait for all tasks to complete
-    await asyncio.gather(*tasks, return_exceptions=False)
-    
+    if results_project != None :
+        serial_number_project=results_project[0]["serial_number"]
+        #-------------------------------------------------------
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(pud_confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
+                                                                            MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
+        scheduler.add_job(get_cpu_information, 'cron',  second = f'*/1' , args=[serial_number_project,
+                                                                            MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
+        scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
+                                                                            MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
+        scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
+        scheduler.start()
+        #-------------------------------------------------------
+        tasks = []
+        tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
+                                                        MQTT_BROKER,
+                                                        MQTT_PORT,
+                                                        MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                        MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+                                                        MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                        MQTT_TOPIC_SUD_MODEGET_CPU,
+                                                        MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+                                                        MQTT_USERNAME,
+                                                        MQTT_PASSWORD
+                                                        )))
+        # Move the gather outside the loop to wait for all tasks to complete
+        await asyncio.gather(*tasks, return_exceptions=False)
+    else:
+        pass
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
