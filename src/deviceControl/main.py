@@ -525,7 +525,10 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
     topic = topicPublic
     result = []
     try:
+        
         result_set = mqtt_result.get('parameter', {})
+        result_set.pop('mqtt', None)
+
         if result_set:
             update_fields = ", ".join([f"{field} = %s" for field, value in result_set.items()])
             update_values = [value for field, value in result_set.items()]
@@ -590,6 +593,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
 async def pud_information_project_setup_when_request(mqtt_result ,serial_number_project,host, port, username, password):
     global MQTT_TOPIC_PUD_PROJECT_SETUP
     topicpud = serial_number_project + MQTT_TOPIC_PUD_PROJECT_SETUP
+    current_time = get_utc()
     try:
         if mqtt_result and 'get_information' in mqtt_result:
             await pud_feedback_project_setup(host,
@@ -601,9 +605,11 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
             pass
     except Exception as err:
         data_send = {
-            "status": 400,
-            "error": "Error connecting to database."
-        }
+            "mqtt": [
+                    {"time_stamp" : current_time},
+                    {"status":400}]
+                    }
+
         push_data_to_mqtt(host, port, topicpud, username, password, data_send)
         
 # Describe insert_information_project_setup_when_request 
