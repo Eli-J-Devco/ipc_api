@@ -182,7 +182,7 @@ class apiGateway:
                             #             "id": item.id,
                             #             "name": device.name,
                             #             "id_communication": id_communication,
-                            #             "driver_name": driver_name,
+                            #             "connect_type": driver_name,
                             #             }
                             #             ],
                             #         "delete_mode":mode

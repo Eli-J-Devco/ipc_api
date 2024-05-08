@@ -1150,7 +1150,7 @@ async def delete_device(
                             "id": item.id,
                             "name": device.name,
                             "id_communication": id_communication,
-                            "driver_name": driver_list,
+                            "connect_type": driver_list,
                         }
                     )
                     if mode == 1:  # Disable

@@ -203,7 +203,7 @@ class DevicesService:
             #             "id": item.id,
             #             "name": device.name,
             #             "id_communication": id_communication,
-            #             "driver_name": driver_name,
+            #             "connect_type": driver_name,
             #             }
             #             ],
             #         "delete_mode":mode
@@ -218,10 +218,10 @@ class DevicesService:
             id_device=[]
             for item in device:
                 id_device.append(item['id'])
-                if item["driver_name"]=="RS485":
+                if item["connect_type"]=="RS485":
                     # id_communication=item['id_communication']
                     communication_list.append(item['id_communication'])
-                elif item["driver_name"]=="Modbus/TCP":
+                elif item["connect_type"]=="Modbus/TCP":
                     device_tcp.append(f'Dev|{item["id_communication"]}|Modbus/TCP|{item["id"]}')
             if self.update_device_list:
                 print(f'id_device: {id_device}')
