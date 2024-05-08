@@ -52,13 +52,16 @@ result_topic4 = []
 result_topic5 = []
 bitcheck1 = 0
 
-# Lưu trữ thông tin về bytes_sent và bytes_recv của lần truy vấn trước
+result_ModeSysTemp = []
+result_ModeDevice = []
+    
+# Stores information about bytes_sent and bytes_recv of the previous query
 net_io_counters_prev = {}
 net_io_counters_prev["TotalSent"] = 0
 net_io_counters_prev["TotalReceived"] = 0
 net_io_counters_prev["Timestamp"] = datetime.datetime.now()
 
-# Lưu trữ thông tin về read_count và write_count của lần truy vấn trước
+# Stores information about read_count and write_count of the previous query
 disk_io_counters_prev = {}
 disk_io_counters_prev["ReadCount"] = 0
 disk_io_counters_prev["WriteCount"] = 0
@@ -120,6 +123,16 @@ def get_readable_size(size_bytes):
             return f"{size_bytes:.2f} {unit}"
         size_bytes /= 1024.0
     return f"{size_bytes:.2f} YB"
+
+def convert_bytes_to_readable(bytes_value, unit="KB"):
+    if unit == "KB":
+        return f"{bytes_value / 1024:.2f} KB"
+    elif unit == "MB":
+        return f"{bytes_value / (1024 ** 2):.2f} MB"
+    elif unit == "GB":
+        return f"{bytes_value / (1024 ** 3):.2f} GB"
+    else:
+        return f"{bytes_value} B"
 # Describe get_cpu_information 
 # 	 * @description get cpu information
 # 	 * @author bnguyen
@@ -224,7 +237,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
-        system_info["DiskInformation"] = [total_disk_info]
+        system_info["DiskInformation"] = total_disk_info
 
         # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
@@ -247,26 +260,29 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         current_time = datetime.datetime.now()
         time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
 
-        system_info["NetworkSpeed"]["Upstream"] = get_readable_size((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff)
-        system_info["NetworkSpeed"]["Downstream"] = get_readable_size((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff)
+        system_info["NetworkSpeed"]["Upstream"] = convert_bytes_to_readable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff , unit="KB")
+        system_info["NetworkSpeed"]["Downstream"] = convert_bytes_to_readable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff , unit="KB")
         system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
         system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
         system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-
+        system_info["NetworkSpeed"]["Time"] = int(time.time() * 1000)
+        
         net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
         net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
         net_io_counters_prev["Timestamp"] = current_time
+        
 
         # Disk I/O Information
         disk_io_counters = psutil.disk_io_counters()
         current_time = datetime.datetime.now()
         time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
 
-        system_info["DiskIO"]["SpeedRead"] = get_readable_size((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff)
-        system_info["DiskIO"]["SpeedWrite"] = get_readable_size((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff)
+        system_info["DiskIO"]["SpeedRead"] = convert_bytes_to_readable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedWrite"] = convert_bytes_to_readable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
         system_info["DiskIO"]["ReadBytes"] = get_readable_size(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
+        system_info["DiskIO"]["Time"] = int(time.time() * 1000)
 
         disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
@@ -289,37 +305,39 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
 # 	 * @return ModeSysTemp
 # 	 */ 
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    print("da vao day pud_confirm_mode_control")
     global ModeSysTemp
     global flag 
+    global result_ModeSysTemp 
+    global result_ModeDevice 
     result = []
     topic = serial_number_project + topicPublic 
-    if not ModeSysTemp and flag == 0:
-        query = "SELECT `project_setup`.`mode` FROM `project_setup`"
-        result = await MySQL_Select_v1(query) 
-        ModeSysTemp = result[0]['mode']
-        
-        print("ModeSysTemp",ModeSysTemp)
-        
-    if ModeSysTemp == 0 or ModeSysTemp == 1 or ModeSysTemp == 2:
-        try:
-            current_time = get_utc()
-            data_send = {
-                    "status" : 200,
-                    "confirm_mode":ModeSysTemp,
-                    "time_stamp" :current_time,
-                    }
-            push_data_to_mqtt(mqtt_host,
-                    mqtt_port,
-                    topic ,
-                    mqtt_username,
-                    mqtt_password,
-                    data_send)
-            ModeSysTemp = None
-            flag = 1 
-        except Exception as err:
-            print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
-    else :
+    if result_ModeSysTemp is not None and result_ModeDevice is not None :
+        if not ModeSysTemp and flag == 0:
+            query = "SELECT `project_setup`.`mode` FROM `project_setup`"
+            result = await MySQL_Select_v1(query) 
+            ModeSysTemp = result[0]['mode']
+
+        if ModeSysTemp == 0 or ModeSysTemp == 1 or ModeSysTemp == 2 :
+            try:
+                current_time = get_utc()
+                data_send = {
+                        "status" : 200,
+                        "confirm_mode":ModeSysTemp,
+                        "time_stamp" :current_time,
+                        }
+                push_data_to_mqtt(mqtt_host,
+                        mqtt_port,
+                        topic ,
+                        mqtt_username,
+                        mqtt_password,
+                        data_send)
+                ModeSysTemp = None
+                flag = 1 
+            except Exception as err:
+                print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
+        else :
+            pass
+    else:
         pass
 # Describe process_update_mode_for_device_for_systemp 
 # 	 * @description process_update_mode_for_device_for_systemp
@@ -329,13 +347,13 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
 # 	 * @return ModeSysTemp
 # 	 */ 
 async def process_update_mode_for_device_for_systemp(serial_number_project, host, port, username, password):
-    print("da vao day process_update_mode_for_device_for_systemp")
     global result_topic1
     global bitcheck1
     global ModeSysTemp
+    global flag
     global MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
-    result_ModeSysTemp = []
-    result_ModeDevice = []
+    global result_ModeSysTemp 
+    global result_ModeDevice 
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
@@ -355,16 +373,11 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                         result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
                     else:
                         pass
-                        
+                    
                     if result_ModeSysTemp is None or result_ModeDevice is None:
-                        print("da vao loi")
-                        print("result_ModeSysTemp",result_ModeSysTemp)
-                        print("result_ModeDevice",result_ModeDevice)
-                        print("topic",topic)
                         current_time = get_utc()
                         data_send = {
                                 "status" : 400,
-                                "confirm_mode": ModeSysTemp,
                                 "time_stamp" :current_time,
                                 }
                         push_data_to_mqtt(host,
@@ -374,9 +387,6 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                                 password,
                                 data_send)
                     else:
-                        print("khong vao loi")
-                        print("result_ModeSysTemp",result_ModeSysTemp)
-                        print("result_ModeDevice",result_ModeDevice)
                         pass
             except Exception as json_err:
                 print(f"Error processing JSON data: {json_err}")
