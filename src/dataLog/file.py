@@ -535,47 +535,49 @@ async def main():
         pass
     
     result_topic = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
-    topic = result_topic[0]["serial_number"]
-    MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
-    
-    if not result_all :
-        print("None of the devices have been selected in the database (check table upload_channel_device_map , divice_list)")
-        return -1
-    if not time_create_file_insert_data_table_dev :
-        print("Unable to select synchronization time for data in the database.")
-        return -1
-    
-    item = time_create_file_insert_data_table_dev[0]
-    time_interval = item["time_log_interval"]
-    position = time_interval.rfind("minute")
-    number = time_interval[:position]
-    int_number = int(number)
+    if result_topic != None :
+        topic = result_topic[0]["serial_number"]
+        MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
+        
+        if not result_all :
+            print("None of the devices have been selected in the database (check table upload_channel_device_map , divice_list)")
+            return -1
+        if not time_create_file_insert_data_table_dev :
+            print("Unable to select synchronization time for data in the database.")
+            return -1
+        
+        item = time_create_file_insert_data_table_dev[0]
+        time_interval = item["time_log_interval"]
+        position = time_interval.rfind("minute")
+        number = time_interval[:position]
+        int_number = int(number)
 
-    #-------------------------------------------------------
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(create_filelog, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
-                                                                                arr,
+        #-------------------------------------------------------
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(create_filelog, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
+                                                                                    arr,
+                                                                                    HEAD_FILE_LOG,
+                                                                                    ])
+        scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/13' , args=[arr,
                                                                                 HEAD_FILE_LOG,
-                                                                                ])
-    scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/13' , args=[arr,
-                                                                            HEAD_FILE_LOG,
-                                                                            MQTT_BROKER,
-                                                                            MQTT_PORT,
-                                                                            MQTT_TOPIC_PUB,
-                                                                            MQTT_USERNAME,
-                                                                            MQTT_PASSWORD])
-    scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
-    scheduler.start()
-    #-------------------------------------------------------
-    tasks = []
-    tasks.append(asyncio.create_task(get_mqtt(MQTT_BROKER,
-                                                            MQTT_PORT,
-                                                            MQTT_TOPIC_SUB,
-                                                            MQTT_USERNAME,
-                                                            MQTT_PASSWORD)))
-    
-    # Move the gather outside the loop to wait for all tasks to complete
-    await asyncio.gather(*tasks, return_exceptions=False)
-
+                                                                                MQTT_BROKER,
+                                                                                MQTT_PORT,
+                                                                                MQTT_TOPIC_PUB,
+                                                                                MQTT_USERNAME,
+                                                                                MQTT_PASSWORD])
+        scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
+        scheduler.start()
+        #-------------------------------------------------------
+        tasks = []
+        tasks.append(asyncio.create_task(get_mqtt(MQTT_BROKER,
+                                                                MQTT_PORT,
+                                                                MQTT_TOPIC_SUB,
+                                                                MQTT_USERNAME,
+                                                                MQTT_PASSWORD)))
+        
+        # Move the gather outside the loop to wait for all tasks to complete
+        await asyncio.gather(*tasks, return_exceptions=False)
+    else:
+        pass
 if __name__ == "__main__":
     asyncio.run(main())

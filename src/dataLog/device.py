@@ -580,42 +580,45 @@ async def main():
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
     
     result_topic = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
-    topic = result_topic[0]["serial_number"]
-    MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
-    
-    item = time_create_file_insert_data_table_dev[0]
-    time_interval = item["time_log_interval"]
-    position = time_interval.rfind("minute")
-    number = time_interval[:position]
-    int_number = int(number)
+    if result_topic != None :
+        topic = result_topic[0]["serial_number"]
+        MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
+        
+        item = time_create_file_insert_data_table_dev[0]
+        time_interval = item["time_log_interval"]
+        position = time_interval.rfind("minute")
+        number = time_interval[:position]
+        int_number = int(number)
 
-    if not result_all :
-        print("None of the devices have been selected in the database")
-        return -1
-    if not time_create_file_insert_data_table_dev :
-        print("Unable to select synchronization time for data in the database.")
-        return -1
-    
-    
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')
-    scheduler.add_job(Insert_TableMPPT, 'cron', minute = f'*/{int_number}')
-    scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
-                                                                            MQTT_PORT,
-                                                                            MQTT_TOPIC_PUB,
-                                                                            MQTT_USERNAME,
-                                                                            MQTT_PASSWORD])
-    scheduler.start()
-    
-    tasks = []
-    tasks.append(Get_MQTT(MQTT_BROKER,
-                                    MQTT_PORT,
-                                    MQTT_TOPIC_SUB,
-                                    MQTT_USERNAME,
-                                    MQTT_PASSWORD
-                                    ))
-    
-    await asyncio.gather(*tasks, return_exceptions=False)
+        if not result_all :
+            print("None of the devices have been selected in the database")
+            return -1
+        if not time_create_file_insert_data_table_dev :
+            print("Unable to select synchronization time for data in the database.")
+            return -1
+        
+        
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')
+        scheduler.add_job(Insert_TableMPPT, 'cron', minute = f'*/{int_number}')
+        scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
+                                                                                MQTT_PORT,
+                                                                                MQTT_TOPIC_PUB,
+                                                                                MQTT_USERNAME,
+                                                                                MQTT_PASSWORD])
+        scheduler.start()
+        
+        tasks = []
+        tasks.append(Get_MQTT(MQTT_BROKER,
+                                        MQTT_PORT,
+                                        MQTT_TOPIC_SUB,
+                                        MQTT_USERNAME,
+                                        MQTT_PASSWORD
+                                        ))
+        
+        await asyncio.gather(*tasks, return_exceptions=False)
+    else:
+        pass
     #-------------------------------------
     await asyncio.sleep(0.05)
 if __name__ == "__main__":
