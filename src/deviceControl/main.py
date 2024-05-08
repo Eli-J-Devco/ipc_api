@@ -156,6 +156,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
     try:
         system_info = {
             "Timestamp": timestamp,
+            "Time": int(time.time() * 1000),
             "SystemInformation": {},
             "BootTime": {},
             "CPUInfo": {},
@@ -265,7 +266,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["NetworkSpeed"]["TotalSent"] = get_readable_size(net_io_counters.bytes_sent)
         system_info["NetworkSpeed"]["TotalReceived"] = get_readable_size(net_io_counters.bytes_recv)
         system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-        system_info["NetworkSpeed"]["Time"] = int(time.time() * 1000)
         
         net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
         net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
@@ -282,7 +282,6 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["DiskIO"]["ReadBytes"] = get_readable_size(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = get_readable_size(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-        system_info["DiskIO"]["Time"] = int(time.time() * 1000)
 
         disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
