@@ -833,6 +833,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                         datatype = ""
                         code_value = 0
                         id_pointkey = ""
+                        value_max = ""
                         
                         register_temp = ""
                         datatype_Temp = ""
@@ -897,6 +898,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = rated_power_custom/slope
                                                     else :
                                                         value = value/slope
+                                                        value_max = rated_power_custom/slope
                                                 elif id_pointkey == "WMaxPercent":
                                                     value = value /slope
                                                 elif id_pointkey == "VarMaxPercent":
@@ -904,8 +906,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 elif id_pointkey == "VarMax":
                                                     value = value/slope
                                                 elif id_pointkey == "WMaxPercentEnable" :
-                                                    if value == 1 and rated_power_custom and slope:
-                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom/slope}]
+                                                    if value == 1 and rated_power_custom:
+                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': value_max}]
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                         if inverter_info_temp:
                                                             value_temp = inverter_info_temp[0]["value"]
