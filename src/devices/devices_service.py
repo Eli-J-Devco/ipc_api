@@ -1,4 +1,3 @@
-import asyncio
 import base64
 import datetime
 import json
@@ -11,11 +10,13 @@ from fastapi import HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from mqtt_service.mqtt import Publisher
+from mqtt_service.model import MessageModel, Topic, MetaData
+
 from .devices_filter import AddDevicesFilter, IncreaseMode
-from .devices_model import Devices, DeviceFull
+from .devices_model import Devices, DeviceFull, Action
 from .devices_entity import Devices as DevicesEntity, DeviceType as DeviceTypeEntity, DeviceGroup as DeviceGroupEntity
 
-from ..utils.publisher import Publisher
 
 
 @Injectable
@@ -27,7 +28,7 @@ class DevicesService:
             topic=[f"devices/create"],
             client_id=f"publisher-creating-{uuid.uuid4()}",
             qos=2
-        ).client
+        )
 
     @async_db_request_handler
     async def get_devices(self, session: AsyncSession):
@@ -97,13 +98,11 @@ class DevicesService:
             devices.append(new_devices.id)
         await session.commit()
 
-        creating_msg = {
-            "metadata": {
-                "retry": 3
-            },
-            "type": "devices/create",
-            "devices": devices
-        }
+        creating_msg = MessageModel(
+            metadata=MetaData(retry=3),
+            topic=Topic(target=Action.CREATE.value, failed=Action.DEAD_LETTER.value),
+            message={"type": Action.CREATE.value, "devices": devices}
+        )
         await self.sender.start()
-        self.sender.send("devices/create", base64.b64encode(json.dumps(creating_msg).encode("ascii")))
+        self.sender.send(Action.CREATE.value, base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
         return await self.get_devices(session)

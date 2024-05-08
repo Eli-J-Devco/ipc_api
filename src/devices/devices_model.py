@@ -1,4 +1,5 @@
 import datetime
+import enum
 from typing import Optional
 
 from pydantic import BaseModel
@@ -83,3 +84,10 @@ class DeviceGroup(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class Action(enum.Enum):
+    CREATE = "devices/create"
+    DELETE = "devices/delete"
+    DEAD_LETTER = "devices/dead-letter"
+

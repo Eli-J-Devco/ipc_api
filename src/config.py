@@ -7,11 +7,11 @@ load_dotenv()
 
 
 class Settings(BaseSettings):
-    MYSQL_HOST: str
-    MYSQL_PORT: str
-    MYSQL_PASSWORD: str
-    MYSQL_DB_NAME: str
-    MYSQL_USER: str
+    DATABASE_HOSTNAME: str
+    DATABASE_PORT: str
+    DATABASE_PASSWORD: str
+    DATABASE_NAME: str
+    DATABASE_USERNAME: str
     SECRET_KEY: str
     REFRESH_SECRET_KEY: str
     ALGORITHM: str
@@ -49,10 +49,10 @@ env_config = Settings()
 config = AsyncOrmProvider(
     db_type="mysql",
     config_params=dict(
-        host=env_config.MYSQL_HOST,
-        db_name=env_config.MYSQL_DB_NAME,
-        user=env_config.MYSQL_USER,
-        password=env_config.MYSQL_PASSWORD,
-        port=int(env_config.MYSQL_PORT),
+        host=env_config.DATABASE_HOSTNAME,
+        port=int(env_config.DATABASE_PORT),
+        db_name=env_config.DATABASE_NAME,
+        password=env_config.DATABASE_PASSWORD,
+        user=env_config.DATABASE_USERNAME,
     )
 )
