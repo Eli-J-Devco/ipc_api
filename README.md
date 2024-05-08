@@ -21,7 +21,7 @@ pip3 install -r requirements.txt  --no-cache-dir
 <!-- linux -->
 python3 -m venv venv
 source venv/bin/activate
- &7
+deactivate
 
 <!--  -->
 D:\..\project\ipc_api\venv\Scripts\python D:\..\project\ipc_api\main.py

@@ -80,7 +80,7 @@ class DevicesService:
                 pid = f'Dev|{item["id_communication"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
                 await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
             # restart pm2 app log
-            pm2_app_list=[f'LogFile|',f'UpData|']
+            pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
             await restart_program_pm2_many(pm2_app_list)
             # 
             now = datetime.datetime.now(
@@ -175,7 +175,7 @@ class DevicesService:
                 # init restart pm2 app same rs485
                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                 # restart pm2 app log
-                pm2_app_list=[f'LogFile|',f'UpData|']
+                pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                 await restart_program_pm2_many(pm2_app_list)
             else:
                 pass
@@ -262,7 +262,7 @@ class DevicesService:
                             await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                 if device_list:
                     # restart pm2 app log
-                    pm2_app_list=[f'LogFile|',f'UpData|']
+                    pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                     await restart_program_pm2_many(pm2_app_list)
         # 
         except Exception as e:
