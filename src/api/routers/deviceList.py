@@ -418,7 +418,7 @@ async def create_multiple_device(
                 point_list_query = (
                     db.query(models.Point_list)
                     .filter_by(id_template=id_template)
-                    .order_by(models.Point_list.index.asc())
+                    .order_by(models.Point_list.id.asc())
                     .all()
                 )
 

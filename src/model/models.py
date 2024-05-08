@@ -7,19 +7,10 @@ import os
 import sys
 from datetime import datetime
 
-from sqlalchemy import (
-    DOUBLE,
-    BigInteger,
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    create_engine,
-)
-from sqlalchemy.orm import declarative_base, mapped_column, relationship, sessionmaker
+from sqlalchemy import (DOUBLE, BigInteger, Boolean, Column, DateTime,
+                        ForeignKey, Integer, String, Text, create_engine)
+from sqlalchemy.orm import (declarative_base, mapped_column, relationship,
+                            sessionmaker)
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
@@ -242,7 +233,7 @@ class PointListControlGroup(Base):
 class Point_list(Base):
     __tablename__ = "point_list"
     id = Column(Integer, primary_key=True, nullable=False)
-    index = Column(Integer, nullable=False)
+    # index = Column(Integer, nullable=False)
     # parent= Column(Integer, nullable=False)
     id_pointclass_type = Column(
         Integer,
