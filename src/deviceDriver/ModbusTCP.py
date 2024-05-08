@@ -904,7 +904,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                 elif id_pointkey == "VarMax":
                                                     value = value/slope
                                                 elif id_pointkey == "WMaxPercentEnable" :
-                                                    if value == 1 and rated_power_custom:
+                                                    if value == 1 and rated_power_custom and slope:
                                                         parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom/slope}]
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                         if inverter_info_temp:
