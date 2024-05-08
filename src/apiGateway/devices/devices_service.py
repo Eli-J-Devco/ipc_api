@@ -234,7 +234,7 @@ class DevicesService:
             if device_tcp:
                 await delete_program_pm2_many(device_tcp)
                 # restart pm2 app log
-                pm2_app_list=[f'LogFile|',f'UpData|',f'UpData']
+                pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                 await restart_program_pm2_many(pm2_app_list)
             if communication_list:
                 device_rs485=list(set(communication_list))
