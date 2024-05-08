@@ -894,13 +894,18 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                             if slope and value:
                                                 if id_pointkey == "WMax":
                                                     if value >= rated_power_custom :
-                                                        value = rated_power_custom
+                                                        value = rated_power_custom/slope
                                                     else :
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
                                                     value = value /slope
-                                                    if rated_power_custom :
-                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom}]
+                                                elif id_pointkey == "VarMaxPercent":
+                                                    value = value/slope
+                                                elif id_pointkey == "VarMax":
+                                                    value = value/slope
+                                                elif id_pointkey == "WMaxPercentEnable" :
+                                                    if value == 1 and rated_power_custom and slope:
+                                                        parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom/slope}]
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                         if inverter_info_temp:
                                                             value_temp = inverter_info_temp[0]["value"]
@@ -908,11 +913,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                             datatype_temp = inverter_info_temp[0]["datatype"]
                                                             if value_temp and register_temp and datatype_temp :
                                                                 results_write_modbus_temp = write_modbus_tcp(client, slave_ID, datatype_temp, register_temp, value=value_temp)
-                                                    
-                                                elif id_pointkey == "VarMax":
-                                                    value = value/slope
-                                                elif id_pointkey == "VarMaxPercent":
-                                                    value = value /slope
+                                                    else:
+                                                        pass
                                                 elif id_pointkey == "PFSet":
                                                     if value > 1 :
                                                         value = 1 
@@ -920,7 +922,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value /slope
                                                     elif value < 0 :
                                                         value = 0
-                                                value = int(value)
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
@@ -990,7 +991,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                     pass
             else:
                 pass
-    
+    else:
+        pass
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1104,6 +1106,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
+
                         await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
@@ -1876,53 +1879,56 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
-    results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
-    serial_number_project=results_project[0]["serial_number"]
-    tasks.append(asyncio.create_task(device(serial_number_project ,arr,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_PUB_CONTROL,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD )))
-    # 
-    MQTT_BROKER_CLOUD=results_project[0]["mqtt_broker_cloud"] #"mqtt.nextwavemonitoring.com"
-    MQTT_PORT_CLOUD=results_project[0]["mqtt_port_cloud"] #1883
-    MQTT_USERNAME_CLOUD=results_project[0]["mqtt_username_cloud"] #"admin"
-    MQTT_PASSWORD_CLOUD=results_project[0]["mqtt_password_cloud"] #"123654789"
-    # 
-    MQTT_BROKER_LIST=[]
-    MQTT_PORT_LIST=[]
-    MQTT_USERNAME_LIST=[]
-    MQTT_PASSWORD_LIST=[]
-    
-    MQTT_BROKER_LIST.append(MQTT_BROKER)
-    MQTT_PORT_LIST.append(MQTT_PORT)
-    MQTT_USERNAME_LIST.append(MQTT_USERNAME)
-    MQTT_PASSWORD_LIST.append(MQTT_PASSWORD)
-    
-    MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
-    MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
-    MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
-    MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
-    
-    # 
-    tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,
-                                                        serial_number_project,
-                                                        MQTT_BROKER_LIST,
-                                                        MQTT_PORT_LIST,
-                                                        MQTT_USERNAME_LIST,
-                                                        MQTT_PASSWORD_LIST
+    if results_project != None :
+        results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
+        serial_number_project=results_project[0]["serial_number"]
+        tasks.append(asyncio.create_task(device(serial_number_project ,arr,
+                                                        MQTT_BROKER,
+                                                        MQTT_PORT,
+                                                        MQTT_TOPIC_PUB_CONTROL,
+                                                        MQTT_USERNAME,
+                                                        MQTT_PASSWORD )))
+        # 
+        MQTT_BROKER_CLOUD=results_project[0]["mqtt_broker_cloud"] #"mqtt.nextwavemonitoring.com"
+        MQTT_PORT_CLOUD=results_project[0]["mqtt_port_cloud"] #1883
+        MQTT_USERNAME_CLOUD=results_project[0]["mqtt_username_cloud"] #"admin"
+        MQTT_PASSWORD_CLOUD=results_project[0]["mqtt_password_cloud"] #"123654789"
+        # 
+        MQTT_BROKER_LIST=[]
+        MQTT_PORT_LIST=[]
+        MQTT_USERNAME_LIST=[]
+        MQTT_PASSWORD_LIST=[]
+        
+        MQTT_BROKER_LIST.append(MQTT_BROKER)
+        MQTT_PORT_LIST.append(MQTT_PORT)
+        MQTT_USERNAME_LIST.append(MQTT_USERNAME)
+        MQTT_PASSWORD_LIST.append(MQTT_PASSWORD)
+        
+        MQTT_BROKER_LIST.append(MQTT_BROKER_CLOUD)
+        MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
+        MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
+        MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
+        
+        # 
+        tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,
+                                                            serial_number_project,
+                                                            MQTT_BROKER_LIST,
+                                                            MQTT_PORT_LIST,
+                                                            MQTT_USERNAME_LIST,
+                                                            MQTT_PASSWORD_LIST
+                                                            )))
+        tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
+                                                        MQTT_BROKER,
+                                                        MQTT_PORT,
+                                                        MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
+                                                        MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
+                                                        MQTT_USERNAME,
+                                                        MQTT_PASSWORD
                                                         )))
-    tasks.append(asyncio.create_task(sud_mqtt(serial_number_project,
-                                                    MQTT_BROKER,
-                                                    MQTT_PORT,
-                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
-                                                    MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
-                                                    MQTT_USERNAME,
-                                                    MQTT_PASSWORD
-                                                    )))
-    
-    await asyncio.gather(*tasks, return_exceptions=False)
+        
+        await asyncio.gather(*tasks, return_exceptions=False)
+    else:
+        pass
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
