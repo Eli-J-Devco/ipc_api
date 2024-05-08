@@ -920,7 +920,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value /slope
                                                     elif value < 0 :
                                                         value = 0
-
+                                                value = int(value)
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
@@ -952,6 +952,7 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                     if device_mode == 1 and value != 0 and any('status' in item for item in result_topic1):
                                         print("---------- Auto control mode ----------")
                                         if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):
+                                            value = int(value)
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                         # get status INV 
@@ -1674,6 +1675,103 @@ async def process_update_mode_for_device(mqtt_result,serial_number_project,host,
             pass
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
+# Describe process_message 
+# 	 * @description processmessage from mqtt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {topic, message,serial_number_project, host, port, username, password}
+# 	 * @return each topic , each message
+# 	 */ 
+# async def process_message(topic, message, serial_number_project, host, port, username, password, topic1, topic2):
+#     global result_topic1
+#     global result_topic2
+#     global MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
+#     global MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
+#     global bitchecktopic1
+#     global bitchecktopic2
+#     global arr
+#     global MQTT_TOPIC_PUB_CONTROL
+#     global device_mode
+#     global rated_power
+#     global rated_power_custom
+
+#     id_systemp = arr[1]
+#     id_systemp = int(id_systemp)
+#     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
+#     topic2 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
+#     custom_watt = 0 
+#     watt = 0 
+#     comment = 200
+#     current_time = ""
+    
+#     try:
+#         if topic == topic1:
+#             result_topic1 = message
+#             bitchecktopic1 = 1
+#             if result_topic1 and "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
+#                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+#             else:
+#                 pass
+#             for item in result_topic1:
+#                 if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
+#                     custom_watt = item["rated_power_custom"]
+#                     watt = item["rated_power"]
+#                     rated_power = watt
+#                     rated_power_custom = custom_watt
+#                     if custom_watt and watt and watt >= custom_watt:
+#                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+#                         custom_watt = 0
+#                         watt = 0
+#                     for param in item["parameter"]:
+#                         if param["value"] is None:
+#                             current_time = get_utc()
+#                             data_send = {
+#                                 "time_stamp": current_time,
+#                                 "status": comment,
+#                             }
+#                             push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUB_CONTROL + "/Feedback", username, password, data_send)
+#                         else:
+#                             pass
+#             print("result_topic1", result_topic1)
+#         elif topic == topic2:
+#             result_topic2 = message
+#             if result_topic2 and 'confirm_mode' in result_topic2:
+#                 if result_topic2['confirm_mode'] in [0, 1]:
+#                     device_mode = result_topic2['confirm_mode']
+#                 else:
+#                     pass
+#             else:
+#                 pass
+#             print("result_topic2",result_topic2)
+#     except Exception as err:
+#         print(f"Error MQTT subscribe process_message: '{err}'")
+
+# async def sub_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
+#     topics = [topic1, topic2]
+
+#     while True:
+#         try:
+#             client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+#             if not client:
+#                 return -1
+
+#             await client.start()
+#             for topic in topics:
+#                 await client.subscribe(serial_number_project + topic)
+
+#             while True:
+#                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+#                 if message:
+#                     payload = json.loads(message.message.decode())
+#                     topic = message.topic
+#                     await process_message(topic, payload, serial_number_project, host, port, username, password, topic1, topic2)
+#         except asyncio.TimeoutError:
+#             continue
+#         except Exception as e:
+#             print(f"Error while processing message duy binh: {e}")
+#             print('Connection lost. Trying to reconnect...')
+#             await client.stop()
+#             await asyncio.sleep(5)
 # Describe sud_mqtt
 # /**
 # 	 * @description sud_mqtt
@@ -1774,7 +1872,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-
+        
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
