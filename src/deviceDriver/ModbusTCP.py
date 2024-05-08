@@ -899,7 +899,12 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value/slope
                                                 elif id_pointkey == "WMaxPercent":
                                                     value = value /slope
-                                                    if rated_power_custom :
+                                                elif id_pointkey == "VarMaxPercent":
+                                                    value = value/slope
+                                                elif id_pointkey == "VarMax":
+                                                    value = value/slope
+                                                elif id_pointkey == "WMaxPercentEnable" :
+                                                    if value == 1 and rated_power_custom:
                                                         parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom/slope}]
                                                         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                         if inverter_info_temp:
@@ -908,11 +913,8 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                             datatype_temp = inverter_info_temp[0]["datatype"]
                                                             if value_temp and register_temp and datatype_temp :
                                                                 results_write_modbus_temp = write_modbus_tcp(client, slave_ID, datatype_temp, register_temp, value=value_temp)
-                                                    
-                                                elif id_pointkey == "VarMax":
-                                                    value = value/slope
-                                                elif id_pointkey == "VarMaxPercent":
-                                                    value = value /slope
+                                                    else:
+                                                        pass
                                                 elif id_pointkey == "PFSet":
                                                     if value > 1 :
                                                         value = 1 
@@ -920,7 +922,6 @@ async def write_device(ConfigPara ,client ,slave_ID , serial_number_project , mq
                                                         value = value /slope
                                                     elif value < 0 :
                                                         value = 0
-                                                value = int(value)
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(value,device_control,name_device_points_list_map))
                                             # get status INV 
