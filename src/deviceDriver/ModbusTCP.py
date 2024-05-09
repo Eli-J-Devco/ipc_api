@@ -732,7 +732,6 @@ async def check_inverter_device(device_control):
 # 	 * @param {device_control , parameter}
 # 	 * @return value , register , datatype , id_point_key 
 # 	 */ 
-    
 async def find_inverter_information(device_control, parameter):
     query_register = "SELECT id_pointkey, register, id_type_datatype FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template WHERE device_list.id = %s;"
     query_datatype = "SELECT value FROM config_information WHERE id = %s"
