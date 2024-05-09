@@ -849,14 +849,6 @@ async def write_device(
                                         elif value == False :
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
-                                            
-                                        if results_write_modbus: # Code that writes data to the inverter after execution 
-                                            code_value = results_write_modbus['code']
-                                            if code_value == 16 :
-                                                comment = 200
-                                            elif code_value == 144 :
-                                                comment = 400
-
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
                                         
                                         id_pointkey = str(id_pointkey)
