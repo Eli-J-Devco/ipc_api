@@ -22,7 +22,6 @@ def setup_logging(default_path='config.yaml',
 
     path = pathlib.Path(__file__).parent.absolute()
     path = os.path.join(path, default_path)
-    print(path)
     value = os.getenv(env_key, None)
     if value:
         path = value

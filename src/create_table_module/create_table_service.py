@@ -3,13 +3,27 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateTable
-from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey
+from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey, func
 
-from .create_table_entity import Devices, PointList
 from .create_table_model import CreateTableModel
-from ..create_devices_model import Point, DeviceModel
+
+from ..async_db.src.async_db.wrapper import async_db_request_handler
+from ..devices_entity import (Devices as DevicesEntity,
+                              PointList as PointListEntity,
+                              DeviceMppt as DeviceMpptEntity,
+                              DeviceMpptString as DeviceMpptStringEntity,
+                              DevicePanel as DevicePanelEntity,
+                              DevicePointListMap as DevicePointListMapEntity, )
+from ..devices_model import (Point,
+                             DeviceModel,
+                             PointType,
+                             DeviceMppt,
+                             DeviceMpptString,
+                             DevicePanel,
+                             DevicePointListMap)
 
 logger = logging.getLogger(__name__)
+
 
 class TableColumn:
     def __init__(self, column_name: str, column_type):
@@ -60,20 +74,129 @@ class CreateTableService:
         self.table_repository = table_repository
         self.metadata = metadata
 
+    @async_db_request_handler
     async def create_table(self, table_name: str, table_schema: List[TableColumn], session: AsyncSession):
-        try:
-            query = str(self.table_repository.create_table(table_name, table_schema, self.metadata)).replace('"', '')
-            await session.execute(text(query))
-            await session.commit()
-            logging.info(f"Table {table_name} created")
-        except Exception as e:
-            logging.error(f"Error when creating table {table_name}: {e}")
-            await session.rollback()
-            raise e
-        finally:
-            await session.close()
+        query = str(self.table_repository.create_table(table_name, table_schema, self.metadata)).replace('"', '')
+        await session.execute(text(query))
+        logging.info(f"Table {table_name} created")
 
-    async def delete_table(self, table_name: str, session: AsyncSession):
+    @async_db_request_handler
+    async def validate_table(self, device_id: int, table_name: str, session: AsyncSession):
+        query = f"SELECT * FROM {table_name} WHERE id_device_list = {device_id}"
+        result = await session.execute(text(query))
+
+        if result.scalars().all() == 0:
+            logging.info(f"Table {table_name} not found")
+            return False
+
+        return True
+
+    @async_db_request_handler
+    async def add_device_mppt(self, device: DeviceModel, session: AsyncSession):
+        logging.info(f"Adding device mppt for {device.table_name}")
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.id_config_information == PointType.MPPT.value))
+        result = await session.execute(query)
+        points = result.scalars().all()
+
+        if not points:
+            logging.error(f"No mppt points found for {device.table_name}")
+            return
+
+        for point in points:
+            new_device_mppt = DeviceMpptEntity(**DeviceMppt(**point.__dict__,
+                                                            id_point_list=point.id,
+                                                            namekey=point.id_pointkey,
+                                                            id_device_list=device.id).dict(exclude={"id"}))
+            session.add(new_device_mppt)
+            await session.flush()
+            await self.add_device_string(device, point.id, new_device_mppt.id, session=session)
+        logging.info(f"Device mppt of {device.table_name} added")
+
+    @async_db_request_handler
+    async def add_device_string(self,
+                                device: DeviceModel,
+                                point_id: int,
+                                id_device_mppt: int,
+                                session: AsyncSession):
+        logging.info(f"Adding device string for {device.table_name}")
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.parent == point_id)
+                 .where(PointListEntity.id_config_information == PointType.STRING.value))
+        result = await session.execute(query)
+        points = result.scalars().all()
+        if not points:
+            logging.error(f"No string points found for {device.table_name}")
+            return
+
+        for point in points:
+            result = await session.execute(select(PointListEntity.id)
+                                           .where(PointListEntity.id_template == device.id_template)
+                                           .where(PointListEntity.parent == point.id)
+                                           .where(PointListEntity.id_config_information == PointType.PANEL.value)
+                                           .with_only_columns(func.count()))
+            count = result.scalar()
+            new_device_mppt_string = DeviceMpptStringEntity(**DeviceMpptString(**point.__dict__,
+                                                                               id_point_list=point.id,
+                                                                               namekey=point.id_pointkey,
+                                                                               id_device_list=device.id,
+                                                                               id_device_mppt=id_device_mppt,
+                                                                               panel=count).dict(exclude={"id"}))
+            session.add(new_device_mppt_string)
+            await session.flush()
+            await self.add_device_panel(device, point.id, new_device_mppt_string.id, session=session)
+
+    @staticmethod
+    @async_db_request_handler
+    async def add_device_panel(device: DeviceModel,
+                               point_id: int,
+                               id_device_string: int,
+                               session: AsyncSession):
+        logging.info(f"Adding device panel for {device.table_name}")
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.parent == point_id)
+                 .where(PointListEntity.id_config_information == PointType.PANEL.value))
+        result = await session.execute(query)
+        points = result.scalars().all()
+
+        if not points:
+            logging.error(f"No panel points found for {device.table_name}")
+            return
+
+        for point in points:
+            session.add(DevicePanelEntity(**DevicePanel(**point.__dict__,
+                                                        id_point_list=point.id,
+                                                        id_device_list=device.id,
+                                                        id_device_string=id_device_string).dict(exclude={"id"})))
+
+        logging.info(f"Device panel of {device.table_name} added")
+
+    @async_db_request_handler
+    async def add_device_point_list_map(self, device: DeviceModel, session: AsyncSession):
+        logging.info(f"Adding device point list map for {device.table_name}")
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.status == 1))
+        result = await session.execute(query)
+        points = result.scalars().all()
+
+        if not points:
+            logging.error(f"No points found for {device.table_name}")
+            return
+
+        session.add_all([DevicePointListMapEntity(**DevicePointListMap(**point.__dict__,
+                                                                       id_point_list=point.id,
+                                                                       id_device_list=device.id)
+                                                  .dict(exclude={"id"}))
+                         for point in points])
+        logging.info(f"Device point list map of {device.table_name} added")
+
+    @staticmethod
+    @async_db_request_handler
+    async def delete_table(table_name: str, session: AsyncSession):
         try:
             query = f"DROP TABLE IF EXISTS {table_name}"
             await session.execute(text(query))
@@ -88,29 +211,24 @@ class CreateTableService:
             await session.close()
 
     @staticmethod
+    @async_db_request_handler
     async def get_devices(session: AsyncSession) -> List[DeviceModel]:
-        try:
-            query = select(Devices)
-            result = await session.execute(query)
-            devices = result.scalars().all()
-            return [DeviceModel(**device.__dict__) for device in devices]
-        except Exception as e:
-            logging.error(e)
-            raise e
-        finally:
-            logger.info("Closing session")
-            await session.close()
+        query = select(DevicesEntity)
+        result = await session.execute(query)
+        devices = result.scalars().all()
+
+        output = []
+        for device in devices:
+            communication = device.communication.__dict__
+            del device.__dict__["communication"]
+            output.append(DeviceModel(**device.__dict__, communication=communication))
+        return output
 
     @staticmethod
+    @async_db_request_handler
     async def get_points(id_template: int, session: AsyncSession) -> List[Point]:
-        try:
-            query = select(PointList).where(PointList.id_template == id_template).where(PointList.status == 1)
-            result = await session.execute(query)
-            points = result.scalars().all()
-            return [Point(**point.__dict__) for point in points]
-        except Exception as e:
-            logging.error(e)
-            raise e
-        finally:
-            logger.info("Closing session")
-            await session.close()
+        query = select(PointListEntity).where(PointListEntity.id_template == id_template).where(
+            PointListEntity.status == 1)
+        result = await session.execute(query)
+        points = result.scalars().all()
+        return [Point(**point.__dict__) for point in points]

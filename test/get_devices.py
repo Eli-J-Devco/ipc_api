@@ -11,7 +11,7 @@ from ..logger.logger import setup_logging
 from ..src.utils.password_hasher import AccountHasher
 from ..src.config import config
 from ..src.create_table_module.create_table_service import CreateTableService, TableColumn
-from ..src.create_table_module.config import orm_provider as db_config
+from ..src.config import orm_provider as db_config
 
 setup_logging(log_path=f"{pathlib.Path(__file__).parent.absolute()}\\log")
 

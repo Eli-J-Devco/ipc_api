@@ -1,10 +1,14 @@
+import enum
+from abc import abstractmethod
 from contextlib import asynccontextmanager
 
-from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from ..config import config
+
+class DbTypes(enum.Enum):
+    POSTGRES = "postgres"
+    MYSQL = "mysql"
 
 
 class ConfigFactoryBase:
@@ -13,13 +17,25 @@ class ConfigFactoryBase:
                  password: str,
                  host: str,
                  port: int,
-                 db_name: str,):
+                 db_name: str,
+                 db_type: str):
         self.user = user
         self.password = password
         self.host = host
         self.port = port
         self.db_name = db_name
 
+    @abstractmethod
+    def get_config(self):
+        pass
+
+
+class PostgresConfigFactory(ConfigFactoryBase):
+    def get_config(self):
+        return f"postgresql+asyncpg://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
+
+
+class MySqlConfigFactory(ConfigFactoryBase):
     def get_config(self):
         return f"mysql+aiomysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}"
 
@@ -61,16 +77,3 @@ class OrmProvider:
             yield db
         finally:
             await db.close()
-
-
-db_config = ConfigFactoryBase(
-    user=config.MYSQL_USER,
-    password=config.MYSQL_PASSWORD,
-    host=config.MYSQL_HOST,
-    port=int(config.MYSQL_PORT),
-    db_name=config.MYSQL_DB_NAME,
-)
-
-orm_provider = OrmProvider(db_config)
-
-

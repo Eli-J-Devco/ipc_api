@@ -1,0 +1,92 @@
+import enum
+from typing import Optional
+
+from pydantic import BaseModel
+
+
+class MetadataModel(BaseModel):
+    retry: int
+
+
+class CreateDeviceModel(BaseModel):
+    metadata: MetadataModel
+    type: str
+    devices: list[int]
+
+
+class DeviceState(enum.Enum):
+    CREATING = 1
+    CREATED = 2
+    DELETING = 3
+    DELETED = 4
+    DEAD_LETTER = 5
+
+
+class Action(enum.Enum):
+    CREATE = "devices/create"
+    DELETE = "devices/delete"
+    DEAD_LETTER = "devices/dead-letter"
+
+
+class Point(BaseModel):
+    id_pointkey: str
+
+
+class Communication(BaseModel):
+    id: int
+    name: str
+
+
+class DeviceModel(BaseModel):
+    id: int
+    name: str
+    table_name: str
+    view_table: Optional[str] = None
+    id_template: int
+
+    points: Optional[list[Point]] = None
+    communication: Optional[Communication] = None
+
+    class Config:
+        orm_mode = True
+
+
+class PointType(enum.Enum):
+    MPPT = 277
+    STRING = 276
+    PANEL = 278
+    POINT = 266
+
+
+class DeviceMppt(BaseModel):
+    id: Optional[int] = None
+    id_device_list: Optional[int] = None
+    id_point_list: Optional[int] = None
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+
+
+class DeviceMpptString(BaseModel):
+    id: Optional[int] = None
+    id_device_list: Optional[int] = None
+    id_point_list: Optional[int] = None
+    id_device_mppt: Optional[int] = None
+    name: Optional[str] = None
+    namekey: Optional[str] = None
+    panel: Optional[int] = None
+
+
+class DevicePanel(BaseModel):
+    id: Optional[int] = None
+    id_device_list: Optional[int] = None
+    id_point_list: Optional[int] = None
+    id_device_string: Optional[int] = None
+    name: Optional[str] = None
+
+
+class DevicePointListMap(BaseModel):
+    id: Optional[int] = None
+    id_device_list: Optional[int] = None
+    id_point_list: Optional[int] = None
+    name: Optional[str] = None
+
