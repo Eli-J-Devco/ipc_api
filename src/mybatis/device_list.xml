@@ -48,7 +48,8 @@
         template_library.name AS template_name,
         device_list.rated_power,
 	      device_list.rated_power_custom,
-	      device_list.min_watt_in_percent
+	      device_list.min_watt_in_percent,
+        device_list.meter_type
 
         FROM device_list
         INNER JOIN device_type ON device_list.id_device_type=device_type.id

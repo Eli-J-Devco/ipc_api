@@ -304,16 +304,16 @@ class apiGateway:
                             
                         if 'mode' in result.keys():
                             self.DeviceList[i]["mode"]=result["mode"]
-                            
                         if 'control_group' in result.keys():
                             self.DeviceList[i]["control_group"]=result["control_group"]
-                            
                         if 'rated_power' in result.keys():
                             self.DeviceList[i]["rated_power"]=result["rated_power"]
                         if 'rated_power_custom' in result.keys():
                             self.DeviceList[i]["rated_power_custom"]=result["rated_power_custom"]
                         if 'min_watt_in_percent' in result.keys():
-                            self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]    
+                            self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]
+                        if 'meter_type' in result.keys():
+                            self.DeviceList[i]["meter_type"]=result["meter_type"]        
 
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")

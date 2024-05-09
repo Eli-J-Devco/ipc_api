@@ -111,6 +111,7 @@ id_template=None
 rated_power=None
 rated_power_custom=None
 min_watt_in_percent=None
+meter_type=None
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -1072,6 +1073,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global rated_power
         global rated_power_custom
         global min_watt_in_percent
+        global meter_type
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -1080,6 +1082,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             
         if results_device[0]['min_watt_in_percent']!=None:
             min_watt_in_percent=results_device[0]['min_watt_in_percent']
+
+        meter_type=results_device[0]['meter_type']
+        
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1286,7 +1291,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global rated_power
             global rated_power_custom
             global min_watt_in_percent
-            
+            global meter_type
             new_point_list_device=[]
             new_point=[]
             mppt=[]
@@ -1543,6 +1548,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
+                "meter_type":meter_type,
                 "status_device":status_device,
                 "timestamp":getUTC(),
                 "message":msg_device,
@@ -1562,6 +1568,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
+                # "meter_type":meter_type,
                 "status_device":status_device,
                 "timestamp":getUTC(),
                 "message":msg_device,
