@@ -83,8 +83,8 @@ class DevicesService:
             pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
             await restart_program_pm2_many(pm2_app_list)
             # 
-            now = datetime.datetime.now(
-            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # now = datetime.datetime.now(
+            # datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             # param=  {
             #             "CODE":"CreateTCPDev",
             #             "PAYLOAD":new_device,
