@@ -1,5 +1,5 @@
 #!/bin/bash
-echo 123654789 | su ipc
+echo 123654789 | su -l ipc
 echo "$USER"
 cp -rf /var/lib/jenkins/workspace/api_python_new/ /home/ipc/sources/api_python_new/
 cd /home/ipc/sources/api_python_new/ || exit
