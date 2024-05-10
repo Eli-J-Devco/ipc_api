@@ -596,6 +596,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), 0)
                     wmax = next((float(field["value"]) for field in fields if field["point_key"] == "WMax"), 0.0)
                     realpower = next((float(field["value"]) for field in fields if field["point_key"] == "ACActivePower"), 0.0)
+                    print("id_device",id_device)
+                    print("wmax",wmax)
+                    print("realpower",realpower)
                     if realpower != None:
                         realpower = realpower * slope
 # Calculate pmin
