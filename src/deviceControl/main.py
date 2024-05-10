@@ -582,6 +582,7 @@ async def get_list_device_in_process(mqtt_result):
                     basic_params = [param for param in params if param["name"] == "Basic"]
                     fields = [field for param in basic_params for field in param.get("fields", [])]
                     controlinv = next((field["value"] for field in fields if field["point_key"] == "ControlINV"), None)
+                    controlinv = int(controlinv)
                     operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), None)
                     wmax = next((field["value"] for field in fields if field["point_key"] == "WMax"), None)
                     realpower = next((field["value"] for field in fields if field["point_key"] == "ACActivePower"), None)
