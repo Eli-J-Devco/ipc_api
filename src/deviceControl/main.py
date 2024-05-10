@@ -567,7 +567,15 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 
     device_list = []
     result_slope = []
+    controlinv_array = []
+    operator_array = []
+    wmax_array = []
+    realpower_array = []
     slope = 1.0
+    controlinv = 0
+    operator = 0
+    wmax = 0.0
+    realpower = 0.0
     current_time = get_utc()
 
     if mqtt_result and isinstance(mqtt_result, list):
@@ -589,20 +597,25 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     pass
 # check device is inv
                 if await check_inverter_device(id_device):
-                    params = item.get("parameters", [])
-                    basic_params = [param for param in params if param["name"] == "Basic"]
-                    fields = [field for param in basic_params for field in param.get("fields", [])]
-                    controlinv = next((int(field["value"]) for field in fields if field["point_key"] == "ControlINV"), 0)
-                    operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), 0)
-                    wmax = next((float(field["value"]) for field in fields if field["point_key"] == "WMax"), 0.0)
-                    realpower = next((float(field["value"]) for field in fields if field["point_key"] == "ACActivePower"), 0.0)
-                    print("id_device",id_device)
-                    print("wmax",wmax)
-                    print("realpower",realpower)
-                    print("slope",slope)
+# get info list device
+                    controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
+                    if controlinv_array:
+                        controlinv = int(controlinv_array[0])
+                    operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
+                    if operator_array:
+                        operator = operator_array[0]
+                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
+                    if wmax_array:
+                        wmax = wmax_array[0]
+                    realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
+                    if realpower_array:
+                        realpower = realpower_array[0]
+                    
                     if realpower is not None:
                         realpower = realpower * slope
-# Calculate pmin
+                    else:
+                        pass
+# Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = (p_max_custom * p_min_percent) / 100
                     else:
