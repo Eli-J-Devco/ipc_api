@@ -562,16 +562,17 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
-async def get_list_device_in_process(mqtt_result,serial_number_project, host, port, username, password):
-    global total_power ,MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
-    
+async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
+
     device_list = []
     result_slope = []
     slope = 1.0
     current_time = get_utc()
-    
+
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
+# get info about device
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
                 id_device = item['id_device']
                 mode = item['mode']
@@ -579,28 +580,29 @@ async def get_list_device_in_process(mqtt_result,serial_number_project, host, po
                 p_max_custom = item['rated_power_custom']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
-                
-                if id_device :
+# actual power conversion factor
+                if id_device:
                     result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
-                if result_slope :
+                if result_slope:
                     slope = float(result_slope[0]["slope"])
                 else:
                     pass
-# device is inv
+# check device is inv
                 if await check_inverter_device(id_device):
-# Check device On/Off
                     params = item.get("parameters", [])
                     basic_params = [param for param in params if param["name"] == "Basic"]
                     fields = [field for param in basic_params for field in param.get("fields", [])]
                     controlinv = next((int(field["value"]) for field in fields if field["point_key"] == "ControlINV"), 0)
                     operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), 0)
-                    wmax = next((float(field["value"]) for field in fields if field["point_key"] == "WMax"), 0)
-                    realpower = next((float(field["value"]) for field in fields if field["point_key"] == "ACActivePower"), 0)
-                    realpower = realpower*slope
+                    wmax = next((float(field["value"]) for field in fields if field["point_key"] == "WMax"), 0.0)
+                    realpower = next((float(field["value"]) for field in fields if field["point_key"] == "ACActivePower"), 0.0)
+                    realpower = realpower * slope
 # Calculate pmin
                     if p_max_custom and p_min_percent:
-                        p_min = (p_max_custom*p_min_percent)/100
-# create list sent mqtt 
+                        p_min = (p_max_custom * p_min_percent) / 100
+                    else:
+                        p_min = 0.0
+                    # create list sent mqtt
                     device_list.append({
                         'id_device': id_device,
                         'device_name': device_name,
@@ -613,8 +615,8 @@ async def get_list_device_in_process(mqtt_result,serial_number_project, host, po
                         'wmax': wmax,
                         'realpower': realpower,
                         'timestamp': current_time,
-                        }   
-                        )
+                    })
+
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, device_list)
     return device_list
 # Describe get_value_meter 
