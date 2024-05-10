@@ -573,6 +573,8 @@ async def get_list_device_in_process(mqtt_result):
                 id_device = item['id_device']
                 mode = item['mode']
                 status_device = item['status_device']
+                p_max_custom = item['rated_power_custom']
+                p_min_percent = item['min_watt_in_percent']
 # device is inv
                 if await check_inverter_device(id_device):
 # Check device On/Off
@@ -583,25 +585,15 @@ async def get_list_device_in_process(mqtt_result):
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                     if operator_array:
                         operator = operator_array[0]
-# get information pmax , pmax customer , pmin
-                    # result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
-                    # p_max_custom = result_pmax_custom[0]["rated_power_custom"]
-                    # result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
-                    # p_max = result_pmax[0]["rated_power"]
-                    # result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
-                    # p_min_percent = result_pmin_percent[0]["min_watt_in_percent"]
-                    # if p_max and p_min_percent:
-                    #     p_min = (p_max*p_min_percent)/100
+# get information pmax 
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     if wmax_array:
                         wmax = wmax_array[0]
-                    
+# get information realpower
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     if realpower_array:
                         realpower = realpower_array[0]
-                        
-                    p_max_custom = mqtt_result[0]["rated_power_custom"]
-                    p_min_percent = mqtt_result[0]["min_watt_in_percent"]
+# Calculate pmin
                     if p_max_custom and p_min_percent:
                         p_min = (p_max_custom*p_min_percent)/100
 # create list sent mqtt 
@@ -609,16 +601,16 @@ async def get_list_device_in_process(mqtt_result):
                         'id_device': id_device,
                         'mode': mode,
                         'status_device': status_device,
+                        'operator': operator,
+                        'controlinv': value,
                         'p_max': p_max_custom,
                         'p_min': p_min,
-                        'controlinv': value,
-                        'operator': operator,
                         'wmax': wmax,
                         'realpower': realpower,
                         'timestamp': current_time,
                         }   
                         )
-    total_power = sum(device['p_max'] for device in device_list)
+
     print("device_list", device_list)
     return device_list
 # Describe get_value_meter 
@@ -1162,7 +1154,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
-            # await get_list_device_in_process(result_topic4)
+            await get_list_device_in_process(result_topic4)
         elif topic == topic5:
             result_topic5 = message
         elif topic == topic6:
