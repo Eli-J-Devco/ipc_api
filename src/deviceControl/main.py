@@ -86,7 +86,7 @@ MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
 MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
-
+MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 def path_directory_relative(project_name):
     if project_name =="":
         return -1
@@ -562,8 +562,9 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
-async def get_list_device_in_process(mqtt_result):
-    global total_power
+async def get_list_device_in_process(mqtt_result,serial_number_project, host, port, username, password):
+    global total_power ,MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
+    
     device_list = []
     current_time = get_utc()
     
@@ -602,8 +603,7 @@ async def get_list_device_in_process(mqtt_result):
                         'timestamp': current_time,
                         }   
                         )
-
-    print("device_list", device_list)
+    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, device_list)
     return device_list
 # Describe get_value_meter 
 # 	 * @description get_value_meter
@@ -1146,7 +1146,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
-            await get_list_device_in_process(result_topic4)
+            await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
         elif topic == topic6:
