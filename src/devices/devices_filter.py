@@ -1,6 +1,13 @@
+import enum
 from typing import Optional
 
 from pydantic.main import BaseModel
+
+
+class CodeEnum(enum.Enum):
+    CreateRS485Dev = 1
+    CreateTCPDev = 3
+    DeleteDev = 0
 
 
 class IncreaseMode:

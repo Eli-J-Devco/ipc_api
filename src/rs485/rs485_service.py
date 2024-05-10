@@ -1,12 +1,13 @@
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 import serial.tools.list_ports as ports
 
 from .rs485_entity import Rs485 as Rs485Entity
-from .rs485_model import Rs485, Rs485Config, SerialPort
+from .rs485_model import Rs485, Rs485Config, SerialPort, Rs485Short
 from ..project_setup.project_setup_entity import ConfigInformation as ConfigInformationEntity
 from ..project_setup.project_setup_filter import ConfigInformationEnum
 
@@ -15,6 +16,11 @@ from ..project_setup.project_setup_filter import ConfigInformationEnum
 class Rs485Service:
     @async_db_request_handler
     async def get_rs485_by_id(self, rs485_id: int, session: AsyncSession):
+        if not rs485_id:
+            query = select(Rs485Entity)
+            result = await session.execute(query)
+            return [Rs485Short(**jsonable_encoder(output)) for output in result.scalars().all()]
+
         query = select(Rs485Entity).where(Rs485Entity.id == rs485_id)
         result = await session.execute(query)
         output = result.scalars().first()

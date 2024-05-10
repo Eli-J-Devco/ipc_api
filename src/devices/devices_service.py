@@ -7,16 +7,18 @@ from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic, MetaData
 
-from .devices_filter import AddDevicesFilter, IncreaseMode
+from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum
 from .devices_model import Devices, DeviceFull, Action
-from .devices_entity import Devices as DevicesEntity, DeviceType as DeviceTypeEntity, DeviceGroup as DeviceGroupEntity
-
+from .devices_entity import (Devices as DevicesEntity,
+                             DeviceType as DeviceTypeEntity,
+                             DeviceGroup as DeviceGroupEntity,
+                             DevicePointMap as DevicePointMapEntity,)
 
 
 @Injectable
@@ -25,9 +27,9 @@ class DevicesService:
         self.sender = Publisher(
             host="localhost",
             port=1883,
-            topic=[f"devices/create"],
+            subscriptions=[f"devices/create"],
             client_id=f"publisher-creating-{uuid.uuid4()}",
-            qos=2
+            will_qos=2
         )
 
     @async_db_request_handler
@@ -67,6 +69,12 @@ class DevicesService:
         return result.scalars().all()
 
     @async_db_request_handler
+    async def get_communication(self, session: AsyncSession):
+        query = select(DevicesEntity.id_communication).distinct()
+        result = await session.execute(query)
+        return result.scalars().all()
+
+    @async_db_request_handler
     async def add_devices(self, body: AddDevicesFilter, session: AsyncSession):
         devices = []
         for _ in range(body.num_of_devices):
@@ -98,11 +106,41 @@ class DevicesService:
             devices.append(new_devices.id)
         await session.commit()
 
+        code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
         creating_msg = MessageModel(
             metadata=MetaData(retry=3),
             topic=Topic(target=Action.CREATE.value, failed=Action.DEAD_LETTER.value),
-            message={"type": Action.CREATE.value, "devices": devices}
+            message={"type": Action.CREATE.value,
+                     "code": code,
+                     "devices": devices}
         )
         await self.sender.start()
         self.sender.send(Action.CREATE.value, base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
+        await self.sender.stop()
         return await self.get_devices(session)
+
+    @async_db_request_handler
+    async def delete_device(self, device_id: int | list[int], session: AsyncSession):
+        if isinstance(device_id, int):
+            device_id = [device_id]
+
+        del_msg = MessageModel(
+            metadata=MetaData(retry=3),
+            topic=Topic(target=Action.DELETE.value, failed=Action.DEAD_LETTER.value),
+            message={"type": Action.DELETE.value,
+                     "code": CodeEnum.DeleteDev.name,
+                     "devices": device_id}
+        )
+        await self.sender.start()
+        self.sender.send(Action.DELETE.value, base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
+        await self.sender.stop()
+
+        return await self.get_devices(session)
+
+    @async_db_request_handler
+    async def get_device_points(self, device_id: int, session: AsyncSession):
+        query = select(DevicePointMapEntity).filter(DevicePointMapEntity.id_device_list == device_id)
+        result = await session.execute(query)
+        points = result.scalars().all()
+
+        return points

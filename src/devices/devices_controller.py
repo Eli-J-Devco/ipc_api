@@ -29,6 +29,12 @@ class DevicesController:
                           auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.devices_service.add_devices)(devices, session)
 
+    @Post("/delete/")
+    async def delete_device(self, device_id: int | list[int] = None,
+                            session: AsyncSession = Depends(config.get_db),
+                            auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service.delete_device)(device_id, session)
+
     @Post("/config/type/get/")
     async def get_device_type(self, session: AsyncSession = Depends(config.get_db),
                               auth: Authentication = Depends(get_current_user)):
@@ -38,3 +44,8 @@ class DevicesController:
     async def get_device_group(self, session: AsyncSession = Depends(config.get_db),
                                auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.devices_service.get_device_group)(session)
+
+    @Post("/point_map/get/")
+    async def get_device_point_map(self, device_id: int, session: AsyncSession = Depends(config.get_db),
+                                   auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_device_points)(device_id, session)

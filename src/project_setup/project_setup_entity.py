@@ -1,6 +1,6 @@
 import datetime
 
-from src.config import config
+from ..config import config
 from sqlalchemy import Integer, DOUBLE, String, DATETIME, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
