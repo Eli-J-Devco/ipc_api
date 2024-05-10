@@ -294,6 +294,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             system_info)
     except Exception as err:
         print(f"Error MQTT subscribe get_cpu_information: '{err}'")
+
 # Describe pud_confirm_mode_control 
 # 	 * @description pud_confirm_mode_control
 # 	 * @author bnguyen
@@ -552,6 +553,71 @@ async def get_list_device_in_automode(mqtt_result):
                         'controlinv': value,
                         'operator': operator,
                     })
+    total_power = sum(device['p_max'] for device in device_list)
+    return device_list
+# Describe get_list_device_in_process 
+# 	 * @description get_list_device_in_process
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result }
+# 	 * @return device_list 
+# 	 */ 
+async def get_list_device_in_process(mqtt_result):
+    global total_power
+    device_list = []
+    current_time = get_utc()
+    
+    if mqtt_result and isinstance(mqtt_result, list):
+        for item in mqtt_result:
+            if 'id_device' in item and 'mode' in item and 'status_device' in item:
+                id_device = item['id_device']
+                mode = item['mode']
+                status_device = item['status_device']
+# device is inv
+                if await check_inverter_device(id_device):
+# Check device On/Off
+                    value_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
+                    if value_array:
+                        value = value_array[0]
+# Check device OperatingState
+                    operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
+                    if operator_array:
+                        operator = operator_array[0]
+# get information pmax , pmax customer , pmin
+                    # result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
+                    # p_max_custom = result_pmax_custom[0]["rated_power_custom"]
+                    # result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
+                    # p_max = result_pmax[0]["rated_power"]
+                    # result_pmin_percent = MySQL_Select("SELECT min_watt_in_percent FROM `device_list` WHERE id = %s", (id_device,))
+                    # p_min_percent = result_pmin_percent[0]["min_watt_in_percent"]
+                    # if p_max and p_min_percent:
+                    #     p_min = (p_max*p_min_percent)/100
+                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
+                    if wmax_array:
+                        wmax = wmax_array[0]
+                    
+                    realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
+                    if realpower_array:
+                        realpower = realpower_array[0]
+                        
+                    p_max_custom = mqtt_result[0]["rated_power_custom"]
+                    p_min_percent = mqtt_result[0]["min_watt_in_percent"]
+                    if p_max_custom and p_min_percent:
+                        p_min = (p_max_custom*p_min_percent)/100
+# create list sent mqtt 
+                    device_list.append({
+                        'id_device': id_device,
+                        'mode': mode,
+                        'status_device': status_device,
+                        'p_max': p_max_custom,
+                        'p_min': p_min,
+                        'controlinv': value,
+                        'operator': operator,
+                        'wmax': wmax,
+                        'realpower': realpower,
+                        'timestamp': current_time,
+                        }   
+                        )
     total_power = sum(device['p_max'] for device in device_list)
     print("device_list", device_list)
     return device_list
@@ -1096,6 +1162,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
+            # await get_list_device_in_process(result_topic4)
         elif topic == topic5:
             result_topic5 = message
         elif topic == topic6:
@@ -1164,6 +1231,7 @@ async def main():
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
         scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
+        
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
