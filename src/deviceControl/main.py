@@ -578,21 +578,13 @@ async def get_list_device_in_process(mqtt_result):
 # device is inv
                 if await check_inverter_device(id_device):
 # Check device On/Off
-                    value_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
-                    if value_array:
-                        value = value_array[0]
-# Check device OperatingState
-                    operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
-                    if operator_array:
-                        operator = operator_array[0]
-# get information pmax 
-                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
-                    if wmax_array:
-                        wmax = wmax_array[0]
-# get information realpower
-                    realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                    if realpower_array:
-                        realpower = realpower_array[0]
+                    params = item.get("parameters", [])
+                    basic_params = [param for param in params if param["name"] == "Basic"]
+                    fields = [field for param in basic_params for field in param.get("fields", [])]
+                    controlinv = next((field["value"] for field in fields if field["point_key"] == "ControlINV"), None)
+                    operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), None)
+                    wmax = next((field["value"] for field in fields if field["point_key"] == "WMax"), None)
+                    realpower = next((field["value"] for field in fields if field["point_key"] == "ACActivePower"), None)
 # Calculate pmin
                     if p_max_custom and p_min_percent:
                         p_min = (p_max_custom*p_min_percent)/100
@@ -602,7 +594,7 @@ async def get_list_device_in_process(mqtt_result):
                         'mode': mode,
                         'status_device': status_device,
                         'operator': operator,
-                        'controlinv': value,
+                        'controlinv': controlinv,
                         'p_max': p_max_custom,
                         'p_min': p_min,
                         'wmax': wmax,
