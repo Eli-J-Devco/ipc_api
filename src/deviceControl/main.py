@@ -594,8 +594,8 @@ async def get_list_device_in_process(mqtt_result,serial_number_project, host, po
                     fields = [field for param in basic_params for field in param.get("fields", [])]
                     controlinv = next((int(field["value"]) for field in fields if field["point_key"] == "ControlINV"), 0)
                     operator = next((field["value"] for field in fields if field["point_key"] == "OperatingState"), 0)
-                    wmax = next((field["value"] for field in fields if field["point_key"] == "WMax"), 0)
-                    realpower = next((field["value"] for field in fields if field["point_key"] == "ACActivePower"), 0)
+                    wmax = next((float(field["value"]) for field in fields if field["point_key"] == "WMax"), 0)
+                    realpower = next((float(field["value"]) for field in fields if field["point_key"] == "ACActivePower"), 0)
                     realpower = realpower*slope
 # Calculate pmin
                     if p_max_custom and p_min_percent:
