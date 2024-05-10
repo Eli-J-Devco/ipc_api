@@ -599,6 +599,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     print("id_device",id_device)
                     print("wmax",wmax)
                     print("realpower",realpower)
+                    print("slope",slope)
                     if realpower != None:
                         realpower = realpower * slope
 # Calculate pmin
