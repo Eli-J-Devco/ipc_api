@@ -17,3 +17,5 @@ def init_api_web():
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/main.py --interpreter {absDirname}/venv/bin/python3 -f --name "{pid}" '
             f'--restart-delay=10000', shell=True).communicate()
+
+init_api_web()
