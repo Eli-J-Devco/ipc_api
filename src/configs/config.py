@@ -9,12 +9,17 @@ import sys
 from pathlib import Path
 from typing import Optional, Union, get_type_hints
 
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
+
 # SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # sys.path.append(os.path.dirname(SCRIPT_DIR))
 # print(f'SCRIPT_DIR: {SCRIPT_DIR}')
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 # from pydantic import BaseModel
 from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+
+from async_db.config import MySqlConfigFactory, OrmProvider
 
 print(f'{VERSION = }-202402')
 
@@ -63,3 +68,17 @@ class Settings(BaseSettings):
     FTPSERVER_PASSWORD : str
 
 Config = Settings()
+
+
+
+
+
+db_config = MySqlConfigFactory(
+    user=Config.DATABASE_USERNAME,
+    password=Config.DATABASE_PASSWORD,
+    host=Config.DATABASE_HOSTNAME,
+    port=int(Config.DATABASE_PORT),
+    db_name=Config.DATABASE_NAME,
+)
+
+orm_provider = OrmProvider(db_config)

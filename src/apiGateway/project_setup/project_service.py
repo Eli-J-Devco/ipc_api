@@ -5,6 +5,7 @@
 # *********************************************************/
 import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 import api.domain.deviceGroup.models as deviceGroup_models
@@ -13,6 +14,7 @@ import api.domain.project.models as project_models
 import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
+from async_db.wrapper import async_db_request_handler
 from database.db import get_db
 from database.sql.device import all_query
 from utils.mqttManager import mqtt_public, mqtt_public_common
@@ -32,3 +34,12 @@ class ProjectService:
     async def init_logging_rate(self):
         pm2_app_list=[f'LogFile|',f'LogDevice|']
         await restart_program_pm2_many(pm2_app_list)
+    @staticmethod
+    @async_db_request_handler
+    async def project_inform(session: AsyncSession):
+        query ="SELECT * FROM `project_setup`"
+        result = await session.execute(text(query))
+        # points = result.scalars().all()
+        # device = result.all()
+        project = [row._asdict() for row in result.all()] 
+        print(project)
