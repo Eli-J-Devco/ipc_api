@@ -624,6 +624,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         realpower = realpower_array[0]
                     if status_device == 'offline':
                         realpower = 0.0
+                        operator_text = "Off"
                     else:
                         if realpower is not None:
                             realpower = realpower * slope
