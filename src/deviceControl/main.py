@@ -574,7 +574,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     slope = 1.0
     controlinv = 0
     operator = 0
-    operator_text = ""
+    operator_text = "Off"
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
@@ -592,7 +592,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 
 # actual power conversion factor
                 if id_device:
-                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
+                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'AC Active Power' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 if result_slope:
                     slope = float(result_slope[0]["slope"])
                 else:
@@ -607,6 +607,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                             controlinv = 0
                             
                     operator_text = {
+                        0: "Shutting down",
                         1: "Shutting down",
                         4: "Running",
                         5: "Running",  
@@ -633,7 +634,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if realpower == None :
                             realpower = 0
                         else:
-                            realpower = realpower * slope
+                            realpower = realpower/slope
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
