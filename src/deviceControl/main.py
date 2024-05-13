@@ -603,7 +603,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
                     if controlinv_array:
                         controlinv = controlinv_array[0]
-                    
+                        if controlinv == None :
+                            controlinv = 0
+                            
                     operator_text = {
                         1: "Shutting down",
                         4: "Running",
@@ -619,6 +621,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     if wmax_array:
                         wmax = wmax_array[0]
+                        if wmax == None :
+                            wmax = 0
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     if realpower_array:
                         realpower = realpower_array[0]
