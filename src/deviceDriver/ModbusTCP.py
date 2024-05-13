@@ -647,7 +647,6 @@ def func_check_float(Value): #Check if a number is int or float
     else:
         result=Value
     return result
-
 def func_check_data_mybatis(data,item,object_name):
     try:
         
@@ -1746,7 +1745,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())

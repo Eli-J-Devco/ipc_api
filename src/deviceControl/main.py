@@ -588,6 +588,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 p_max_custom = item['rated_power_custom']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
+
 # actual power conversion factor
                 if id_device:
                     result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
@@ -600,7 +601,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # get info list device
                     controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
                     if controlinv_array:
-                        controlinv = int(controlinv_array[0])
+                        controlinv = controlinv_array[0]
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                     if operator_array:
                         operator = operator_array[0]
@@ -615,9 +616,10 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         realpower = realpower * slope
                     else:
                         pass
+
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
-                        p_min = (p_max_custom * p_min_percent) / 100
+                        p_min = round((p_max_custom * p_min_percent) / 100, 4)
                     else:
                         p_min = 0.0
                     # create list sent mqtt
@@ -702,12 +704,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 delta = slope * 1000
                 power_max_convert = (power_max / slope) * delta
                 p_max_real = (total_power / slope) * delta
-                efficiency_total = (value_power_limit/p_max_real)
+                efficiency_total = round(value_power_limit/p_max_real)
                 if efficiency_total > 1 :
                         efficiency_total = 1
                 p_for_each_device_power_limit = (efficiency_total * power_max_convert) / delta
                 if p_for_each_device_power_limit > power_max_convert/delta:
-                    p_for_each_device_power_limit = power_max_convert/delta
+                    p_for_each_device_power_limit = round(power_max_convert/delta)
 # Check device is off , on device 
             if device['controlinv'] == 1:
                 new_device = {
@@ -793,9 +795,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         pass
 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = (efficiency_total*power_max_convert)/delta
+                    p_for_each_device_zero_export = round((efficiency_total*power_max_convert)/delta)
                 if p_for_each_device_zero_export > power_max_convert/delta:
-                    p_for_each_device_zero_export = power_max_convert/delta
+                    p_for_each_device_zero_export = round(power_max_convert/delta)
                 else:
                     pass
             if p_for_each_device_zero_export <= 0 :
@@ -886,12 +888,12 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                 if total_power and value_consumption :  
                     # difference coefficient between actual and value in inv 333 with 3330 = 0.1
                     delta = slope*1000
-                    power_max_convert = ((power_max/slope)*delta)
+                    power_max_convert = round((power_max/slope)*delta)
 # Power for each device 
             await process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
             await process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
             if p_for_each_device_zero_export and p_for_each_device_power_limit :
-                p_for_each_device = p_for_each_device_zero_export + p_for_each_device_power_limit
+                p_for_each_device = round (p_for_each_device_zero_export + p_for_each_device_power_limit)
             # if p_for_each_device > power_max_convert/delta:
             #         p_for_each_device = power_max_convert/delta
             # else:
