@@ -572,7 +572,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     realpower_array = []
     slope = 1.0
     operator = 0
-    operator_text = "Off"
+    operator_text = "off"
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
@@ -599,12 +599,12 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 if await check_inverter_device(id_device):
 # get info list device
                     operator_text = {
-                        0: "Shutting down",
-                        1: "Shutting down",
-                        4: "Running",
-                        5: "Running",  
-                        6: "Shutting down",
-                        7: "Fault",
+                        0: "shutting down",
+                        1: "shutting down",
+                        4: "running",
+                        5: "running",  
+                        6: "shutting down",
+                        7: "fault",
                     }
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                     if operator_array:
