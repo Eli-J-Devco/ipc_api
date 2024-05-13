@@ -15,13 +15,14 @@ class DevicePointMap(config.Base):
                                                                     onupdate="CASCADE"),
                                                 nullable=True)
     id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id",
-                                                                    ondelete="CASCADE",
-                                                                    onupdate="CASCADE"),
-                                                  nullable=True)
+                                                                   ondelete="CASCADE",
+                                                                   onupdate="CASCADE"),
+                                               nullable=True)
     name: Mapped[str] = mapped_column(String, nullable=True)
     low_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     high_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
+
 
 class Devices(config.Base):
     __tablename__ = "device_list"
@@ -99,9 +100,10 @@ class Devices(config.Base):
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[datetime.datetime] = mapped_column(Date, nullable=True)
+    meter_type: Mapped[int] = mapped_column(Integer, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
-    communication = relationship("Rs485", foreign_keys=[id_communication])
+    communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])
     project_setup = relationship("ProjectSetup", foreign_keys=[id_project_setup])
     template_library = relationship("Template", foreign_keys=[id_template])

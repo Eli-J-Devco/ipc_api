@@ -8,10 +8,10 @@ from ..project_setup.project_setup_model import ConfigInformationShort
 class Rs485Short(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+    namekey: Optional[str] = None
 
 
 class Rs485(Rs485Short):
-    namekey: Optional[str] = None
     id_driver_list: Optional[int] = None
     id_type_baud_rates: Optional[int] = None
     id_type_parity: Optional[int] = None

@@ -17,10 +17,19 @@ class IncreaseMode:
 
 class AddDevicesModeFilter(BaseModel):
     num_of_devices: Optional[int] = 1
-    mode: Optional[int] = 1
+    inc_mode: Optional[int] = 1
 
 
-class AddDevicesFilter(AddDevicesModeFilter):
+class AddInverterFilter(BaseModel):
+    rated_power: Optional[float] = 0.0
+    mode: Optional[int] = 0
+
+
+class AddMeterFilter(BaseModel):
+    meter_type: Optional[int] = 0
+
+
+class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter):
     name: str
     id_device_type: int
     id_device_group: int

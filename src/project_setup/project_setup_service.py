@@ -64,6 +64,12 @@ class ProjectSetupService:
         return project
 
     @async_db_request_handler
+    async def get_project_serial_number(self, session: AsyncSession):
+        query = select(ProjectSetupEntity.serial_number)
+        result = await session.execute(query)
+        return result.scalars().first()
+
+    @async_db_request_handler
     async def get_config_information_by_type(self, session: AsyncSession, config_type: str):
         config_enum = ConfigInformationEnum().__getattribute__(config_type)
         query = (select(ConfigInformationEntity)

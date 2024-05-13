@@ -54,7 +54,9 @@ class DeviceFull(BaseModel):
     allow_error: Optional[float] = None
     enable_poweroff: Optional[bool] = 0
     inverter_shutdown: Optional[datetime.datetime] = None
+    meter_type: Optional[int] = None
     status: Optional[bool] = True
+    driver_type: Optional[str] = None
 
 
 class Devices(BaseModel):
@@ -87,7 +89,7 @@ class DeviceGroup(BaseModel):
 
 
 class Action(enum.Enum):
-    CREATE = "devices/create"
-    DELETE = "devices/delete"
-    DEAD_LETTER = "devices/dead-letter"
+    CREATE = "InitDevices/create"
+    DELETE = "InitDevices/delete"
+    DEAD_LETTER = "InitDevices/dead-letter"
 

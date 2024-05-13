@@ -1,6 +1,7 @@
 import base64
 import datetime
 import json
+import logging
 import uuid
 
 from nest.core.decorators.database import async_db_request_handler
@@ -19,6 +20,7 @@ from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
                              DeviceGroup as DeviceGroupEntity,
                              DevicePointMap as DevicePointMapEntity,)
+from ..project_setup.project_setup_service import ProjectSetupService
 
 
 @Injectable
@@ -37,7 +39,15 @@ class DevicesService:
         query = (select(DevicesEntity)
                  .where(DevicesEntity.status.__eq__(True)))
         result = await session.execute(query)
-        return result.scalars().all()
+        devices = result.scalars().all()
+
+        output = []
+        for device in devices:
+            driver_type = device.communication.__dict__.get("name")
+            output.append(DeviceFull(**device.__dict__,
+                                     driver_type=driver_type))
+
+        return output
 
     @async_db_request_handler
     async def get_device_by_id(self, device_id: int, session: AsyncSession):
@@ -77,17 +87,14 @@ class DevicesService:
     @async_db_request_handler
     async def add_devices(self, body: AddDevicesFilter, session: AsyncSession):
         devices = []
+        logging.info(f"Rate power: {body.rated_power}")
         for _ in range(body.num_of_devices):
             new_devices = DevicesEntity(
                 **DeviceFull(
-                    name=body.name,
-                    id_device_type=body.id_device_type,
-                    id_template=body.id_template,
-                    id_communication=body.id_communication,
-                    device_virtual=body.device_virtual,
-                    rtu_bus_address=body.rtu_bus_address + (_ if body.mode == IncreaseMode.RTU else 0),
-                    tcp_gateway_ip=body.tcp_gateway_ip,
-                    tcp_gateway_port=body.tcp_gateway_port + (_ if body.mode == IncreaseMode.TCP else 0),
+                    **body.dict(exclude_unset=True, exclude={"rtu_bus_address", "tcp_gateway_port"}),
+                    rtu_bus_address=body.rtu_bus_address + (_ if body.inc_mode == IncreaseMode.RTU else 0),
+                    tcp_gateway_port=body.tcp_gateway_port + (_ if body.inc_mode == IncreaseMode.TCP else 0),
+                    rated_power_custom=body.rated_power,
                 ).dict(exclude_none=True)
             )
             session.add(new_devices)
@@ -106,16 +113,19 @@ class DevicesService:
             devices.append(new_devices.id)
         await session.commit()
 
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
         code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
         creating_msg = MessageModel(
             metadata=MetaData(retry=3),
-            topic=Topic(target=Action.CREATE.value, failed=Action.DEAD_LETTER.value),
+            topic=Topic(target=f"{serial_number}/{Action.CREATE.value}",
+                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
             message={"type": Action.CREATE.value,
                      "code": code,
                      "devices": devices}
         )
         await self.sender.start()
-        self.sender.send(Action.CREATE.value, base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
+        self.sender.send(f"{serial_number}/{Action.CREATE.value}",
+                         base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
         await self.sender.stop()
         return await self.get_devices(session)
 
@@ -123,16 +133,18 @@ class DevicesService:
     async def delete_device(self, device_id: int | list[int], session: AsyncSession):
         if isinstance(device_id, int):
             device_id = [device_id]
-
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
         del_msg = MessageModel(
             metadata=MetaData(retry=3),
-            topic=Topic(target=Action.DELETE.value, failed=Action.DEAD_LETTER.value),
+            topic=Topic(target=f"{serial_number}/{Action.DELETE.value}",
+                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
             message={"type": Action.DELETE.value,
                      "code": CodeEnum.DeleteDev.name,
                      "devices": device_id}
         )
         await self.sender.start()
-        self.sender.send(Action.DELETE.value, base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
+        self.sender.send(f"{serial_number}/{Action.DELETE.value}",
+                         base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
         await self.sender.stop()
 
         return await self.get_devices(session)
