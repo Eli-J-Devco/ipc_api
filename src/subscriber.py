@@ -20,7 +20,7 @@ from .devices_entity import ProjectSetup
 from .devices_model import Action, DeviceModel, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
 from .pm2_service.pm2_service import PM2Service
-from ..logger.logger import setup_logging
+from .logger.logger import setup_logging
 
 logger = setup_logging(file_name="subscriber",
                        log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "log"))
@@ -223,7 +223,7 @@ async def reconector(subscriber: MQTTSubscriber):
             await subscriber.session.close()
 
 
-if __name__ == "__main__":
+def run_subscriber():
     session = asyncio.run(db_config.get_db())
     serial_number = asyncio.run(session.execute(select(ProjectSetup))).scalars().first().serial_number
     session = asyncio.run(db_config.get_db())

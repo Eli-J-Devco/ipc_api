@@ -1,8 +1,5 @@
-from .logger.logger import setup_logging
-
-
-setup_logging()
+from src.subscriber import run_subscriber
 
 
 if __name__ == '__main__':
-    pass
+    run_subscriber()
