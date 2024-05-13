@@ -567,12 +567,10 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 
     device_list = []
     result_slope = []
-    controlinv_array = []
     operator_array = []
     wmax_array = []
     realpower_array = []
     slope = 1.0
-    controlinv = 0
     operator = 0
     operator_text = "Off"
     wmax = 0.0
@@ -600,12 +598,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # check device is inv
                 if await check_inverter_device(id_device):
 # get info list device
-                    controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
-                    if controlinv_array:
-                        controlinv = controlinv_array[0]
-                        if controlinv == None :
-                            controlinv = 0
-                            
                     operator_text = {
                         0: "Shutting down",
                         1: "Shutting down",
@@ -629,7 +621,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         realpower = realpower_array[0]
                     if status_device == 'offline':
                         realpower = 0.0
-                        operator_text = "Off"
+                        operator_text = "off"
                     else:
                         if realpower == None :
                             realpower = 0
@@ -647,7 +639,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'mode': mode,
                         'status_device': status_device,
                         'operator': operator_text,
-                        'controlinv': controlinv,
                         'p_max': p_max_custom,
                         'p_min': p_min,
                         'wmax': wmax,
