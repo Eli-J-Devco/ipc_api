@@ -4,6 +4,13 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .config import orm_provider as config
 
 
+class ProjectSetup(config.Base):
+    __tablename__ = "project_setup"
+
+    id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
+    serial_number: Mapped[str] = mapped_column(String(255), nullable=True)
+
+
 class ConfigInformation(config.Base):
     __tablename__ = "config_information"
 

@@ -23,9 +23,9 @@ class DeviceState(enum.Enum):
 
 
 class Action(enum.Enum):
-    CREATE = "devices/create"
-    DELETE = "devices/delete"
-    DEAD_LETTER = "devices/dead-letter"
+    CREATE = "InitDevices/create"
+    DELETE = "InitDevices/delete"
+    DEAD_LETTER = "InitDevices/dead-letter"
 
 
 class Point(BaseModel):

@@ -16,6 +16,7 @@ class Config(BaseSettings):
     MQTT_TOPIC: str = 'topic'
     MQTT_QOS: int = 0
     MQTT_RETAIN: bool = True
+    MQTT_INITIALIZE_TOPIC: str = 'initialize'
 
     DATABASE_HOSTNAME: str = 'localhost'
     DATABASE_PORT: int = 3306
@@ -23,26 +24,8 @@ class Config(BaseSettings):
     DATABASE_NAME: str = 'root'
     DATABASE_USERNAME: str = 'nextwave_db'
 
-    PM2_MQTT_HOST: str
-    PM2_MQTT_PORT: str
-    PM2_MQTT_TOPIC: str
-    PM2_MQTT_USERNAME: str
-    PM2_MQTT_PASSWORD: str
-    PM2_MQTT_CLIENT_ID: str
-    PM2_MQTT_QOS: str
-    PM2_MQTT_RETAIN: str
-
 
 config = Config()
-
-if config.PM2_MQTT_USERNAME == '':
-    config.PM2_MQTT_USERNAME = None
-if config.PM2_MQTT_PASSWORD == '':
-    config.PM2_MQTT_PASSWORD = None
-if config.MQTT_USERNAME == '':
-    config.MQTT_USERNAME = None
-if config.MQTT_PASSWORD == '':
-    config.MQTT_PASSWORD = None
 
 db_config = MySqlConfigFactory(
     user=config.DATABASE_USERNAME,

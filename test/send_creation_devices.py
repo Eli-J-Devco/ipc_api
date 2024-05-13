@@ -23,14 +23,14 @@ class DeviceState(enum.Enum):
 
 
 class Action(enum.Enum):
-    CREATE = "devices/create"
-    DELETE = "devices/delete"
-    DEAD_LETTER = "devices/dead-letter"
+    CREATE = "InitDevices/create"
+    DELETE = "InitDevices/delete"
+    DEAD_LETTER = "InitDevices/dead-letter"
 
 
 metadata = MetaData(retry=3)
-del_topic = Topic(target=Action.DELETE.value, failed=Action.DEAD_LETTER.value)
-cre_topic = Topic(target=Action.CREATE.value, failed=Action.DEAD_LETTER.value)
+del_topic = Topic(target=f"G83VZT33/{Action.DELETE.value}", failed=f"G83VZT33/{Action.DEAD_LETTER.value}")
+cre_topic = Topic(target=f"G83VZT33/{Action.CREATE.value}", failed=f"G83VZT33/{Action.DEAD_LETTER.value}")
 
 del_msg = MessageModel(metadata=metadata,
                        topic=del_topic,
@@ -42,7 +42,7 @@ cre_msg = MessageModel(metadata=metadata,
                        topic=cre_topic,
                        message={"type": Action.CREATE.value,
                                 "code": "CreateTCPDev",
-                                "devices": [1061]}
+                                "devices": [839, 840]}
                        )
 
 
@@ -64,9 +64,9 @@ if __name__ == "__main__":
     publisher = Publisher(
         host="localhost",
         port=1883,
-        subscriptions=[Action.CREATE.value, Action.DELETE.value, Action.DEAD_LETTER.value],
+        subscriptions=["G83VZT33/#"],
         client_id=f"publisher-{DeviceState.CREATING.name.lower()}-{uuid.uuid4()}",
         will_qos=2
     )
 
-    asyncio.run(publish(publisher, cre_msg.dict(), Action.CREATE.value))
+    asyncio.run(publish(publisher, cre_msg.dict(), f"G83VZT33/{Action.CREATE.value}"))
