@@ -630,11 +630,10 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         realpower = 0.0
                         operator_text = "Off"
                     else:
-                        if realpower is not None:
-                            realpower = realpower * slope
+                        if realpower == None :
+                            realpower = 0
                         else:
-                            pass
-
+                            realpower = realpower * slope
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
