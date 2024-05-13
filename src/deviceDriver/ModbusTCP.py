@@ -647,7 +647,6 @@ def func_check_float(Value): #Check if a number is int or float
     else:
         result=Value
     return result
-
 def func_check_data_mybatis(data,item,object_name):
     try:
         
@@ -733,7 +732,6 @@ async def check_inverter_device(device_control):
 # 	 * @param {device_control , parameter}
 # 	 * @return value , register , datatype , id_point_key 
 # 	 */ 
-    
 async def find_inverter_information(device_control, parameter):
     query_register = "SELECT id_pointkey, register, id_type_datatype FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template WHERE device_list.id = %s;"
     query_datatype = "SELECT value FROM config_information WHERE id = %s"
@@ -1747,7 +1745,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-        
+
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
