@@ -574,6 +574,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     slope = 1.0
     controlinv = 0
     operator = 0
+    operator_text = ""
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
@@ -602,20 +603,32 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
                     if controlinv_array:
                         controlinv = controlinv_array[0]
+                    
+                    operator_text = {
+                        1: "Off",
+                        4: "Running",
+                        5: "Running",  
+                        6: "Shutting down",
+                        7: "Fault",
+                    }
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                     if operator_array:
                         operator = operator_array[0]
+                        operator_text = operator_text.get(operator, "Off")
+                    
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     if wmax_array:
                         wmax = wmax_array[0]
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     if realpower_array:
                         realpower = realpower_array[0]
-                    
-                    if realpower is not None:
-                        realpower = realpower * slope
+                    if status_device == 'offline':
+                        realpower = 0.0
                     else:
-                        pass
+                        if realpower is not None:
+                            realpower = realpower * slope
+                        else:
+                            pass
 
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
@@ -628,7 +641,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'device_name': device_name,
                         'mode': mode,
                         'status_device': status_device,
-                        'operator': operator,
+                        'operator': operator_text,
                         'controlinv': controlinv,
                         'p_max': p_max_custom,
                         'p_min': p_min,
