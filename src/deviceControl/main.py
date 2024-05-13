@@ -588,13 +588,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
 
-# actual power conversion factor
-                if id_device:
-                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'AC Active Power' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
-                if result_slope:
-                    slope = float(result_slope[0]["slope"])
-                else:
-                    pass
 # check device is inv
                 if await check_inverter_device(id_device):
 # get info list device
@@ -626,7 +619,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if realpower == None :
                             realpower = 0
                         else:
-                            realpower = realpower/slope
+                            realpower = realpower
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
