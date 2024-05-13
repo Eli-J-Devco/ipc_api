@@ -20,6 +20,7 @@ from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
                              DeviceGroup as DeviceGroupEntity,
                              DevicePointMap as DevicePointMapEntity,)
+from ..config import env_config
 from ..project_setup.project_setup_service import ProjectSetupService
 
 
@@ -27,9 +28,11 @@ from ..project_setup.project_setup_service import ProjectSetupService
 class DevicesService:
     def __init__(self):
         self.sender = Publisher(
-            host="localhost",
-            port=1883,
-            subscriptions=[f"devices/create"],
+            host=env_config.MQTT_BROKER,
+            port=env_config.MQTT_PORT,
+            subscriptions=["#"],
+            username=env_config.MQTT_USERNAME,
+            password=env_config.MQTT_PASSWORD.encode("utf-8"),
             client_id=f"publisher-creating-{uuid.uuid4()}",
             will_qos=2
         )
