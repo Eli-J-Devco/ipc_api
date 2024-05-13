@@ -704,12 +704,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 delta = slope * 1000
                 power_max_convert = (power_max / slope) * delta
                 p_max_real = (total_power / slope) * delta
-                efficiency_total = round(value_power_limit/p_max_real)
+                efficiency_total = (value_power_limit/p_max_real)
                 if efficiency_total > 1 :
                         efficiency_total = 1
                 p_for_each_device_power_limit = (efficiency_total * power_max_convert) / delta
                 if p_for_each_device_power_limit > power_max_convert/delta:
-                    p_for_each_device_power_limit = round(power_max_convert/delta)
+                    p_for_each_device_power_limit = (power_max_convert/delta)
 # Check device is off , on device 
             if device['controlinv'] == 1:
                 new_device = {
@@ -795,16 +795,15 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         pass
 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = round((efficiency_total*power_max_convert)/delta)
+                    p_for_each_device_zero_export = ((efficiency_total*power_max_convert)/delta)
                 if p_for_each_device_zero_export > power_max_convert/delta:
-                    p_for_each_device_zero_export = round(power_max_convert/delta)
+                    p_for_each_device_zero_export = (power_max_convert/delta)
                 else:
                     pass
             if p_for_each_device_zero_export <= 0 :
                 p_for_each_device_zero_export = 0 
             else:
-                pass
-# Check device is off , on device 
+                pass# Check device is off , on device 
             total_p_inv_prodution += p_for_each_device_zero_export
             if device['controlinv'] == 1:
                 new_device = {
