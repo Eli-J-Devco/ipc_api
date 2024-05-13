@@ -605,7 +605,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         controlinv = controlinv_array[0]
                     
                     operator_text = {
-                        1: "Off",
+                        1: "Shutting down",
                         4: "Running",
                         5: "Running",  
                         6: "Shutting down",
