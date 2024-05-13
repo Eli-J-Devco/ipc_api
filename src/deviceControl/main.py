@@ -566,13 +566,11 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
 
     device_list = []
-    result_slope = []
     operator_array = []
     wmax_array = []
     realpower_array = []
-    slope = 1.0
     operator = 0
-    operator_text = "off"
+    operator_text = ""
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
@@ -600,26 +598,18 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         7: "fault",
                     }
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
-                    if operator_array:
-                        operator = operator_array[0]
-                        operator_text = operator_text.get(operator, "Off")
+                    operator = operator_array[0] if operator_array else 0
+                    operator_text = operator_text.get(operator, "off")
                     
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
-                    if wmax_array:
-                        wmax = wmax_array[0]
-                        if wmax == None :
-                            wmax = 0
+                    wmax = wmax_array[0] if wmax_array else 0
+                    
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                    if realpower_array:
-                        realpower = realpower_array[0]
+                    realpower = realpower_array[0] if realpower_array else 0
+# device offline   
                     if status_device == 'offline':
                         realpower = 0.0
                         operator_text = "off"
-                    else:
-                        if realpower == None :
-                            realpower = 0
-                        else:
-                            realpower = realpower
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
