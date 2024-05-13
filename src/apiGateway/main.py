@@ -23,7 +23,10 @@ from sqlalchemy import exc
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
+# 
 from configs.config import Config
+from configs.config import orm_provider as db_config
+# 
 from database.db import get_db
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
@@ -70,17 +73,20 @@ def getUTC():
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     return now
 class apiGateway:
-    def __init__(self,MQTT_BROKER="127.0.0.1",
-                        MQTT_PORT=1883,
-                        MQTT_TOPIC="",
-                        MQTT_USERNAME="",
-                        MQTT_PASSWORD="",
-                        MQTT_BROKER_CLOUD="127.0.0.1",
-                        MQTT_PORT_CLOUD=1883,
-                        MQTT_TOPIC_CLOUD="",
-                        MQTT_USERNAME_CLOUD="",
-                        MQTT_PASSWORD_CLOUD=""
-                        ):
+    def __init__(self,
+                db_new,
+                MQTT_BROKER="127.0.0.1",
+                MQTT_PORT=1883,
+                MQTT_TOPIC="",
+                MQTT_USERNAME="",
+                MQTT_PASSWORD="",
+                MQTT_BROKER_CLOUD="127.0.0.1",
+                MQTT_PORT_CLOUD=1883,
+                MQTT_TOPIC_CLOUD="",
+                MQTT_USERNAME_CLOUD="",
+                MQTT_PASSWORD_CLOUD="",
+                        **kwargs):
+        self.db_new =db_new
         self.MQTT_BROKER = MQTT_BROKER
         self.MQTT_PORT = MQTT_PORT
         self.MQTT_TOPIC = MQTT_TOPIC
@@ -93,6 +99,7 @@ class apiGateway:
         self.MQTT_TOPIC_CLOUD = MQTT_TOPIC_CLOUD
         self.MQTT_USERNAME_CLOUD = MQTT_USERNAME_CLOUD
         self.MQTT_PASSWORD_CLOUD = MQTT_PASSWORD_CLOUD
+        
     async def handle_messages_api(self,client):
         try :
             device_init=devices_service.DevicesService(
@@ -109,7 +116,6 @@ class apiGateway:
             
             while True:
                 message = await client.messages.get()
-
                 if message is None:
                     print('Broker connection lost!')
                     break
@@ -236,7 +242,8 @@ class apiGateway:
                             
                             upload_channel_list=result['PAYLOAD']
                             await upload_channel_init.init_pm2(upload_channel_list)
-            
+                        case "GetDev":
+                            await device_init.get_dev(self.db_new)
         except Exception as err:
             print(f"Error handle_messages_api: '{err}'")   
     async def managerApplicationsWithPM2(self):
@@ -419,8 +426,9 @@ async def main():
     MQTT_TOPIC_CLOUD=result_project.serial_number
     MQTT_USERNAME_CLOUD=result_project.mqtt_username_cloud
     MQTT_PASSWORD_CLOUD=result_project.mqtt_password_cloud
-    print(f'MQTT_TOPIC: {MQTT_TOPIC}')
-    api_gateway=apiGateway(MQTT_BROKER,
+    db_new=await db_config.get_db()
+    api_gateway=apiGateway(db_new,
+                            MQTT_BROKER,
                             MQTT_PORT,
                             MQTT_TOPIC,
                             MQTT_USERNAME,

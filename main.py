@@ -336,6 +336,24 @@ def init_mqtt_control():
         # use run with ubuntu/linux
         subprocess.Popen(
             f'sudo pm2 start {absDirname}/deviceControl/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run API_NEW of web
+# 	 * @author vnguyen
+# 	 * @since 13-05-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_api_web_v2():
+    absDirname=path
+    pid=f'API'
+    if sys.platform == 'win32':
+        # use run with window          
+        print("init_api_web_v2 run only linux")
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo /usr/bin/python3 /sources/python/api_python_new/setup.py', shell=True).communicate()
 delete_all_app_pm2()
 init_driver()
 init_api_web()
@@ -344,6 +362,8 @@ init_mqtt_control()
 init_log_file()
 init_sync_file()
 init_log_data()
+init_api_web_v2()
+
 
 
 

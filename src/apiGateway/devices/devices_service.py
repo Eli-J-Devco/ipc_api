@@ -5,6 +5,7 @@
 # *********************************************************/
 import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 import api.domain.deviceGroup.models as deviceGroup_models
@@ -13,6 +14,7 @@ import api.domain.project.models as project_models
 import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
+from async_db.wrapper import async_db_request_handler
 from database.db import get_db
 from database.sql.device import all_query
 from utils.mqttManager import mqtt_public, mqtt_public_common
@@ -83,8 +85,8 @@ class DevicesService:
             pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
             await restart_program_pm2_many(pm2_app_list)
             # 
-            now = datetime.datetime.now(
-            datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+            # now = datetime.datetime.now(
+            # datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             # param=  {
             #             "CODE":"CreateTCPDev",
             #             "PAYLOAD":new_device,
@@ -299,3 +301,11 @@ class DevicesService:
                     await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
         except Exception as e:
             print("Error update_dev: ", e)    
+    @staticmethod
+    @async_db_request_handler
+    async def get_dev(session: AsyncSession):
+        query ="SELECT * FROM `device_list`"
+        result = await session.execute(text(query))
+        device = result.all()
+        results_device = [row._asdict() for row in device] 
+        print(results_device)
