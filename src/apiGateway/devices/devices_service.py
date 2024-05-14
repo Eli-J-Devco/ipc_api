@@ -15,7 +15,8 @@ import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
 from async_db.wrapper import async_db_request_handler
-from database.db import get_db
+from configs.config import orm_provider as db_config
+# from database.db import get_db
 from database.sql.device import all_query
 from utils.mqttManager import mqtt_public, mqtt_public_common
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
@@ -27,18 +28,21 @@ from utils.pm2Manager import (create_device_group_rs485_run_pm2,
 
 class DevicesService:
     def __init__(self,
+                    
                     host="127.0.0.1",
                     port=1873,
                     topic="",
                     username="",
                     password="",
                     update_device_list=[]):
+        
         self.mqtt_host = host
         self.mqtt_port = port
         self.mqtt_topic = topic
         self.mqtt_username = username
         self.mqtt_password = password
         self.update_device_list=update_device_list
+    @async_db_request_handler    
     async def create_dev_tcp(self, create_devices):
         try: 
             # data of device
@@ -96,7 +100,9 @@ class DevicesService:
             # print("create_dev_tcp")
         except Exception as e:
             print("Error create_dev_tcp: ", e)
-    async def create_dev_rs485(self, create_devices):
+      # @staticmethod
+    @async_db_request_handler
+    async def create_dev_rs485(self, create_devices,session: AsyncSession):
         try:
             
             #  data of device
@@ -117,8 +123,6 @@ class DevicesService:
             #         }
             # }
             
-            db=get_db()
-            # 
             new_device=create_devices['device']
             id_communication=create_devices['id_communication']
             for item_device in new_device:
@@ -135,29 +139,41 @@ class DevicesService:
                         "parameters":[]
                     })
             # 
-            result_find_app_pm2=await find_program_pm2(f'Dev|{str(id_communication)}|')
+            result_find_app_pm2= find_program_pm2(f'Dev|{str(id_communication)}|')
             if result_find_app_pm2==100:
                 await delete_program_pm2(f'Dev|{str(id_communication)}|') 
-                device_list_query = db.query(
-                            deviceList_models.Device_list).filter(
-                            deviceList_models.Device_list.id_communication ==
-                                                        id_communication).filter(
-                            deviceList_models.Device_list.status == 1).order_by(
-                                                        deviceList_models.Device_list.id.asc()).all()
-                db.commit()
+                # device_list_query = db.query(
+                #             deviceList_models.Device_list).filter(
+                #             deviceList_models.Device_list.id_communication ==
+                #                                         id_communication).filter(
+                #             deviceList_models.Device_list.status == 1).order_by(
+                #                                         deviceList_models.Device_list.id.asc()).all()
+                # db.commit()
+                query ='SELECT * FROM `device_list` where id_communication={id_communication} ORDER BY id asc'.format(id_communication=id_communication)
+                result_device_list = await session.execute(text(query))
+                device_list_query = result_device_list.all()
+                results_device_list_dict = [row._asdict() for row in device_list_query]
+                
                 # check device same group rs485 com port   
-                item_rs485 = [item.__dict__ for item in device_list_query if item.id_communication == 
+                item_rs485 = [item for item in results_device_list_dict if item["id_communication"] == 
                                 id_communication]
+                
                 if item_rs485:
                     # check group rs485 same com port
                     sql_query_select_device=all_query.select_all_device_communication.format(id_communication=id_communication)
                     # sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
                     #                                         {"id_communication":id_communication})
-                    result_device_group_rs485 = db.execute(
-                                                        text(sql_query_select_device), 
-                                                            ).all()
-                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                    db.close()                                          
+                    # result_device_group_rs485 = db.execute(
+                    #                                     text(sql_query_select_device), 
+                    #                                         ).all()
+                    # results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
+                    # db.close()
+                    
+                    result= await session.execute(text(sql_query_select_device))
+                    result_device_group_rs485 = result.all()
+                    results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                    
+                    
                     # init restart pm2 app same rs485
                     await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                     # restart pm2 app log
@@ -169,11 +185,16 @@ class DevicesService:
                 sql_query_select_device=all_query.select_all_device_communication.format(id_communication=id_communication)
                 # sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
                 #                                         {"id_communication":id_communication})
-                result_device_group_rs485 =  db.execute(
-                                                        text(sql_query_select_device), 
-                                                            ).all()
-                results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
-                db.close()                                                       
+                # result_device_group_rs485 =  db.execute(
+                #                                         text(sql_query_select_device), 
+                #                                             ).all()
+                # results_device_group_dict = [row._asdict() for row in result_device_group_rs485] 
+                # db.close()           
+                
+                result= await session.execute(text(sql_query_select_device))
+                result_device_group_rs485 = result.all()
+                results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                
                 # init restart pm2 app same rs485
                 await create_device_group_rs485_run_pm2(path,results_device_group_dict)
                 # restart pm2 app log
@@ -191,7 +212,11 @@ class DevicesService:
             # mqtt_public("/Init/API/Responses",param)
         except Exception as e:
             print("Error create_dev_rs485: ", e)
-    async def delete_dev(self, delete_devices):
+        finally:
+            print('create_dev_rs485 end')
+            await session.close()
+    @async_db_request_handler
+    async def delete_dev(self, delete_devices,session: AsyncSession):
         try:
             # data of device
             # mode == 1:  # Disable
@@ -212,7 +237,7 @@ class DevicesService:
             #     }
                 
             # }
-            db=get_db()
+            # db=get_db()
             device=delete_devices['device']
             device_tcp=[]
             device_rs485=[]
@@ -253,11 +278,17 @@ class DevicesService:
                         sql_query_select_device=all_query.select_all_device_communication.format(id_communication=id_communication)
                         # sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
                         #                                                 {"id_communication":id_communication})
-                        result_device_group_rs485 = db.execute(
-                                                                    text(sql_query_select_device), 
-                                                                        ).all()
-                        results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                        db.close()
+                        # result_device_group_rs485 = db.execute(
+                        #                                             text(sql_query_select_device), 
+                        #                                                 ).all()
+                        # results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
+                        # db.close()
+                        
+                        result= await session.execute(text(sql_query_select_device))
+                        result_device_group_rs485 = result.all()
+                        results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
+                        
+                        
                         # print(f'results_device_group_dict: {results_device_group_dict}')                                       
                         # init restart pm2 app same rs485
                         if results_device_group_dict:
@@ -269,7 +300,11 @@ class DevicesService:
         # 
         except Exception as e:
             print("Error delete_dev: ", e)
-    async def update_dev(self, update_devices):
+        finally:
+            print('delete_dev end')
+            await session.close() 
+    @async_db_request_handler
+    async def update_dev(self, update_devices,session: AsyncSession):
         try:
             # {
             #     "CODE": "UpdateDev", 
@@ -278,11 +313,12 @@ class DevicesService:
             #            "id":296
             #         }
             # }
-            db=get_db()
             id_device=update_devices['id']
             sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
-            result_device = db.execute(text(sql_query_select_device)).all()
-            db.close()
+            
+            result= await session.execute(text(sql_query_select_device))
+            result_device= result.all()
+            
             connect_type=None
             if result_device:
                 results_device_dict = [row._asdict() for row in result_device][0]
@@ -300,12 +336,8 @@ class DevicesService:
                     pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
                     await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
         except Exception as e:
-            print("Error update_dev: ", e)    
-    @staticmethod
-    @async_db_request_handler
-    async def get_dev(session: AsyncSession):
-        query ="SELECT * FROM `device_list`"
-        result = await session.execute(text(query))
-        device = result.all()
-        results_device = [row._asdict() for row in device] 
-        print(results_device)
+            print("Error update_dev: ", e)
+        finally:
+            print('update_dev end')
+            await session.close() 
+    # @staticmethod

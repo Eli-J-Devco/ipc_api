@@ -44,6 +44,8 @@ MQTT_TOPIC = Config.MQTT_TOPIC
 # IPC/Init/API/Responses
 MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
+from dataclasses import asdict, dataclass
+
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
 import api.domain.project.models as project_models
@@ -74,34 +76,23 @@ def getUTC():
     return now
 class apiGateway:
     def __init__(self,
-                db_new,
+                SERIAL_NUMBER,
                 MQTT_BROKER="127.0.0.1",
                 MQTT_PORT=1883,
-                MQTT_TOPIC="",
                 MQTT_USERNAME="",
                 MQTT_PASSWORD="",
-                MQTT_BROKER_CLOUD="127.0.0.1",
-                MQTT_PORT_CLOUD=1883,
-                MQTT_TOPIC_CLOUD="",
-                MQTT_USERNAME_CLOUD="",
-                MQTT_PASSWORD_CLOUD="",
                         **kwargs):
-        self.db_new =db_new
+        # self.db_new =db_new
         self.MQTT_BROKER = MQTT_BROKER
         self.MQTT_PORT = MQTT_PORT
-        self.MQTT_TOPIC = MQTT_TOPIC
+        self.MQTT_TOPIC = SERIAL_NUMBER
         self.MQTT_USERNAME = MQTT_USERNAME
         self.MQTT_PASSWORD = MQTT_PASSWORD
         self.DeviceList=[]
-        
-        self.MQTT_BROKER_CLOUD = MQTT_BROKER_CLOUD
-        self.MQTT_PORT_CLOUD = MQTT_PORT_CLOUD
-        self.MQTT_TOPIC_CLOUD = MQTT_TOPIC_CLOUD
-        self.MQTT_USERNAME_CLOUD = MQTT_USERNAME_CLOUD
-        self.MQTT_PASSWORD_CLOUD = MQTT_PASSWORD_CLOUD
-        
+    # 
     async def handle_messages_api(self,client):
         try :
+            
             device_init=devices_service.DevicesService(
                             host=self.MQTT_BROKER, 
                             port=self.MQTT_PORT,
@@ -113,7 +104,7 @@ class apiGateway:
             template_init=template_service.TemplateService()
             upload_channel_init=upload_channel_service.UploadChannelService()
             rs485_init=rs485_service.RS485Service()
-            
+            # 
             while True:
                 message = await client.messages.get()
                 if message is None:
@@ -173,8 +164,10 @@ class apiGateway:
                             #             ]
                             #         }
                             # }
+                            
+                            db_new=await db_config.get_db()
                             new_device=result['PAYLOAD']
-                            await device_init.create_dev_rs485(new_device)
+                            await device_init.create_dev_rs485(new_device,db_new)
                         case "DeleteDev":
                             # data of device
                             # mode == 1:  # Disable
@@ -194,8 +187,9 @@ class apiGateway:
                             #         "delete_mode":mode
                             #     }
                             # }
+                            db_new=await db_config.get_db()
                             delete_device=result['PAYLOAD']
-                            await device_init.delete_dev(delete_device)
+                            await device_init.delete_dev(delete_device,db_new)
                         case "UpdateDev":
                             # {
                             #     "CODE": "UpdateDev", 
@@ -204,8 +198,9 @@ class apiGateway:
                             #            "id":296
                             #         }
                             # }
+                            db_new=await db_config.get_db()
                             update_device=result['PAYLOAD']
-                            await device_init.update_dev(update_device)
+                            await device_init.update_dev(update_device,db_new)
                         case "UpdateTemplate":
                             # {
                             #     "CODE": "UpdateTemplate", 
@@ -242,8 +237,6 @@ class apiGateway:
                             
                             upload_channel_list=result['PAYLOAD']
                             await upload_channel_init.init_pm2(upload_channel_list)
-                        case "GetDev":
-                            await device_init.get_dev(self.db_new)
         except Exception as err:
             print(f"Error handle_messages_api: '{err}'")   
     async def managerApplicationsWithPM2(self):
@@ -263,6 +256,7 @@ class apiGateway:
                 await client.stop()
         except Exception as err:
             print(f"Error managerApplicationsWithPM2: '{err}'")   
+    # 
     async def handle_messages_driver(self,client,Topic):
         try:
             while True:
@@ -340,32 +334,41 @@ class apiGateway:
                 await client.stop()
         except Exception as err:
             print('Error MQTT deviceListSub')
+    # 
     async def deviceListPub(self):
         try:
+            try:
+                
+                db_new=await db_config.get_db()
+                result= await db_new.execute(text("select * from `device_list` where `status`=1;"))
+                
+                result_device=[row._asdict() for row in result.all()]
+
+                for item in result_device:
+                    
+                    # rated_power=None
+                    # rated_power_custom=None
+                    # if item.rated_power!= None:
+                    #     rated_power=item.rated_power
+                    # if item.rated_power_custom!= None:
+                    #     rated_power_custom=item.rated_power_custom
+                    
+                    self.DeviceList.append({
+                        "id_device":item["id"],
+                        "device_name":item["name"],
+                        "mode":item["mode"],
+                        "parameters":[],
+                        # 
+                        # "rated_power":rated_power,
+                        # "rated_power_custom":rated_power_custom,
+                        # "min_watt_in_percent":item.min_watt_in_percent,
+                    })
+            except Exception as err:
+                print('An exception occurred',err)
+            finally:
+                await db_new.close()
+                print('get Device_list')
             topic=f"{self.MQTT_TOPIC}/Devices/All"
-            db=get_db()
-            result_project=db.query(deviceList_models.Device_list).filter_by(status=1).all()
-            db.close()
-            for item in result_project:
-                
-                # rated_power=None
-                # rated_power_custom=None
-                # if item.rated_power!= None:
-                #     rated_power=item.rated_power
-                # if item.rated_power_custom!= None:
-                #     rated_power_custom=item.rated_power_custom
-                
-                self.DeviceList.append({
-                    "id_device":item.id,
-                    "device_name":item.name,
-                    "mode":item.mode,
-                    "parameters":[],
-                    # 
-                    # "rated_power":rated_power,
-                    # "rated_power_custom":rated_power_custom,
-                    # "min_watt_in_percent":item.min_watt_in_percent,
-                })
-            
             while True:
                 mqtt_data=[]
                 for item in self.DeviceList:
@@ -410,34 +413,63 @@ class apiGateway:
                                 self.MQTT_USERNAME,
                                 self.MQTT_PASSWORD,
                                 mqtt_data)
-                await asyncio.sleep(2)
+                await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
-
+        finally:
+            print('MQTT deviceListPub end')
+    # 
+    async def handle_ipc_system(self,client):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                result=json.loads(message.message.decode())
+                if 'cmd' in result.keys():
+                    cmd=result['cmd']
+                    match cmd:
+                        case "reboot":
+                            if sys.platform == 'win32':
+                                # use run with window          
+                                print(f'reboot ipc')
+                            else:
+                                # use run with ubuntu/linux
+                                subprocess.Popen(
+                                    f'sudo reboot', shell=True).communicate()
+                    
+        except Exception as err:
+            print('Error MQTT handle_ipc_system')        
+    async def ipc_system(self):
+        try:
+            Topic=self.MQTT_TOPIC+"/"+"System"
+            client = mqttools.Client(host=self.MQTT_BROKER, 
+                                port=self.MQTT_PORT ,
+                                username= self.MQTT_USERNAME, 
+                                password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+                                subscriptions=[Topic+"/#"],
+                                connect_delays=[1, 2, 4, 8]
+                                )
+            while True:
+                await client.start()
+                await self.handle_ipc_system(client)
+                await client.stop()
+        except Exception as err:
+            print('Error MQTT system_inform: ',err)
 async def main():
     tasks = []
-    db=get_db()
-    result_project=db.query(project_models.Project_setup).first()
-    db.close()
-    MQTT_TOPIC=result_project.serial_number
-    
-    MQTT_BROKER_CLOUD=result_project.mqtt_broker_cloud
-    MQTT_PORT_CLOUD=result_project.mqtt_port_cloud
-    MQTT_TOPIC_CLOUD=result_project.serial_number
-    MQTT_USERNAME_CLOUD=result_project.mqtt_username_cloud
-    MQTT_PASSWORD_CLOUD=result_project.mqtt_password_cloud
     db_new=await db_config.get_db()
-    api_gateway=apiGateway(db_new,
+    project_init=project_service.ProjectService()
+    result=await project_init.project_inform(db_new)
+    SERIAL_NUMBER=result["serial_number"]
+
+    api_gateway=apiGateway(
+                            SERIAL_NUMBER,
                             MQTT_BROKER,
                             MQTT_PORT,
-                            MQTT_TOPIC,
                             MQTT_USERNAME,
                             MQTT_PASSWORD,
-                            MQTT_BROKER_CLOUD,
-                            MQTT_PORT_CLOUD,
-                            MQTT_TOPIC_CLOUD,
-                            MQTT_USERNAME_CLOUD,
-                            MQTT_PASSWORD_CLOUD,
                             )
 
     # 
@@ -447,6 +479,8 @@ async def main():
         api_gateway.deviceListSub()))
     tasks.append(asyncio.create_task(
         api_gateway.deviceListPub()))
+    tasks.append(asyncio.create_task(
+        api_gateway.ipc_system()))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
@@ -455,6 +489,8 @@ if __name__ == '__main__':
             asyncio.set_event_loop_policy(
             asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
         asyncio.run(main())
+        # loop = asyncio.get_event_loop()
+        # loop.run_until_complete(main())
     except KeyboardInterrupt:
         print ('API GATEWAY stopped.')
         sys.exit(0)

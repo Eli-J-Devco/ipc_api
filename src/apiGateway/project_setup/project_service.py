@@ -15,7 +15,7 @@ import api.domain.template.models as template_models
 import api.domain.user.models as user_models
 import model.models as models
 from async_db.wrapper import async_db_request_handler
-from database.db import get_db
+# from database.db import get_db
 from database.sql.device import all_query
 from utils.mqttManager import mqtt_public, mqtt_public_common
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
@@ -39,7 +39,5 @@ class ProjectService:
     async def project_inform(session: AsyncSession):
         query ="SELECT * FROM `project_setup`"
         result = await session.execute(text(query))
-        # points = result.scalars().all()
-        # device = result.all()
-        project = [row._asdict() for row in result.all()] 
-        print(project)
+        project = [row._asdict() for row in result.all()][0]
+        return project

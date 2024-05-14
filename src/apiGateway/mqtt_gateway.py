@@ -26,7 +26,7 @@ from configs.config import orm_provider as db_config
 
 
 class apiGateway(Subscriber):
-    
+    dta=[]
     def __init__(self,
                  host: str,
                  port: int,
@@ -60,10 +60,13 @@ class apiGateway(Subscriber):
     async def connect_broker(self):
         # logger.info(f"Client {self.client_id} starting...")
         project_init=project_service.ProjectService()
-        await project_init.project_inform(self.session)
+        result_project=await project_init.project_inform(self.session)
+        serial_number=result_project["serial_number"]
+
         self.topic_handlers = {
-        "G83VZT33/Init/API":self.handle_topic,
-        "G83VZT33/Init/API/Requests":self.handle_topic1
+        f'{serial_number}/Init/API':self.handle_topic,
+        f'{serial_number}/Init/API/Requests':self.handle_topic1,
+        f'{serial_number}/Devices':self.handle_devices,
         }
         print(f"Client {self.client_id} starting...")
         await self.start()
@@ -82,8 +85,8 @@ class apiGateway(Subscriber):
         print(message)
         pass
 
-    async def handle_topic2(self,message):
-        print('handle_topic2')
+    async def handle_devices(self,message):
+        print('handle_devices')
         pass
 
     async def process_message(self,topic, message):
@@ -94,7 +97,9 @@ class apiGateway(Subscriber):
             if topic.startswith(key):
                 await self.topic_handlers[key](message)
                 break
-
+    async def handle_devices(self,message):
+            print('handle_devices')
+            pass
     async def get_topic(self):
         # logger.info(f"Client {self.client_id} started...")
         # logger.info(f"Waiting for message from {self.topic}")
@@ -120,7 +125,8 @@ class apiGateway(Subscriber):
             print(f"Received message from {msg.topic}")
             # await self.process_message(msg.message)
             await self.process_message(msg.topic,msg.message)
-    
+    async def handle_device_pub(self):
+        pass
 
 async def reconector(subscriber: apiGateway):
     while True:
@@ -128,29 +134,13 @@ async def reconector(subscriber: apiGateway):
             await subscriber.connect_broker()
             await subscriber.get_topic()
             await subscriber.disconnect_broker()
+            # await subscriber.handle_device_pub()
         except KeyboardInterrupt:
             await subscriber.session.close()
+            
 if __name__ == "__main__":
-    # re_publisher = Publisher(
-    #     host=config.MQTT_HOST,
-    #     port=config.MQTT_PORT,
-    #     subscriptions=[Action.CREATE.value],
-    #     client_id=f"publisher-{DeviceState.CREATING.name.lower()}-{uuid.uuid4()}",
-    #     will_qos=config.MQTT_QOS,
-    #     will_retain=config.MQTT_RETAIN
-    # )
-
-    # dead_letter_publisher = Publisher(
-    #     host=config.MQTT_HOST,
-    #     port=config.MQTT_PORT,
-    #     subscriptions=[Action.DEAD_LETTER.value],
-    #     client_id=f"publisher-{DeviceState.DEAD_LETTER.name.lower()}-{uuid.uuid4()}",
-    #     will_qos=config.MQTT_QOS,
-    #     will_retain=config.MQTT_RETAIN
-    # )
 
     session = asyncio.run(db_config.get_db())
-
     subscriber = apiGateway(
         host= Config.MQTT_BROKER,
         port=Config.MQTT_PORT,

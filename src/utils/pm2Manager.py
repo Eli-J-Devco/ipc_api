@@ -434,7 +434,7 @@ async def create_device_group_rs485_run_pm2(absDirname, result_rs485_group):
 # 	 * @param {app_name of pm2}
 # 	 * @return data (status)
 # 	 */
-async def find_program_pm2(app_name):
+def find_program_pm2(app_name):
     try:
         cmd_list = ""
         if sys.platform == "win32":

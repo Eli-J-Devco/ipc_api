@@ -37,7 +37,6 @@ REQUEST_TIMEOUT_ERROR = 30
 print(f"API_DOCS_USERNAME: {API_DOCS_USERNAME}")
 import asyncio
 import http
-
 # import logging
 import secrets
 import time
@@ -45,15 +44,11 @@ import time
 import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import (
-    get_redoc_html,
-    get_swagger_ui_html,
-    get_swagger_ui_oauth2_redirect_html,
-)
+from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
+                                  get_swagger_ui_oauth2_redirect_html)
 from fastapi.openapi.utils import get_openapi
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-
 # from routers import deviceControl as deviceControl_router
 # from routers import (auth, device_group, device_list, ethernet, project, rs485,
 #                      site_information, template, upload_channel, user)
@@ -69,7 +64,6 @@ from routers import siteInfo as siteInfo_router
 from routers import template as template_router
 from routers import uploadChannel as uploadChannel_router
 from routers import user as user_router
-
 # -------------------------------------------------------------
 from starlette import status
 from starlette.exceptions import ExceptionMiddleware
@@ -291,5 +285,5 @@ async def timeout_middleware(request: Request, call_next):
 
 if __name__ == "__main__":
     # uvicorn.run(app, port=8080, host='0.0.0.0')
-    uvicorn.run("__main__:app", host="0.0.0.0", port=API_PORT, reload=True, workers=2)
+    uvicorn.run("__main__:app", host="0.0.0.0", port=API_PORT, reload=False, workers=2)
     # uvicorn.run("__main__:app", host="0.0.0.0", port=API_PORT, reload=False, workers=2)
