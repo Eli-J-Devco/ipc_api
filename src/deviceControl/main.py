@@ -44,8 +44,6 @@ value_cumulative = 0
 value_subcumulative = 0
 value_production_1h = 0
 value_consumption_1h = 0
-value_production_1h_temp = 0
-value_consumption_1h_temp = 0
 start_time = time.time()
 
 total_power = 0
@@ -590,7 +588,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 p_max_custom = item['rated_power_custom']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
-
 # check device is inv
                 if await check_inverter_device(id_device):
 # get info list device
@@ -669,26 +666,25 @@ async def get_value_meter():
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
-                            
                             current_time = time.time()
                             dt = current_time - last_update_time
-                            value_production_integral += value_production * dt
+                            value_production_integral += value_production * dt/3600
                             last_update_time = current_time
-                            
+                            print("value_production_integral",value_production_integral)
 # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
-
                             current_time = time.time()
                             dt = current_time - last_update_time
-                            value_consumption_integral += value_consumption * dt
+                            value_consumption_integral += value_consumption * dt/3600
                             last_update_time = current_time
-                            
+                            print("value_consumption_integral",value_consumption_integral)
 # Check if 1 hour has passed and Reset variable
-                    if time.time() - start_time >= 3600:                 
+                    current_hour = int(current_time // 3600)
+                    if current_hour != int(start_time // 3600):                 
                         value_production_1h = round(value_production_integral )
                         value_consumption_1h = round(value_consumption_integral)
                         value_production_integral = 0
@@ -697,7 +693,7 @@ async def get_value_meter():
                 else:
                     pass
     else:
-        pass  
+        pass    
 # Describe process_caculator_p_power_limit 
 # 	 * @description process_caculator_p_power_limit
 # 	 * @author bnguyen

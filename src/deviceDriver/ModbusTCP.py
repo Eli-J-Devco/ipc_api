@@ -1465,6 +1465,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
+                "DC_voltage_max":400,# Binh ADD
+                "DC_current":10,# Binh ADD
             }
             data_device_short={
                 "id_device":device_id,
