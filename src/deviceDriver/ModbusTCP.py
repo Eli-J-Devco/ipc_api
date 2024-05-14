@@ -1261,7 +1261,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "point_key":item_string["point_key"],
                                 "name":item_string["name"],
                                 "value":item_string["value"],
-                                "area":area
+                                "area":area,
+                                "number_panel": 4,
                                             })
                         
                         Quality=[]
