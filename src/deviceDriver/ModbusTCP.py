@@ -1312,6 +1312,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "power":round(power,2),
                                 "area":round(total_area_string,2),
                                 "irradiance":round(irradiance,2),
+                                "number_panel": 4,# Binh ADD 
                                 'value':{
                                     "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                     "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
