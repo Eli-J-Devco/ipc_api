@@ -672,20 +672,20 @@ async def get_value_meter():
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
 # Calculate and update value in 1 hour
-                    if len(value_production_aray) > 0 and value_production_aray[0] is not None:
-                        value_production_1h_temp += value_production
-                        value_production_1h = value_production_1h_temp
-                        print("")
-                    if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
-                        value_consumption_1h_temp += value_consumption
-                        value_consumption_1h = value_consumption_1h_temp
+                    value_production_1h_temp += value_production
+                    value_production_1h = value_production_1h_temp
+                    value_consumption_1h_temp += value_consumption
+                    value_consumption_1h = value_consumption_1h_temp
+                    print("gia tri san xuat vua duoc cong la",value_production)
+                    print("gia tri tieu thu vua duoc cong la",value_production)
 # Check if 1 hour has passed
                     if time.time() - start_time >= 3600:
-# Reset 
+# Reset                 
+                        print("da troi qua 1 gio")
                         value_production_1h_temp = 0
                         value_consumption_1h_temp = 0
                         start_time = time.time()
-        
+
                 else:
                     pass
     else:
