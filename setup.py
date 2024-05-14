@@ -7,7 +7,7 @@ PATH = Path(__file__).parent.absolute()
 
 def init():
     absDirname = PATH
-    pid = f'API_V2'
+    pid = f'INIT_DEVICE_SERVICE'
     if sys.platform == 'win32':
         # use run with window
         subprocess.Popen(
