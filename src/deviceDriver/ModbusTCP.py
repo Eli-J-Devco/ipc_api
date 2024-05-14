@@ -1228,6 +1228,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     {
                         "id":item["id"],
                         "name":item["name"],
+                        "effciency" : 100, 
                         "description":item["description"],
                         "attributes":item["attributes"],
                         "fields":[]
