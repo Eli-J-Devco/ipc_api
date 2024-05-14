@@ -3,7 +3,7 @@ import logging
 from nest.core import Controller, Get, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .devices_filter import AddDevicesFilter
+from .devices_filter import AddDevicesFilter, GetDeviceFilter
 from .devices_service import DevicesService
 from .devices_model import Devices
 from ..authentication.authentication_model import Authentication
@@ -21,6 +21,16 @@ class DevicesController:
     async def get_devices(self, session: AsyncSession = Depends(config.get_db),
                           auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.devices_service.get_devices)(session)
+
+    @Post("/get/")
+    async def get_devices_by_template(self,
+                                      body: GetDeviceFilter,
+                                      session: AsyncSession = Depends(config.get_db),
+                                      auth: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.devices_service
+                                     .get_device_by_condition)(body,
+                                                               session))
 
     @Post("/add/")
     async def add_devices(self,

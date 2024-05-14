@@ -8,18 +8,18 @@ from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
 
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic, MetaData
 
-from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum
+from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter
 from .devices_model import Devices, DeviceFull, Action
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
-                             DeviceGroup as DeviceGroupEntity,
-                             DevicePointMap as DevicePointMapEntity,)
+                             DeviceGroup as DeviceGroupEntity,)
+from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity
 from ..config import env_config
 from ..project_setup.project_setup_service import ProjectSetupService
 
@@ -51,6 +51,18 @@ class DevicesService:
                                      driver_type=driver_type))
 
         return output
+
+    @async_db_request_handler
+    async def get_device_by_condition(self, body: GetDeviceFilter, session: AsyncSession):
+        template_id = body.id_template
+        device_id = body.id_device
+        query = (select(DevicesEntity)
+                 .where(DevicesEntity.status.__eq__(True))
+                 .where(DevicesEntity.id_template.__eq__(template_id) if template_id else text("1=1"))
+                 .where(DevicesEntity.id.__ne__(device_id) if device_id else text("1=1")))
+        result = await session.execute(query)
+        devices = result.scalars().all()
+        return [Devices(**device.__dict__) for device in devices]
 
     @async_db_request_handler
     async def get_device_by_id(self, device_id: int, session: AsyncSession):

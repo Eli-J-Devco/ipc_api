@@ -39,3 +39,8 @@ class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter):
     rtu_bus_address: Optional[int] = None
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None
+
+
+class GetDeviceFilter(BaseModel):
+    id_template: Optional[int] = None
+    id_device: Optional[int] = None

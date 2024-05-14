@@ -20,6 +20,7 @@ from .point_config.point_config_module import PointConfigModule
 from .point_mppt.point_mppt_module import PointMpptModule
 from .point_control.point_control_module import PointControlModule
 from .register_block.register_block_module import RegisterBlockModule
+from src.device_point.device_point_module import DevicePointModule
 
 
 @Module(
@@ -38,6 +39,7 @@ from .register_block.register_block_module import RegisterBlockModule
         UploadChannelModule,
         UserModule,
         RegisterBlockModule,
+        DevicePointModule,
     ],
     controllers=[AppController],
     providers=[AppService],
