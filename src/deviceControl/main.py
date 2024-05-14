@@ -727,8 +727,10 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
         }
         
         if result_topic4 :
-            value_array = [mppt["power"] for mppt in result_topic4["mppt"]]
-            max_production = sum(value_array)
+            if "mppt" in result_topic4:
+                for mppt in result_topic4["mppt"]:
+                    if "power" in mppt:
+                        max_production += mppt["power"]
 
     # instant power
         value_metter["instant"]["production"] = value_production
