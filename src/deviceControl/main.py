@@ -93,6 +93,8 @@ MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
+MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
+
 def path_directory_relative(project_name):
     if project_name =="":
         return -1
@@ -657,7 +659,6 @@ async def get_value_meter():
     value_consumption_integral_daily = 0
     last_update_time = start_time_hourly
     current_time = time.time()
-    
 # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
@@ -711,6 +712,46 @@ async def get_value_meter():
                     pass
     else:
         pass    
+async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_username,mqtt_password):
+    global result_topic4 ,value_production, value_consumption ,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily,MQTT_TOPIC_PUD_MONIT_METER
+    timestamp = get_utc()
+    topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
+    max_production = 0
+
+    try:
+        value_metter = {
+        "Timestamp": timestamp,
+        "instant": {},
+        "hourly": {},
+        "daily": {},
+        }
+        
+        if result_topic4 :
+            value_array = [mppt["power"] for mppt in result_topic4["mppt"]]
+            max_production = sum(value_array)
+
+    # instant power
+        value_metter["instant"]["production"] = value_production
+        value_metter["instant"]["consumption"] = value_consumption
+        value_metter["instant"]["grid_feed"] = value_production - value_consumption
+        value_metter["instant"]["max_production"] = max_production
+    # instant power
+        value_metter["hourly"]["production"] = value_production_1h
+        value_metter["hourly"]["consumption"] = value_consumption_1h
+        value_metter["hourly"]["grid_feed"] = value_production_1h - value_consumption_1h
+    # instant power
+        value_metter["daily"]["production"] = value_production_daily
+        value_metter["daily"]["consumption"] = value_consumption_daily
+        value_metter["daily"]["grid_feed"] = value_production_daily - value_consumption_daily
+    # Push system_info to MQTT 
+        push_data_to_mqtt(mqtt_host,
+                            mqtt_port,
+                            topicPublic,
+                            mqtt_username,
+                            mqtt_password,
+                            value_metter)
+    except Exception as err:
+        print(f"Error MQTT subscribe get_cpu_information: '{err}'")
 # Describe process_caculator_p_power_limit 
 # 	 * @description process_caculator_p_power_limit
 # 	 * @author bnguyen
@@ -781,6 +822,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_power_limit = 0
+
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -1306,7 +1348,11 @@ async def main():
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
         scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
-        
+        scheduler.add_job(monit_value_meter, 'cron',  second = f'*/1' , args=[serial_number_project,
+                                                                            MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
