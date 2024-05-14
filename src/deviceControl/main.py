@@ -727,10 +727,11 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
         }
         
         if result_topic4 :
-            if "mppt" in result_topic4:
-                for mppt in result_topic4["mppt"]:
-                    if "power" in mppt:
-                        max_production += mppt["power"]
+            for device in result_topic4:
+                if "mppt" in device:
+                    for mppt in device["mppt"]:
+                        if "power" in mppt:
+                            max_production += mppt["power"]
 
     # instant power
         value_metter["instant"]["production"] = value_production
@@ -762,7 +763,7 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit ,value_consumption_1h,value_production_1h,value_production_daily,value_consumption_daily
+    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit 
 # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -793,10 +794,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "mode": device["mode"],
                     "status": "power limit",
                     "setpoint": value_power_limit,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
@@ -806,10 +803,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "power limit",
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
@@ -834,7 +827,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
 # Global variables
-    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_1h,value_production_1h,value_production_daily,value_consumption_daily
+    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export
 # Local variables
     efficiency_total = 0
     power_max = 0
@@ -896,10 +889,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -910,10 +899,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -929,8 +914,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
@@ -958,7 +941,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
 # 	 */ 
 async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
 # Global variables
-    global result_topic4,enable_power_limit,value_zero_export,value_consumption,devices,value_cumulative,value_subcumulative,value_production,total_power,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,p_for_each_device_power_limit,value_consumption_1h,value_production_1h,value_production_daily,value_consumption_daily
+    global result_topic4,enable_power_limit,value_zero_export,value_consumption,devices,value_cumulative,value_subcumulative,value_production,total_power,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,p_for_each_device_power_limit
 # Local variables
     p_for_each_device = 0
     power_max_convert = 0
@@ -1008,10 +991,6 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                     "mode": device["mode"],
                     "status": "zero export + power limit",
                     "setpoint": value_consumption + value_power_limit,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device}
                     ]
@@ -1022,10 +1001,6 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                     "mode": device["mode"],
                     "status": "zero export + power limit",
                     "setpoint": value_consumption + value_power_limit,
-                    "value_production_1h" : value_production_1h,
-                    "value_consumption_1h" : value_consumption_1h,
-                    "value_production_daily" : value_production_daily,
-                    "value_consumption_daily" : value_consumption_daily,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device}
