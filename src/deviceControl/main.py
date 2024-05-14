@@ -44,6 +44,8 @@ value_cumulative = 0
 value_subcumulative = 0
 value_production_1h = 0
 value_consumption_1h = 0
+value_production_1h_temp = 0
+value_consumption_1h_temp = 0
 start_time = time.time()
 
 total_power = 0
@@ -643,14 +645,12 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
 # Global variables
-    global result_topic4, value_production, value_consumption ,value_production_1h, value_consumption_1h, start_time
+    global result_topic4, value_production, value_consumption ,value_production_1h, value_consumption_1h,value_production_1h_temp,value_consumption_1h_temp, start_time 
 # Local variables
     value_production_aray = []
     value_consumption_aray = []
     total_value_production = 0
     total_value_consumption = 0
-    value_production_1h_temp = 0
-    value_consumption_1h_temp = 0
 # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
@@ -665,24 +665,24 @@ async def get_value_meter():
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
+                            value_production_1h_temp += value_production
+                            
 # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
+                            value_consumption_1h_temp += value_consumption
 # Calculate and update value in 1 hour
-                    value_production_1h_temp += value_production
-                    value_production_1h = value_production_1h_temp
-                    value_consumption_1h_temp += value_consumption
-                    value_consumption_1h = value_consumption_1h_temp
                     print("gia tri san xuat vua duoc cong la",value_production)
-                    print("gia tri tieu thu vua duoc cong la",value_production)
+                    print("gia tri tieu thu vua duoc cong la",value_consumption)
 # Check if 1 hour has passed
                     if time.time() - start_time >= 3600:
 # Reset                 
-                        print("da troi qua 1 gio")
-                        value_production_1h_temp = 0
+                        value_production_1h = value_production_1h_temp
+                        value_consumption_1h = value_consumption_1h_temp
+                        value_production_1h_temp = 0 
                         value_consumption_1h_temp = 0
                         start_time = time.time()
 
