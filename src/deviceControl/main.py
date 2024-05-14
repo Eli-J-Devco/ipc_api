@@ -686,14 +686,10 @@ async def get_value_meter():
                             value_consumption_integral += value_consumption * dt
                             last_update_time = current_time
                             
-# Calculate and update value in 1 hour
-                    print("gia tri san xuat vua duoc cong la",value_production)
-                    print("gia tri tieu thu vua duoc cong la",value_consumption)
-# Check if 1 hour has passed
-                    if time.time() - start_time >= 60:
-# Reset                 
-                        value_production_1h = value_production_integral
-                        value_consumption_1h = value_consumption_integral
+# Check if 1 hour has passed and Reset variable
+                    if time.time() - start_time >= 3600:                 
+                        value_production_1h = round(value_production_integral )
+                        value_consumption_1h = round(value_consumption_integral)
                         value_production_integral = 0
                         value_consumption_integral = 0
                         start_time = time.time()
