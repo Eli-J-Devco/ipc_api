@@ -354,6 +354,24 @@ def init_api_web_v2():
         # use run with ubuntu/linux
         subprocess.Popen(
             f'sudo /usr/bin/python3 /sources/python/api_python_new/setup.py', shell=True).communicate()
+        
+# Describe functions before writing code
+# /**
+# 	 * @description run INIT_DEVICE_SERVICE
+# 	 * @author nhan.tran
+# 	 * @since 14-05-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_device_service():
+    if sys.platform == 'win32':
+        # use run with window          
+        print("init_api_web_v2 run only linux")
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo /usr/bin/python3 /sources/python/services/init_device_service/setup.py', shell=True).communicate()
+        
 delete_all_app_pm2()
 init_driver()
 init_api_web()
@@ -363,6 +381,7 @@ init_log_file()
 init_sync_file()
 init_log_data()
 init_api_web_v2()
+init_device_service()
 
 
 
