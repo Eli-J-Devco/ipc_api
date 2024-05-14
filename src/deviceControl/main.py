@@ -42,6 +42,9 @@ value_production = 0
 value_consumption = 0
 value_cumulative = 0
 value_subcumulative = 0
+value_production_1h = 0
+value_consumption_1h = 0
+start_time = time.time()
 
 total_power = 0
 p_for_each_device_zero_export = 0
@@ -640,12 +643,14 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
 # Global variables
-    global result_topic4, value_production, value_consumption
+    global result_topic4, value_production, value_consumption ,value_production_1h, value_consumption_1h, start_time
 # Local variables
     value_production_aray = []
     value_consumption_aray = []
     total_value_production = 0
     total_value_consumption = 0
+    value_production_1h_temp = 0
+    value_consumption_1h_temp = 0
 # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
@@ -666,6 +671,21 @@ async def get_value_meter():
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
+# Calculate and update value in 1 hour
+                    if len(value_production_aray) > 0 and value_production_aray[0] is not None:
+                        value_production_1h_temp += value_production
+                        value_production_1h = value_production_1h_temp
+                        print("")
+                    if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
+                        value_consumption_1h_temp += value_consumption
+                        value_consumption_1h = value_consumption_1h_temp
+# Check if 1 hour has passed
+                    if time.time() - start_time >= 3600:
+# Reset 
+                        value_production_1h_temp = 0
+                        value_consumption_1h_temp = 0
+                        start_time = time.time()
+        
                 else:
                     pass
     else:
@@ -678,7 +698,7 @@ async def get_value_meter():
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit
+    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit ,value_consumption_1h,value_production_1h
 # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -709,6 +729,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "mode": device["mode"],
                     "status": "power limit",
                     "setpoint": value_power_limit,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
@@ -718,6 +740,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "power limit",
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
@@ -741,7 +765,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
 # Global variables
-    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export
+    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_1h,value_production_1h
 # Local variables
     efficiency_total = 0
     power_max = 0
@@ -803,6 +827,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -813,6 +839,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -828,6 +856,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
@@ -855,7 +885,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
 # 	 */ 
 async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
 # Global variables
-    global result_topic4,enable_power_limit,value_zero_export,value_consumption,devices,value_cumulative,value_subcumulative,value_production,total_power,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,p_for_each_device_power_limit
+    global result_topic4,enable_power_limit,value_zero_export,value_consumption,devices,value_cumulative,value_subcumulative,value_production,total_power,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,p_for_each_device_power_limit,value_consumption_1h,value_production_1h
 # Local variables
     p_for_each_device = 0
     power_max_convert = 0
@@ -906,6 +936,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                     "mode": device["mode"],
                     "status": "zero export + power limit",
                     "setpoint": value_consumption + value_power_limit,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device}
                     ]
@@ -916,6 +948,8 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
                     "mode": device["mode"],
                     "status": "zero export + power limit",
                     "setpoint": value_consumption + value_power_limit,
+                    "value_production_1h" : value_production_1h,
+                    "value_consumption_1h" : value_consumption_1h,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device}
