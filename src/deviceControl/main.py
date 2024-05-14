@@ -651,6 +651,9 @@ async def get_value_meter():
     value_consumption_aray = []
     total_value_production = 0
     total_value_consumption = 0
+    value_production_integral = 0
+    value_consumption_integral = 0
+    
 # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
@@ -665,7 +668,11 @@ async def get_value_meter():
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
-                            value_production_1h_temp += value_production
+                            
+                            current_time = time.time()
+                            dt = current_time - last_update_time
+                            value_production_integral += value_production * dt
+                            last_update_time = current_time
                             
 # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
@@ -673,19 +680,23 @@ async def get_value_meter():
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
-                            value_consumption_1h_temp += value_consumption
+
+                            current_time = time.time()
+                            dt = current_time - last_update_time
+                            value_consumption_integral += value_consumption * dt
+                            last_update_time = current_time
+                            
 # Calculate and update value in 1 hour
                     print("gia tri san xuat vua duoc cong la",value_production)
                     print("gia tri tieu thu vua duoc cong la",value_consumption)
 # Check if 1 hour has passed
                     if time.time() - start_time >= 60:
 # Reset                 
-                        value_production_1h = value_production_1h_temp
-                        value_consumption_1h = value_consumption_1h_temp
-                        value_production_1h_temp = 0 
-                        value_consumption_1h_temp = 0
+                        value_production_1h = value_production_integral
+                        value_consumption_1h = value_consumption_integral
+                        value_production_integral = 0
+                        value_consumption_integral = 0
                         start_time = time.time()
-
                 else:
                     pass
     else:
