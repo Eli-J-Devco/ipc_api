@@ -70,83 +70,106 @@ router = APIRouter(
 
 
 # region Helper function
+class GetTemplateFieldEnum:
+    POINT_LIST = "point_list"
+    MPPT_LIST = "mppt_list"
+    REGISTER_LIST = "register_list"
+    CONTROL_GROUP_LIST = "control_group_list"
+
+
 # Describe functions before writing code
 # 	 * @description update mppt list by template id
 # 	 * @author nhan.tran
 # 	 * @since 10-04-2024
 # 	 * @param {id_template,mppt_list,db}
 # 	 * @return data (PointOutBase)
-def get_template_by_id(id_template: int, db: Session):
-    mppt_list = []
+def get_template_by_id(id_template: int, db: Session, fields: list[str] = None):
+    if not fields:
+        fields = [
+            GetTemplateFieldEnum.POINT_LIST,
+            GetTemplateFieldEnum.MPPT_LIST,
+            GetTemplateFieldEnum.REGISTER_LIST,
+            GetTemplateFieldEnum.CONTROL_GROUP_LIST,
+        ]
 
-    register_query = (
-        db.query(models.Register_block)
-        .filter(models.Register_block.id_template == id_template)
-        .filter(models.Register_block.status == 1)
-    )
-    register_list = register_query.all()
+    if not isinstance(fields, list):
+        fields = [fields]
+
+    register_list = []
+    if GetTemplateFieldEnum.REGISTER_LIST in fields:
+        register_query = (
+            db.query(models.Register_block)
+            .filter(models.Register_block.id_template == id_template)
+            .filter(models.Register_block.status == 1)
+        )
+        register_list = register_query.all()
     #
-    point_query = (
-        db.query(models.Point_list)
-        .filter(models.Point_list.id_template == id_template)
-        .filter(models.Point_list.id_config_information == 266)
-        .filter(models.Point_list.id_control_group == None)
-        .filter(models.Point_list.status == 1)
-    )
-    point_list = point_query.all()
-
-    mppt_query = (
-        db.query(models.Point_list)
-        .filter(models.Point_list.id_template == id_template)
-        .filter(models.Point_list.id_config_information > 266)
-        .filter(models.Point_list.status == 1)
-        .filter(models.Point_list.parent == None)
-    ).all()
-
-    for item in mppt_query:
-        item.children = []
-        mppt_list.append(item)
-
-    for mppt in mppt_list:
-        string_query = (
+    point_list = []
+    if GetTemplateFieldEnum.POINT_LIST in fields:
+        point_query = (
             db.query(models.Point_list)
             .filter(models.Point_list.id_template == id_template)
-            .filter(models.Point_list.parent == mppt.id)
+            .filter(models.Point_list.id_config_information == 266)
+            .filter(models.Point_list.id_control_group == None)
             .filter(models.Point_list.status == 1)
         )
-        string_list = string_query.all()
-        for string in string_list:
-            string.children = []
-            mppt.children.append(string)
-
-        for string in mppt.children:
-            panel_query = (
-                db.query(models.Point_list)
-                .filter(models.Point_list.id_template == id_template)
-                .filter(models.Point_list.parent == string.id)
-                .filter(models.Point_list.status == 1)
-            )
-            panel_list = panel_query.all()
-            for panel in panel_list:
-                string.children.append(panel)
-
-    control_group = (
-        db.query(models.PointListControlGroup)
-        .filter(models.PointListControlGroup.id_template == id_template)
-        .filter(models.PointListControlGroup.status == 1)
-    ).all()
-
-    control_group_output = []
-    for item in control_group:
-        item.children = []
-        point_list_control_group = (
+        point_list = point_query.all()
+    #
+    mppt_list = []
+    if GetTemplateFieldEnum.MPPT_LIST in fields:
+        mppt_query = (
             db.query(models.Point_list)
             .filter(models.Point_list.id_template == id_template)
-            .filter(models.Point_list.id_control_group == item.id)
+            .filter(models.Point_list.id_config_information > 266)
             .filter(models.Point_list.status == 1)
+            .filter(models.Point_list.parent == None)
         ).all()
-        item.children = point_list_control_group
-        control_group_output.append(item)
+        for item in mppt_query:
+            item.children = []
+            mppt_list.append(item)
+
+        for mppt in mppt_list:
+            string_query = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.parent == mppt.id)
+                .filter(models.Point_list.status == 1)
+            )
+            string_list = string_query.all()
+            for string in string_list:
+                string.children = []
+                mppt.children.append(string)
+
+            for string in mppt.children:
+                panel_query = (
+                    db.query(models.Point_list)
+                    .filter(models.Point_list.id_template == id_template)
+                    .filter(models.Point_list.parent == string.id)
+                    .filter(models.Point_list.status == 1)
+                )
+                panel_list = panel_query.all()
+                for panel in panel_list:
+                    string.children.append(panel)
+
+    control_group_output = []
+    if GetTemplateFieldEnum.CONTROL_GROUP_LIST in fields:
+        control_group = (
+            db.query(models.PointListControlGroup)
+            .filter(models.PointListControlGroup.id_template == id_template)
+            .filter(models.PointListControlGroup.status == 1)
+        ).all()
+
+        for item in control_group:
+            item.children = []
+            point_list_control_group = (
+                db.query(models.Point_list)
+                .filter(models.Point_list.id_template == id_template)
+                .filter(models.Point_list.id_control_group == item.id)
+                .filter(models.Point_list.status == 1)
+            ).all()
+            item.children = point_list_control_group
+            control_group_output.append(item)
+
     return {
         "point_list": point_list,
         "mppt_list": mppt_list,
@@ -177,10 +200,18 @@ def refresh_when_delete(
         )
     ).all()
 
-    column_to_drop = [
-        f"DROP COLUMN {list(item.values())[0].replace(' ', '')}"
-        for item in existed_point
-    ]
+    existing_cols = db.execute(
+        text(f"SHOW COLUMNS FROM {used_template_devices[0].table_name};")
+    )
+    existing_cols = [item[0] for item in existing_cols]
+    column_to_drop = []
+    for item in existed_point:
+        col = list(item.values())[0].replace(" ", "")
+        if col not in existing_cols:
+            continue
+
+        column_to_drop.append(f"DROP COLUMN {col}")
+
     column_to_drop = ", ".join(column_to_drop)
 
     devices_id = []
@@ -1333,48 +1364,14 @@ def remove_group_point(
 # 	 * @return data (TemplateMPPTBase)
 @router.post(
     "/mppt/get/template/",
-    response_model=template_schemas.TemplateMPPTBase,
+    response_model=template_schemas.TemplateListBase,
     response_model_by_alias=False,
 )
 def get_mppt_template(
     id_template: Optional[int] = Body(embed=True), db: Session = Depends(get_db)
 ):
     try:
-        point_list_query = (
-            db.query(models.Point_list)
-            .filter(models.Point_list.id_template == id_template)
-            .all()
-        )
-        if point_list_query:
-            MPPT = [
-                item for item in point_list_query if item.id_config_information == 277
-            ]
-            mppt = []
-            if MPPT:
-                for mppt_item in MPPT:
-                    MPPT_STRING = [
-                        item
-                        for item in point_list_query
-                        if item.parent == mppt_item.id
-                        and item.id_config_information == 276
-                    ]
-                    String = []
-                    if MPPT_STRING:
-                        for string_item in MPPT_STRING:
-                            MPPT_STRING_PANEL = [
-                                item
-                                for item in point_list_query
-                                if item.parent == string_item.id
-                                and item.id_config_information == 278
-                            ]
-                            Panel = []
-                            if MPPT_STRING_PANEL:
-                                Panel = [item.__dict__ for item in MPPT_STRING_PANEL]
-                            String.append({**string_item.__dict__, "panel": Panel})
-
-                    mppt.append({**mppt_item.__dict__, "string": String})
-
-        return {"id": id_template, "mppt": mppt}
+        return get_template_by_id(id_template, db, [GetTemplateFieldEnum.MPPT_LIST])
     except Exception as err:
         print("Error : ", err)
         # LOGGER.error(f'--- {err} ---')
