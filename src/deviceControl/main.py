@@ -716,8 +716,8 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
     global result_topic4 ,value_production, value_consumption ,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily,MQTT_TOPIC_PUD_MONIT_METER
     timestamp = get_utc()
     topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
-    max_production = 0
-
+    max_production = 0.0
+# Format data
     try:
         value_metter = {
         "Timestamp": timestamp,
@@ -726,28 +726,26 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
         "daily": {},
         }
         
-        if result_topic4 :
+        if result_topic4:
             for device in result_topic4:
                 if "mppt" in device:
                     for mppt in device["mppt"]:
                         if "power" in mppt:
                             max_production += mppt["power"]
-                            max_production = max_production/1000 
-
-    # instant power
-        value_metter["instant"]["production"] = value_production
-        value_metter["instant"]["consumption"] = value_consumption
-        value_metter["instant"]["grid_feed"] = value_production - value_consumption
-        value_metter["instant"]["max_production"] = max_production
-    # instant power
-        value_metter["hourly"]["production"] = value_production_1h
-        value_metter["hourly"]["consumption"] = value_consumption_1h
-        value_metter["hourly"]["grid_feed"] = value_production_1h - value_consumption_1h
-    # instant power
-        value_metter["daily"]["production"] = value_production_daily
-        value_metter["daily"]["consumption"] = value_consumption_daily
-        value_metter["daily"]["grid_feed"] = value_production_daily - value_consumption_daily
-    # Push system_info to MQTT 
+# instant power
+        value_metter["instant"]["production"] = round(value_production / 1000, 4)
+        value_metter["instant"]["consumption"] = round(value_consumption / 1000, 4)
+        value_metter["instant"]["grid_feed"] = round((value_production - value_consumption) / 1000, 4)
+        value_metter["instant"]["max_production"] = round(max_production / 1000, 4)
+# hourly power
+        value_metter["hourly"]["production"] = round(value_production_1h / 1000, 4)
+        value_metter["hourly"]["consumption"] = round(value_consumption_1h / 1000, 4)
+        value_metter["hourly"]["grid_feed"] = round((value_production_1h - value_consumption_1h) / 1000, 4)
+# daily power
+        value_metter["daily"]["production"] = round(value_production_daily / 1000, 4)
+        value_metter["daily"]["consumption"] = round(value_consumption_daily / 1000, 4)
+        value_metter["daily"]["grid_feed"] = round((value_production_daily - value_consumption_daily) / 1000, 4)
+# Push system_info to MQTT 
         push_data_to_mqtt(mqtt_host,
                             mqtt_port,
                             topicPublic,
