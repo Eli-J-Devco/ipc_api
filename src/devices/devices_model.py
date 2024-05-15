@@ -23,6 +23,8 @@ class DeviceFull(BaseModel):
     rated_power: Optional[float] = 1500.0
     rated_power_custom: Optional[float] = 1500.0
     min_watt_in_percent: Optional[float] = 5.0
+    DC_voltage: Optional[float] = 48.0
+    DC_current: Optional[float] = 30.0
     compensate_watt_factor: Optional[float] = 1.0
     battery_mode: Optional[int] = 1
     battery_normal_watt: Optional[float] = 1500.0
@@ -52,11 +54,14 @@ class DeviceFull(BaseModel):
 
     max: Optional[float] = None
     allow_error: Optional[float] = None
+    effciency: Optional[float] = None
     enable_poweroff: Optional[bool] = 0
-    inverter_shutdown: Optional[datetime.datetime] = None
+    inverter_shutdown: Optional[datetime.date] = None
     meter_type: Optional[int] = None
     status: Optional[bool] = True
     driver_type: Optional[str] = None
+
+    device_type: Optional[str] = None
 
 
 class Devices(BaseModel):

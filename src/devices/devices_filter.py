@@ -1,4 +1,5 @@
 import enum
+from datetime import date
 from typing import Optional
 
 from pydantic.main import BaseModel
@@ -44,3 +45,20 @@ class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter):
 class GetDeviceFilter(BaseModel):
     id_template: Optional[int] = None
     id_device: Optional[int] = None
+
+
+class UpdateDeviceFilter(BaseModel):
+    id: int
+    name: str
+    rtu_bus_address: int
+    tcp_gateway_ip: str
+    tcp_gateway_port: int
+    rated_power: float
+    rated_power_custom: float
+    min_watt_in_percent: float
+    DC_voltage: float
+    DC_current: float
+    mode: int
+    effciency: float
+    enable_poweroff: Optional[bool] = None
+    inverter_shutdown: Optional[date] = None

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic, MetaData
 
-from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter
+from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter
 from .devices_model import Devices, DeviceFull, Action
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
@@ -47,8 +47,11 @@ class DevicesService:
         output = []
         for device in devices:
             driver_type = device.communication.__dict__.get("name")
-            output.append(DeviceFull(**device.__dict__,
-                                     driver_type=driver_type))
+            device_type = device.device_type.__dict__.get("name")
+            device = device.__dict__
+            device["driver_type"] = driver_type
+            device["device_type"] = device_type
+            output.append(DeviceFull(**device))
 
         return output
 
@@ -171,3 +174,18 @@ class DevicesService:
         points = result.scalars().all()
 
         return points
+
+    @async_db_request_handler
+    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession):
+        inverter_shutdown = None
+        if body.enable_poweroff:
+            inverter_shutdown = body.inverter_shutdown.strftime("%Y-%m-%d %H:%M:%S")
+
+        query = (update(DevicesEntity)
+                 .where(DevicesEntity.id == body.id)
+                 .values(**body.dict(exclude_unset=True,
+                                     exclude={"inverter_shutdown"}),
+                         inverter_shutdown=inverter_shutdown))
+        await session.execute(query)
+        await session.commit()
+        return await self.get_devices(session)
