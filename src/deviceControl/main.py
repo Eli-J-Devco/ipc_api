@@ -688,12 +688,9 @@ async def get_value_meter():
                             last_update_time = current_time
                             print("value_consumption_integral",value_consumption_integral)
 # Check if 1 hour has passed and Reset variable
-                    # current_hour = int(current_time // 3600)
-                    # current_day = int(current_time // (3600 * 24))
-                    current_hour = int(current_time // 60)
-                    current_day = int(current_time // 1800)
-                    # if current_hour != int(start_time_hourly // 3660):
-                    if current_hour != int(start_time_hourly // 60):
+                    current_hour = int(current_time // 3600)
+                    current_day = int(current_time // (3600 * 24))
+                    if current_hour != int(start_time_hourly // 3660):
                         value_production_1h = round(value_production_integral)
                         value_consumption_1h = round(value_consumption_integral)
                         value_production_daily += value_production_1h
@@ -702,8 +699,7 @@ async def get_value_meter():
                         value_consumption_integral = 0
                         start_time_hourly = current_time
 
-                    # if current_day != int(start_time_daily // (3600 * 24)):
-                    if current_day != int(start_time_daily // 1800):
+                    if current_day != int(start_time_daily // (3600 * 24)):
                         value_production_daily = 0
                         value_consumption_daily = 0
                         start_time_daily = current_time
