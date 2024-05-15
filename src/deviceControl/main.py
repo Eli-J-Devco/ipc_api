@@ -42,10 +42,13 @@ value_production = 0
 value_consumption = 0
 value_cumulative = 0
 value_subcumulative = 0
+value_production_1m = 0
+value_consumption_1m = 0
 value_production_1h = 0
 value_consumption_1h = 0
 value_production_daily = 0
 value_consumption_daily = 0
+start_time_minutely = time.time()
 start_time_hourly = time.time()
 start_time_daily = time.time()
 
@@ -647,7 +650,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
 # Global variables
-    global result_topic4, value_production, value_consumption ,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily
+    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely
 # Local variables
     value_production_aray = []
     value_consumption_aray = []
@@ -655,9 +658,7 @@ async def get_value_meter():
     total_value_consumption = 0
     value_production_integral = 0
     value_consumption_integral = 0
-    value_production_integral_daily = 0
-    value_consumption_integral_daily = 0
-    last_update_time = start_time_hourly
+    last_update_time = time.time()
     current_time = time.time()
 # Get Topic /Devices/All
     if result_topic4:
@@ -673,10 +674,8 @@ async def get_value_meter():
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
-                            current_time = time.time()
                             dt = current_time - last_update_time
                             value_production_integral += value_production * dt/3600
-                            value_production_integral_daily += value_production * dt/3600
                             last_update_time = current_time
                             print("value_production_integral",value_production_integral)
 # Caculator Value Meter Consumption
@@ -685,43 +684,49 @@ async def get_value_meter():
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
-                            current_time = time.time()
                             dt = current_time - last_update_time
                             value_consumption_integral += value_consumption * dt/3600
-                            value_consumption_integral_daily += value_production * dt/3600
                             last_update_time = current_time
                             print("value_consumption_integral",value_consumption_integral)
 # Check if 1 hour has passed and Reset variable
+                    current_minute = int(current_time // 60)
                     current_hour = int(current_time // 3600)
                     current_day = int(current_time // (3600 * 24))
-
-                    if current_hour != int(start_time_hourly // 3600):
-                        value_production_1h = round(value_production_integral)
-                        value_consumption_1h = round(value_consumption_integral)
+                    
+                    if current_minute != int(start_time_minutely // 60):
+                        value_production_1m = round(value_production_integral)
+                        value_consumption_1m = round(value_consumption_integral)
                         value_production_integral = 0
                         value_consumption_integral = 0
+                        start_time_minutely = current_time
+                        
+                    if current_hour != int(start_time_hourly // 3600):
+                        value_production_daily += value_production_1h
+                        value_consumption_daily += value_consumption_1h
+                        value_production_1h = 0
+                        value_consumption_1h = 0
                         start_time_hourly = current_time
 
                     if current_day != int(start_time_daily // (3600 * 24)):
-                        value_production_daily = round(value_production_integral_daily)
-                        value_consumption_daily = round(value_consumption_integral_daily)
-                        value_production_integral_daily = 0
-                        value_consumption_integral_daily = 0
+                        value_production_daily = 0
+                        value_consumption_daily = 0
                         start_time_daily = current_time
                 else:
                     pass
     else:
-        pass    
+        pass       
 async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_username,mqtt_password):
-    global result_topic4 ,value_production, value_consumption ,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily,MQTT_TOPIC_PUD_MONIT_METER
+    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER
     timestamp = get_utc()
     topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
     max_production = 0.0
+    
 # Format data
     try:
         value_metter = {
         "Timestamp": timestamp,
         "instant": {},
+        "minutely":{},
         "hourly": {},
         "daily": {},
         }
@@ -737,6 +742,10 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
         value_metter["instant"]["consumption"] = round(value_consumption / 1000, 4)
         value_metter["instant"]["grid_feed"] = round((value_production - value_consumption) / 1000, 4)
         value_metter["instant"]["max_production"] = round(max_production / 1000, 4)
+# minutely power
+        value_metter["minutely"]["production"] = round(value_production_1m / 1000, 4)
+        value_metter["minutely"]["consumption"] = round(value_consumption_1m / 1000, 4)
+        value_metter["minutely"]["grid_feed"] = round((value_production_1m - value_consumption_1m) / 1000, 4)
 # hourly power
         value_metter["hourly"]["production"] = round(value_production_1h / 1000, 4)
         value_metter["hourly"]["consumption"] = round(value_consumption_1h / 1000, 4)
