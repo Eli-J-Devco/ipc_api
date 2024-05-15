@@ -658,7 +658,7 @@ async def get_value_meter():
     total_value_consumption = 0
     value_production_integral = 0
     value_consumption_integral = 0
-    last_update_time = time.time()
+    last_update_time = start_time_minutely
     current_time = time.time()
 # Get Topic /Devices/All
     if result_topic4:
