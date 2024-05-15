@@ -1,6 +1,6 @@
 from ..config import config
 from sqlalchemy import Integer, String, DOUBLE
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey
 
 
@@ -22,3 +22,6 @@ class DevicePointMap(config.Base):
     output_values: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
 
+    point_list = relationship("Point",
+                              foreign_keys=[id_point_list],
+                              lazy="immediate")

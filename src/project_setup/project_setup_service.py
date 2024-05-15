@@ -81,6 +81,12 @@ class ProjectSetupService:
         return [ConfigInformationShort(**config.__dict__) for config in result.scalars().all()]
 
     @async_db_request_handler
+    async def get_config_information(self, session: AsyncSession, config_id: int):
+        query = select(ConfigInformationEntity).where(ConfigInformationEntity.id == config_id)
+        result = await session.execute(query)
+        return result.scalars().first()
+
+    @async_db_request_handler
     async def update_config_information(self,
                                         project_id: int,
                                         session: AsyncSession,

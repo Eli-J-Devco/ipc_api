@@ -13,3 +13,21 @@ class PointActionFilter(BaseModel):
     id_point: list[int]
     action: str
 
+
+class AlarmValue(BaseModel):
+    id_point: int
+    low_alarm: float
+    high_alarm: float
+
+
+class AlarmValueUpdateFilter(BaseModel):
+    id_device: int
+    values: list[AlarmValue]
+
+
+class PointUpdateFilter(BaseModel):
+    id: int
+    id_device: int
+    id_type_units: int
+    id_point_list: int
+    name: str

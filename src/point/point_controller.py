@@ -2,7 +2,7 @@ from nest.core import Controller, Post, Depends
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_filter import DeletePointFilter, AddPointFilter
+from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter
 from .point_model import PointBase
 from .point_service import PointService
 
@@ -53,6 +53,15 @@ class PointController:
                                                        session,
                                                        self.point_service.update_point,
                                                        point, ))
+
+    @Post("/update/unit/")
+    async def update_unit(self,
+                          point: UpdatePointUnitFilter,
+                          session: AsyncSession = Depends(config.get_db),
+                          user: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.point_service
+                                     .update_point_unit)(point, session))
 
     @Post("/delete/")
     async def delete_point(self,

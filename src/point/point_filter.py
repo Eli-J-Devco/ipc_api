@@ -15,3 +15,7 @@ class DeletePointFilter(GetPointFilter):
 
 class AddPointFilter(GetPointFilter):
     num_of_points: int
+
+
+class UpdatePointUnitFilter(PointFilter):
+    unit: int

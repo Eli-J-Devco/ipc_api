@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_filter import DeletePointFilter, AddPointFilter
+from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter
 from .point_model import PointBase, PointOutput, PointShort
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 
@@ -92,7 +92,7 @@ class PointService:
                  .where(PointEntity.status == 1))
         result = await session.execute(query)
         points = result.scalars().all()
-        return jsonable_encoder(points)@async_db_request_handler
+        return jsonable_encoder(points)
 
     @async_db_request_handler
     async def get_points_short(self, id_template: int, session: AsyncSession):
@@ -122,6 +122,17 @@ class PointService:
         await session.commit()
 
         return updated_point
+
+    @async_db_request_handler
+    async def update_point_unit(self, point: UpdatePointUnitFilter, session: AsyncSession):
+        id_point = point.id
+        unit = point.unit
+        query = (update(PointEntity)
+                 .where(PointEntity.id == id_point)
+                 .values(id_type_units=unit))
+        await session.execute(query)
+        await session.commit()
+        return "Unit updated successfully"
 
     @async_db_request_handler
     async def delete_point(self, body: DeletePointFilter, session: AsyncSession):

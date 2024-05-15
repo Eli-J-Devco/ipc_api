@@ -1,13 +1,20 @@
-from nest.core.decorators.database import async_db_request_handler
-from nest.core import Injectable
+import logging
 
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
+from fastapi import HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .device_point_filter import PointActionFilter
-from .device_point_model import DevicePoint, DevicePointOutput
 from .device_point_entity import DevicePointMap as DevicePointEntity
+from .device_point_filter import PointActionFilter, AlarmValueUpdateFilter, PointUpdateFilter
+from .device_point_model import DevicePoint, DevicePointOutput, EnableField, TemplatePoint, PointUnit
 from ..devices.devices_entity import Devices
+from ..point.point_entity import Point
+from ..project_setup.project_setup_filter import ConfigInformationType
+from ..project_setup.project_setup_model import ConfigInformationShort
+from ..project_setup.project_setup_service import ProjectSetupService
+from ..template.template_entity import Template
 
 
 @Injectable
@@ -19,11 +26,32 @@ class DevicePointService:
         result = await session.execute(query)
         id_template = result.scalars().first()
 
+        if not id_template:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device not found")
+
+        query = select(Template.type).where(Template.id == id_template)
+        result = await session.execute(query)
+        template_type = result.scalars().first()
+
         query = select(DevicePointEntity).where(DevicePointEntity.id_device_list == device_id)
         result = await session.execute(query)
-        return DevicePointOutput(points=[DevicePoint(**device_point.__dict__)
-                                         for device_point in result.scalars().all()],
-                                 id_template=id_template)
+        points = result.scalars().all()
+
+        output = []
+        for point in points:
+            id_config_information = point.point_list.__dict__.get("id_type_units")
+            enable_edit = EnableField(
+                name=point.point_list.__dict__.get("nameedit"),
+                unit=point.point_list.__dict__.get("unitsedit"),
+            )
+
+            unit = PointUnit(id=0, name="None")
+            if id_config_information:
+                unit = await ProjectSetupService().get_config_information(session, id_config_information)
+            output.append(DevicePoint(**point.__dict__, unit=PointUnit(**unit.__dict__), enable_edit=enable_edit))
+
+        return DevicePointOutput(points=output,
+                                 template=TemplatePoint(id=id_template, type=template_type), )
 
     @async_db_request_handler
     async def points_action(self, body: PointActionFilter, session: AsyncSession):
@@ -58,3 +86,63 @@ class DevicePointService:
                  .where(DevicePointEntity.id_point_list == point_list)
                  .values(status=status))
         await session.execute(query)
+
+    @async_db_request_handler
+    async def update_alarm_values(self, body: AlarmValueUpdateFilter, session: AsyncSession):
+        for value in body.values:
+            query = (update(DevicePointEntity)
+                     .where(DevicePointEntity.id_device_list == body.id_device)
+                     .where(DevicePointEntity.id == value.id_point)
+                     .values(low_alarm=value.low_alarm, high_alarm=value.high_alarm))
+            await session.execute(query)
+        await session.commit()
+        return await self.get_device_point(body.id_device, session)
+
+    @async_db_request_handler
+    async def update_point_per_edit(self, body: PointUpdateFilter, session: AsyncSession):
+        query = (select(DevicePointEntity.id)
+                 .where(DevicePointEntity.id_device_list == body.id_device))
+        result = await session.execute(query)
+        point = result.scalars().first()
+
+        if not point:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device not found")
+
+        query = (select(Point.id)
+                 .where(Point.id == body.id_point_list))
+        result = await session.execute(query)
+        point_list = result.scalars().first()
+
+        if not point_list:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Point not found")
+
+        is_unit = ProjectSetupService().validate_config_information(body.id_type_units,
+                                                                    ConfigInformationType.TYPE_UNIT)
+        if isinstance(is_unit, HTTPException):
+            return is_unit
+
+        query = (select(DevicePointEntity.id)
+                 .where(DevicePointEntity.id == body.id)
+                 .where(DevicePointEntity.id_device_list == body.id_device)
+                 .where(DevicePointEntity.id_point_list == body.id_point_list))
+        result = await session.execute(query)
+        device_point = result.scalars().first()
+
+        if not device_point:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device point not found")
+
+        query = (update(DevicePointEntity)
+                 .where(DevicePointEntity.id == body.id)
+                 .values(name=body.name))
+        await session.execute(query)
+
+        query = (update(Point)
+                 .where(Point.id == body.id_point_list)
+                 .values(id_type_units=body.id_type_units))
+        await session.execute(query)
+        await session.commit()
+        return await self.get_device_point(body.id_device, session)
+
+    @async_db_request_handler
+    async def get_units(self, session: AsyncSession):
+        return await ProjectSetupService().get_config_information_by_type(session, ConfigInformationType.TYPE_UNIT)
