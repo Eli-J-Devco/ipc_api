@@ -740,6 +740,10 @@ async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_usern
         value_metter["instant"]["consumption"] = round(value_consumption / 1000, 4)
         value_metter["instant"]["grid_feed"] = round((value_production - value_consumption) / 1000, 4)
         value_metter["instant"]["max_production"] = round(max_production / 1000, 4)
+# minutely power
+        value_metter["minutely"]["production"] = round(value_production_1m / 1000, 4)
+        value_metter["minutely"]["consumption"] = round(value_consumption_1m / 1000, 4)
+        value_metter["minutely"]["grid_feed"] = round((value_production_1m - value_consumption_1m) / 1000, 4)
 # hourly power
         value_metter["hourly"]["production"] = round(value_production_1h / 1000, 4)
         value_metter["hourly"]["consumption"] = round(value_consumption_1h / 1000, 4)
