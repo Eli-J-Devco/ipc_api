@@ -655,8 +655,6 @@ async def get_value_meter():
     total_value_consumption = 0
     value_production_integral = 0
     value_consumption_integral = 0
-    value_production_integral_daily = 0
-    value_consumption_integral_daily = 0
     last_update_time = start_time_hourly
     current_time = time.time()
 # Get Topic /Devices/All
@@ -676,7 +674,6 @@ async def get_value_meter():
                             current_time = time.time()
                             dt = current_time - last_update_time
                             value_production_integral += value_production * dt/3600
-                            value_production_integral_daily += value_production * dt/3600
                             last_update_time = current_time
                             print("value_production_integral",value_production_integral)
 # Caculator Value Meter Consumption
@@ -688,25 +685,26 @@ async def get_value_meter():
                             current_time = time.time()
                             dt = current_time - last_update_time
                             value_consumption_integral += value_consumption * dt/3600
-                            value_consumption_integral_daily += value_production * dt/3600
                             last_update_time = current_time
                             print("value_consumption_integral",value_consumption_integral)
 # Check if 1 hour has passed and Reset variable
                     current_hour = int(current_time // 3600)
                     current_day = int(current_time // (3600 * 24))
 
-                    if current_hour != int(start_time_hourly // 3600):
+                    # if current_hour != int(start_time_hourly // 3660):
+                    if current_hour != int(start_time_hourly // 60):
                         value_production_1h = round(value_production_integral)
                         value_consumption_1h = round(value_consumption_integral)
+                        value_production_daily += value_production_1h
+                        value_consumption_daily += value_consumption_1h
                         value_production_integral = 0
                         value_consumption_integral = 0
                         start_time_hourly = current_time
 
-                    if current_day != int(start_time_daily // (3600 * 24)):
-                        value_production_daily = round(value_production_integral_daily)
-                        value_consumption_daily = round(value_consumption_integral_daily)
-                        value_production_integral_daily = 0
-                        value_consumption_integral_daily = 0
+                    # if current_day != int(start_time_daily // (3600 * 24)):
+                    if current_day != int(start_time_daily // 1800):
+                        value_production_daily = 0
+                        value_consumption_daily = 0
                         start_time_daily = current_time
                 else:
                     pass
