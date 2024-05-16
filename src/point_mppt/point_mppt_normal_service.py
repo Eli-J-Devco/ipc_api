@@ -15,45 +15,51 @@ from ..point_config.point_config_filter import PointType
 @Injectable
 class NormalPointMpptService(PointMpptService):
     @async_db_request_handler
-    async def get_last_mppt_point(self, id_template: int, is_clone: bool, session: AsyncSession):
+    async def get_last_string_formatted(self, id_template: int, parent: int, session: AsyncSession):
         query = (select(PointMpptEntity)
                  .where(PointMpptEntity.id_template == id_template)
-                 .where(PointMpptEntity.id_config_information == PointType().MPPT_POINT)
-                 .where(PointMpptEntity.status == 1)
-                 .order_by(PointMpptEntity.id.desc())
-                 .limit(1))
-        result = await session.execute(query)
-        last_mppt = result.scalars().first()
-
-        if is_clone:
-            return PointMppt(**jsonable_encoder(last_mppt)) if last_mppt else PointMppt()
-
-        if not last_mppt:
-            return PointMppt(children=[])
-
-        return PointMppt(register=last_mppt.register,
-                         children=[])
-
-    @async_db_request_handler
-    async def get_last_string_point(self, id_template: int, id_point_mppt: int, is_clone: bool, session: AsyncSession):
-        query = (select(PointMpptEntity)
-                 .where(PointMpptEntity.id_template == id_template)
-                 .where(PointMpptEntity.parent == id_point_mppt)
+                 .where(PointMpptEntity.parent == parent)
                  .where(PointMpptEntity.id_config_information == PointType().MPPT_STRING)
-                 .where(PointMpptEntity.status == 1)
                  .order_by(PointMpptEntity.id.desc())
                  .limit(1))
         result = await session.execute(query)
         last_string = result.scalars().first()
 
-        if is_clone:
-            return PointString(**jsonable_encoder(last_string)) if last_string else PointString()
-
         if not last_string:
-            return PointString(children=[])
+            return None
 
-        return PointString(register=last_string.register,
-                           children=[])
+        last_string = PointString(**last_string.__dict__,
+                                  register_value=last_string.register,
+                                  children=[])
+
+        query = (select(PointMpptEntity)
+                 .where(PointMpptEntity.id_template == id_template)
+                 .where(PointMpptEntity.parent == last_string.id)
+                 .where(PointMpptEntity.id_config_information == PointType().MPPT_PANEL)
+                 .where(PointMpptEntity.status == 1))
+        result = await session.execute(query)
+        panels = result.scalars().all()
+
+        last_string.children = [PointMpptBase(**panel.__dict__) for panel in panels]
+
+        return last_string
+
+    @async_db_request_handler
+    async def get_last_point(self, id_template: int, session: AsyncSession):
+        query = (select(PointMpptEntity)
+                 .where(PointMpptEntity.id_template == id_template)
+                 .order_by(PointMpptEntity.id.desc())
+                 .limit(1))
+        result = await session.execute(query)
+        last_mppt = result.scalars().first()
+
+        if not last_mppt:
+            return PointMppt(id=0,
+                             children=[])
+
+        return PointMppt(**last_mppt.__dict__,
+                         register_value=last_mppt.register,
+                         children=[])
 
     @async_db_request_handler
     async def get_last_panel_point(self, id_template: int, id_point_string: int, is_clone: bool, session: AsyncSession):
@@ -107,7 +113,7 @@ class NormalPointMpptService(PointMpptService):
                               id_point_string: int,
                               session: AsyncSession):
         new_point_panel = PointMpptEntity(
-            **point_panel.dict(exclude={"id", "parent"}),
+            **point_panel.dict(exclude={"id", "parent", "children", "register_value"}),
             id_template=id_template,
             parent=id_point_string,
             register=point_panel.register_value

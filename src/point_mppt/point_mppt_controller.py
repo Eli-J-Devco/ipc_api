@@ -2,6 +2,7 @@ from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
+from .point_mppt_model import PointMppt
 from .point_mppt_normal_service  import NormalPointMpptService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
@@ -33,7 +34,8 @@ class PointMpptController:
         return await (ServiceWrapper
                       .async_wrapper(self.point_mppt_service
                                      .add_string)(session,
-                                                  point, ))
+                                                  point,
+                                                  last_mppt_id=point.parent,))
 
     @Post("/add/panel/")
     async def add_panel(self,
@@ -43,4 +45,5 @@ class PointMpptController:
         return await (ServiceWrapper
                       .async_wrapper(self.point_mppt_service
                                      .add_panel)(session,
-                                                 point, ))
+                                                 point,
+                                                 last_string_id=point.parent,))

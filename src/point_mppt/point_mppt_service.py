@@ -50,14 +50,7 @@ class PointMpptService:
         pass
 
     @abstractmethod
-    async def get_last_mppt_point(self, id_template: int, is_clone: bool, session: AsyncSession) -> PointMppt:
-        pass
-
-    @abstractmethod
-    async def get_last_string_point(self, id_template: int,
-                                    id_point_mppt: int,
-                                    is_clone: bool,
-                                    session: AsyncSession) -> PointString:
+    async def get_last_point(self, id_template: int, session: AsyncSession) -> PointMppt:
         pass
 
     @abstractmethod
@@ -67,12 +60,17 @@ class PointMpptService:
                                    session: AsyncSession) -> PointMpptBase:
         pass
 
+    @abstractmethod
+    async def get_last_string_formatted(self, id_template: int, parent: int, session: AsyncSession) -> PointString:
+        pass
+
     @async_db_request_handler
     async def get_mppt_point_formatted(self, id_template: int, session: AsyncSession) -> list[PointMppt]:
         point_mppt = await self.get_mppt_point(id_template, session)
         response = []
         for point in point_mppt:
             adding_children = PointMppt(**point, children=[])
+            adding_children.register_value = point["register"]
 
             config_points = await self.get_mppt_config_point(id_template, adding_children.id, session)
             for config_point in config_points:
@@ -105,10 +103,12 @@ class PointMpptService:
             mppt = mppt_list[-1] if mppt_list else None
 
         if not mppt:
-            mppt = PointMppt(id=0,
+            last_mppt = await self.get_last_point(body.id_template, session)
+            mppt = PointMppt(id=last_mppt.id,
                              id_config_information=PointType().MPPT_POINT, )
             is_last = False
         body.is_clone_from_last = is_last
+
         for _ in range(num_of_mppt):
             add_mppt = PointMpptEntity(**mppt.dict(exclude={"id", "children", "register_value"}))
             add_mppt.name = f"MPPT {_ + 1 + mppt.id}"
@@ -118,9 +118,10 @@ class PointMpptService:
             session.add(add_mppt)
             await session.flush()
             await self.add_mppt_config(session, body.id_template, add_mppt, is_last, mppt.id)
-
             if mppt.children:
                 for string in mppt.children:
+                    if string.id_config_information != PointType().MPPT_STRING:
+                        continue
                     add_string = PointMpptEntity(**string.dict(exclude={"id",
                                                                         "children",
                                                                         "register_value",
@@ -143,7 +144,14 @@ class PointMpptService:
                             session.add(add_panel)
                             await session.flush()
             elif num_of_strings > 0:
-                await self.add_string(session, body, add_mppt, False, mppt.id)
+                await self.add_string(session,
+                                      body=AddStringFilter(id_template=body.id_template,
+                                                           parent=add_mppt.id,
+                                                           is_clone_from_last=is_last,
+                                                           num_of_strings=num_of_strings,
+                                                           num_of_panels=body.num_of_panels),
+                                      need_return=False,
+                                      last_mppt_id=mppt.id, )
         await session.commit()
         session.expire_all()
         return await self.get_mppt_point_formatted(body.id_template, session)
@@ -180,11 +188,8 @@ class PointMpptService:
             mppt_current["name"] = f"{new_mppt.name} Current"
             mppt_current["id_pointkey"] = f"{new_mppt.id_pointkey}Current"
 
-            logging.info("=====================================")
-            logging.info(f"mppt_voltage: {mppt_current}")
-            logging.info("=====================================")
-            mppt_voltage = PointMppt(**mppt_voltage)
-            mppt_current = PointMppt(**mppt_current)
+            mppt_voltage = PointMpptBase(**mppt_voltage)
+            mppt_current = PointMpptBase(**mppt_current)
 
         await self.add_panel_point(id_template, mppt_current, new_mppt.id, session)
         await self.add_panel_point(id_template, mppt_voltage, new_mppt.id, session)
@@ -192,28 +197,23 @@ class PointMpptService:
     @async_db_request_handler
     async def add_string(self, session: AsyncSession,
                          body: AddStringFilter,
-                         new_mppt: PointMppt,
                          need_return: bool = True,
                          last_mppt_id: int = None):
         num_of_strings = body.num_of_strings
         num_of_panels = body.num_of_panels
         is_last = True
-
         if num_of_strings < 1:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Number of strings must be at least 1")
 
         string = None
         if body.is_clone_from_last:
-            string_list = await self.get_mppt_point_formatted(body.id_template, session)
-            for exist_string in string_list:
-                if exist_string.id == last_mppt_id and exist_string.id_config_information == PointType().MPPT_STRING:
-                    string = exist_string
-                    break
+            string = await self.get_last_string_formatted(body.id_template, last_mppt_id, session)
 
         if not string:
-            string = PointString(id=0,
+            last_point = await self.get_last_point(body.id_template, session)
+            string = PointString(id=last_point.id,
                                  id_config_information=PointType().MPPT_STRING,
-                                 parent=new_mppt.id)
+                                 parent=body.parent)
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_strings):
@@ -227,13 +227,20 @@ class PointMpptService:
 
             if string.children:
                 for panel in string.children:
-                    add_panel = PointMpptEntity(**panel.dict(exclude={"id", "children", "register_value"}),
+                    add_panel = PointMpptEntity(**panel.dict(exclude={"id", "children", "register_value", "parent"}),
                                                 register=panel.register_value if panel.register_value else 0,
-                                                parent=add_string.id)
+                                                parent=add_string.id,
+                                                id_template=body.id_template)
                     session.add(add_panel)
                     await session.flush()
             elif num_of_panels > 0:
-                await self.add_panel(session, body, add_string, False, string.id)
+                await self.add_panel(session,
+                                     body=AddPanelFilter(id_template=body.id_template,
+                                                         parent=add_string.id,
+                                                         is_clone_from_last=is_last,
+                                                         num_of_panels=num_of_panels),
+                                     need_return=False,
+                                     last_string_id=string.id)
 
         if need_return:
             await session.commit()
@@ -243,7 +250,6 @@ class PointMpptService:
     @async_db_request_handler
     async def add_panel(self, session: AsyncSession,
                         body: AddPanelFilter,
-                        new_string: PointString,
                         need_return: bool = True,
                         last_string_id: int = None):
         num_of_panels = body.num_of_panels
@@ -257,13 +263,14 @@ class PointMpptService:
             panel = await self.get_last_panel_point(body.id_template, last_string_id, True, session)
 
         if not panel:
-            panel = PointMpptBase(id=0,
+            last_point = await self.get_last_point(body.id_template, session)
+            panel = PointMpptBase(id=last_point.id,
                                   id_config_information=PointType().MPPT_PANEL,
-                                  parent=new_string.id)
+                                  parent=body.parent)
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_panels):
-            add_panel = PointMpptBase(**panel.dict(exclude={"id", "register_value"}))
+            add_panel = PointMpptEntity(**panel.dict(exclude={"id", "register_value"}))
             add_panel.name = f"Panel {_ + 1 + panel.id}"
             add_panel.id_pointkey = f"Panel{_ + 1 + panel.id}"
             add_panel.register = panel.register_value if panel.register_value else 0

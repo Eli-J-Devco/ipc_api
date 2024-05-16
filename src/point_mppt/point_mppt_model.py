@@ -1,7 +1,7 @@
-from ..point.point_model import PointBase
+from ..point.point_model import PointOutput
 
 
-class PointMpptBase(PointBase):
+class PointMpptBase(PointOutput):
     pass
 
 

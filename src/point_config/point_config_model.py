@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
-from ..point.point_model import PointBase
+from ..point.point_model import PointOutput
 from ..project_setup.project_setup_model import ConfigInformationShort
 
 
@@ -41,7 +41,7 @@ class PointListControlGroup(BaseModel):
 
 
 class PointListControlGroupChildren(PointListControlGroup):
-    children: Optional[list[PointBase]] = None
+    children: Optional[list[PointOutput]] = None
 
     class Config:
         orm_mode = True

@@ -14,7 +14,7 @@ from ..point_config.point_config_filter import PointType
 @Injectable
 class ManualPointMpptService(PointMpptService):
     @async_db_request_handler
-    async def get_last_mppt_point(self, id_template: int, session: AsyncSession):
+    async def get_last_point(self, id_template: int, session: AsyncSession):
         pass
 
     @async_db_request_handler
