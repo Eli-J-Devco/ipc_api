@@ -3,7 +3,7 @@ from typing import Optional
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_control_filter import PointControlAddFilter, PointsControlAddFilter
+from .point_control_filter import PointControlAddFilter, PointsControlAddFilter, ControlGroupAddFilter
 from .point_control_service import PointControlService
 
 from ..authentication.authentication_model import Authentication
@@ -28,26 +28,9 @@ class PointControlController:
                                                   .get_control_group_point)(id_template, session)
 
     @Post("/add/")
-    async def add_point_to_control_group(self,
-                                         body: PointControlAddFilter,
-                                         session: AsyncSession = Depends(config.get_db),
-                                         user: Authentication = Depends(get_current_user)):
+    async def add_new_control_group(self,
+                                    body: ControlGroupAddFilter,
+                                    session: AsyncSession = Depends(config.get_db),
+                                    user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.point_control_service
-                                                  .point_config_service
-                                                  .get_control_group)(body.id_control_group,
-                                                                      session,
-                                                                      self.point_control_service.update_point_control,
-                                                                      body)
-
-    @Post("/add/multiple/")
-    async def add_points_to_control_group(self,
-                                          body: PointsControlAddFilter,
-                                          session: AsyncSession = Depends(config.get_db),
-                                          user: Authentication = Depends(get_current_user)):
-        return await (ServiceWrapper
-                      .async_wrapper(self.point_control_service
-                                     .point_config_service
-                                     .get_control_group)(body.id_control_group,
-                                                         session,
-                                                         self.point_control_service.update_points_control,
-                                                         body))
+                                                  .add_new_control_group)(body, session)

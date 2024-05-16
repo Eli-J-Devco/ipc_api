@@ -1,5 +1,7 @@
 from typing import Optional
 
+from pydantic.main import BaseModel
+
 from ..point.point_filter import GetPointFilter
 
 
@@ -16,3 +18,7 @@ class AddStringFilter(AddPanelFilter):
 class AddMPPTFilter(AddStringFilter):
     num_of_mppt: Optional[int] = 0
 
+
+class DeletePointFilter(BaseModel):
+    id_points: list[int]
+    id_template: int

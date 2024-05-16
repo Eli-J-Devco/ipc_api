@@ -1,14 +1,13 @@
-import logging
-
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.sql.expression import select, delete
 
 from .point_mppt_service import PointMpptService
 from .point_mppt_entity import PointMppt as PointMpptEntity
 from .point_mppt_model import PointMpptBase, PointString, PointMppt
+from ..point.point_filter import DeletePointFilter
 from ..point_config.point_config_filter import PointType
 
 
@@ -165,3 +164,35 @@ class NormalPointMpptService(PointMpptService):
                  .where(PointMpptEntity.status == 1))
         result = await session.execute(query)
         return jsonable_encoder(result.scalars().all())
+
+    @async_db_request_handler
+    async def delete_point(self, session: AsyncSession, body: DeletePointFilter):
+        delete_ids = body.id_points
+
+        for id_point in body.id_points:
+            query = (select(PointMpptEntity)
+                     .where(PointMpptEntity.parent == id_point)
+                     .where(PointMpptEntity.id_template == body.id_template))
+
+            result = await session.execute(query)
+            children = jsonable_encoder(result.scalars().all())
+
+            if children:
+                children = [PointMpptBase(**child) for child in children]
+                delete_ids.extend([child.id for child in children if child.id not in delete_ids])
+                for child in children:
+                    query = (select(PointMpptEntity)
+                             .where(PointMpptEntity.parent == child.id)
+                             .where(PointMpptEntity.id_template == body.id_template))
+                    result = await session.execute(query)
+                    panels = result.scalars().all()
+
+                    if panels:
+                        delete_ids.extend([panel.id for panel in panels if panel.id not in delete_ids])
+
+        query = (delete(PointMpptEntity)
+                 .where(PointMpptEntity.id.in_(delete_ids)))
+        await session.execute(query, execution_options={"synchronize_session": False})
+        await session.commit()
+
+        return await self.get_mppt_point_formatted(body.id_template, session)

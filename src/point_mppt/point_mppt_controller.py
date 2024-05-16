@@ -1,9 +1,9 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
+from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter, DeletePointFilter
 from .point_mppt_model import PointMppt
-from .point_mppt_normal_service  import NormalPointMpptService
+from .point_mppt_normal_service import NormalPointMpptService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config
@@ -35,7 +35,7 @@ class PointMpptController:
                       .async_wrapper(self.point_mppt_service
                                      .add_string)(session,
                                                   point,
-                                                  last_mppt_id=point.parent,))
+                                                  last_mppt_id=point.parent, ))
 
     @Post("/add/panel/")
     async def add_panel(self,
@@ -46,4 +46,14 @@ class PointMpptController:
                       .async_wrapper(self.point_mppt_service
                                      .add_panel)(session,
                                                  point,
-                                                 last_string_id=point.parent,))
+                                                 last_string_id=point.parent, ))
+
+    @Post("/delete/")
+    async def delete_point(self,
+                           point: DeletePointFilter,
+                           session: AsyncSession = Depends(config.get_db),
+                           user: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.point_mppt_service
+                                     .delete_point)(session,
+                                                    point, ))

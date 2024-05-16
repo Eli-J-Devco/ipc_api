@@ -9,10 +9,11 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_control_filter import PointControlAddFilter, PointsControlAddFilter
-from .point_control_model import PointControl
+from .point_control_filter import PointControlAddFilter, PointsControlAddFilter, ControlGroupAddFilter
+from .point_control_model import PointControl, PointControlRefresh
 from .point_control_entity import PointControl as PointControlEntity
 from ..point.point_model import PointBase
+from ..point_config.point_config_entity import PointListControlGroup
 
 from ..point_config.point_config_model import PointListControlGroupChildren
 from ..point_config.point_config_service import PointConfigService
@@ -85,6 +86,32 @@ class PointControlService:
             "success": f"{len(success)} has been updated successfully",
             "rejected": f"{len(rejected)} has been rejected: {', '.join(map(str, rejected))}. They are not found"
         }
+
+    @async_db_request_handler
+    async def get_template_detail(self, id_template: int, session: AsyncSession):
+        points = await self.point_service.get_points(id_template, session)
+        point_controls = await self.get_control_group_point(id_template, session)
+
+        return PointControlRefresh(points=points, point_controls=point_controls)
+
+    @async_db_request_handler
+    async def add_new_control_group(self, body: ControlGroupAddFilter, session: AsyncSession):
+        new_group = PointListControlGroup(**PointControl(**body.dict(exclude={"id_points"}))
+                                          .dict(exclude_unset=True),
+                                          namekey=body.name.replace(" ", ""),
+                                          status=1)
+        session.add(new_group)
+        await session.flush()
+
+        if body.id_points:
+            for id_point in body.id_points:
+                await self.update_point_control(new_group.id,
+                                                session,
+                                                PointControlAddFilter(id_control_group=new_group.id,
+                                                                      id_point=id_point))
+
+        await session.commit()
+        return await self.get_template_detail(new_group.id_template, session)
 
     @async_db_request_handler
     async def get_points_by_control_group(self, id_control_group: int, session: AsyncSession):
