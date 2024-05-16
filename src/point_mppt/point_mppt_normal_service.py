@@ -29,10 +29,9 @@ class NormalPointMpptService(PointMpptService):
             return PointMppt(**jsonable_encoder(last_mppt)) if last_mppt else PointMppt()
 
         if not last_mppt:
-            return PointMppt(register_value=0,
-                             children=[])
+            return PointMppt(children=[])
 
-        return PointMppt(register_value=last_mppt.register,
+        return PointMppt(register=last_mppt.register,
                          children=[])
 
     @async_db_request_handler
@@ -51,10 +50,9 @@ class NormalPointMpptService(PointMpptService):
             return PointString(**jsonable_encoder(last_string)) if last_string else PointString()
 
         if not last_string:
-            return PointString(register_value=0,
-                               children=[])
+            return PointString(children=[])
 
-        return PointString(register_value=last_string.register,
+        return PointString(register=last_string.register,
                            children=[])
 
     @async_db_request_handler
@@ -70,17 +68,17 @@ class NormalPointMpptService(PointMpptService):
         last_panel = result.scalars().first()
 
         if is_clone:
-            return PointMpptBase(**jsonable_encoder(last_panel)) if last_panel else PointMpptBase()
+            return PointMpptBase(**jsonable_encoder(last_panel)) if last_panel else None
 
         if not last_panel:
-            return PointMpptBase(register_value=0)
+            return PointMpptBase()
 
-        return PointMpptBase(register_value=last_panel.register)
+        return PointMpptBase(register=last_panel.register)
 
     @async_db_request_handler
     async def add_point_mppt(self, id_template: int, point_mppt: PointMppt, session: AsyncSession):
         new_point_mppt = PointMpptEntity(
-            **point_mppt.dict(exclude={"id", "children", "register_value"}),
+            **point_mppt.dict(exclude={"id", "children"}),
             id_template=id_template,
             register=point_mppt.register_value
         )
@@ -94,7 +92,7 @@ class NormalPointMpptService(PointMpptService):
                                id_point_mppt: int,
                                session: AsyncSession) -> int:
         new_point_string = PointMpptEntity(
-            **point_string.dict(exclude={"id", "children", "register_value", "parent"}),
+            **point_string.dict(exclude={"id", "children", "parent"}),
             id_template=id_template,
             parent=id_point_mppt,
             register=point_string.register_value
@@ -109,7 +107,7 @@ class NormalPointMpptService(PointMpptService):
                               id_point_string: int,
                               session: AsyncSession):
         new_point_panel = PointMpptEntity(
-            **point_panel.dict(exclude={"id", "children", "register_value", "parent"}),
+            **point_panel.dict(exclude={"id", "parent"}),
             id_template=id_template,
             parent=id_point_string,
             register=point_panel.register_value

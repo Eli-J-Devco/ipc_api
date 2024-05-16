@@ -25,17 +25,15 @@ class PointService:
                         point: AddPointFilter):
         id_template = point.id_template
         last_point = await self.get_last_point(id_template, session)
-        last_index = last_point.index if last_point else 0
+        last_index = last_point.id if last_point else 0
         if not last_point:
             last_point = PointBase(register_value=65535)
 
         session.add_all([PointEntity(**last_point.dict(exclude={"id",
-                                                                "index",
                                                                 "name",
                                                                 "id_pointkey",
                                                                 "id_template",
                                                                 "register_value"}, exclude_unset=True),
-                                     index=last_index + _ + 1,
                                      name=f"Point {_ + last_index}",
                                      id_pointkey=f"Point{_ + last_index}",
                                      id_template=id_template,
@@ -172,7 +170,7 @@ class PointService:
                  .where(PointEntity.id_template == id_template)
                  .where(PointEntity.id_config_information == PointType().POINT)
                  .where(PointEntity.id_control_group.__eq__(None))
-                 .order_by(PointEntity.index.desc())
+                 .order_by(PointEntity.id.desc())
                  .limit(1))
         result = await session.execute(query)
         point = result.scalars().first()
