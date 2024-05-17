@@ -13,6 +13,7 @@ from sqlalchemy.sql import func
 from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
 from .point_mppt_model import PointMppt, PointMpptBase, PointString
 from .point_mppt_entity import PointMppt as PointMpptEntity, ManualPointMppt as ManualPointMpptEntity
+from ..point.point_model import PointBase
 
 from ..point_config.point_config_filter import PointType
 
@@ -29,7 +30,7 @@ class PointMpptService:
         pass
 
     @abstractmethod
-    async def add_panel_point(self, id_template: int, point_panel: PointMpptBase, id_point_string: int,
+    async def add_panel_point(self, id_template: int, point_panel: PointBase, id_point_string: int,
                               session: AsyncSession):
         pass
 
@@ -85,7 +86,6 @@ class PointMpptService:
                     adding_string_children.children.append(PointMpptBase(**panel_point))
                 adding_children.children.append(adding_string_children)
             response.append(adding_children)
-
         return response
 
     @async_db_request_handler
@@ -110,7 +110,8 @@ class PointMpptService:
         body.is_clone_from_last = is_last
 
         for _ in range(num_of_mppt):
-            add_mppt = PointMpptEntity(**mppt.dict(exclude={"id", "children", "register_value"}))
+            add_mppt = PointMpptEntity(**PointBase(**mppt.dict(exclude_unset=True))
+                                       .dict(exclude={"id", "children", "register_value"}))
             add_mppt.name = f"MPPT {_ + 1 + mppt.id}"
             add_mppt.id_pointkey = f"MPPT{_ + 1 + mppt.id}"
             add_mppt.register = mppt.register_value if mppt.register_value else 0
@@ -118,14 +119,16 @@ class PointMpptService:
             session.add(add_mppt)
             await session.flush()
             await self.add_mppt_config(session, body.id_template, add_mppt, is_last, mppt.id)
+
             if mppt.children:
                 for string in mppt.children:
                     if string.id_config_information != PointType().MPPT_STRING:
                         continue
-                    add_string = PointMpptEntity(**string.dict(exclude={"id",
-                                                                        "children",
-                                                                        "register_value",
-                                                                        "parent"}),
+                    add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
+                                                 .dict(exclude={"id",
+                                                                "children",
+                                                                "register_value",
+                                                                "parent"}),
                                                  register=string.register_value if string.register_value else 0,
                                                  parent=add_mppt.id,
                                                  id_template=body.id_template)
@@ -134,10 +137,11 @@ class PointMpptService:
 
                     if string.children:
                         for panel in string.children:
-                            add_panel = PointMpptEntity(**panel.dict(exclude={"id",
-                                                                              "children",
-                                                                              "register_value",
-                                                                              "parent"}),
+                            add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
+                                                        .dict(exclude={"id",
+                                                                       "children",
+                                                                       "register_value",
+                                                                       "parent"}),
                                                         register=panel.register_value if panel.register_value else 0,
                                                         parent=add_string.id,
                                                         id_template=body.id_template)
@@ -162,14 +166,14 @@ class PointMpptService:
                               new_mppt: PointMppt,
                               is_clone: bool = False,
                               last_mppt_id: int = None):
-        mppt_current = PointMpptBase(
+        mppt_current = PointBase(
             id_template=id_template,
             parent=new_mppt.id,
             name=f"{new_mppt.name} Current",
             id_pointkey=f"{new_mppt.id_pointkey}Current",
             id_config_information=PointType().MPPT_CURRENT
         )
-        mppt_voltage = PointMpptBase(
+        mppt_voltage = PointBase(
             id_template=id_template,
             parent=new_mppt.id,
             name=f"{new_mppt.name} Voltage",
@@ -188,8 +192,8 @@ class PointMpptService:
             mppt_current["name"] = f"{new_mppt.name} Current"
             mppt_current["id_pointkey"] = f"{new_mppt.id_pointkey}Current"
 
-            mppt_voltage = PointMpptBase(**mppt_voltage)
-            mppt_current = PointMpptBase(**mppt_current)
+            mppt_voltage = PointBase(**mppt_voltage)
+            mppt_current = PointBase(**mppt_current)
 
         await self.add_panel_point(id_template, mppt_current, new_mppt.id, session)
         await self.add_panel_point(id_template, mppt_voltage, new_mppt.id, session)
@@ -217,7 +221,8 @@ class PointMpptService:
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_strings):
-            add_string = PointMpptEntity(**string.dict(exclude={"id", "children", "register_value"}))
+            add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
+                                         .dict(exclude={"id", "children", "register_value"}))
             add_string.name = f"String {_ + 1 + string.id}"
             add_string.id_pointkey = f"String{_ + 1 + string.id}"
             add_string.register = string.register_value if string.register_value else 0
@@ -227,7 +232,8 @@ class PointMpptService:
 
             if string.children:
                 for panel in string.children:
-                    add_panel = PointMpptEntity(**panel.dict(exclude={"id", "children", "register_value", "parent"}),
+                    add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
+                                                .dict(exclude={"id", "children", "register_value", "parent"}),
                                                 register=panel.register_value if panel.register_value else 0,
                                                 parent=add_string.id,
                                                 id_template=body.id_template)

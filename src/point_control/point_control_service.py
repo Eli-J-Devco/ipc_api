@@ -42,7 +42,8 @@ class PointControlService:
 
     @async_db_request_handler
     async def add_existing_point_to_group(self, id_control_group: int,
-                                          session: AsyncSession, body: PointControlAddFilter | PointsControlAddFilter):
+                                          session: AsyncSession,
+                                          body: PointControlAddFilter | PointsControlAddFilter):
         if isinstance(body, PointControlAddFilter):
             id_points = [body.id_point]
         else:

@@ -27,7 +27,7 @@ class ControlGroupDeleteFilter(BaseModel):
 
 
 class PointControlBase(BaseModel):
-    id_template: int
+    id_template: Optional[int] = None
     id_control_group: Optional[int] = None
 
 

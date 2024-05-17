@@ -40,4 +40,4 @@ class UploadChannelConfig(UploadChannel):
 class UploadChannelConfigs(BaseModel):
     type_protocols: list[ConfigInformationShort] = []
     logging_intervals: list[ConfigInformationShort] = []
-    devices: list[DeviceUploadChannelMap] = []
+    devices: Optional[list[DeviceUploadChannelMap]] = []

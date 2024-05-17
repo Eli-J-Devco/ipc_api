@@ -111,7 +111,7 @@ class NormalPointMpptService(PointMpptService):
 
     @async_db_request_handler
     async def add_panel_point(self, id_template: int,
-                              point_panel: PointMpptBase,
+                              point_panel: PointBase,
                               id_point_string: int,
                               session: AsyncSession):
         new_point_panel = PointMpptEntity(
