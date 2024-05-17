@@ -669,8 +669,9 @@ async def get_value_meter():
                 result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
 # Caculator Value Meter Production
                 if result_type_meter:
+                    print("result_type_meter",result_type_meter)
                     if result_type_meter[0]["name"] == "Production Meter":
-                        value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
+                        value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
@@ -680,7 +681,7 @@ async def get_value_meter():
                             print("value_production_integral",value_production_integral)
 # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
-                        value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
+                        value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
