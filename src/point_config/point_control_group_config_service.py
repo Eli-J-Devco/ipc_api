@@ -1,14 +1,9 @@
 from fastapi import HTTPException, status
 from nest.core.decorators.database import async_db_request_handler
-from sqlalchemy import select, update, delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_config_entity import PointListControlGroup as PointControlGroupEntity
-from .point_config_model import PointListControlGroup
-
-from ..point.point_entity import Point as PointEntity
-from ..point.point_model import PointBase
-from ..point.point_service import PointService
 from ..utils.service_wrapper import ServiceWrapper
 
 
@@ -35,48 +30,3 @@ class PointControlGroupConfigService:
 
         return control_group.__dict__
 
-    @async_db_request_handler
-    async def add_control_group(self, control_group: PointControlGroupEntity, session: AsyncSession):
-        query = (select(PointControlGroupEntity)
-                 .where(PointControlGroupEntity.id_template == control_group.id_template)
-                 .where(PointControlGroupEntity.namekey == "".join(control_group.name)))
-        result = await session.execute(query)
-        if result.scalars().first() is not None:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Control group already exists")
-
-        new_control_group = PointControlGroupEntity(
-            **control_group.dict(exclude={"id", "namekey"}, exclude_unset=True),
-            namekey="".join(control_group.name)
-        )
-        session.add(new_control_group)
-        await session.commit()
-        return new_control_group.__dict__
-
-    @async_db_request_handler
-    async def update_control_group(self,
-                                   id_control_group: int,
-                                   session: AsyncSession,
-                                   control_group: PointListControlGroup):
-        query = (update(PointControlGroupEntity)
-                 .where(PointControlGroupEntity.id == id_control_group)
-                 .values(**control_group.dict(exclude={"id", "namekey"}, exclude_unset=True)))
-
-        await session.execute(query)
-        await session.commit()
-        return "Updated control group successfully"
-
-    @async_db_request_handler
-    async def delete_control_group(self, control_group_id: int, session: AsyncSession):
-        query = (select(PointEntity)
-                 .where(PointEntity.id_control_group == control_group_id))
-        result = await session.execute(query)
-        points = result.scalars().all()
-
-        for point in points:
-            await PointService().update_point(point.id, session, PointBase(id_control_group=None))
-
-        query = (delete(PointControlGroupEntity)
-                 .where(PointControlGroupEntity.id == control_group_id))
-        await session.execute(query)
-        await session.commit()
-        return "Deleted control group successfully"

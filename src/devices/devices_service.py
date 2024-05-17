@@ -85,6 +85,13 @@ class DevicesService:
         return result.scalars().first()
 
     @async_db_request_handler
+    async def get_device_by_template(self, id_template: int, session: AsyncSession):
+        query = select(DevicesEntity).filter(DevicesEntity.id_template == id_template)
+        result = await session.execute(query)
+        devices = result.scalars().all()
+        return [Devices(**device.__dict__) for device in devices]
+
+    @async_db_request_handler
     async def get_device_type(self, session: AsyncSession):
         query = select(DeviceTypeEntity)
         result = await session.execute(query)

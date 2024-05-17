@@ -1,3 +1,5 @@
+import logging
+
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from fastapi.encoders import jsonable_encoder
@@ -8,6 +10,7 @@ from .point_mppt_service import PointMpptService
 from .point_mppt_entity import PointMppt as PointMpptEntity
 from .point_mppt_model import PointMpptBase, PointString, PointMppt
 from ..point.point_filter import DeletePointFilter
+from ..point.point_model import PointBase
 from ..point_config.point_config_filter import PointType
 
 
@@ -196,3 +199,48 @@ class NormalPointMpptService(PointMpptService):
         await session.commit()
 
         return await self.get_mppt_point_formatted(body.id_template, session)
+
+    @async_db_request_handler
+    async def add_mppt_point_formatted(self,
+                                       points: list[PointMppt],
+                                       id_template: int,
+                                       session: AsyncSession):
+        for point in points:
+            new_point = PointMpptEntity(**PointBase(**point.dict(exclude_unset=True))
+                                        .dict(exclude={"id",
+                                                       "children",
+                                                       "register_value",
+                                                       "id_template"}),
+                                        id_template=id_template,
+                                        register=point.register_value)
+            session.add(new_point)
+            await session.flush()
+
+            if point.children:
+                for string in point.children:
+                    new_child = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
+                                                .dict(exclude={"id",
+                                                               "parent",
+                                                               "register_value",
+                                                               "children",
+                                                               "id_template"}),
+                                                parent=new_point.id,
+                                                id_template=id_template, )
+                    session.add(new_child)
+                    await session.flush()
+                    if string.id_config_information != PointType().MPPT_STRING:
+                        continue
+
+                    if string.children:
+                        for panel in string.children:
+                            new_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
+                                                        .dict(exclude={"id",
+                                                                       "parent",
+                                                                       "register_value",
+                                                                       "id_template", }),
+                                                        parent=new_child.id,
+                                                        id_template=id_template)
+                            session.add(new_panel)
+                            await session.flush()
+
+        return True

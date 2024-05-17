@@ -13,28 +13,32 @@ from ..point_config.point_config_filter import PointType
 
 @Injectable
 class ManualPointMpptService(PointMpptService):
+
     @async_db_request_handler
-    async def get_last_point(self, id_template: int, session: AsyncSession):
+    async def add_string_point(self, id_template: int, point_string: PointString, id_point_mppt: int,
+                               session: AsyncSession) -> int:
         pass
 
     @async_db_request_handler
-    async def get_last_string_point(self, id_template: int, id_point_mppt: int, session: AsyncSession):
+    async def add_panel_point(self, id_template: int, point_panel: PointMpptBase, id_point_string: int,
+                              session: AsyncSession):
         pass
 
     @async_db_request_handler
-    async def get_last_panel_point(self, id_template: int, id_point_string: int, session: AsyncSession):
+    async def get_last_point(self, id_template: int, session: AsyncSession) -> PointMppt:
         pass
 
     @async_db_request_handler
-    async def add_point_mppt(self, point_mppt: PointMppt, session: AsyncSession):
+    async def get_last_panel_point(self, id_template: int, id_point_string: int, is_clone: bool,
+                                   session: AsyncSession) -> PointMpptBase:
         pass
 
     @async_db_request_handler
-    async def add_string_point(self, point_string: PointString, id_point_mppt: int, session: AsyncSession) -> int:
+    async def get_last_string_formatted(self, id_template: int, parent: int, session: AsyncSession) -> PointString:
         pass
 
     @async_db_request_handler
-    async def add_panel_point(self, point_panel: PointMpptBase, id_point_string: int, session: AsyncSession):
+    async def add_point_mppt(self, id_template: int, point_mppt: PointMppt, session: AsyncSession) -> int:
         pass
 
     @async_db_request_handler

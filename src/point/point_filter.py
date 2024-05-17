@@ -1,5 +1,7 @@
 from pydantic.main import BaseModel
 
+from .point_model import PointBase
+
 
 class PointFilter(BaseModel):
     id: int
@@ -15,6 +17,10 @@ class DeletePointFilter(GetPointFilter):
 
 class AddPointFilter(GetPointFilter):
     num_of_points: int
+
+
+class AddPointListFilter(GetPointFilter):
+    point: list[PointBase]
 
 
 class UpdatePointUnitFilter(PointFilter):

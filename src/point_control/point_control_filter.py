@@ -3,6 +3,7 @@ from typing import Optional
 from pydantic.main import BaseModel
 
 
+# region Control Group
 class ControlGroupBaseFilter(BaseModel):
     name: str
     id_template: int
@@ -10,7 +11,23 @@ class ControlGroupBaseFilter(BaseModel):
     attributes: Optional[int] = 0
 
 
+class ControlGroupAddFilter(ControlGroupBaseFilter):
+    id_points: Optional[list[int]] = []
+
+
+class ControlGroupUpdateFilter(ControlGroupBaseFilter):
+    id: int
+
+
+class ControlGroupDeleteFilter(BaseModel):
+    id_template: int
+    id_group: list[int] = []
+    id_points: Optional[list[int]] = []
+# endregion
+
+
 class PointControlBase(BaseModel):
+    id_template: int
     id_control_group: Optional[int] = None
 
 
@@ -22,5 +39,12 @@ class PointsControlAddFilter(PointControlBase):
     id_points: list[int]
 
 
-class ControlGroupAddFilter(ControlGroupBaseFilter):
-    id_points: Optional[list[int]] = []
+class PointControlCreateFilter(PointControlBase):
+    is_clone_from_last: bool = False
+    number_of_points: int = 0
+
+
+class PointRemoveFilter(BaseModel):
+    id_template: int
+    id_points: list[int]
+

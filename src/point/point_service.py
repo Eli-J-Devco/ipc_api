@@ -9,7 +9,7 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter
+from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter, AddPointListFilter
 from .point_model import PointBase, PointOutput, PointShort
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 
@@ -22,7 +22,17 @@ class PointService:
     @async_db_request_handler
     async def add_point(self,
                         session: AsyncSession,
-                        point: AddPointFilter):
+                        point: AddPointFilter | AddPointListFilter):
+        if isinstance(point, AddPointListFilter):
+            session.add_all([PointEntity(**p.dict(exclude={"id",
+                                                           "register_value",
+                                                           "id_template",
+                                                           }, exclude_unset=True),
+                                         id_template=point.id_template,
+                                         register=p.register_value)
+                             for p in point.point])
+            return True
+
         id_template = point.id_template
         last_point = await self.get_last_point(id_template, session)
         last_index = last_point.id if last_point else 0
@@ -175,3 +185,13 @@ class PointService:
         result = await session.execute(query)
         point = result.scalars().first()
         return PointBase(**point.__dict__) if point else None
+
+    @async_db_request_handler
+    async def get_last_id(self, id_template: int, session: AsyncSession):
+        query = (select(PointEntity.id)
+                 .where(PointEntity.id_template == id_template)
+                 .order_by(PointEntity.id.desc())
+                 .limit(1))
+        result = await session.execute(query)
+        point = result.scalars().first()
+        return point

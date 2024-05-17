@@ -1,23 +1,23 @@
 import json
 import logging
 
-from nest.core import Injectable
-from nest.core.decorators.database import async_db_request_handler
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, update, delete
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .template_entity import Template as TemplateEntity
 from .template_filter import GetTemplateFilter
 from .template_model import Template, TemplateOutput, TemplateConfig
-
 from ..devices.devices_service import DevicesService
+from ..point.point_filter import AddPointListFilter
 from ..point.point_service import PointService
 from ..point_config.point_config_service import PointConfigService
 from ..point_control.point_control_service import PointControlService
-from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
 from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
+from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..register_block.register_block_service import RegisterBlockService
 from ..utils.service_wrapper import ServiceWrapper
@@ -147,29 +147,36 @@ class TemplateService:
         session.add(new_template)
         await session.flush()
 
-        result = await ServiceWrapper.async_wrapper(self.point_service.add_point)(None,
-                                                                                  session,
-                                                                                  new_template.id,
-                                                                                  points_to_add.points)
+        result = await self.point_service.add_point(session,
+                                                    AddPointListFilter(
+                                                        id_template=new_template.id,
+                                                        point=points_to_add.points
+                                                    ))
 
-        if isinstance(result, JSONResponse):
-            if result.status_code != status.HTTP_200_OK:
-                return result
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point")
 
-        result = await ServiceWrapper.async_wrapper(self.point_mppt_service
-                                                    .add_formatted_mppt)(points_to_add.point_mppt,
-                                                                         new_template.id,
-                                                                         session)
+        result = await self.point_mppt_service.add_mppt_point_formatted(points_to_add.point_mppt,
+                                                                        new_template.id,
+                                                                        session)
 
-        if isinstance(result, JSONResponse):
-            if result.status_code != status.HTTP_200_OK:
-                return result
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point mppt")
 
         await session.commit()
-        return "Template added successfully"
+        return {"id": new_template.id}
 
     @async_db_request_handler
     async def delete_template(self, id_template: int, session: AsyncSession):
-        delete(TemplateEntity).where(TemplateEntity.id == id_template)
+        devices = await self.devices_service.get_device_by_template(id_template, session)
+        if devices:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Template is in use and cannot be deleted")
+
+        query = (delete(TemplateEntity)
+                 .where(TemplateEntity.id == id_template))
+        await session.execute(query)
         await session.commit()
-        return "Template deleted successfully"
+        return await self.get_template(GetTemplateFilter(), session)
