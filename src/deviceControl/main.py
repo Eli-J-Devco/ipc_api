@@ -669,7 +669,6 @@ async def get_value_meter():
                 result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
 # Caculator Value Meter Production
                 if result_type_meter:
-                    print("result_type_meter",result_type_meter)
                     if result_type_meter[0]["name"] == "Production Meter":
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
@@ -695,13 +694,17 @@ async def get_value_meter():
                     current_day = int(current_time // (3600 * 24))
                     
                     if current_minute != int(start_time_minutely // 60):
+                        
                         value_production_1m = round(value_production_integral)
                         value_consumption_1m = round(value_consumption_integral)
                         value_production_integral = 0
                         value_consumption_integral = 0
+                        value_production_1h += value_production_1m
+                        value_consumption_1h += value_consumption_1m
                         start_time_minutely = current_time
                         
                     if current_hour != int(start_time_hourly // 3600):
+                        
                         value_production_daily += value_production_1h
                         value_consumption_daily += value_consumption_1h
                         value_production_1h = 0
