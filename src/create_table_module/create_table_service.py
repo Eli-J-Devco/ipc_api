@@ -227,8 +227,14 @@ class CreateTableService:
     @staticmethod
     @async_db_request_handler
     async def get_points(id_template: int, session: AsyncSession) -> List[Point]:
-        query = select(PointListEntity).where(PointListEntity.id_template == id_template).where(
-            PointListEntity.status == 1)
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == id_template)
+                 .order_by(PointListEntity.id))
         result = await session.execute(query)
         points = result.scalars().all()
-        return [Point(**point.__dict__) for point in points]
+
+        mppt_points = [Point(**point.__dict__) for point in points
+                       if point.id_config_information != PointType.POINT.value]
+        normal_points = [Point(**point.__dict__) for point in points
+                         if point.id_config_information == PointType.POINT.value]
+        return normal_points + mppt_points
