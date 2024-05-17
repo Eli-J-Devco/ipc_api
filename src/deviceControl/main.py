@@ -701,8 +701,8 @@ async def get_value_meter():
                         value_consumption_integral = 0
                         value_production_1h += value_production_1m
                         value_consumption_1h += value_consumption_1m
-                        value_production_daily += value_production_1h
-                        value_consumption_daily += value_consumption_1h
+                        value_production_daily += value_production_1m
+                        value_consumption_daily += value_consumption_1m
                         start_time_minutely = current_time
                         
                     if current_hour != int(start_time_hourly // 3600):
