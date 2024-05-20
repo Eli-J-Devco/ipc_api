@@ -195,6 +195,17 @@ class DevicesService:
                          inverter_shutdown=inverter_shutdown))
         await session.execute(query)
         await session.commit()
+
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
+        update_msg = {
+            "CODE": CodeEnum.UpdateDev.name,
+            "PAYLOAD": {
+                "id": body.id,
+            }
+        }
+        await self.sender.start()
+        self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
+                         json.dumps(update_msg).encode("ascii"))
         return await self.get_devices(session)
 
     @async_db_request_handler
@@ -211,7 +222,7 @@ class DevicesService:
             topic=Topic(target=f"{serial_number}/{Action.UPDATE.value}",
                         failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
             message={"type": Action.UPDATE.value,
-                     "code": CodeEnum.UpdateDev.name,
+                     "code": CodeEnum.UpdateTemplate.name,
                      "devices": device_id}
         )
         await self.sender.start()

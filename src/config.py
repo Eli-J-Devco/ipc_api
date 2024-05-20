@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     MQTT_TOPIC: str
     MQTT_USERNAME: str
     MQTT_PASSWORD: str
+    MQTT_INITIALIZE_TOPIC: str
     API_DOCS_USERNAME: str
     API_DOCS_PASSWORD: str
     PATH_FILE_NETWORK_SAMPLE: str

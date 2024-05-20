@@ -10,6 +10,7 @@ class CodeEnum(enum.Enum):
     CreateTCPDev = 3
     DeleteDev = 0
     UpdateDev = -1
+    UpdateTemplate = -2
 
 
 class IncreaseMode:
