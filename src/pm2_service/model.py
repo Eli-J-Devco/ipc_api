@@ -27,8 +27,9 @@ class DeviceModel(BaseModel):
 
 
 class PayloadModel(BaseModel):
+    id: Optional[int] = None
     id_communication: Optional[int] = None
-    device: list[DeviceModel]
+    device: Optional[list[DeviceModel]] = None
     delete_mode: Optional[int] = None
 
 

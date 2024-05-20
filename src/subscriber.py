@@ -160,7 +160,10 @@ class MQTTSubscriber(Subscriber):
                                                                        for device in devices_info if
                                                                        result[device.id] == 200],
                                                                delete_mode=2 if action_type == Action.DELETE.value else None))
-                await self.pm2_service.send(pm2_msg)
+            else:
+                pm2_msg = PM2MessageModel(CODE=code,
+                                          PAYLOAD=PayloadModel(id=devices_info[0].id_template,))
+            await self.pm2_service.send(pm2_msg)
             await self.session.commit()
         except Exception as e:
             logger.error(f"Error processing data: {e}")
