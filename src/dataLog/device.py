@@ -282,8 +282,6 @@ async def Get_MQTT(host, port, topic, username, password):
                                         "MPPTAmps": MPPTAmps,
                                         "MPPTKey_string" :MPPTKey_string
                                     }
-                                    
-                                print("mppt_dict",mppt_dict)
                                 
                                 # Pass the values ​​from the dictionary into result_list_MPPT
                                 result_list_MPPT = list(mppt_dict.values())
@@ -310,8 +308,6 @@ async def Get_MQTT(host, port, topic, username, password):
                                             pass
                 else: 
                     pass
-            
-            print("result_list_MPPT",result_list_MPPT)
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
@@ -389,7 +385,8 @@ async def Insert_TableDevice(sql_id):
         
         # Create Query
         columns = ["time", "id_device", "error"]
-        
+        print("filedtable",filedtable)
+        print("len(filedtable",len(filedtable))
         for itemp in filedtable:
             columns.append(itemp)
         

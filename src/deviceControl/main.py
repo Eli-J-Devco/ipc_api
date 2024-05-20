@@ -718,6 +718,43 @@ async def get_value_meter():
                     pass
     else:
         pass       
+# Describe get_value_meter 
+# 	 * @description get_value_meter
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return value_production ,value_consumption
+# 	 */ 
+async def get_value_meter_zero_export():
+    # Global variables
+    global value_production, value_consumption, enable_zero_export 
+    
+    # Local variables
+    value_production_integral = 0
+    value_consumption_integral = 0
+    last_update_time = start_time_minutely
+    current_time = time.time()
+    
+    
+    dt = current_time - last_update_time
+    value_production_integral += value_production * dt/3600
+    last_update_time = current_time
+    
+    dt = current_time - last_update_time
+    value_consumption_integral += value_consumption * dt/3600
+    last_update_time = current_time
+    
+    if enable_zero_export == 1 :
+        value_production_1m = round(value_production_integral)
+        value_consumption_1m = round(value_consumption_integral)
+        start_time_minutely = current_time
+    else:
+        pass
+    
+    if enable_zero_export == 0 :
+        value_production_integral = 0
+        value_consumption_integral = 0  
+        
 async def monit_value_meter(serial_number_project,mqtt_host,mqtt_port,mqtt_username,mqtt_password):
     global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER
     timestamp = get_utc()
