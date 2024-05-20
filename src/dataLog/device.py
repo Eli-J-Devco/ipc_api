@@ -385,8 +385,6 @@ async def Insert_TableDevice(sql_id):
         
         # Create Query
         columns = ["time", "id_device", "error"]
-        print("filedtable",filedtable)
-        print("len(filedtable",len(filedtable))
         
         for itemp in filedtable:
             columns.append(itemp)
