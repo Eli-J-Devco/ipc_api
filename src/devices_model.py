@@ -24,12 +24,25 @@ class DeviceState(enum.Enum):
 
 class Action(enum.Enum):
     CREATE = "InitDevices/create"
+    UPDATE = "InitDevices/update"
     DELETE = "InitDevices/delete"
     DEAD_LETTER = "InitDevices/dead-letter"
 
 
 class Point(BaseModel):
+    id: int
+    parent: Optional[int] = None
     id_pointkey: str
+    name: str
+    id_config_information: int
+
+
+class PointString(Point):
+    children: Optional[list[Point]] = []
+
+
+class PointMPPT(Point):
+    children: Optional[list[PointString]] = []
 
 
 class Communication(BaseModel):

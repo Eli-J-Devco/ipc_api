@@ -21,6 +21,7 @@ from .devices_model import Action, DeviceModel, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
 from .pm2_service.pm2_service import PM2Service
 from .logger.logger import setup_logging
+from .update_table_module.update_table_service import UpdateTableService
 
 logger = setup_logging(file_name="subscriber",
                        log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "log"))
@@ -59,11 +60,13 @@ class MQTTSubscriber(Subscriber):
 
         self.create_table_service = CreateTableService(db_config.Base.metadata)
         self.delete_table_service = DeleteTableService(db_config.Base.metadata)
+        self.update_table_service = UpdateTableService(db_config.Base.metadata)
         self.pm2_service = PM2Service(serial_number=serial_number)
         self.session = session
         self.topic = topic
         self.action = {
             Action.CREATE.value: self.create_table,
+            Action.UPDATE.value: self.update_table,
             Action.DELETE.value: self.delete_table
         }
 
@@ -129,7 +132,7 @@ class MQTTSubscriber(Subscriber):
             id_templates = {}
             for device in all_devices:
                 if device.id in devices:
-                    if action_type == Action.CREATE.value:
+                    if action_type != Action.DELETE.value:
                         if device.id_template not in id_templates:
                             id_templates[device.id_template] = (await (self.create_table_service
                                                                        .get_points(device.id_template,
@@ -141,16 +144,17 @@ class MQTTSubscriber(Subscriber):
             for device in devices_info:
                 result[device.id] = await self.action[action_type](device, retry, code)
 
-            pm2_msg = PM2MessageModel(CODE=code,
-                                      PAYLOAD=PayloadModel(device=[PM2DeviceModel(id=device.id,
-                                                                                  name=device.name,
-                                                                                  id_communication=device.communication.id,
-                                                                                  connect_type=device.communication.name,
-                                                                                  mode=0)
-                                                                   for device in devices_info if
-                                                                   result[device.id] == 200],
-                                                           delete_mode=2 if action_type == Action.DELETE.value else None))
-            await self.pm2_service.send(pm2_msg)
+            if action_type != Action.UPDATE.value:
+                pm2_msg = PM2MessageModel(CODE=code,
+                                          PAYLOAD=PayloadModel(device=[PM2DeviceModel(id=device.id,
+                                                                                      name=device.name,
+                                                                                      id_communication=device.communication.id,
+                                                                                      connect_type=device.communication.name,
+                                                                                      mode=0)
+                                                                       for device in devices_info if
+                                                                       result[device.id] == 200],
+                                                               delete_mode=2 if action_type == Action.DELETE.value else None))
+                await self.pm2_service.send(pm2_msg)
             await self.session.commit()
         except Exception as e:
             logger.error(f"Error processing data: {e}")
@@ -160,15 +164,23 @@ class MQTTSubscriber(Subscriber):
     async def create_table(self, device: DeviceModel, retry: int, code: str):
         try:
             logger.info(f"Creating table for device: {device.table_name}")
-            await self.create_table_service.create_table(device.table_name,
-                                                         list(map(lambda x: TableColumn(x.id_pointkey,
-                                                                                        Double),
-                                                                  device.points)),
-                                                         self.session)
+            result = await self.create_table_service.create_table(device.table_name,
+                                                                  list(map(lambda x: TableColumn(x.id_pointkey,
+                                                                                                 Double),
+                                                                           device.points)),
+                                                                  self.session)
+            if isinstance(result, Exception):
+                raise result
+
             logger.info(f"Adding device mppt for device: {device.table_name}")
-            await self.create_table_service.add_device_mppt(device, self.session)
+            result = await self.create_table_service.add_device_mppt(device, self.session)
+            if isinstance(result, Exception):
+                raise result
+
             logger.info(f"Adding device point map for device: {device.table_name}")
-            await self.create_table_service.add_device_point_list_map(device, self.session)
+            result = await self.create_table_service.add_device_point_list_map(device, self.session)
+            if isinstance(result, Exception):
+                raise result
 
             return 200
         except Exception as e:
@@ -184,19 +196,49 @@ class MQTTSubscriber(Subscriber):
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
 
+    async def update_table(self, device: DeviceModel, retry: int, code: str):
+        try:
+            logger.info(f"Updating table for device: {device.table_name}")
+            result = await self.update_table_service.update_table(device,
+                                                                  self.session)
+
+            if isinstance(result, Exception):
+                raise result
+            logger.info(f"Updated device mppt for device: {device.table_name}")
+        except Exception as e:
+            logger.error(f"Error updating table: {e}")
+            await self.handle_error(e,
+                                    MessageModel(
+                                        topic=Topic(target=f"{self.serial_number}/{Action.UPDATE.value}",
+                                                    failed=f"{self.serial_number}/{Action.DEAD_LETTER.value}"),
+                                        message={"type": Action.UPDATE.value,
+                                                 "devices": [device.id],
+                                                 "code": code},
+                                        metadata={"retry": retry}),
+                                    self.retry_publisher,
+                                    self.dead_letter_publisher)
+
     async def delete_table(self, device: DeviceModel, retry: int, code: str):
         try:
             logger.info(f"Deleting table for device: {device.table_name}")
-            await self.delete_table_service.delete_table(device.table_name, self.session)
+            result = await self.delete_table_service.delete_table(device.table_name, self.session)
+            if isinstance(result, Exception):
+                raise result
 
             logger.info(f"Deleting device mppt for device: {device.table_name}")
-            await self.delete_table_service.delete_device_mppt(device, self.session)
+            result = await self.delete_table_service.delete_device_mppt(device, self.session)
+            if isinstance(result, Exception):
+                raise result
 
             logger.info(f"Deleting device point list map for device: {device.table_name}")
-            await self.delete_table_service.delete_device_point_list_map(device, self.session)
+            result = await self.delete_table_service.delete_device_point_list_map(device, self.session)
+            if isinstance(result, Exception):
+                raise result
 
             logger.info(f"Deleting device")
-            await self.delete_table_service.delete_device(device.id, self.session)
+            result = await self.delete_table_service.delete_device(device.id, self.session)
+            if isinstance(result, Exception):
+                raise result
 
             return 200
         except Exception as e:
