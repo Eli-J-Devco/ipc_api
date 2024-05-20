@@ -56,8 +56,7 @@ value_consumption_power_limit = 0
 start_time_minutely = time.time()
 start_time_hourly = time.time()
 start_time_daily = time.time()
-start_time_zero_export = time.time()
-start_time_power_limit = time.time()
+cycle_time1s = time.time()
 
 total_power = 0
 p_for_each_device_zero_export = 0
@@ -657,7 +656,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
 # Global variables
-    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely
+    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s
 # Local variables
     value_production_aray = []
     value_consumption_aray = []
@@ -696,113 +695,50 @@ async def get_value_meter():
                             last_update_time = current_time
                             # print("value_consumption_integral",value_consumption_integral)
 # Check if 1 hour has passed and Reset variable
-                    current_minute = int(current_time // 60)
-                    current_hour = int(current_time // 3600)
-                    current_day = int(current_time // (3600 * 24))
-                    
-                    if current_minute != int(start_time_minutely // 60):
+                current_second = int(current_time // 1) 
+                current_minute = int(current_time // 60)
+                current_hour = int(current_time // 3600)
+                current_day = int(current_time // (3600 * 24))
+# total value of power consumption and production power in power limit and zero export mode
+                if current_second != int(cycle_time1s // 1):
+                    if enable_zero_export == 1:
+                        value_production_zero_export += round(value_production_integral)
+                        value_consumption_zero_export += round(value_consumption_integral)
+                    elif enable_power_limit == 1:
+                        value_production_power_limit += round(value_production_integral)
+                        value_consumption_power_limit += round(value_consumption_integral)
+                    else:
+                        value_production_zero_export = 0
+                        value_consumption_zero_export = 0
+                        value_production_power_limit = 0
+                        value_consumption_power_limit = 0
                         
-                        value_production_1m = round(value_production_integral)
-                        value_consumption_1m = round(value_consumption_integral)
-                        value_production_integral = 0
-                        value_consumption_integral = 0
-                        value_production_1h += value_production_1m
-                        value_consumption_1h += value_consumption_1m
-                        value_production_daily += value_production_1m
-                        value_consumption_daily += value_consumption_1m
-                        start_time_minutely = current_time
-                        
-                    if current_hour != int(start_time_hourly // 3600):
-                        value_production_1h = 0
-                        value_consumption_1h = 0
-                        start_time_hourly = current_time
-
-                    if current_day != int(start_time_daily // (3600 * 24)):
-                        value_production_daily = 0
-                        value_consumption_daily = 0
-                        start_time_daily = current_time
-                else:
-                    pass
+                    cycle_time1s = current_time
+# Caculator powwer for 1 minute
+                if current_minute != int(start_time_minutely // 60):
+                    value_production_1m = round(value_production_integral)
+                    value_consumption_1m = round(value_consumption_integral)
+                    value_production_integral = 0
+                    value_consumption_integral = 0
+                    value_production_1h += value_production_1m
+                    value_consumption_1h += value_consumption_1m
+                    value_production_daily += value_production_1m
+                    value_consumption_daily += value_consumption_1m
+                    start_time_minutely = current_time
+# Caculator powwer for 1 hour
+                if current_hour != int(start_time_hourly // 3600):
+                    value_production_1h = 0
+                    value_consumption_1h = 0
+                    start_time_hourly = current_time
+# Caculator powwer for 1 day
+                if current_day != int(start_time_daily // (3600 * 24)):
+                    value_production_daily = 0
+                    value_consumption_daily = 0
+                    start_time_daily = current_time
+            else:
+                pass
     else:
         pass       
-# Describe get_value_meter 
-# 	 * @description get_value_meter
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {}
-# 	 * @return value_production ,value_consumption
-# 	 */ 
-async def get_value_meter_zero_export():
-    # Global variables
-    global result_topic4, value_production, value_consumption, enable_zero_export, start_time_zero_export, value_production_zero_export, value_consumption_zero_export
-    # Local variables
-    value_production_integral = 0
-    value_consumption_integral = 0
-    last_update_time = start_time_zero_export
-    current_time = time.time()
-
-    try:
-        # Get Topic /Devices/All
-        if result_topic4:
-            # Caculator Value Meter Production
-            dt = current_time - last_update_time
-            value_production_integral += value_production * dt/3600
-            last_update_time = current_time
-
-            # Caculator Value Meter Consumption
-            dt = current_time - last_update_time
-            value_consumption_integral += value_consumption * dt/3600
-            last_update_time = current_time
-
-        if enable_zero_export == 1:
-            value_production_zero_export += round(value_production_integral/1000,4)
-            value_consumption_zero_export += round(value_consumption_integral/1000,4)
-            start_time_zero_export = current_time
-        else:
-            pass
-
-        if enable_zero_export == 0:
-            value_production_integral = 0
-            value_consumption_integral = 0
-            value_production_zero_export = 0
-            value_consumption_zero_export = 0
-    except Exception as err:
-        print(f"Error in get_value_meter_zero_export: '{err}'")
-
-async def get_value_meter_power_limit():
-    # Global variables
-    global result_topic4, value_production, value_consumption, enable_power_limit, start_time_power_limit, value_production_power_limit, value_consumption_power_limit
-    # Local variables
-    value_production_integral = 0
-    value_consumption_integral = 0
-    last_update_time = start_time_power_limit
-    current_time = time.time()
-
-    try:
-        # Get Topic /Devices/All
-        if result_topic4:
-            # Caculator Value Meter Production
-            dt = current_time - last_update_time
-            value_production_integral += value_production * dt/3600
-            last_update_time = current_time
-
-            # Caculator Value Meter Consumption
-            dt = current_time - last_update_time
-            value_consumption_integral += value_consumption * dt/3600
-            last_update_time = current_time
-
-        if enable_power_limit == 1:
-            value_production_power_limit += round(value_production_integral/1000,4)
-            value_consumption_power_limit += round(value_consumption_integral/1000,4)
-            start_time_power_limit = current_time
-        else:
-            pass
-
-        if enable_power_limit == 0:
-            value_production_integral = 0
-            value_production_power_limit = 0
-    except Exception as err:
-        print(f"Error in get_value_meter_power_limit: '{err}'")
 
 async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER
@@ -822,8 +758,8 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
         }
 
         if result_topic4:
-            await get_value_meter_zero_export()
-            await get_value_meter_power_limit()
+            # await get_value_meter_zero_export()
+            # await get_value_meter_power_limit()
             for device in result_topic4:
                 if "mppt" in device:
                     for mppt in device["mppt"]:
@@ -895,7 +831,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "mode": device["mode"],
                     "status": "power limit",
                     "setpoint": value_power_limit,
-                    "totalpower_production": value_production_power_limit,
+                    "totalpower_production": round(value_production_power_limit/1000 ,4),
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
@@ -905,7 +841,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "power limit",
-                    "totalpower_production": value_production_power_limit,
+                    "totalpower_production": round(value_production_power_limit/1000 ,4),
                     "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
@@ -1018,8 +954,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": value_consumption_zero_export,
-                    "totalpower_production": value_production_zero_export,
+                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
+                    "totalpower_production": round(value_production_zero_export/1000,4),
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -1030,8 +966,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": value_consumption_zero_export,
-                    "totalpower_production": value_production_zero_export,
+                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
+                    "totalpower_production": round(value_production_zero_export/1000,4),
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -1047,8 +983,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "mode": device["mode"],
                     "status": "zero export",
                     "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": value_consumption_zero_export,
-                    "totalpower_production": value_production_zero_export,
+                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
+                    "totalpower_production": round(value_production_zero_export/1000,4),
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
