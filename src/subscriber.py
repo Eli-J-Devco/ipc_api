@@ -139,6 +139,11 @@ class MQTTSubscriber(Subscriber):
                                                                                    self.session)))
                         device.points = id_templates[device.id_template]
                     devices_info.append(device)
+
+            if not devices_info:
+                logger.error("No devices found")
+                return
+            
             logger.info("Processing devices")
             result = {}
             for device in devices_info:
@@ -146,7 +151,8 @@ class MQTTSubscriber(Subscriber):
 
             if action_type != Action.UPDATE.value:
                 pm2_msg = PM2MessageModel(CODE=code,
-                                          PAYLOAD=PayloadModel(device=[PM2DeviceModel(id=device.id,
+                                          PAYLOAD=PayloadModel(id_communication=devices_info[0].communication.id,
+                                                               device=[PM2DeviceModel(id=device.id,
                                                                                       name=device.name,
                                                                                       id_communication=device.communication.id,
                                                                                       connect_type=device.communication.name,
