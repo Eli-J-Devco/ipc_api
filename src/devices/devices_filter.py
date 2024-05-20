@@ -9,6 +9,7 @@ class CodeEnum(enum.Enum):
     CreateRS485Dev = 1
     CreateTCPDev = 3
     DeleteDev = 0
+    UpdateDev = -1
 
 
 class IncreaseMode:

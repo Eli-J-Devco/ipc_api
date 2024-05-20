@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     FTPSERVER_PASSWORD: str
     PAGINATION_PAGE: int
     PAGINATION_LIMIT: int
+    DEFAULT_ID_LENGTH: int
 
 
 env_config = Settings()

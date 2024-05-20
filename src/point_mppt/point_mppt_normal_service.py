@@ -9,6 +9,7 @@ from sqlalchemy.sql.expression import select, delete
 from .point_mppt_service import PointMpptService
 from .point_mppt_entity import PointMppt as PointMpptEntity
 from .point_mppt_model import PointMpptBase, PointString, PointMppt
+from ..devices.devices_service import DevicesService
 from ..point.point_filter import DeletePointFilter
 from ..point.point_model import PointBase
 from ..point_config.point_config_filter import PointType
@@ -197,7 +198,7 @@ class NormalPointMpptService(PointMpptService):
                  .where(PointMpptEntity.id.in_(delete_ids)))
         await session.execute(query, execution_options={"synchronize_session": False})
         await session.commit()
-
+        await DevicesService().update_device_points(body.id_template, session)
         return await self.get_mppt_point_formatted(body.id_template, session)
 
     @async_db_request_handler

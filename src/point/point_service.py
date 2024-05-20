@@ -12,9 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter, AddPointListFilter
 from .point_model import PointBase, PointOutput, PointShort
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
+from ..config import env_config
+from ..devices.devices_service import DevicesService
 
 from ..point_config.point_config_filter import (PointType)
 from ..utils.service_wrapper import ServiceWrapper
+from ..utils.utils import generate_id
 
 
 @Injectable
@@ -23,6 +26,7 @@ class PointService:
     async def add_point(self,
                         session: AsyncSession,
                         point: AddPointFilter | AddPointListFilter):
+        device_service = DevicesService()
         if isinstance(point, AddPointListFilter):
             session.add_all([PointEntity(**p.dict(exclude={"id",
                                                            "register_value",
@@ -31,11 +35,11 @@ class PointService:
                                          id_template=point.id_template,
                                          register=p.register_value)
                              for p in point.point])
+            await device_service.update_device_points(point.id_template, session)
             return True
 
         id_template = point.id_template
         last_point = await self.get_last_point(id_template, session)
-        last_index = last_point.id if last_point else 0
         if not last_point:
             last_point = PointBase(register_value=65535)
 
@@ -44,12 +48,13 @@ class PointService:
                                                                 "id_pointkey",
                                                                 "id_template",
                                                                 "register_value"}, exclude_unset=True),
-                                     name=f"Point {_ + last_index}",
-                                     id_pointkey=f"Point{_ + last_index}",
+                                     name=f"New Point {_}",
+                                     id_pointkey=f"Point{generate_id(env_config.DEFAULT_ID_LENGTH)}",
                                      id_template=id_template,
                                      register=last_point.register_value, )
                          for _ in range(point.num_of_points)])
         await session.commit()
+        await device_service.update_device_points(id_template, session)
         return await self.get_points(id_template, session)
 
     @async_db_request_handler
@@ -146,22 +151,24 @@ class PointService:
     async def delete_point(self, body: DeletePointFilter, session: AsyncSession):
         id_template = body.id_template
         if not id_template:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Template ID is required")
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Template ID is required")
 
         id_points = body.id_points
-
+        device_service = DevicesService()
         if isinstance(id_points, list):
             query = (delete(PointEntity)
                      .where(PointEntity.id_template == id_template)
                      .where(PointEntity.id.in_(id_points)))
             await session.execute(query)
             await session.commit()
+            await device_service.update_device_points(id_template, session)
             return await self.get_points(id_template, session)
 
         query = (delete(PointEntity)
                  .where(PointEntity.id == id_points))
         await session.execute(query)
         await session.commit()
+        await device_service.update_device_points(id_template, session)
         return await self.get_points(id_template, session)
 
     @async_db_request_handler

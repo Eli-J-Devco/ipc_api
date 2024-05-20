@@ -12,12 +12,16 @@ from .point_control_filter import PointControlAddFilter, ControlGroupAddFilter, 
     ControlGroupUpdateFilter, ControlGroupDeleteFilter, PointRemoveFilter, PointsControlAddFilter, \
     PointControlCreateFilter
 from .point_control_model import PointControl, PointControlRefresh
+from ..config import env_config
+from ..devices.devices_service import DevicesService
+from ..point.point_filter import DeletePointFilter
 from ..point.point_model import PointBase
 from ..point.point_service import PointService
 from ..point_config.point_config_entity import PointListControlGroup
 from ..point_config.point_config_model import PointListControlGroupChildren
 from ..point_config.point_config_service import PointConfigService
 from ..utils.service_wrapper import ServiceWrapper
+from ..utils.utils import generate_id
 
 
 @Injectable
@@ -90,23 +94,23 @@ class PointControlService:
         if control_group is None:
             return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Control group not found")
 
-        point = await self.point_service.get_last_id(body.id_template, session)
-        point = PointBase(id=point)
-
+        point = PointBase()
         if body.is_clone_from_last:
             point = await self.get_last_point_in_group(body.id_control_group, session)
 
         for _ in range(body.number_of_points):
             new_point = PointControlEntity(**point.dict(exclude={"id",
                                                                  "register_value", }))
-            new_point.name = f"Point {control_group.name} {_ + point.id + 1}"
-            new_point.id_pointkey = f"Point{control_group.namekey}{_ + point.id + 1}".replace(" ", "")
+            new_point.name = f"Point {control_group.name} {_}"
+            new_point.id_pointkey = (f"Point{control_group.namekey}{generate_id(env_config.DEFAULT_ID_LENGTH)}"
+                                     .replace(" ", ""))
             new_point.register = point.register_value
             new_point.id_control_group = body.id_control_group
             new_point.id_template = body.id_template
             session.add(new_point)
 
         await session.commit()
+        await DevicesService().update_device_points(body.id_template, session)
         return await self.get_template_detail(body.id_template, session)
 
     @async_db_request_handler
@@ -118,6 +122,15 @@ class PointControlService:
                  .limit(1))
         result = await session.execute(query)
         return PointBase(**jsonable_encoder(result.scalars().first()))
+
+    @async_db_request_handler
+    async def delete_point(self, point: DeletePointFilter, session: AsyncSession):
+        result = await self.point_service.delete_point(point, session)
+
+        if isinstance(result, HTTPException):
+            return result
+
+        return await self.get_template_detail(point.id_template, session)
 
     # region Control Group
     @async_db_request_handler
@@ -213,5 +226,6 @@ class PointControlService:
             await session.execute(query)
 
         await session.commit()
+        await DevicesService().update_device_points(body.id_template, session)
         return await self.get_template_detail(body.id_template, session)
     # endregion

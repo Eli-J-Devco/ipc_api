@@ -196,3 +196,26 @@ class DevicesService:
         await session.execute(query)
         await session.commit()
         return await self.get_devices(session)
+
+    @async_db_request_handler
+    async def update_device_points(self, template_id: int, session: AsyncSession):
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
+        query = (select(DevicesEntity)
+                 .where(DevicesEntity.id_template == template_id))
+        result = await session.execute(query)
+        devices = result.scalars().all()
+        device_id = [device.id for device in devices]
+
+        update_msg = MessageModel(
+            metadata=MetaData(retry=3),
+            topic=Topic(target=f"{serial_number}/{Action.UPDATE.value}",
+                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
+            message={"type": Action.UPDATE.value,
+                     "code": CodeEnum.UpdateDev.name,
+                     "devices": device_id}
+        )
+        await self.sender.start()
+        self.sender.send(f"{serial_number}/{Action.UPDATE.value}",
+                         base64.b64encode(json.dumps(update_msg.dict()).encode("ascii")))
+        await self.sender.stop()
+        return True

@@ -10,6 +10,7 @@ from .point_control_service import PointControlService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config
+from ..point.point_filter import DeletePointFilter
 from ..point_config.point_config_service import PointConfigService
 from ..utils.service_wrapper import ServiceWrapper
 
@@ -53,6 +54,14 @@ class PointControlController:
                            user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.point_control_service
                                                   .remove_point_from_control_group)(body, session)
+
+    @Post("/delete/")
+    async def delete_control_point(self,
+                                   body: DeletePointFilter,
+                                   session: AsyncSession = Depends(config.get_db),
+                                   user: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.point_control_service
+                                                  .delete_point)(body, session)
 
     # region Control Group
     @Post("/group/add/")

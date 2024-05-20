@@ -1,4 +1,7 @@
 import datetime
+import random
+import secrets
+import string
 from re import match
 
 from .PaginationModel import PaginationResponse
@@ -58,3 +61,10 @@ def generate_pagination_response(data: list | type(None),
         page=page,
         limit=limit
     )
+
+
+def generate_id(length: int = 8):
+    random_bytes = secrets.token_bytes(length // 2)
+    id_part_1 = "".join([f"{b:02x}" for b in random_bytes])
+    id_part_2 = ''.join(random.choice(string.ascii_letters) for x in range(length - len(id_part_1)))
+    return id_part_1 + id_part_2

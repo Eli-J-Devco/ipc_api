@@ -95,6 +95,7 @@ class DeviceGroup(BaseModel):
 
 class Action(enum.Enum):
     CREATE = "InitDevices/create"
+    UPDATE = "InitDevices/update"
     DELETE = "InitDevices/delete"
     DEAD_LETTER = "InitDevices/dead-letter"
 

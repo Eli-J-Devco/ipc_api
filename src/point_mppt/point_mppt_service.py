@@ -1,3 +1,4 @@
+import datetime
 import logging
 from abc import abstractmethod
 from random import randint
@@ -13,9 +14,12 @@ from sqlalchemy.sql import func
 from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
 from .point_mppt_model import PointMppt, PointMpptBase, PointString
 from .point_mppt_entity import PointMppt as PointMpptEntity, ManualPointMppt as ManualPointMpptEntity
+from ..config import env_config
+from ..devices.devices_service import DevicesService
 from ..point.point_model import PointBase
 
 from ..point_config.point_config_filter import PointType
+from ..utils.utils import generate_id
 
 
 @Injectable
@@ -103,17 +107,15 @@ class PointMpptService:
             mppt = mppt_list[-1] if mppt_list else None
 
         if not mppt:
-            last_mppt = await self.get_last_point(body.id_template, session)
-            mppt = PointMppt(id=last_mppt.id,
-                             id_config_information=PointType().MPPT_POINT, )
+            mppt = PointMppt(id_config_information=PointType().MPPT_POINT, )
             is_last = False
         body.is_clone_from_last = is_last
 
         for _ in range(num_of_mppt):
             add_mppt = PointMpptEntity(**PointBase(**mppt.dict(exclude_unset=True))
                                        .dict(exclude={"id", "children", "register_value"}))
-            add_mppt.name = f"MPPT {_ + 1 + mppt.id}"
-            add_mppt.id_pointkey = f"MPPT{_ + 1 + mppt.id}"
+            add_mppt.name = f"New MPPT"
+            add_mppt.id_pointkey = f"MPPT{generate_id(env_config.DEFAULT_ID_LENGTH)}"
             add_mppt.register = mppt.register_value if mppt.register_value else 0
             add_mppt.id_template = body.id_template
             session.add(add_mppt)
@@ -127,11 +129,12 @@ class PointMpptService:
                     add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
                                                  .dict(exclude={"id",
                                                                 "children",
-                                                                "register_value",
-                                                                "parent"}),
-                                                 register=string.register_value if string.register_value else 0,
-                                                 parent=add_mppt.id,
-                                                 id_template=body.id_template)
+                                                                "register_value", }))
+                    add_string.register = string.register_value if string.register_value else 0,
+                    add_string.parent = add_mppt.id,
+                    add_string.id_template = body.id_template,
+                    add_string.name = f"New String",
+                    add_string.id_pointkey = f"String{generate_id(env_config.DEFAULT_ID_LENGTH)}"
                     session.add(add_string)
                     await session.flush()
 
@@ -140,11 +143,12 @@ class PointMpptService:
                             add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
                                                         .dict(exclude={"id",
                                                                        "children",
-                                                                       "register_value",
-                                                                       "parent"}),
-                                                        register=panel.register_value if panel.register_value else 0,
-                                                        parent=add_string.id,
-                                                        id_template=body.id_template)
+                                                                       "register_value", }))
+                            add_panel.register = panel.register_value if panel.register_value else 0,
+                            add_panel.parent = add_string.id,
+                            add_panel.id_template = body.id_template,
+                            add_panel.name = f"New Panel",
+                            add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
                             session.add(add_panel)
                             await session.flush()
             elif num_of_strings > 0:
@@ -158,6 +162,7 @@ class PointMpptService:
                                       last_mppt_id=mppt.id, )
         await session.commit()
         session.expire_all()
+        await DevicesService().update_device_points(body.id_template, session)
         return await self.get_mppt_point_formatted(body.id_template, session)
 
     @async_db_request_handler
@@ -214,17 +219,15 @@ class PointMpptService:
             string = await self.get_last_string_formatted(body.id_template, last_mppt_id, session)
 
         if not string:
-            last_point = await self.get_last_point(body.id_template, session)
-            string = PointString(id=last_point.id,
-                                 id_config_information=PointType().MPPT_STRING,
+            string = PointString(id_config_information=PointType().MPPT_STRING,
                                  parent=body.parent)
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_strings):
             add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
                                          .dict(exclude={"id", "children", "register_value"}))
-            add_string.name = f"String {_ + 1 + string.id}"
-            add_string.id_pointkey = f"String{_ + 1 + string.id}"
+            add_string.name = f"New String"
+            add_string.id_pointkey = f"String{generate_id(env_config.DEFAULT_ID_LENGTH)}"
             add_string.register = string.register_value if string.register_value else 0
             add_string.id_template = body.id_template
             session.add(add_string)
@@ -233,10 +236,12 @@ class PointMpptService:
             if string.children:
                 for panel in string.children:
                     add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
-                                                .dict(exclude={"id", "children", "register_value", "parent"}),
-                                                register=panel.register_value if panel.register_value else 0,
-                                                parent=add_string.id,
-                                                id_template=body.id_template)
+                                                .dict(exclude={"id", "children", "register_value"}))
+                    add_panel.register = panel.register_value if panel.register_value else 0,
+                    add_panel.parent = add_string.id,
+                    add_panel.id_template = body.id_template,
+                    add_panel.name = f"New Panel",
+                    add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
                     session.add(add_panel)
                     await session.flush()
             elif num_of_panels > 0:
@@ -251,6 +256,7 @@ class PointMpptService:
         if need_return:
             await session.commit()
             session.expire_all()
+            await DevicesService().update_device_points(body.id_template, session)
             return await self.get_mppt_point_formatted(body.id_template, session)
 
     @async_db_request_handler
@@ -269,16 +275,15 @@ class PointMpptService:
             panel = await self.get_last_panel_point(body.id_template, last_string_id, True, session)
 
         if not panel:
-            last_point = await self.get_last_point(body.id_template, session)
-            panel = PointMpptBase(id=last_point.id,
-                                  id_config_information=PointType().MPPT_PANEL,
+            panel = PointMpptBase(id_config_information=PointType().MPPT_PANEL,
                                   parent=body.parent)
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_panels):
-            add_panel = PointMpptEntity(**panel.dict(exclude={"id", "register_value"}))
-            add_panel.name = f"Panel {_ + 1 + panel.id}"
-            add_panel.id_pointkey = f"Panel{_ + 1 + panel.id}"
+            add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
+                                        .dict(exclude={"id", "register_value"}))
+            add_panel.name = f"New Panel"
+            add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
             add_panel.register = panel.register_value if panel.register_value else 0
             add_panel.id_template = body.id_template
             session.add(add_panel)
@@ -287,4 +292,5 @@ class PointMpptService:
         if need_return:
             await session.commit()
             session.expire_all()
+            await DevicesService().update_device_points(body.id_template, session)
             return await self.get_mppt_point_formatted(body.id_template, session)
