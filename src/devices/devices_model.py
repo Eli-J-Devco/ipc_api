@@ -99,3 +99,7 @@ class Action(enum.Enum):
     DELETE = "InitDevices/delete"
     DEAD_LETTER = "InitDevices/dead-letter"
 
+
+class DeviceConfigOutput(BaseModel):
+    device_types: list[DeviceType]
+    device_groups: list[DeviceGroup]

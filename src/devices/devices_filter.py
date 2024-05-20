@@ -64,3 +64,8 @@ class UpdateDeviceFilter(BaseModel):
     effciency: float
     enable_poweroff: Optional[bool] = None
     inverter_shutdown: Optional[date] = None
+
+
+class AddDeviceGroupFilter(BaseModel):
+    id_device_type: int
+    name: str

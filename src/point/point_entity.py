@@ -2,6 +2,7 @@ from sqlalchemy import Integer, String, DOUBLE, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..config import config
+from ..point_config.point_config_filter import PointType
 
 
 class Point(config.Base):
@@ -25,7 +26,8 @@ class Point(config.Base):
     id_pointtype: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                   onupdate="CASCADE"), nullable=True)
     id_config_information: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
-                                                                           onupdate="CASCADE"), nullable=True)
+                                                                           onupdate="CASCADE"), nullable=True,
+                                                       default=PointType().POINT)
     register: Mapped[int] = mapped_column(Integer, nullable=False)
     id_type_datatype: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                       onupdate="CASCADE"), nullable=False, default=4)

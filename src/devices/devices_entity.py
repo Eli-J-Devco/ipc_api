@@ -115,7 +115,7 @@ class DeviceGroup(config.Base):
                                                            ondelete="CASCADE",
                                                            onupdate="CASCADE"),
                                                 nullable=True)
-    status: Mapped[bool] = mapped_column(Integer, nullable=True)
+    status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
     type: Mapped[bool] = mapped_column(Integer, nullable=True)
 
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])

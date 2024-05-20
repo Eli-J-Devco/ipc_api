@@ -14,8 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic, MetaData
 
-from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter
-from .devices_model import Devices, DeviceFull, Action
+from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
+    AddDeviceGroupFilter
+from .devices_model import Devices, DeviceFull, Action, DeviceConfigOutput
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
                              DeviceGroup as DeviceGroupEntity,)
@@ -175,6 +176,17 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
+    async def deactivate_device(self, device_id: int | list[int], session: AsyncSession):
+        if isinstance(device_id, int):
+            device_id = [device_id]
+        query = (update(DevicesEntity)
+                 .where(DevicesEntity.id.in_(device_id))
+                 .values(status=False))
+        await session.execute(query)
+        await session.commit()
+        return await self.get_devices(session)
+
+    @async_db_request_handler
     async def get_device_points(self, device_id: int, session: AsyncSession):
         query = select(DevicePointMapEntity).filter(DevicePointMapEntity.id_device_list == device_id)
         result = await session.execute(query)
@@ -230,3 +242,12 @@ class DevicesService:
                          base64.b64encode(json.dumps(update_msg.dict()).encode("ascii")))
         await self.sender.stop()
         return True
+
+    @async_db_request_handler
+    async def add_device_group(self, body: AddDeviceGroupFilter, session: AsyncSession):
+        new_device_group = DeviceGroupEntity(name=body.name,
+                                             id_device_type=body.id_device_type,
+                                             type=1)
+        session.add(new_device_group)
+        await session.commit()
+        return "Device group added successfully"
