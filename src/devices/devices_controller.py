@@ -12,6 +12,7 @@ from .devices_service import DevicesService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config
+from ..utils.PaginationModel import Pagination
 from ..utils.service_wrapper import ServiceWrapper
 
 
@@ -21,9 +22,11 @@ class DevicesController:
         self.devices_service = devices_service
 
     @Post("/get/all/")
-    async def get_devices(self, session: AsyncSession = Depends(config.get_db),
+    async def get_devices(self,
+                          pagination: Pagination = Depends(),
+                          session: AsyncSession = Depends(config.get_db),
                           auth: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.devices_service.get_devices)(session)
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_devices)(session, pagination)
 
     @Post("/get/")
     async def get_devices_by_template(self,

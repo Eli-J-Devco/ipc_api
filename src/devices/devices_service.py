@@ -29,6 +29,8 @@ from .devices_entity import (Devices as DevicesEntity,
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
 from ..config import env_config
 from ..project_setup.project_setup_service import ProjectSetupService
+from ..utils.PaginationModel import Pagination
+from ..utils.utils import generate_pagination_response
 
 
 @Injectable
@@ -46,18 +48,37 @@ class DevicesService:
         )
 
     @async_db_request_handler
-    async def get_devices(self, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+    async def get_devices(self, session: AsyncSession,
+                          pagination: Pagination = None) -> list[DeviceFull] | HTTPException:
         """
         Get all devices from database
         :author: nhan.tran
         :date: 20-05-2024
         :param session:
+        :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
         query = (select(DevicesEntity)
                  .where(DevicesEntity.status.__eq__(True)))
+        if pagination:
+            if not pagination.page or pagination.page < 0:
+                pagination.page = env_config.PAGINATION_PAGE
+
+            if not pagination.limit or pagination.limit < 0:
+                pagination.limit = env_config.PAGINATION_LIMIT
+
+            query = (select(DevicesEntity)
+                     .where(DevicesEntity.status.__eq__(True))
+                     .offset(pagination.page)
+                     .limit(pagination.limit))
+
         result = await session.execute(query)
         devices = result.scalars().all()
+
+        total_query = (select(DevicesEntity.id)
+                       .where(DevicesEntity.status.__eq__(True)))
+        total_result = await session.execute(total_query)
+        total = len(total_result.scalars().all())
 
         output = []
         for device in devices:
@@ -68,7 +89,11 @@ class DevicesService:
             device["device_type"] = device_type
             output.append(DeviceFull(**device))
 
-        return output
+        return generate_pagination_response(output,
+                                            total,
+                                            pagination.page,
+                                            pagination.limit,
+                                            "/devices/get/all/") if pagination else output
 
     @async_db_request_handler
     async def get_device_by_condition(self, body: GetDeviceFilter,
@@ -239,7 +264,8 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
-    async def delete_device(self, device_id: int | list[int], session: AsyncSession) -> list[DeviceFull] | HTTPException:
+    async def delete_device(self, device_id: int | list[int], session: AsyncSession) -> list[
+                                                                                            DeviceFull] | HTTPException:
         """
         Delete device from database and send message to MQTT broker
         :author: nhan.tran

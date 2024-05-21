@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse
 
 class ServiceWrapper:
     @staticmethod
-    def async_wrapper(func) -> Callable[[tuple[Any, ...], dict[str, Any]], Coroutine[Any, Any, JSONResponse]]:
+    def async_wrapper(func):
         """
         Wrapper for async function
         :author: nhan.tran
@@ -66,7 +66,7 @@ class ServiceWrapper:
         return wrapper
 
     @staticmethod
-    def sync_wrapper(func) -> Callable[[tuple[Any, ...], dict[str, Any]], JSONResponse]:
+    def sync_wrapper(func):
         """
         Wrapper for sync function
         :author: nhan.tran
