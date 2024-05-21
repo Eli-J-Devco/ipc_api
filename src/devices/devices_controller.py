@@ -1,11 +1,14 @@
-import logging
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 
-from nest.core import Controller, Get, Post, Depends
+from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter
 from .devices_service import DevicesService
-from .devices_model import Devices
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config

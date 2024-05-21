@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from pydantic.main import BaseModel
 
 from .register_block_model import RegisterBlock

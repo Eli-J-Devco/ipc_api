@@ -1,3 +1,10 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
+from typing import List, Any
+
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
@@ -15,7 +22,15 @@ from ..project_setup.project_setup_filter import ConfigInformationEnum
 @Injectable
 class Rs485Service:
     @async_db_request_handler
-    async def get_rs485_by_id(self, rs485_id: int, session: AsyncSession):
+    async def get_rs485_by_id(self, rs485_id: int, session: AsyncSession) -> list[Rs485Short] | Rs485:
+        """
+        Get RS485 by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param rs485_id:
+        :param session:
+        :return: list[Rs485Short] | Rs485
+        """
         if not rs485_id:
             query = select(Rs485Entity)
             result = await session.execute(query)
@@ -30,7 +45,15 @@ class Rs485Service:
         return Rs485(**output.__dict__)
 
     @async_db_request_handler
-    async def update_rs485(self, rs485: Rs485, session: AsyncSession):
+    async def update_rs485(self, rs485: Rs485, session: AsyncSession) -> Rs485:
+        """
+        Update RS485
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param rs485:
+        :param session:
+        :return: Rs485
+        """
         if not rs485.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="RS485 ID is required")
 
@@ -46,47 +69,68 @@ class Rs485Service:
         return verify_rs485
 
     @async_db_request_handler
-    async def rs485_config(self, session: AsyncSession):
-        baud_rate_query = (select(ConfigInformationEntity)
-                           .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_BAUD_RATE.MIN)
-                           .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_BAUD_RATE.MAX))
+    async def get_config(self, config_min: int,
+                         config_max: int,
+                         session: AsyncSession) -> list[Any]:
+        """
+        Get each config by range
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param config_min:
+        :param config_max:
+        :param session:
+        :return: list[Any]
+        """
+        query = (select(ConfigInformationEntity)
+                 .where(ConfigInformationEntity.id > config_min)
+                 .where(ConfigInformationEntity.id <= config_max))
+        result = await session.execute(query)
+        config = result.scalars().all()
+        return [jsonable_encoder(c) for c in config]
 
-        parity_query = (select(ConfigInformationEntity)
-                        .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_PARITY.MIN)
-                        .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_PARITY.MAX))
+    @async_db_request_handler
+    async def rs485_config(self, session: AsyncSession) -> Rs485Config:
+        """
+        Get RS485 config
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: Rs485Config
+        """
+        baud_rates = await self.get_config(ConfigInformationEnum.TYPE_BAUD_RATE.MIN,
+                                           ConfigInformationEnum.TYPE_BAUD_RATE.MAX,
+                                           session)
 
-        stop_bits_query = (select(ConfigInformationEntity)
-                           .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_STOP_BIT.MIN)
-                           .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_STOP_BIT.MAX))
+        parities = await self.get_config(ConfigInformationEnum.TYPE_PARITY.MIN,
+                                         ConfigInformationEnum.TYPE_PARITY.MAX,
+                                         session)
 
-        debug_level_query = (select(ConfigInformationEntity)
-                             .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_MODBUS_DEBUG_LEVEL.MIN)
-                             .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_MODBUS_DEBUG_LEVEL.MAX))
+        stop_bits = await self.get_config(ConfigInformationEnum.TYPE_STOP_BIT.MIN,
+                                          ConfigInformationEnum.TYPE_STOP_BIT.MAX,
+                                          session)
 
-        timeout_query = (select(ConfigInformationEntity)
-                         .where(ConfigInformationEntity.id > ConfigInformationEnum.TYPE_MODBUS_TIMEOUT.MIN)
-                         .where(ConfigInformationEntity.id <= ConfigInformationEnum.TYPE_MODBUS_TIMEOUT.MAX))
+        debug_levels = await self.get_config(ConfigInformationEnum.TYPE_MODBUS_DEBUG_LEVEL.MIN,
+                                             ConfigInformationEnum.TYPE_MODBUS_DEBUG_LEVEL.MAX,
+                                             session)
 
-        baud_rate = await session.execute(baud_rate_query)
-        parity = await session.execute(parity_query)
-        stop_bits = await session.execute(stop_bits_query)
-        debug_level = await session.execute(debug_level_query)
-        timeout = await session.execute(timeout_query)
-
-        baud_rates = baud_rate.scalars().all()
-        parities = parity.scalars().all()
-        stop_bits = stop_bits.scalars().all()
-        debug_levels = debug_level.scalars().all()
-        timeouts = timeout.scalars().all()
+        timeouts = await self.get_config(ConfigInformationEnum.TYPE_MODBUS_TIMEOUT.MIN,
+                                         ConfigInformationEnum.TYPE_MODBUS_TIMEOUT.MAX,
+                                         session)
 
         return Rs485Config(
-                baud_rates=[baud_rate.__dict__ for baud_rate in baud_rates],
-                parities=[parity.__dict__ for parity in parities],
-                stop_bits=[stop_bit.__dict__ for stop_bit in stop_bits],
-                debug_levels=[debug_level.__dict__ for debug_level in debug_levels],
-                timeouts=[timeout.__dict__ for timeout in timeouts]
+            baud_rates=baud_rates,
+            parities=parities,
+            stop_bits=stop_bits,
+            debug_levels=debug_levels,
+            timeouts=timeouts
         )
 
     @staticmethod
-    def get_serial_ports():
+    def get_serial_ports() -> List[SerialPort]:
+        """
+        Get serial ports
+        :author: nhan.tran
+        :date: 20-05-2024
+        :return: List[SerialPort]
+        """
         return [SerialPort(serial_port=port.device) for port in ports.comports()]

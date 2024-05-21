@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from nest.core.database.orm_provider import AsyncOrmProvider
 from pydantic import BaseSettings
 

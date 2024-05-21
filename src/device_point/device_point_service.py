@@ -1,8 +1,12 @@
-import logging
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 
+from fastapi import HTTPException, status
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
-from fastapi import HTTPException, status
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +16,6 @@ from .device_point_model import DevicePoint, DevicePointOutput, EnableField, Tem
 from ..devices.devices_entity import Devices
 from ..point.point_entity import Point
 from ..project_setup.project_setup_filter import ConfigInformationType
-from ..project_setup.project_setup_model import ConfigInformationShort
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..template.template_entity import Template
 
@@ -21,11 +24,20 @@ from ..template.template_entity import Template
 class DevicePointService:
 
     @async_db_request_handler
-    async def get_device_point(self, device_id: int, session: AsyncSession):
+    async def get_device_point(self, device_id: int, session: AsyncSession) -> DevicePointOutput | HTTPException:
+        """
+        Get device point by device id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param session:
+        :return: DevicePointOutput | HTTPException
+        """
         query = select(Devices.id_template).where(Devices.id == device_id)
         result = await session.execute(query)
         id_template = result.scalars().first()
 
+        # Check if device exists
         if not id_template:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device not found")
 
@@ -54,7 +66,15 @@ class DevicePointService:
                                  template=TemplatePoint(id=id_template, type=template_type), )
 
     @async_db_request_handler
-    async def points_action(self, body: PointActionFilter, session: AsyncSession):
+    async def points_action(self, body: PointActionFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
+        """
+        Enable or disable points by id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: DevicePointOutput | HTTPException
+        """
         points = body.id_point
         id_device = body.id_device
         status = False if body.action.lower().strip() == "disable" else True
@@ -76,7 +96,16 @@ class DevicePointService:
                                      device_id: int,
                                      point_id: int,
                                      status: bool,
-                                     session: AsyncSession):
+                                     session: AsyncSession) -> None:
+        """
+        Enable or disable points by device id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param point_id:
+        :param status:
+        :param session:
+        """
         query = select(DevicePointEntity.id_point_list).where(DevicePointEntity.id == point_id)
         result = await session.execute(query)
         point_list = result.scalars().first()
@@ -88,7 +117,15 @@ class DevicePointService:
         await session.execute(query)
 
     @async_db_request_handler
-    async def update_alarm_values(self, body: AlarmValueUpdateFilter, session: AsyncSession):
+    async def update_alarm_values(self, body: AlarmValueUpdateFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
+        """
+        Update alarm values by id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: DevicePointOutput | HTTPException
+        """
         for value in body.values:
             query = (update(DevicePointEntity)
                      .where(DevicePointEntity.id_device_list == body.id_device)
@@ -99,7 +136,15 @@ class DevicePointService:
         return await self.get_device_point(body.id_device, session)
 
     @async_db_request_handler
-    async def update_point_per_edit(self, body: PointUpdateFilter, session: AsyncSession):
+    async def update_point_per_edit(self, body: PointUpdateFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
+        """
+        Update point by id and device id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: DevicePointOutput | HTTPException
+        """
         query = (select(DevicePointEntity.id)
                  .where(DevicePointEntity.id_device_list == body.id_device))
         result = await session.execute(query)
@@ -144,5 +189,10 @@ class DevicePointService:
         return await self.get_device_point(body.id_device, session)
 
     @async_db_request_handler
-    async def get_units(self, session: AsyncSession):
+    async def get_units(self, session: AsyncSession) -> list[PointUnit] | HTTPException:
+        """
+        Get units
+        :param session:
+        :return: list[PointUnit] | HTTPException
+        """
         return await ProjectSetupService().get_config_information_by_type(session, ConfigInformationType.TYPE_UNIT)

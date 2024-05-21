@@ -1,8 +1,12 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter, DeletePointFilter
-from .point_mppt_model import PointMppt
 from .point_mppt_normal_service import NormalPointMpptService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user

@@ -1,4 +1,8 @@
-from typing import Optional
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 
 from pydantic.main import BaseModel
 

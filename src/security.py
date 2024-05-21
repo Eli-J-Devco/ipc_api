@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from functools import reduce
 
 from fastapi.security import HTTPBasic
@@ -63,7 +68,13 @@ class SecurityRepository:
     __security = None
 
     @staticmethod
-    def get_security_config():
+    def get_security_config() -> Security:
+        """
+        Get security config
+        :author: nhan.tran
+        :date: 20-05-2024
+        :return: Security
+        """
         if SecurityRepository.__security is None:
             SecurityRepository.__security = Security(
                 secret_key=env_config.SECRET_KEY,

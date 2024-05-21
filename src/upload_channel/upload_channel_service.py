@@ -1,4 +1,10 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
+from typing import Dict, Any
 
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
@@ -22,7 +28,14 @@ from ..project_setup.project_setup_service import ProjectSetupService
 class UploadChannelService:
 
     @async_db_request_handler
-    async def get_upload_channel(self, session: AsyncSession):
+    async def get_upload_channel(self, session: AsyncSession) -> list[UploadChannelConfig] | UploadChannelConfig:
+        """
+        Get upload channel
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[UploadChannelConfig] | UploadChannelConfig
+        """
         query = (select(UploadChannelEntity)
                  .options(selectinload(UploadChannelEntity.type_protocol))
                  .options(selectinload(UploadChannelEntity.logging_interval)))
@@ -57,7 +70,14 @@ class UploadChannelService:
         return output
 
     @async_db_request_handler
-    async def get_configs(self, session: AsyncSession):
+    async def get_configs(self, session: AsyncSession) -> UploadChannelConfigs | Dict[str, Any]:
+        """
+        Get configs
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: UploadChannelConfigs | Dict[str, Any]
+        """
         logging_intervals = await (ProjectSetupService()
                                    .get_config_information_by_type(session,
                                                                    ConfigInformationType.TYPE_LOGGING_INTERVAL))
@@ -75,7 +95,17 @@ class UploadChannelService:
         return configs
 
     @async_db_request_handler
-    async def update_upload_channel(self, channels: list[UploadChannelConfig], session: AsyncSession):
+    async def update_upload_channel(self,
+                                    channels: list[UploadChannelConfig],
+                                    session: AsyncSession) -> str:
+        """
+        Update upload channel
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param channels:
+        :param session:
+        :return: str
+        """
         for channel in channels:
             # validate if channel configuration exists
             ProjectSetupService().validate_config_information(channel.id_type_protocol,
@@ -104,7 +134,16 @@ class UploadChannelService:
     async def update_device_upload_map(self,
                                        session: AsyncSession,
                                        devices: list[DeviceUploadChannelMap],
-                                       channel_id: int):
+                                       channel_id: int) -> None:
+        """
+        Update device upload map
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param devices:
+        :param channel_id:
+        :return: None
+        """
         if not devices:
             query = (delete(UploadChannelDeviceMapEntity)
                      .where(UploadChannelDeviceMapEntity.id_upload_channel == channel_id))

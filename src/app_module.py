@@ -1,8 +1,14 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import asyncio
 import logging
 from nest.core import PyNestFactory, Module
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Depends
+
 from .config import config
 from .app_controller import AppController
 from .app_service import AppService
@@ -20,7 +26,7 @@ from .point_config.point_config_module import PointConfigModule
 from .point_mppt.point_mppt_module import PointMpptModule
 from .point_control.point_control_module import PointControlModule
 from .register_block.register_block_module import RegisterBlockModule
-from src.device_point.device_point_module import DevicePointModule
+from .device_point.device_point_module import DevicePointModule
 
 
 @Module(

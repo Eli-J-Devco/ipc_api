@@ -1,14 +1,20 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import base64
 import datetime
 import json
 import logging
 import uuid
+from typing import Sequence, Any
 
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
 
-from sqlalchemy import select, update, text
+from sqlalchemy import select, update, text, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from mqtt_service.mqtt import Publisher
@@ -19,8 +25,8 @@ from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceF
 from .devices_model import Devices, DeviceFull, Action, DeviceConfigOutput
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
-                             DeviceGroup as DeviceGroupEntity,)
-from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity
+                             DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType, )
+from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
 from ..config import env_config
 from ..project_setup.project_setup_service import ProjectSetupService
 
@@ -28,6 +34,7 @@ from ..project_setup.project_setup_service import ProjectSetupService
 @Injectable
 class DevicesService:
     def __init__(self):
+        # Initialize MQTT publisher
         self.sender = Publisher(
             host=env_config.MQTT_BROKER,
             port=env_config.MQTT_PORT,
@@ -39,7 +46,14 @@ class DevicesService:
         )
 
     @async_db_request_handler
-    async def get_devices(self, session: AsyncSession):
+    async def get_devices(self, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+        """
+        Get all devices from database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[DeviceFull] | HTTPException
+        """
         query = (select(DevicesEntity)
                  .where(DevicesEntity.status.__eq__(True)))
         result = await session.execute(query)
@@ -57,7 +71,16 @@ class DevicesService:
         return output
 
     @async_db_request_handler
-    async def get_device_by_condition(self, body: GetDeviceFilter, session: AsyncSession):
+    async def get_device_by_condition(self, body: GetDeviceFilter,
+                                      session: AsyncSession) -> list[Devices] | HTTPException:
+        """
+        Get devices by condition
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: list[Devices] | HTTPException
+        """
         template_id = body.id_template
         device_id = body.id_device
         query = (select(DevicesEntity)
@@ -69,7 +92,15 @@ class DevicesService:
         return [Devices(**device.__dict__) for device in devices]
 
     @async_db_request_handler
-    async def get_device_by_id(self, device_id: int, session: AsyncSession):
+    async def get_device_by_id(self, device_id: int, session: AsyncSession) -> Devices | HTTPException:
+        """
+        Get device by id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param session:
+        :return: Devices | HTTPException
+        """
         query = select(DevicesEntity).filter(DevicesEntity.id == device_id)
         result = await session.execute(query)
         device = result.scalars().first()
@@ -80,38 +111,90 @@ class DevicesService:
         return Devices(**device.__dict__)
 
     @async_db_request_handler
-    async def get_device_type_by_device_group(self, id_device_group: int, session: AsyncSession):
+    async def get_device_type_by_device_group(self, id_device_group: int, session: AsyncSession) -> int | None:
+        """
+        Get device type by device group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_device_group:
+        :param session:
+        :return: int | None
+        """
         query = select(DeviceGroupEntity.id_device_type).filter(DeviceGroupEntity.id == id_device_group)
         result = await session.execute(query)
         return result.scalars().first()
 
     @async_db_request_handler
-    async def get_device_by_template(self, id_template: int, session: AsyncSession):
+    async def get_device_type_by_id(self, id_device_type: int,
+                                    session: AsyncSession) -> DeviceType | HTTPException:
+        """
+        Get device type by id
+        :author: nhan.tran
+        :date: 21-05-2024
+        :param id_device_type:
+        :param session:
+        :return: DeviceType | HTTPException
+        """
+        query = select(DeviceTypeEntity).filter(DeviceTypeEntity.id == id_device_type)
+        result = await session.execute(query)
+        device_type = result.scalars().first()
+
+        if not device_type:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
+
+        return device_type
+
+    @async_db_request_handler
+    async def get_device_by_template(self, id_template: int, session: AsyncSession) -> list[Devices] | HTTPException:
+        """
+        Get devices by template
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[Devices] | HTTPException
+        """
         query = select(DevicesEntity).filter(DevicesEntity.id_template == id_template)
         result = await session.execute(query)
         devices = result.scalars().all()
         return [Devices(**device.__dict__) for device in devices]
 
     @async_db_request_handler
-    async def get_device_type(self, session: AsyncSession):
+    async def get_device_type(self, session: AsyncSession) -> Sequence[DeviceType]:
+        """
+        Get device type
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[DeviceTypeEntity] | HTTPException
+        """
         query = select(DeviceTypeEntity)
         result = await session.execute(query)
         return result.scalars().all()
 
     @async_db_request_handler
-    async def get_device_group(self, session: AsyncSession):
+    async def get_device_group(self, session: AsyncSession) -> Sequence[DeviceGroup]:
+        """
+        Get device group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[DeviceGroupEntity] | HTTPException
+        """
         query = select(DeviceGroupEntity)
         result = await session.execute(query)
         return result.scalars().all()
 
     @async_db_request_handler
-    async def get_communication(self, session: AsyncSession):
-        query = select(DevicesEntity.id_communication).distinct()
-        result = await session.execute(query)
-        return result.scalars().all()
-
-    @async_db_request_handler
-    async def add_devices(self, body: AddDevicesFilter, session: AsyncSession):
+    async def add_devices(self, body: AddDevicesFilter, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+        """
+        Add devices to database and send message to MQTT broker
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: list[DeviceFull] | HTTPException
+        """
         devices = []
         logging.info(f"Rate power: {body.rated_power}")
         for _ in range(body.num_of_devices):
@@ -156,7 +239,15 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
-    async def delete_device(self, device_id: int | list[int], session: AsyncSession):
+    async def delete_device(self, device_id: int | list[int], session: AsyncSession) -> list[DeviceFull] | HTTPException:
+        """
+        Delete device from database and send message to MQTT broker
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param session:
+        :return: list[DeviceFull] | HTTPException
+        """
         if isinstance(device_id, int):
             device_id = [device_id]
         serial_number = await ProjectSetupService().get_project_serial_number(session)
@@ -176,7 +267,16 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
-    async def deactivate_device(self, device_id: int | list[int], session: AsyncSession):
+    async def deactivate_device(self, device_id: int | list[int],
+                                session: AsyncSession) -> list[DeviceFull] | HTTPException:
+        """
+        Deactivate device from database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param session:
+        :return: list[DeviceFull] | HTTPException
+        """
         if isinstance(device_id, int):
             device_id = [device_id]
         query = (update(DevicesEntity)
@@ -187,7 +287,15 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
-    async def get_device_points(self, device_id: int, session: AsyncSession):
+    async def get_device_points(self, device_id: int, session: AsyncSession) -> Sequence[DevicePointMap]:
+        """
+        Get device points by device id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param device_id:
+        :param session:
+        :return: list[DevicePointMapEntity] | HTTPException
+        """
         query = select(DevicePointMapEntity).filter(DevicePointMapEntity.id_device_list == device_id)
         result = await session.execute(query)
         points = result.scalars().all()
@@ -195,7 +303,15 @@ class DevicesService:
         return points
 
     @async_db_request_handler
-    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession):
+    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+        """
+        Update device in database and send message to MQTT broker
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: list[DeviceFull] | HTTPException
+        """
         inverter_shutdown = None
         if body.enable_poweroff:
             inverter_shutdown = body.inverter_shutdown.strftime("%Y-%m-%d %H:%M:%S")
@@ -221,7 +337,15 @@ class DevicesService:
         return await self.get_devices(session)
 
     @async_db_request_handler
-    async def update_device_points(self, template_id: int, session: AsyncSession):
+    async def update_device_points(self, template_id: int, session: AsyncSession) -> bool:
+        """
+        Update device points by template id
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param template_id:
+        :param session:
+        :return: bool
+        """
         serial_number = await ProjectSetupService().get_project_serial_number(session)
         query = (select(DevicesEntity)
                  .where(DevicesEntity.id_template == template_id))
@@ -244,7 +368,15 @@ class DevicesService:
         return True
 
     @async_db_request_handler
-    async def add_device_group(self, body: AddDeviceGroupFilter, session: AsyncSession):
+    async def add_device_group(self, body: AddDeviceGroupFilter, session: AsyncSession) -> str:
+        """
+        Add device group to database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: str
+        """
         new_device_group = DeviceGroupEntity(name=body.name,
                                              id_device_type=body.id_device_type,
                                              type=1)

@@ -1,14 +1,17 @@
-import logging
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .ethernet_service import EthernetService
 from .ethernet_filter import GetEthernetFilter, UpdateEthernetFilter
-
-from ..config import config
-from ..authentication.authentication_repository import get_current_user
+from .ethernet_service import EthernetService
 from ..authentication.authentication_model import Authentication
+from ..authentication.authentication_repository import get_current_user
+from ..config import config
 from ..utils.service_wrapper import ServiceWrapper
 
 

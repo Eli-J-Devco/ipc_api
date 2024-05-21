@@ -1,14 +1,21 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
 import random
 import string
 from datetime import datetime
+from typing import Any, Sequence
 
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, update, delete, func
+from sqlalchemy import select, update, delete, func, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import JSONResponse
 
 from .user_filter import GetUserFilter
 from .user_model import UserCreate, UserFull, UserUpdate, UserUpdatePassword, UserList
@@ -31,7 +38,15 @@ class UserService:
         self.role_service = role_service
 
     @async_db_request_handler
-    async def add_user(self, user: UserCreate, session: AsyncSession):
+    async def add_user(self, user: UserCreate, session: AsyncSession) -> str:
+        """
+        Add user
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user:
+        :param session:
+        :return: str
+        """
         validate_email(user.email)
         validate_password(user.password)
 
@@ -66,7 +81,18 @@ class UserService:
         return "User added successfully"
 
     @async_db_request_handler
-    async def get_user(self, pagination: Pagination, session: AsyncSession, user_filter: GetUserFilter = None):
+    async def get_user(self, pagination: Pagination,
+                       session: AsyncSession,
+                       user_filter: GetUserFilter = None) -> JSONResponse:
+        """
+        Get user list with pagination
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param pagination:
+        :param session:
+        :param user_filter:
+        :return: JSONResponse
+        """
         if not pagination.page or pagination.page < 0:
             pagination.page = env_config.PAGINATION_PAGE
 
@@ -107,7 +133,20 @@ class UserService:
                                             "/user/get/all/")
 
     @async_db_request_handler
-    async def get_user_by_id(self, user_id: int, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_user_by_id(self, user_id: int,
+                             session: AsyncSession,
+                             func=None, *args, **kwargs) -> UserList | JSONResponse:
+        """
+        Get user by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: UserList | JSONResponse
+        """
         if not user_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User ID is required")
 
@@ -124,7 +163,20 @@ class UserService:
         return UserList(**user.__dict__, role=await self.role_service.get_role_by_user_id(user_id, session))
 
     @async_db_request_handler
-    async def get_user_by_email(self, email: str, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_user_by_email(self, email: str,
+                                session: AsyncSession,
+                                func=None, *args, **kwargs) -> UserEntity | JSONResponse:
+        """
+        Get user by email
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param email:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: UserEntity | JSONResponse
+        """
         if not email:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email is required")
 
@@ -141,7 +193,16 @@ class UserService:
         return user
 
     @async_db_request_handler
-    async def update_user(self, user_id: int, session: AsyncSession, user: UserUpdate):
+    async def update_user(self, user_id: int, session: AsyncSession, user: UserUpdate) -> JSONResponse | str:
+        """
+        Update user
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :param user:
+        :return: JSONResponse | str
+        """
         query = select(UserEntity).where(UserEntity.id == user_id)
         result = await session.execute(query)
 
@@ -172,14 +233,30 @@ class UserService:
         return f"User{fullname}updated successfully"
 
     @async_db_request_handler
-    async def delete_user(self, user_id: int, session: AsyncSession):
+    async def delete_user(self, user_id: int, session: AsyncSession) -> str:
+        """
+        Delete user
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: str
+        """
         query = delete(UserEntity).where(UserEntity.id == user_id)
         await session.execute(query)
         await session.commit()
         return "User deleted successfully"
 
     @async_db_request_handler
-    async def activate_user(self, user_id: int, session: AsyncSession):
+    async def activate_user(self, user_id: int, session: AsyncSession) -> str:
+        """
+        Activate user
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: str
+        """
         query = (update(UserEntity)
                  .where(UserEntity.id == user_id)
                  .values(status=True))
@@ -188,7 +265,15 @@ class UserService:
         return "User activated successfully"
 
     @async_db_request_handler
-    async def deactivate_user(self, user_id: int, session: AsyncSession):
+    async def deactivate_user(self, user_id: int, session: AsyncSession) -> str:
+        """
+        Deactivate user
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: str
+        """
         query = (update(UserEntity)
                  .where(UserEntity.id == user_id)
                  .values(status=False))
@@ -197,7 +282,18 @@ class UserService:
         return "User deactivated successfully"
 
     @async_db_request_handler
-    async def update_password(self, user_id: int, session: AsyncSession, update_user: UserUpdatePassword):
+    async def update_password(self, user_id: int,
+                              session: AsyncSession,
+                              update_user: UserUpdatePassword) -> str:
+        """
+        Update user password
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :param update_user:
+        :return: str
+        """
         query = select(UserEntity).where(UserEntity.id == user_id)
         result = await session.execute(query)
         user = result.scalars().first()
@@ -215,7 +311,15 @@ class UserService:
         return "Password updated successfully"
 
     @async_db_request_handler
-    async def reset_password(self, user_id: int, session: AsyncSession):
+    async def reset_password(self, user_id: int, session: AsyncSession) -> dict:
+        """
+        Reset user password
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: dict
+        """
         random_str = string.ascii_letters + string.digits + string.punctuation
 
         while True:
@@ -237,7 +341,15 @@ class UserService:
         }
 
     @async_db_request_handler
-    async def get_user_roles(self, user_id: int, session: AsyncSession):
+    async def get_user_roles(self, user_id: int, session: AsyncSession) -> Sequence[Row | RowMapping | Any]:
+        """
+        Get user roles
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: Sequence[Row | RowMapping | Any]
+        """
         query = select(UserRoleMapEntity.id_role).where(UserRoleMapEntity.id_user == user_id)
         result = await session.execute(query)
         return result.scalars().all()

@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
 
 import netifaces
@@ -21,7 +26,15 @@ from ..project_setup.project_setup_service import ProjectSetupService
 @Injectable
 class EthernetService:
     @async_db_request_handler
-    async def get_ethernet_by_id(self, ethernet_id: int, session: AsyncSession):
+    async def get_ethernet_by_id(self, ethernet_id: int, session: AsyncSession) -> Ethernet:
+        """
+        Get ethernet by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param ethernet_id:
+        :param session:
+        :return: Ethernet
+        """
         if not ethernet_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ethernet ID is required")
 
@@ -36,7 +49,15 @@ class EthernetService:
         return Ethernet(**output.__dict__)
 
     @async_db_request_handler
-    async def update_ethernet(self, update_ethernet: UpdateEthernetFilter, session: AsyncSession):
+    async def update_ethernet(self, update_ethernet: UpdateEthernetFilter, session: AsyncSession) -> EthernetDetails:
+        """
+        Update ethernet by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param update_ethernet:
+        :param session:
+        :return: EthernetDetails
+        """
         if not update_ethernet.id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ethernet ID is required")
 
@@ -68,12 +89,25 @@ class EthernetService:
         return EthernetDetails(**updated_ethernet.__dict__)
 
     @async_db_request_handler
-    async def get_ethernet_mode(self, session: AsyncSession):
+    async def get_ethernet_mode(self, session: AsyncSession) -> list[dict]:
+        """
+        Get ethernet mode
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[dict]
+        """
         mode = await ProjectSetupService().get_config_information_by_type(session, ConfigInformationType.TYPE_ETHERNET)
         return mode
 
     @staticmethod
-    def get_network_config():
+    def get_network_config() -> list[dict]:
+        """
+        Get network config
+        :author: nhan.tran
+        :date: 20-05-2024
+        :return: list[dict]
+        """
         interfaces = netifaces.interfaces()
         builtin_nics = []
         for interface in interfaces:

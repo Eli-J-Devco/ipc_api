@@ -1,23 +1,21 @@
-import datetime
-import logging
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from abc import abstractmethod
-from random import randint
 
-from nest.core.decorators.database import async_db_request_handler
-from nest.core import Injectable
 from fastapi import HTTPException, status
-
-from sqlalchemy import select
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func
 
+from .point_mppt_entity import PointMppt as PointMpptEntity
 from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
 from .point_mppt_model import PointMppt, PointMpptBase, PointString
-from .point_mppt_entity import PointMppt as PointMpptEntity, ManualPointMppt as ManualPointMpptEntity
 from ..config import env_config
 from ..devices.devices_service import DevicesService
 from ..point.point_model import PointBase
-
 from ..point_config.point_config_filter import PointType
 from ..utils.utils import generate_id
 
@@ -26,36 +24,99 @@ from ..utils.utils import generate_id
 class PointMpptService:
     @abstractmethod
     async def add_point_mppt(self, id_template: int, point_mppt: PointMppt, session: AsyncSession) -> int:
+        """
+        Abstract method to add point mppt
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param point_mppt:
+        :param session:
+        :return: int
+        """
         pass
 
     @abstractmethod
     async def add_string_point(self, id_template: int, point_string: PointString, id_point_mppt: int,
                                session: AsyncSession) -> int:
+        """
+        Abstract method to add string point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param point_string:
+        :param id_point_mppt:
+        :param session:
+        :return: int
+        """
         pass
 
     @abstractmethod
     async def add_panel_point(self, id_template: int, point_panel: PointBase, id_point_string: int,
-                              session: AsyncSession):
+                              session: AsyncSession) -> int:
+        """
+        Abstract method to add panel point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param point_panel:
+        :param id_point_string:
+        :param session:
+        :return: int
+        """
         pass
 
     @abstractmethod
-    async def get_mppt_point(self, id_template: int, session: AsyncSession):
+    async def get_mppt_point(self, id_template: int, session: AsyncSession) -> list[dict]:
+        """
+        Abstract method to get mppt point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[dict]
+        """
         pass
 
     @abstractmethod
-    async def get_mppt_config_point(self, id_template: int, id_point_mppt: int, session: AsyncSession):
+    async def get_mppt_config_point(self, id_template: int,
+                                    id_point_mppt: int, session: AsyncSession) -> list[dict]:
+        """
+        Abstract method to get mppt config point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param id_point_mppt:
+        :param session:
+        :return: list[dict]
+        """
         pass
 
     @abstractmethod
-    async def get_string_point(self, id_template: int, id_point_mppt: int, session: AsyncSession):
+    async def get_string_point(self, id_template: int,
+                               id_point_mppt: int, session: AsyncSession) -> list[dict]:
+        """
+        Abstract method to get string point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param id_point_mppt:
+        :param session:
+        :return: list[dict]
+        """
         pass
 
     @abstractmethod
-    async def get_panel_point(self, id_template: int, id_point_string: int, session: AsyncSession):
-        pass
-
-    @abstractmethod
-    async def get_last_point(self, id_template: int, session: AsyncSession) -> PointMppt:
+    async def get_panel_point(self, id_template: int,
+                              id_point_string: int, session: AsyncSession) -> list[dict]:
+        """
+        Abstract method to get panel point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param id_point_string:
+        :param session:
+        :return: list[dict]
+        """
         pass
 
     @abstractmethod
@@ -63,14 +124,41 @@ class PointMpptService:
                                    id_point_string: int,
                                    is_clone: bool,
                                    session: AsyncSession) -> PointMpptBase:
+        """
+        Abstract method to get last panel point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param id_point_string:
+        :param is_clone:
+        :param session:
+        :return: PointMpptBase
+        """
         pass
 
     @abstractmethod
     async def get_last_string_formatted(self, id_template: int, parent: int, session: AsyncSession) -> PointString:
+        """
+        Abstract method to get last string formatted
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param parent:
+        :param session:
+        :return: PointString
+        """
         pass
 
     @async_db_request_handler
     async def get_mppt_point_formatted(self, id_template: int, session: AsyncSession) -> list[PointMppt]:
+        """
+        Get mppt point formatted
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[PointMppt]
+        """
         point_mppt = await self.get_mppt_point(id_template, session)
         response = []
         for point in point_mppt:
@@ -92,8 +180,40 @@ class PointMpptService:
             response.append(adding_children)
         return response
 
+    @staticmethod
+    def convert_point(point: PointMppt | PointString | PointMpptBase,
+                      body: AddMPPTFilter | AddStringFilter | AddPanelFilter,
+                      point_type: str, parent: int = None) -> PointMpptEntity:
+        """
+        Convert point to PointMpptEntity
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param point:
+        :param body:
+        :param point_type:
+        :param parent:
+        :return: PointMpptEntity
+        """
+        new_point = PointMpptEntity(**PointBase(**point.dict(exclude_unset=True))
+                                    .dict(exclude={"id", "children", "register_value"}))
+        new_point.name = f"New {point_type}"
+        new_point.id_pointkey = f"{point_type}{generate_id(env_config.DEFAULT_ID_LENGTH)}"
+        new_point.parent = parent
+        new_point.register = point.register_value if point.register_value else 0
+        new_point.id_template = body.id_template
+
+        return new_point
+
     @async_db_request_handler
-    async def add_mppt_point(self, session: AsyncSession, body: AddMPPTFilter):
+    async def add_mppt_point(self, session: AsyncSession, body: AddMPPTFilter) -> list[PointMppt]:
+        """
+        Add mppt point to database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param body:
+        :return: list[PointMppt]
+        """
         num_of_mppt = body.num_of_mppt
         num_of_strings = body.num_of_strings
         is_last = True
@@ -112,13 +232,7 @@ class PointMpptService:
         body.is_clone_from_last = is_last
 
         for _ in range(num_of_mppt):
-            add_mppt = PointMpptEntity(**PointBase(**mppt.dict(exclude_unset=True))
-                                       .dict(exclude={"id", "children", "register_value"}))
-            add_mppt.name = f"New MPPT"
-            add_mppt.id_pointkey = f"MPPT{generate_id(env_config.DEFAULT_ID_LENGTH)}"
-            add_mppt.register = mppt.register_value if mppt.register_value else 0
-            add_mppt.id_template = body.id_template
-            session.add(add_mppt)
+            add_mppt = self.convert_point(mppt, body, "MPPT")
             await session.flush()
             await self.add_mppt_config(session, body.id_template, add_mppt, is_last, mppt.id)
 
@@ -126,29 +240,13 @@ class PointMpptService:
                 for string in mppt.children:
                     if string.id_config_information != PointType().MPPT_STRING:
                         continue
-                    add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
-                                                 .dict(exclude={"id",
-                                                                "children",
-                                                                "register_value", }))
-                    add_string.register = string.register_value if string.register_value else 0,
-                    add_string.parent = add_mppt.id,
-                    add_string.id_template = body.id_template,
-                    add_string.name = f"New String",
-                    add_string.id_pointkey = f"String{generate_id(env_config.DEFAULT_ID_LENGTH)}"
+                    add_string = self.convert_point(string, body, "String", add_mppt.id)
                     session.add(add_string)
                     await session.flush()
 
                     if string.children:
                         for panel in string.children:
-                            add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
-                                                        .dict(exclude={"id",
-                                                                       "children",
-                                                                       "register_value", }))
-                            add_panel.register = panel.register_value if panel.register_value else 0,
-                            add_panel.parent = add_string.id,
-                            add_panel.id_template = body.id_template,
-                            add_panel.name = f"New Panel",
-                            add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
+                            add_panel = self.convert_point(panel, body, "Panel", add_string.id)
                             session.add(add_panel)
                             await session.flush()
             elif num_of_strings > 0:
@@ -170,7 +268,18 @@ class PointMpptService:
                               id_template: int,
                               new_mppt: PointMppt,
                               is_clone: bool = False,
-                              last_mppt_id: int = None):
+                              last_mppt_id: int = None) -> None:
+        """
+        Add mppt config to database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param id_template:
+        :param new_mppt:
+        :param is_clone:
+        :param last_mppt_id:
+        :return: None
+        """
         mppt_current = PointBase(
             id_template=id_template,
             parent=new_mppt.id,
@@ -207,7 +316,17 @@ class PointMpptService:
     async def add_string(self, session: AsyncSession,
                          body: AddStringFilter,
                          need_return: bool = True,
-                         last_mppt_id: int = None):
+                         last_mppt_id: int = None) -> list[PointMppt]:
+        """
+        Add string to database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param body:
+        :param need_return:
+        :param last_mppt_id:
+        :return: list[PointMppt]
+        """
         num_of_strings = body.num_of_strings
         num_of_panels = body.num_of_panels
         is_last = True
@@ -224,24 +343,13 @@ class PointMpptService:
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_strings):
-            add_string = PointMpptEntity(**PointBase(**string.dict(exclude_unset=True))
-                                         .dict(exclude={"id", "children", "register_value"}))
-            add_string.name = f"New String"
-            add_string.id_pointkey = f"String{generate_id(env_config.DEFAULT_ID_LENGTH)}"
-            add_string.register = string.register_value if string.register_value else 0
-            add_string.id_template = body.id_template
+            add_string = self.convert_point(string, body, "String")
             session.add(add_string)
             await session.flush()
 
             if string.children:
                 for panel in string.children:
-                    add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
-                                                .dict(exclude={"id", "children", "register_value"}))
-                    add_panel.register = panel.register_value if panel.register_value else 0,
-                    add_panel.parent = add_string.id,
-                    add_panel.id_template = body.id_template,
-                    add_panel.name = f"New Panel",
-                    add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
+                    add_panel = self.convert_point(panel, body, "Panel", add_string.id)
                     session.add(add_panel)
                     await session.flush()
             elif num_of_panels > 0:
@@ -263,7 +371,17 @@ class PointMpptService:
     async def add_panel(self, session: AsyncSession,
                         body: AddPanelFilter,
                         need_return: bool = True,
-                        last_string_id: int = None):
+                        last_string_id: int = None) -> list[PointMppt]:
+        """
+        Add panel to database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param body:
+        :param need_return:
+        :param last_string_id:
+        :return: list[PointMppt]
+        """
         num_of_panels = body.num_of_panels
         is_last = True
 
@@ -280,12 +398,7 @@ class PointMpptService:
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_panels):
-            add_panel = PointMpptEntity(**PointBase(**panel.dict(exclude_unset=True))
-                                        .dict(exclude={"id", "register_value"}))
-            add_panel.name = f"New Panel"
-            add_panel.id_pointkey = f"Panel{generate_id(env_config.DEFAULT_ID_LENGTH)}"
-            add_panel.register = panel.register_value if panel.register_value else 0
-            add_panel.id_template = body.id_template
+            add_panel = self.convert_point(panel, body, "Panel")
             session.add(add_panel)
             await session.flush()
 

@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import datetime
 import random
 import secrets
@@ -7,7 +12,15 @@ from re import match
 from .PaginationModel import PaginationResponse
 
 
-def get_timedelta(value, unit):
+def get_timedelta(value, unit) -> datetime.timedelta:
+    """
+    Get timedelta
+    :author: nhan.tran
+    :date: 20-05-2024
+    :param value:
+    :param unit:
+    :return: datetime.timedelta
+    """
     if unit == "s":
         return datetime.timedelta(seconds=value)
     if unit == "m":
@@ -21,21 +34,42 @@ def get_timedelta(value, unit):
     raise ValueError("Invalid unit")
 
 
-def validate_email(email):
+def validate_email(email) -> str:
+    """
+    Validate email
+    :author: nhan.tran
+    :date: 20-05-2024
+    :param email:
+    :return: str
+    """
     reg = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$"
     if not match(reg, email):
         raise ValueError("Invalid email")
     return email
 
 
-def validate_phone(phone):
+def validate_phone(phone) -> str:
+    """
+    Validate phone
+    :author: nhan.tran
+    :date: 20-05-2024
+    :param phone:
+    :return: str
+    """
     reg = r"^\+?1?\d{9,15}$"
     if not match(reg, phone):
         raise ValueError("Invalid phone number")
     return phone
 
 
-def validate_password(password):
+def validate_password(password) -> str:
+    """
+    Validate password
+    :author: nhan.tran
+    :date: 20-05-2024
+    :param password:
+    :return: str
+    """
     re = (r"^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z])(?=.*[~`!@#$%^&*()--+={}[\]|\\:;\"'<>,.?/_₹])[a-zA-Z0-9~`!@#$%^&*()--+={"
           r"}[\]|\\:;\"'<>,.?/_₹]{7,}$")
     if not match(re, password):

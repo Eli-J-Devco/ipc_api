@@ -1,5 +1,10 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import json
-import logging
+from typing import Any, Sequence
 
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
@@ -7,8 +12,9 @@ from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import JSONResponse
 
-from .template_entity import Template as TemplateEntity
+from .template_entity import Template as TemplateEntity, Template
 from .template_filter import GetTemplateFilter
 from .template_model import Template, TemplateOutput, TemplateConfig
 from ..devices.devices_service import DevicesService
@@ -40,7 +46,16 @@ class TemplateService:
         self.devices_service = devices_service
 
     @async_db_request_handler
-    async def get_template(self, body: GetTemplateFilter, session: AsyncSession):
+    async def get_template(self, body: GetTemplateFilter,
+                           session: AsyncSession) -> Sequence[Template] | TemplateOutput:
+        """
+        Get template
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: Sequence[TemplateEntity] | TemplateOutput
+        """
         if body.id is not None:
             query = select(TemplateEntity).where(TemplateEntity.id == body.id)
             result = await session.execute(query)
@@ -57,7 +72,20 @@ class TemplateService:
         return result.scalars().all()
 
     @async_db_request_handler
-    async def get_template_by_id(self, id_template: int, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_template_by_id(self, id_template: int,
+                                 session: AsyncSession,
+                                 func=None, *args, **kwargs) -> Template | TemplateOutput:
+        """
+        Get template by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: Template | TemplateOutput
+        """
         query = (select(TemplateEntity)
                  .where(TemplateEntity.id == id_template))
         result = await session.execute(query)
@@ -71,7 +99,20 @@ class TemplateService:
         return template.__dict__
 
     @async_db_request_handler
-    async def get_template_by_name(self, name: str, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_template_by_name(self, name: str,
+                                   session: AsyncSession,
+                                   func=None, *args, **kwargs) -> Template | TemplateOutput:
+        """
+        Get template by name
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param name:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return:
+        """
         query = (select(TemplateEntity)
                  .where(TemplateEntity.name == name))
         result = await session.execute(query)
@@ -85,32 +126,69 @@ class TemplateService:
         return template.__dict__
 
     @async_db_request_handler
-    async def get_template_by_type(self, template_type: GetTemplateFilter, session: AsyncSession):
-        query = (select(TemplateEntity)
-                 .where(TemplateEntity.type == template_type.type))
-        result = await session.execute(query)
-        return result.scalars().all()
-
-    @async_db_request_handler
     async def get_manual(self, id_device_type: int, session: AsyncSession) -> TemplateOutput:
+        """
+        Get manual template by device type
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_device_type:
+        :param session:
+        :return: TemplateOutput
+        """
         points = await self.point_service.get_manual_point_list(id_device_type, session)
         point_mppt = await self.manual_point_mppt_service.get_mppt_point_formatted(id_device_type, session)
         return TemplateOutput(points=points, point_mppt=point_mppt)
 
     @async_db_request_handler
-    async def get_template_detail(self, id_template: int, session: AsyncSession):
+    async def get_template_detail(self, id_template: int, session: AsyncSession) -> TemplateOutput:
+        """
+        Get template detail by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: TemplateOutput
+        """
         points = await self.point_service.get_points(id_template, session)
         point_mppt = await self.point_mppt_service.get_mppt_point_formatted(id_template, session)
         register_blocks = await self.register_block_service.get_register_block(id_template, session)
         point_controls = await self.point_control_service.get_control_group_point(id_template, session)
+        device_group = await self.get_device_group_by_template(id_template, session)
+        device_type = None
+        if device_group is not None:
+            id_device_type = await self.devices_service.get_device_type_by_device_group(device_group, session)
+            device_type = await self.devices_service.get_device_type_by_id(id_device_type, session)
 
         return TemplateOutput(points=points,
                               point_mppt=point_mppt,
                               register_blocks=register_blocks,
-                              point_controls=point_controls)
+                              point_controls=point_controls,
+                              device_type=device_type.name)
 
     @async_db_request_handler
-    async def get_template_config(self, session: AsyncSession):
+    async def get_device_group_by_template(self, id_template: int, session: AsyncSession) -> int:
+        """
+        Get device group by template
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: int
+        """
+        query = (select(TemplateEntity.id_device_group)
+                 .where(TemplateEntity.id == id_template))
+        result = await session.execute(query)
+        return int(result.scalars().first())
+
+    @async_db_request_handler
+    async def get_template_config(self, session: AsyncSession) -> TemplateConfig:
+        """
+        Get template config
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: TemplateConfig
+        """
         project_setup_service = ProjectSetupService()
         point_config = await (ServiceWrapper
                               .async_wrapper(PointConfigService(project_setup_service)
@@ -126,7 +204,15 @@ class TemplateService:
                               if isinstance(type_function, JSONResponse) else type_function)
 
     @async_db_request_handler
-    async def add_template(self, session: AsyncSession, new_template: Template):
+    async def add_template(self, session: AsyncSession, new_template: Template) -> dict[str, int] | HTTPException:
+        """
+        Add template
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param new_template:
+        :return: dict[str, int] | HTTPException
+        """
         if new_template.name is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Name is required")
 
@@ -169,7 +255,16 @@ class TemplateService:
         return {"id": new_template.id}
 
     @async_db_request_handler
-    async def delete_template(self, id_template: int, session: AsyncSession):
+    async def delete_template(self, id_template: int,
+                              session: AsyncSession) -> Sequence[Template] | TemplateOutput | HTTPException:
+        """
+        Delete template
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: Sequence[Template] | TemplateOutput | HTTPException
+        """
         devices = await self.devices_service.get_device_by_template(id_template, session)
         if devices:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,

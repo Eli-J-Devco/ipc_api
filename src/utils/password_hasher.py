@@ -4,8 +4,8 @@
 # *
 # *********************************************************/
 import base64
-import logging
 from hashlib import md5
+
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Cryptodome import Random

@@ -1,4 +1,10 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
+from typing import Sequence
 
 from nest.core.decorators.database import async_db_request_handler
 from nest.core import Injectable
@@ -9,7 +15,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .role_filter import UpdateRoleScreenFilter
 from .role_model import RoleCreate, RoleScreenMapBase, RoleUpdate
-from .role_entity import Role as RoleEntity, RoleScreenMap as RoleScreenMapEntity, UserRoleMap as UserRoleMapEntity
+from .role_entity import Role as RoleEntity, RoleScreenMap as RoleScreenMapEntity, UserRoleMap as UserRoleMapEntity, \
+    Role
 from ..authentication.authentication_model import Permission
 from ..project_setup.project_setup_entity import Screen
 from ..project_setup.project_setup_service import ProjectSetupService
@@ -20,7 +27,15 @@ from ..utils.service_wrapper import ServiceWrapper
 class RoleService:
 
     @async_db_request_handler
-    async def add_role(self, role: RoleCreate, session: AsyncSession):
+    async def add_role(self, role: RoleCreate, session: AsyncSession) -> str:
+        """
+        Add new role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role:
+        :param session:
+        :return: str
+        """
         new_role = RoleEntity(
             **role.dict()
         )
@@ -38,13 +53,33 @@ class RoleService:
         return "Role added successfully"
 
     @async_db_request_handler
-    async def get_role(self, session: AsyncSession):
+    async def get_role(self, session: AsyncSession) -> Sequence[Role]:
+        """
+        Get all roles
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: Sequence[Role]
+        """
         query = select(RoleEntity)
         result = await session.execute(query)
         return result.scalars().all()
 
     @async_db_request_handler
-    async def get_role_by_id(self, role_id: int, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_role_by_id(self, role_id: int,
+                             session: AsyncSession,
+                             func=None, *args, **kwargs) -> Role:
+        """
+        Get role by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: Role
+        """
         if not role_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role ID is required")
 
@@ -61,7 +96,20 @@ class RoleService:
         return role
 
     @async_db_request_handler
-    async def get_role_by_name(self, role_name: str, session: AsyncSession, func=None, *args, **kwargs):
+    async def get_role_by_name(self, role_name: str,
+                               session: AsyncSession,
+                               func=None, *args, **kwargs) -> Role:
+        """
+        Get role by name
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_name:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: Role
+        """
         if not role_name:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Role name is required")
 
@@ -78,7 +126,15 @@ class RoleService:
         return role
 
     @async_db_request_handler
-    async def get_role_by_user_id(self, user_id: int, session: AsyncSession):
+    async def get_role_by_user_id(self, user_id: int, session: AsyncSession) -> Sequence[RoleUpdate]:
+        """
+        Get role by user ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param session:
+        :return: Sequence[RoleUpdate]
+        """
         query = (select(RoleEntity.id, RoleEntity.name, RoleEntity.description, RoleEntity.status)
                  .join(UserRoleMapEntity, RoleEntity.id == UserRoleMapEntity.id_role)
                  .where(UserRoleMapEntity.id_user == user_id)
@@ -94,7 +150,17 @@ class RoleService:
         return roles
 
     @async_db_request_handler
-    async def update_role(self, role_id: int, session: AsyncSession, role: RoleUpdate):
+    async def update_role(self, role_id: int,
+                          session: AsyncSession, role: RoleUpdate) -> str:
+        """
+        Update role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :param role:
+        :return: str
+        """
         if role.name:
             is_role_name_exist = await self.get_role_by_name(role.name, session)
             if is_role_name_exist.id != role_id:
@@ -112,14 +178,30 @@ class RoleService:
         return "Role updated successfully"
 
     @async_db_request_handler
-    async def delete_role(self, role_id: int, session: AsyncSession):
+    async def delete_role(self, role_id: int, session: AsyncSession) -> str:
+        """
+        Delete role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :return: str
+        """
         query = delete(RoleEntity).where(RoleEntity.id == role_id)
         await session.execute(query)
         await session.commit()
         return "Role deleted successfully"
 
     @async_db_request_handler
-    async def activate_role(self, role_id: int, session: AsyncSession):
+    async def activate_role(self, role_id: int, session: AsyncSession) -> str:
+        """
+        Activate role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :return: str
+        """
         query = (update(RoleEntity)
                  .where(RoleEntity.id == role_id)
                  .values(status=True))
@@ -128,7 +210,15 @@ class RoleService:
         return "Role activated successfully"
 
     @async_db_request_handler
-    async def deactivate_role(self, role_id: int, session: AsyncSession):
+    async def deactivate_role(self, role_id: int, session: AsyncSession) -> str:
+        """
+        Deactivate role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :return: str
+        """
         query = (update(RoleEntity)
                  .where(RoleEntity.id == role_id)
                  .values(status=False))
@@ -137,7 +227,15 @@ class RoleService:
         return "Role deactivated successfully"
 
     @async_db_request_handler
-    async def get_role_permissions(self, role_id: int, session: AsyncSession):
+    async def get_role_permissions(self, role_id: int, session: AsyncSession) -> Sequence[Permission]:
+        """
+        Get role permissions
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :return: Sequence[Permission]
+        """
         query = (select(RoleScreenMapEntity.id_screen,
                         Screen.screen_name,
                         Screen.description,
@@ -158,7 +256,16 @@ class RoleService:
     async def update_role_permission(self,
                                      role_id: int,
                                      session: AsyncSession,
-                                     role_screen: RoleScreenMapBase):
+                                     role_screen: RoleScreenMapBase) -> str:
+        """
+        Update role permission
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param role_id:
+        :param session:
+        :param role_screen:
+        :return: str
+        """
         query = (update(RoleScreenMapEntity)
                  .where(RoleScreenMapEntity.id_role == role_id)
                  .where(RoleScreenMapEntity.id_screen == role_screen.id_screen)
@@ -168,7 +275,18 @@ class RoleService:
         return "Role permission updated successfully"
 
     @async_db_request_handler
-    async def update_user_role_map(self, user_id: int, role_id: list[int], session: AsyncSession):
+    async def update_user_role_map(self, user_id: int,
+                                   role_id: list[int],
+                                   session: AsyncSession) -> str:
+        """
+        Update user role
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_id:
+        :param role_id:
+        :param session:
+        :return: str
+        """
         query = delete(UserRoleMapEntity).where(UserRoleMapEntity.id_user == user_id)
         await session.execute(query)
 

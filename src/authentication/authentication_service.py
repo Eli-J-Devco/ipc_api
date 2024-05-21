@@ -1,24 +1,26 @@
-import logging
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
+from typing import Any
 
-from nest.core.decorators.database import async_db_request_handler
+from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from nest.core import Injectable, Depends
-
+from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import HTTPException, status
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
-
 from .authentication_model import Authentication, AuthenticationResponse
 from .authentication_repository import AuthenticationRepository
-
 from ..config import config
 from ..project_setup.project_setup_service import ProjectSetupService
-
+from ..role.role_service import RoleService
 from ..user.user_entity import User
 from ..user.user_service import UserService
-from ..role.role_service import RoleService
+
 
 @Injectable
 class AuthenticationService:
@@ -28,7 +30,15 @@ class AuthenticationService:
         self.authentication = AuthenticationRepository().get_authentication_config()
 
     @async_db_request_handler
-    async def login(self, user_credential: OAuth2PasswordRequestForm, session: AsyncSession):
+    async def login(self, user_credential: OAuth2PasswordRequestForm, session: AsyncSession) -> AuthenticationResponse | HTTPException:
+        """
+        Login user with username and password and return access token and refresh token
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param user_credential:
+        :param session:
+        :return: AuthenticationResponse | HTTPException
+        """
         if not user_credential.username or not user_credential.password:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid credentials")
 
@@ -78,7 +88,14 @@ class AuthenticationService:
         return response
 
     @async_db_request_handler
-    async def refresh(self, refresh_token: str):
+    async def refresh(self, refresh_token: str) -> JSONResponse | HTTPException:
+        """
+        Refresh the access token with the refresh token
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param refresh_token:
+        :return: JSONResponse | HTTPException
+        """
         if not refresh_token:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
         access_token = self.authentication.refresh_access_token(refresh_token)
@@ -88,12 +105,19 @@ class AuthenticationService:
     async def get_current_user(self, session: AsyncSession = Depends(config.get_db),
                                token: str = Depends(AuthenticationRepository()
                                                     .get_authentication_config()
-                                                    .get_oauth2_scheme())):
-
+                                                    .get_oauth2_scheme())) -> User | Any:
+        """
+        Get the current user from the token
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param token:
+        :return: User | Any
+        """
         credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                               detail=f"Could not validate credentials",
                                               headers={"WWW-Authenticate": "Bearer"})
 
-        token = self.authentication.get_authentication_config().verify_access_token(token, credentials_exception)
+        token = self.authentication.verify_access_token(token, credentials_exception)
         user = await session.get(User, token.get("user_id"))
         return user

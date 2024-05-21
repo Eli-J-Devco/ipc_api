@@ -1,20 +1,21 @@
-import logging
-import time
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 
-from nest.core.decorators.database import async_db_request_handler
-from nest.core import Injectable
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
-
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter, AddPointListFilter
 from .point_model import PointBase, PointOutput, PointShort
-from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
 from ..config import env_config
 from ..devices.devices_service import DevicesService
-
 from ..point_config.point_config_filter import (PointType)
 from ..utils.service_wrapper import ServiceWrapper
 from ..utils.utils import generate_id
@@ -25,7 +26,15 @@ class PointService:
     @async_db_request_handler
     async def add_point(self,
                         session: AsyncSession,
-                        point: AddPointFilter | AddPointListFilter):
+                        point: AddPointFilter | AddPointListFilter) -> PointOutput | list[PointOutput] | bool:
+        """
+        Add point to the database
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :param point:
+        :return: PointOutput | list[PointOutput] | bool
+        """
         device_service = DevicesService()
         if isinstance(point, AddPointListFilter):
             session.add_all([PointEntity(**p.dict(exclude={"id",
@@ -61,7 +70,18 @@ class PointService:
     async def get_point_by_id(self,
                               id_point: int,
                               session: AsyncSession,
-                              func=None, *args, **kwargs):
+                              func=None, *args, **kwargs) -> PointOutput | PointEntity | HTTPException:
+        """
+        Get point by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_point:
+        :param session:
+        :param func:
+        :param args:
+        :param kwargs:
+        :return: PointOutput | PointEntity | HTTPException
+        """
         query = (select(PointEntity)
                  .where(PointEntity.id == id_point))
         result = await session.execute(query)
@@ -76,28 +96,15 @@ class PointService:
         return PointOutput(**jsonable_encoder(point_entity))
 
     @async_db_request_handler
-    async def get_point_by_pointkey(self,
-                                    id_template: int,
-                                    pointkey: str,
-                                    session: AsyncSession,
-                                    func=None, *args, **kwargs):
-        query = (select(PointEntity)
-                 .where(PointEntity.id_template == id_template)
-                 .where(PointEntity.id_pointkey == pointkey))
-
-        result = await session.execute(query)
-        point_entity = result.scalars().first()
-        if point_entity is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Point not found")
-
-        if func:
-            return await ServiceWrapper.async_wrapper(func)(id_template, session, *args, **kwargs)
-
-        await session.refresh(point_entity)
-        return point_entity
-
-    @async_db_request_handler
-    async def get_points(self, id_template: int, session: AsyncSession):
+    async def get_points(self, id_template: int, session: AsyncSession) -> list[PointEntity]:
+        """
+        Get points by template ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[PointEntity]
+        """
         query = (select(PointEntity)
                  .where(PointEntity.id_template == id_template)
                  .where(PointEntity.id_config_information == PointType().POINT)
@@ -108,7 +115,15 @@ class PointService:
         return jsonable_encoder(points)
 
     @async_db_request_handler
-    async def get_points_short(self, id_template: int, session: AsyncSession):
+    async def get_points_short(self, id_template: int, session: AsyncSession) -> list[PointShort]:
+        """
+        Get points by template ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[PointShort]
+        """
         query = (select(PointEntity)
                  .where(PointEntity.id_template == id_template)
                  .where(PointEntity.status == 1))
@@ -122,7 +137,16 @@ class PointService:
         return output
 
     @async_db_request_handler
-    async def update_point(self, id_point: int, session: AsyncSession, point: PointBase):
+    async def update_point(self, id_point: int, session: AsyncSession, point: PointBase) -> PointOutput | HTTPException:
+        """
+        Update point by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_point:
+        :param session:
+        :param point:
+        :return: PointOutput | HTTPException
+        """
         updating_point = point.dict(exclude_unset=True, exclude={"id", "register_value"})
         updating_point["register"] = point.register_value
 
@@ -137,7 +161,15 @@ class PointService:
         return updated_point
 
     @async_db_request_handler
-    async def update_point_unit(self, point: UpdatePointUnitFilter, session: AsyncSession):
+    async def update_point_unit(self, point: UpdatePointUnitFilter, session: AsyncSession) -> str:
+        """
+        Update point unit by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param point:
+        :param session:
+        :return: str
+        """
         id_point = point.id
         unit = point.unit
         query = (update(PointEntity)
@@ -148,7 +180,15 @@ class PointService:
         return "Unit updated successfully"
 
     @async_db_request_handler
-    async def delete_point(self, body: DeletePointFilter, session: AsyncSession):
+    async def delete_point(self, body: DeletePointFilter, session: AsyncSession) -> list[PointBase] | HTTPException:
+        """
+        Delete point by ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: list[PointBase] | HTTPException
+        """
         id_template = body.id_template
         if not id_template:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Template ID is required")
@@ -173,6 +213,14 @@ class PointService:
 
     @async_db_request_handler
     async def get_manual_point_list(self, id_device_type: int, session: AsyncSession) -> list[PointBase]:
+        """
+        Get manual point list by device type
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_device_type:
+        :param session:
+        :return: list[PointBase]
+        """
         query = (select(ManualPointEntity)
                  .where(ManualPointEntity.id_device_type == id_device_type)
                  .where(ManualPointEntity.id_config_information == PointType().POINT)
@@ -182,7 +230,15 @@ class PointService:
         return [PointBase(**point.__dict__) for point in points]
 
     @async_db_request_handler
-    async def get_last_point(self, id_template: int, session: AsyncSession):
+    async def get_last_point(self, id_template: int, session: AsyncSession) -> PointBase | None:
+        """
+        Get the last point by template ID
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: PointBase | None
+        """
         query = (select(PointEntity)
                  .where(PointEntity.id_template == id_template)
                  .where(PointEntity.id_config_information == PointType().POINT)
@@ -193,12 +249,3 @@ class PointService:
         point = result.scalars().first()
         return PointBase(**point.__dict__) if point else None
 
-    @async_db_request_handler
-    async def get_last_id(self, id_template: int, session: AsyncSession):
-        query = (select(PointEntity.id)
-                 .where(PointEntity.id_template == id_template)
-                 .order_by(PointEntity.id.desc())
-                 .limit(1))
-        result = await session.execute(query)
-        point = result.scalars().first()
-        return point

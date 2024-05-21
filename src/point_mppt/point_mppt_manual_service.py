@@ -1,4 +1,8 @@
-
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from fastapi.encoders import jsonable_encoder

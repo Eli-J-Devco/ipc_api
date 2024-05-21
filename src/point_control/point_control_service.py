@@ -1,5 +1,8 @@
-import logging
-
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from fastapi import status, HTTPException
 from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
@@ -31,7 +34,16 @@ class PointControlService:
         self.point_config_service = point_config_service
 
     @async_db_request_handler
-    async def get_control_group_point(self, id_template: int, session: AsyncSession):
+    async def get_control_group_point(self, id_template: int,
+                                      session: AsyncSession) -> list[PointListControlGroupChildren]:
+        """
+        Get control group point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: list[PointListControlGroupChildren]
+        """
         control_groups = await self.point_config_service.get_control_groups(id_template, session)
         response = []
         for control_group in control_groups:
@@ -47,7 +59,16 @@ class PointControlService:
     @async_db_request_handler
     async def add_existing_point_to_group(self, id_control_group: int,
                                           session: AsyncSession,
-                                          body: PointControlAddFilter | PointsControlAddFilter):
+                                          body: PointControlAddFilter | PointsControlAddFilter) -> PointControlRefresh:
+        """
+        Add existing point to group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_control_group:
+        :param session:
+        :param body:
+        :return: PointControlRefresh
+        """
         if isinstance(body, PointControlAddFilter):
             id_points = [body.id_point]
         else:
@@ -67,14 +88,31 @@ class PointControlService:
             return await self.get_template_detail(body.id_template, session)
 
     @async_db_request_handler
-    async def get_template_detail(self, id_template: int, session: AsyncSession):
+    async def get_template_detail(self, id_template: int, session: AsyncSession) -> PointControlRefresh:
+        """
+        Get template detail
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_template:
+        :param session:
+        :return: PointControlRefresh
+        """
         points = await self.point_service.get_points(id_template, session)
         point_controls = await self.get_control_group_point(id_template, session)
 
         return PointControlRefresh(points=points, point_controls=point_controls)
 
     @async_db_request_handler
-    async def remove_point_from_control_group(self, body: PointRemoveFilter, session: AsyncSession):
+    async def remove_point_from_control_group(self, body: PointRemoveFilter,
+                                              session: AsyncSession) -> PointControlRefresh:
+        """
+        Remove point from control group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: PointControlRefresh
+        """
         query = (update(PointControlEntity)
                  .where(PointControlEntity.id.in_(body.id_points))
                  .values(id_control_group=None))
@@ -85,7 +123,15 @@ class PointControlService:
     @async_db_request_handler
     async def create_new_point_to_group(self,
                                         body: PointControlCreateFilter,
-                                        session: AsyncSession):
+                                        session: AsyncSession) -> PointControlRefresh | HTTPException:
+        """
+        Create new point to group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: PointControlRefresh | HTTPException
+        """
         query = (select(PointListControlGroup)
                  .where(PointListControlGroup.id_template == body.id_template)
                  .where(PointListControlGroup.id == body.id_control_group))
@@ -114,7 +160,15 @@ class PointControlService:
         return await self.get_template_detail(body.id_template, session)
 
     @async_db_request_handler
-    async def get_last_point_in_group(self, id_control_group: int, session: AsyncSession):
+    async def get_last_point_in_group(self, id_control_group: int, session: AsyncSession) -> PointBase:
+        """
+        Get last point in group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param id_control_group:
+        :param session:
+        :return: PointBase
+        """
         query = (select(PointControlEntity)
                  .where(PointControlEntity.id_control_group == id_control_group)
                  .where(PointControlEntity.status == 1)
@@ -124,7 +178,16 @@ class PointControlService:
         return PointBase(**jsonable_encoder(result.scalars().first()))
 
     @async_db_request_handler
-    async def delete_point(self, point: DeletePointFilter, session: AsyncSession):
+    async def delete_point(self, point: DeletePointFilter,
+                           session: AsyncSession) -> PointControlRefresh | HTTPException:
+        """
+        Delete point
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param point:
+        :param session:
+        :return: PointControlRefresh | HTTPException
+        """
         result = await self.point_service.delete_point(point, session)
 
         if isinstance(result, HTTPException):
@@ -134,7 +197,16 @@ class PointControlService:
 
     # region Control Group
     @async_db_request_handler
-    async def add_new_control_group(self, body: ControlGroupAddFilter, session: AsyncSession):
+    async def add_new_control_group(self, body: ControlGroupAddFilter,
+                                    session: AsyncSession) -> PointControlRefresh | HTTPException:
+        """
+        Add new control group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: PointControlRefresh | HTTPException
+        """
         query = (select(PointListControlGroup)
                  .where(PointListControlGroup.id_template == body.id_template)
                  .where(PointListControlGroup.namekey == body.name.replace(" ", "")))
@@ -164,7 +236,15 @@ class PointControlService:
     @async_db_request_handler
     async def update_control_group(self,
                                    body: ControlGroupUpdateFilter,
-                                   session: AsyncSession):
+                                   session: AsyncSession) -> PointControlRefresh | HTTPException:
+        """
+        Update control group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: PointControlRefresh | HTTPException
+        """
         query = (select(PointListControlGroup)
                  .where(PointListControlGroup.id == body.id))
         result = await session.execute(query)
@@ -194,7 +274,15 @@ class PointControlService:
     @async_db_request_handler
     async def delete_control_group(self,
                                    body: ControlGroupDeleteFilter,
-                                   session: AsyncSession):
+                                   session: AsyncSession) -> PointControlRefresh | HTTPException:
+        """
+        Delete control group
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param body:
+        :param session:
+        :return: PointControlRefresh | HTTPException
+        """
         if len(body.id_group) == 0:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No control group to delete")
 

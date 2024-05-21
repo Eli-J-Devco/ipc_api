@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
 
 from nest.core import Injectable
@@ -46,23 +51,6 @@ class NormalPointMpptService(PointMpptService):
         last_string.children = [PointMpptBase(**panel.__dict__) for panel in panels]
 
         return last_string
-
-    @async_db_request_handler
-    async def get_last_point(self, id_template: int, session: AsyncSession):
-        query = (select(PointMpptEntity)
-                 .where(PointMpptEntity.id_template == id_template)
-                 .order_by(PointMpptEntity.id.desc())
-                 .limit(1))
-        result = await session.execute(query)
-        last_mppt = result.scalars().first()
-
-        if not last_mppt:
-            return PointMppt(id=0,
-                             children=[])
-
-        return PointMppt(**last_mppt.__dict__,
-                         register_value=last_mppt.register,
-                         children=[])
 
     @async_db_request_handler
     async def get_last_panel_point(self, id_template: int, id_point_string: int, is_clone: bool, session: AsyncSession):
@@ -126,7 +114,7 @@ class NormalPointMpptService(PointMpptService):
         return new_point_panel.id
 
     @async_db_request_handler
-    async def get_mppt_point(self, id_template: int, session: AsyncSession):
+    async def get_mppt_point(self, id_template: int, session: AsyncSession) -> list[dict]:
         query = (select(PointMpptEntity)
                  .where(PointMpptEntity.id_template == id_template)
                  .where(PointMpptEntity.id_config_information == PointType().MPPT_POINT)

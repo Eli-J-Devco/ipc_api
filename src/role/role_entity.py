@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped, mapped_column

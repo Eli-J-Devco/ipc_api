@@ -1,15 +1,18 @@
-from functools import reduce
-
-from nest.core import Controller, Get, Post, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 from fastapi import Response, Body
 from fastapi.responses import JSONResponse
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from nest.core import Controller, Post, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from .authentication_service import AuthenticationService
-
 from ..config import config
 from ..utils.service_wrapper import ServiceWrapper
+
 
 @Controller("authentication")
 class AuthenticationController:

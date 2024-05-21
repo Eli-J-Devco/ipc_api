@@ -1,3 +1,8 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import datetime
 
 from sqlalchemy import Integer, DOUBLE, String, ForeignKey, Date
