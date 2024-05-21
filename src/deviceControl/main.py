@@ -700,19 +700,20 @@ async def get_value_meter():
                 current_hour = int(current_time // 3600)
                 current_day = int(current_time // (3600 * 24))
 # total value of power consumption and production power in power limit and zero export mode
-                if current_second != int(cycle_time1s // 1):
+                if current_second != int(cycle_time1s):
+                    dts = current_time - cycle_time1s
                     if enable_zero_export == 1:
-                        value_production_zero_export += round(value_production_integral)
-                        value_consumption_zero_export += round(value_consumption_integral)
+                        value_production_zero_export += value_production * dts / 3600
+                        value_consumption_zero_export += value_consumption * dts / 3600
                     elif enable_power_limit == 1:
-                        value_production_power_limit += round(value_production_integral)
-                        value_consumption_power_limit += round(value_consumption_integral)
+                        value_production_power_limit += value_production * dts / 3600
+                        value_consumption_power_limit += value_consumption * dts / 3600
                     else:
                         value_production_zero_export = 0
                         value_consumption_zero_export = 0
                         value_production_power_limit = 0
                         value_consumption_power_limit = 0
-                        
+                    
                     cycle_time1s = current_time
 # Caculator powwer for 1 minute
                 if current_minute != int(start_time_minutely // 60):

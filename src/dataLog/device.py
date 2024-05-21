@@ -203,7 +203,6 @@ async def Get_MQTT(host, port, topic, username, password):
     MPPTKey = ""
     query = ""
     MPPTKey_string = ""
-    
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client :
@@ -228,7 +227,7 @@ async def Get_MQTT(host, port, topic, username, password):
                     result_value == result_values_dict
                     
                 mqtt_result = json.loads(message.message.decode())
-                
+                print("MQTT result", mqtt_result)
                 if mqtt_result:
                     if 'status_device' not in mqtt_result:
                         return -1 
