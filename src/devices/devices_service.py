@@ -211,13 +211,16 @@ class DevicesService:
         return result.scalars().all()
 
     @async_db_request_handler
-    async def add_devices(self, body: AddDevicesFilter, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+    async def add_devices(self, body: AddDevicesFilter,
+                          session: AsyncSession,
+                          pagination: Pagination = None) -> list[DeviceFull] | HTTPException:
         """
         Add devices to database and send message to MQTT broker
         :author: nhan.tran
         :date: 20-05-2024
         :param body:
         :param session:
+        :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
         devices = []
@@ -261,17 +264,22 @@ class DevicesService:
         self.sender.send(f"{serial_number}/{Action.CREATE.value}",
                          base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
         await self.sender.stop()
-        return await self.get_devices(session)
+
+        if not pagination:
+            pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
+        return await self.get_devices(session, pagination)
 
     @async_db_request_handler
-    async def delete_device(self, device_id: int | list[int], session: AsyncSession) -> list[
-                                                                                            DeviceFull] | HTTPException:
+    async def delete_device(self, device_id: int | list[int],
+                            session: AsyncSession,
+                            pagination: Pagination = None) -> list[DeviceFull] | HTTPException:
         """
         Delete device from database and send message to MQTT broker
         :author: nhan.tran
         :date: 20-05-2024
         :param device_id:
         :param session:
+        :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
         if isinstance(device_id, int):
@@ -290,7 +298,9 @@ class DevicesService:
                          base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
         await self.sender.stop()
 
-        return await self.get_devices(session)
+        if not pagination:
+            pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
+        return await self.get_devices(session, pagination)
 
     @async_db_request_handler
     async def deactivate_device(self, device_id: int | list[int],

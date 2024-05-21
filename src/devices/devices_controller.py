@@ -41,21 +41,30 @@ class DevicesController:
     @Post("/add/")
     async def add_devices(self,
                           devices: AddDevicesFilter,
+                          pagination: Pagination = Depends(),
                           session: AsyncSession = Depends(config.get_db),
                           auth: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.devices_service.add_devices)(devices, session)
+        return await (ServiceWrapper
+                      .async_wrapper(self.devices_service
+                                     .add_devices)(devices, session, pagination))
 
     @Post("/delete/")
     async def delete_device(self, device_id: int | list[int] = None,
+                            pagination: Pagination = Depends(),
                             session: AsyncSession = Depends(config.get_db),
                             auth: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.devices_service.delete_device)(device_id, session)
+        return await (ServiceWrapper
+                      .async_wrapper(self.devices_service
+                                     .delete_device)(device_id, session, pagination))
 
     @Post("/update/")
     async def update_device(self, device: UpdateDeviceFilter,
+                            pagination: Pagination = Depends(),
                             session: AsyncSession = Depends(config.get_db),
                             auth: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.devices_service.update_device)(device, session)
+        return await (ServiceWrapper
+                      .async_wrapper(self.devices_service
+                                     .update_device)(device, session, pagination))
 
     @Post("/config/type/get/")
     async def get_device_type(self, session: AsyncSession = Depends(config.get_db),
