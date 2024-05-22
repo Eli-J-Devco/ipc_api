@@ -742,7 +742,7 @@ async def get_value_meter():
         pass       
 
 async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER
+    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export
 
     try:
         timestamp = get_utc()
@@ -756,6 +756,8 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
             "minutely": {},
             "hourly": {},
             "daily": {},
+            "zero_export": {},
+            "power_limit": {},
         }
 
         if result_topic4:
@@ -788,6 +790,13 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
         value_metter["daily"]["consumption"] = round(value_consumption_daily / 1000, 4)
         value_metter["daily"]["grid_feed"] = round((value_production_daily - value_consumption_daily) / 1000, 4)
 
+        # power limit 
+        value_metter["zero_export"]["totalproduction"] = round(value_production_zero_export / 1000, 4)
+        value_metter["zero_export"]["totalconsumption"] = round(value_consumption_zero_export / 1000, 4)
+        # power zero export 
+        value_metter["power_limit"]["totalproduction"] = round(value_production_power_limit / 1000, 4)
+        value_metter["power_limit"]["totalconsumption"] = round(value_consumption_power_limit / 1000, 4)
+        
         # Push system_info to MQTT
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
     except Exception as err:
@@ -832,7 +841,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "mode": device["mode"],
                     "status": "power limit",
                     "setpoint": value_power_limit,
-                    "totalpower_production": round(value_production_power_limit/1000 ,4),
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
                     ]
@@ -842,7 +850,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "power limit",
-                    "totalpower_production": round(value_production_power_limit/1000 ,4),
                     "setpoint": value_power_limit,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
@@ -857,19 +864,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_power_limit = 0
-            
-# Describe kalman_filter 
-# 	 * @description kalman_filter
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {measurement, Q, R, x_hat, P}
-# 	 * @return p_for_each_device_zero_export
-# 	 */ 
-def kalman_filter(measurement, Q, R, x_hat, P):
-    K = P / (P + R)
-    x_hat = x_hat + K * (measurement - x_hat)
-    P = (1 - K) * P + Q
-    return x_hat
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -879,7 +873,7 @@ def kalman_filter(measurement, Q, R, x_hat, P):
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
 # Global variables
-    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export
+    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export
 # Local variables
     efficiency_total = 0
     power_max = 0
@@ -890,26 +884,12 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     p_max_real = 0
     delta = 1
     total_p_inv_prodution = 0
-    value_filtered = 0
-    value_consumption_filtered = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-# Kalman filter variables
-    Q = 0.1  # Process noise covariance
-    R = 0.1  # Measurement noise covariance
-    x_hat = 0  # Initial state estimate
-    P = 1  # Initial error covariance
-# using Kalman filter value 
-    value_filtered = kalman_filter(value_consumption, Q, R, x_hat, P)
-    if value_filtered > 0:
-        value_consumption_filtered = value_filtered - (value_filtered * value_zero_export / 100)
-    else:
-        value_consumption_filtered = 0
-        
 # The actual setting value is equal to the consumption meter value minus the user-set error value
-    if value_consumption_filtered > 0 :
-        value_consumption_filtered = value_consumption_filtered - (value_consumption_filtered*value_zero_export/100)
+    if value_consumption > 0 :
+        value_consumption = value_consumption - (value_consumption*value_zero_export/100)
     else:
-        value_consumption_filtered = 0
+        value_consumption = 0
 # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -927,12 +907,12 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     pass
 # Convert power real 
             if power_max and slope:
-                if total_power and value_consumption_filtered :  
+                if total_power and value_consumption :  
                     delta = slope*1000
                     power_max_convert = ((power_max/slope)*delta)
                     p_max_real = ((total_power/slope)*delta)
 # Calculate the total performance of the system
-                    efficiency_total = (value_consumption_filtered/p_max_real)
+                    efficiency_total = (value_consumption/p_max_real)
                     if efficiency_total > 1 :
                         efficiency_total = 1
                     else:
@@ -954,9 +934,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
-                    "totalpower_production": round(value_production_zero_export/1000,4),
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -966,9 +944,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
-                    "totalpower_production": round(value_production_zero_export/1000,4),
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -978,14 +954,12 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 pass
             device_list_control_power_limit.append(new_device)
 # check the consumption is too small with the total output output 0 to the control
-        if value_consumption_filtered < total_p_inv_prodution :
+        if value_consumption < total_p_inv_prodution :
             new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": value_consumption_filtered,
-                    "totalpower_consumption": round(value_consumption_zero_export/1000,4),
-                    "totalpower_production": round(value_production_zero_export/1000,4),
+                    "setpoint": value_consumption,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": 0}
                     ]
