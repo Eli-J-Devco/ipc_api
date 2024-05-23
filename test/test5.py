@@ -47,8 +47,8 @@ import string
 from base64 import b64decode, b64encode
 from hashlib import md5, sha256
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad, unpad
 from Cryptodome import Random
 from Cryptodome.Cipher import AES
 
@@ -140,6 +140,7 @@ def encrypt(message, passphrase):
 
 def decrypt(encrypted, passphrase):
     encrypted = base64.b64decode(encrypted)
+    print("encrypted", encrypted)
     assert encrypted[0:8] == b"Salted__"
     salt = encrypted[8:16]
     key_iv = bytes_to_key(passphrase, salt, 32+16)
@@ -155,9 +156,9 @@ password = '4dff4ea340f0a823f15d3f4f01ab62eae0e5da579ccb851f8db9dfe84c58b2b37b89
 ct_b64 = "U2FsdGVkX1+LKFFEChpO6bcHGHDwJ+yMm0ts1c2Lnik="
 pt = decrypt(ct_b64, password)
 print("pt", pt)
-username=encrypt(b"vnguyen@nwemon.com",password)
+username=encrypt("tv.nhan164@gmail.com".encode(),password)
 print("username", username)
-passwords=encrypt(b"Admin123@",password)
+passwords=encrypt("Admin123@".encode(),password)
 print("passwords", passwords)
 # U2FsdGVkX19sYWoqlb25V72A5cv0c+DtuOuCwsMAElf8H8mFVCM5axSwCrtIDov7
 # U2FsdGVkX1+Qa9nSY40sNrk2RUibhpFvp8L+pm7UZLU=

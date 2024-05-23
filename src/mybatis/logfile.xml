@@ -167,7 +167,7 @@ WHERE id = %s;
 SELECT `point_list`.`id_pointkey` , config_information.namekey
 FROM device_point_list_map
 JOIN device_list ON device_point_list_map.id_device_list = device_list.id
-JOIN point_list ON point_list.name = device_point_list_map.name
+JOIN point_list ON point_list.id = device_point_list_map.id_point_list
 JOIN `config_information` ON config_information.id = `point_list`.`id_config_information`
 WHERE device_list.id = %s AND device_point_list_map.status = 1 AND `device_list`.`id_template` = `point_list`.`id_template`
   </select>

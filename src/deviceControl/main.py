@@ -42,6 +42,21 @@ value_production = 0
 value_consumption = 0
 value_cumulative = 0
 value_subcumulative = 0
+value_production_1m = 0
+value_consumption_1m = 0
+value_production_1h = 0
+value_consumption_1h = 0
+value_production_daily = 0
+value_consumption_daily = 0
+value_production_zero_export = 0
+value_consumption_zero_export = 0
+value_production_power_limit = 0
+value_consumption_power_limit = 0
+
+start_time_minutely = time.time()
+start_time_hourly = time.time()
+start_time_daily = time.time()
+cycle_time1s = time.time()
 
 total_power = 0
 p_for_each_device_zero_export = 0
@@ -87,6 +102,8 @@ MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
+MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
+
 def path_directory_relative(project_name):
     if project_name =="":
         return -1
@@ -566,14 +583,11 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
 
     device_list = []
-    result_slope = []
-    controlinv_array = []
     operator_array = []
     wmax_array = []
     realpower_array = []
-    slope = 1.0
-    controlinv = 0
     operator = 0
+    operator_text = ""
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
@@ -588,35 +602,30 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 p_max_custom = item['rated_power_custom']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
-
-# actual power conversion factor
-                if id_device:
-                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
-                if result_slope:
-                    slope = float(result_slope[0]["slope"])
-                else:
-                    pass
 # check device is inv
                 if await check_inverter_device(id_device):
 # get info list device
-                    controlinv_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
-                    if controlinv_array:
-                        controlinv = controlinv_array[0]
+                    operator_text = {
+                        0: "shutting down",
+                        1: "shutting down",
+                        4: "running",
+                        5: "running",  
+                        6: "shutting down",
+                        7: "fault",
+                    }
                     operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
-                    if operator_array:
-                        operator = operator_array[0]
-                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
-                    if wmax_array:
-                        wmax = wmax_array[0]
-                    realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                    if realpower_array:
-                        realpower = realpower_array[0]
+                    operator = operator_array[0] if operator_array else 0
+                    operator_text = operator_text.get(operator, "off")
                     
-                    if realpower is not None:
-                        realpower = realpower * slope
-                    else:
-                        pass
-
+                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
+                    wmax = wmax_array[0] if wmax_array else 0
+                    
+                    realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
+                    realpower = realpower_array[0] if realpower_array else 0
+# device offline   
+                    if status_device == 'offline':
+                        realpower = 0.0
+                        operator_text = "off"
 # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
@@ -628,8 +637,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'device_name': device_name,
                         'mode': mode,
                         'status_device': status_device,
-                        'operator': operator,
-                        'controlinv': controlinv,
+                        'operator': operator_text,
                         'p_max': p_max_custom,
                         'p_min': p_min,
                         'wmax': wmax,
@@ -648,12 +656,16 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
 # Global variables
-    global result_topic4, value_production, value_consumption
+    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s
 # Local variables
     value_production_aray = []
     value_consumption_aray = []
     total_value_production = 0
     total_value_consumption = 0
+    value_production_integral = 0
+    value_consumption_integral = 0
+    last_update_time = start_time_minutely
+    current_time = time.time()
 # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
@@ -664,20 +676,131 @@ async def get_value_meter():
 # Caculator Value Meter Production
                 if result_type_meter:
                     if result_type_meter[0]["name"] == "Production Meter":
-                        value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
+                        value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
+                            dt = current_time - last_update_time
+                            value_production_integral += value_production * dt/3600
+                            last_update_time = current_time
+                            # print("value_production_integral",value_production_integral)
 # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
-                        value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "TotalActivePower"]
+                        value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
-                else:
-                    pass
+                            dt = current_time - last_update_time
+                            value_consumption_integral += value_consumption * dt/3600
+                            last_update_time = current_time
+                            # print("value_consumption_integral",value_consumption_integral)
+# Check if 1 hour has passed and Reset variable
+                current_second = int(current_time // 1) 
+                current_minute = int(current_time // 60)
+                current_hour = int(current_time // 3600)
+                current_day = int(current_time // (3600 * 24))
+# total value of power consumption and production power in power limit and zero export mode
+                if current_second != int(cycle_time1s):
+                    dts = current_time - cycle_time1s
+                    if enable_zero_export == 1:
+                        value_production_zero_export += value_production * dts / 3600
+                        value_consumption_zero_export += value_consumption * dts / 3600
+                    elif enable_power_limit == 1:
+                        value_production_power_limit += value_production * dts / 3600
+                        value_consumption_power_limit += value_consumption * dts / 3600
+                    else:
+                        value_production_zero_export = 0
+                        value_consumption_zero_export = 0
+                        value_production_power_limit = 0
+                        value_consumption_power_limit = 0
+                    
+                    cycle_time1s = current_time
+# Caculator powwer for 1 minute
+                if current_minute != int(start_time_minutely // 60):
+                    value_production_1m = round(value_production_integral)
+                    value_consumption_1m = round(value_consumption_integral)
+                    value_production_integral = 0
+                    value_consumption_integral = 0
+                    value_production_1h += value_production_1m
+                    value_consumption_1h += value_consumption_1m
+                    value_production_daily += value_production_1m
+                    value_consumption_daily += value_consumption_1m
+                    start_time_minutely = current_time
+# Caculator powwer for 1 hour
+                if current_hour != int(start_time_hourly // 3600):
+                    value_production_1h = 0
+                    value_consumption_1h = 0
+                    start_time_hourly = current_time
+# Caculator powwer for 1 day
+                if current_day != int(start_time_daily // (3600 * 24)):
+                    value_production_daily = 0
+                    value_consumption_daily = 0
+                    start_time_daily = current_time
+            else:
+                pass
     else:
-        pass  
+        pass       
+
+async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export
+
+    try:
+        timestamp = get_utc()
+        topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
+        max_production = 0.0
+
+        # Format data
+        value_metter = {
+            "Timestamp": timestamp,
+            "instant": {},
+            "minutely": {},
+            "hourly": {},
+            "daily": {},
+            "zero_export": {},
+            "power_limit": {},
+        }
+
+        if result_topic4:
+            # await get_value_meter_zero_export()
+            # await get_value_meter_power_limit()
+            for device in result_topic4:
+                if "mppt" in device:
+                    for mppt in device["mppt"]:
+                        if "power" in mppt:
+                            max_production += mppt["power"]
+
+        # instant power
+        value_metter["instant"]["production"] = round(value_production / 1000, 4)
+        value_metter["instant"]["consumption"] = round(value_consumption / 1000, 4)
+        value_metter["instant"]["grid_feed"] = round((value_production - value_consumption) / 1000, 4)
+        value_metter["instant"]["max_production"] = round(max_production / 1000, 4)
+
+        # minutely power
+        value_metter["minutely"]["production"] = round(value_production_1m / 1000, 4)
+        value_metter["minutely"]["consumption"] = round(value_consumption_1m / 1000, 4)
+        value_metter["minutely"]["grid_feed"] = round((value_production_1m - value_consumption_1m) / 1000, 4)
+
+        # hourly power
+        value_metter["hourly"]["production"] = round(value_production_1h / 1000, 4)
+        value_metter["hourly"]["consumption"] = round(value_consumption_1h / 1000, 4)
+        value_metter["hourly"]["grid_feed"] = round((value_production_1h - value_consumption_1h) / 1000, 4)
+
+        # daily power
+        value_metter["daily"]["production"] = round(value_production_daily / 1000, 4)
+        value_metter["daily"]["consumption"] = round(value_consumption_daily / 1000, 4)
+        value_metter["daily"]["grid_feed"] = round((value_production_daily - value_consumption_daily) / 1000, 4)
+
+        # power limit 
+        value_metter["zero_export"]["totalproduction"] = round(value_production_zero_export / 1000, 4)
+        value_metter["zero_export"]["totalconsumption"] = round(value_consumption_zero_export / 1000, 4)
+        # power zero export 
+        value_metter["power_limit"]["totalproduction"] = round(value_production_power_limit / 1000, 4)
+        value_metter["power_limit"]["totalconsumption"] = round(value_consumption_power_limit / 1000, 4)
+        
+        # Push system_info to MQTT
+        push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
+    except Exception as err:
+        print(f"Error MQTT subscribe monit_value_meter: '{err}'")
 # Describe process_caculator_p_power_limit 
 # 	 * @description process_caculator_p_power_limit
 # 	 * @author bnguyen
@@ -686,7 +809,8 @@ async def get_value_meter():
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit
+# Global variables
+    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
 # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -869,7 +993,6 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
     power_max_convert = 0
     delta = 1
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-
 # Get value control INV 
     await process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
     await process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
@@ -1248,7 +1371,11 @@ async def main():
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
         scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
-        
+        scheduler.add_job(monit_value_meter, 'cron',  second = f'*/1' , args=[serial_number_project,
+                                                                            MQTT_BROKER,
+                                                                            MQTT_PORT,
+                                                                            MQTT_USERNAME,
+                                                                            MQTT_PASSWORD])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []

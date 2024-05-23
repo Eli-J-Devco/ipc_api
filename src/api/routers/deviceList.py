@@ -15,11 +15,20 @@ from pprint import pprint
 from typing import Annotated, Optional, Union
 
 import mybatis_mapper2sql
+
 # import oauth2
 # import schemas
 from async_timeout import timeout
-from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
-                     Response, status)
+from fastapi import (
+    APIRouter,
+    Body,
+    Depends,
+    FastAPI,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from fastapi.responses import JSONResponse
 from flask import jsonify
 from pydantic import BaseModel, EmailStr, Field
@@ -42,8 +51,19 @@ sys.path.append(path)
 
 # from contextlib import asynccontextmanager
 
-from sqlalchemy import (BigInteger, Column, DateTime, Float, ForeignKey,
-                        Integer, MetaData, String, Table, create_engine)
+from sqlalchemy import (
+    BigInteger,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    MetaData,
+    String,
+    Table,
+    create_engine,
+)
+
 # from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateTable, DropTable
 
@@ -56,15 +76,21 @@ import utils.oauth2 as oauth2
 from database.db import Base, engine, get_db
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.mqttManager import mqtt_public
+
 # from model import schemas
 # from utils import (create_device_group_rs485_run_pm2, create_program_pm2,
 #                    delete_program_pm2, find_program_pm2, get_mybatis, path,
 #                    restart_pm2_change_template, restart_program_pm2,
 #                    restart_program_pm2_many)
-from utils.pm2Manager import (create_device_group_rs485_run_pm2,
-                              create_program_pm2, delete_program_pm2,
-                              find_program_pm2, restart_pm2_change_template,
-                              restart_program_pm2, restart_program_pm2_many)
+from utils.pm2Manager import (
+    create_device_group_rs485_run_pm2,
+    create_program_pm2,
+    delete_program_pm2,
+    find_program_pm2,
+    restart_pm2_change_template,
+    restart_program_pm2,
+    restart_program_pm2_many,
+)
 
 # path=path_directory_relative("ipc_api") # name of project
 # sys.path.append(path)
@@ -328,7 +354,10 @@ async def create_multiple_device(
                         pass
                 except Exception as err:
                     print(err)
-                    return 300
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Driver does not exist",
+                    )
                 finally:
                     pass
                 driver_list = communication_query.driver_list
@@ -339,145 +368,149 @@ async def create_multiple_device(
 
                 # ----------------------------------------
                 for item in range(add_count):
-                        rated_power=None
-                        if create_device.rated_power!= None:
-                            rated_power=(create_device.rated_power)
-                        rated_power_custom=  rated_power
-                        min_watt_in_percent=5               
-                        pv=16
-                        model=0
-                        send_p=0
-                        send_q=0
-                        send_pf=0
-                        value_pf=1       
-                        # max=100
-                        enable_poweroff=0
-                        mode=0
-                        # tcp_gateway_ip=create_device.tcp_gateway_ip
-                        name=create_device.name
-                        device_virtual=create_device.device_virtual
-                        id_communication=create_device.id_communication
-                        rtu_bus_address=create_device.rtu_bus_address
-                        tcp_gateway_port=create_device.tcp_gateway_port
-                        tcp_gateway_ip=create_device.tcp_gateway_ip
-                        id_device_type=create_device.id_device_type
-                        id_project_setup=1
-                        # id_device_group=create_device.id_device_group
-                        
-                        # network address
-                        if in_mode==1:                          
-                            ip = create_device.tcp_gateway_ip.split(".")
-                            host_id=int(ip[3])+item
-                            if  host_id>=255 :
-                                host_id=254
-                            tcp_gateway_ip=f'{ip[0]}.{ip[1]}.{ip[2]}.{host_id}'
-                        # bus-address
-                        elif in_mode==2:
-                            rtu_bus_address=int(create_device.rtu_bus_address) + item
-                        elif in_mode==0:
-                            pass
-                        else:
-                            return 300 
-                        if driver_list.name=="RS485":
-                            tcp_gateway_ip=None
-                            tcp_gateway_port=None
-                        # elif driver_list.name=="Modbus/TCP":
-                        #     pass
-                        # else:
-                        #     pass
-                        new_device = deviceList_models.Device_list(
-                                                        id_project_setup=id_project_setup,
-                                                        table_name="",
-                                                        view_table="",
-                                                        pv=pv,
-                                                        model=model,
-                                                        mode=mode,
-                                                        send_p=send_p,
-                                                        send_q=send_q,
-                                                        send_pf=send_pf,
-                                                        value_pf=value_pf,
-                                                        # max=max,
-                                                        enable_poweroff=enable_poweroff,
-                                                        name=name,
-                                                        device_virtual=device_virtual,
-                                                        id_communication=id_communication,
-                                                        rtu_bus_address=rtu_bus_address,
-                                                        tcp_gateway_port=tcp_gateway_port,
-                                                        tcp_gateway_ip=tcp_gateway_ip,
-                                                        id_device_type=id_device_type,
-                                                        id_template=id_template,
-                                                        # id_device_group=id_device_group                                                                                                                                                                                                                                                               # **create_device.dict()
-                                                        rated_power=rated_power,
-                                                        rated_power_custom= rated_power_custom,
-                                                        min_watt_in_percent=min_watt_in_percent 
-                                                        )
-                        new_device_list.append(new_device)
+                    pv = 16
+                    model = 0
+                    send_p = 0
+                    send_q = 0
+                    send_pf = 0
+                    value_pf = 1
+                    max = 100
+                    enable_poweroff = 0
+                    mode = 0
+                    # tcp_gateway_ip=create_device.tcp_gateway_ip
+                    name = create_device.name
+                    device_virtual = create_device.device_virtual
+                    id_communication = create_device.id_communication
+                    rtu_bus_address = create_device.rtu_bus_address
+                    tcp_gateway_port = create_device.tcp_gateway_port
+                    tcp_gateway_ip = create_device.tcp_gateway_ip
+                    id_device_type = create_device.id_device_type
+                    id_project_setup = 1
+                    # id_device_group=create_device.id_device_group
+
+                    # network address
+                    if in_mode == 1:
+                        ip = create_device.tcp_gateway_ip.split(".")
+                        host_id = int(ip[3]) + item
+                        if host_id >= 255:
+                            host_id = 254
+                        tcp_gateway_ip = f"{ip[0]}.{ip[1]}.{ip[2]}.{host_id}"
+                    # bus-address
+                    elif in_mode == 2:
+                        rtu_bus_address = int(create_device.rtu_bus_address) + item
+                    elif in_mode == 0:
+                        pass
+                    else:
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Mode does not exist",
+                        )
+
+                    if driver_list.name == "RS485":
+                        tcp_gateway_ip = None
+                        tcp_gateway_port = None
+                    # elif driver_list.name=="Modbus/TCP":
+                    #     pass
+                    # else:
+                    #     pass
+                    new_device = deviceList_models.Device_list(
+                        id_project_setup=id_project_setup,
+                        table_name="",
+                        view_table="",
+                        pv=pv,
+                        model=model,
+                        mode=mode,
+                        send_p=send_p,
+                        send_q=send_q,
+                        send_pf=send_pf,
+                        value_pf=value_pf,
+                        max=max,
+                        enable_poweroff=enable_poweroff,
+                        name=name,
+                        device_virtual=device_virtual,
+                        id_communication=id_communication,
+                        rtu_bus_address=rtu_bus_address,
+                        tcp_gateway_port=tcp_gateway_port,
+                        tcp_gateway_ip=tcp_gateway_ip,
+                        id_device_type=id_device_type,
+                        id_template=id_template,
+                        # id_device_group=id_device_group                                                                                                                                                                                                                                                               # **create_device.dict()
+                    )
+                    new_device_list.append(new_device)
                 db.add_all(new_device_list)
                 db.flush()
                 # Get all point
                 point_list_query = (
                     db.query(models.Point_list)
                     .filter_by(id_template=id_template)
-                    .order_by(models.Point_list.id.asc())
+                    .order_by(models.Point_list.index.asc())
                     .all()
                 )
 
                 point_list_name = []
                 for item in point_list_query:
-                    point_list_name.append({
-                        "id":item.id,
-                        "name":item.id_pointkey})
-                
+                    point_list_name.append({"id": item.id, "name": item.id_pointkey})
+
                 # Update status table `device_point_list_map`
-                
-                ## add mppt, string, panel 
+
+                ## add mppt, string, panel
                 if create_device.mppt:
-                    for i,items in enumerate(new_device_list): 
-                        id_device_list=items.id
-                        for i,mppt_item in enumerate(create_device.mppt):
-                            
-                            
-                            mppt_object=[item for item in point_list_query if item.id == mppt_item.id][0]
-                            id_point_list=mppt_object.id
-                            print(f'id_point_list: {id_point_list}')
+                    for i, items in enumerate(new_device_list):
+                        id_device_list = items.id
+                        for i, mppt_item in enumerate(create_device.mppt):
+
+                            mppt_object = [
+                                item
+                                for item in point_list_query
+                                if item.id == mppt_item.id
+                            ][0]
+                            id_point_list = mppt_object.id
+                            print(f"id_point_list: {id_point_list}")
                             new_mppt = deviceList_models.Device_mppt(
-                                                                    id_device_list=id_device_list,
-                                                                    id_point_list=id_point_list,
-                                                                    name=mppt_object.name,
-                                                                    status= mppt_item.status,
-                                                                    namekey=mppt_item.id_pointkey
-                                                                )
+                                id_device_list=id_device_list,
+                                id_point_list=id_point_list,
+                                name=mppt_object.name,
+                                status=mppt_item.status,
+                                namekey=mppt_item.id_pointkey,
+                            )
                             db.add(new_mppt)
                             db.flush()
-                            print(f'MPPT ---------------------')
-                            for i,string_item in enumerate(mppt_item.string):
-                                string_object=[item for item in point_list_query if item.id == string_item.id][0]
-                                panel_number=len(string_item.panel)
+                            print(f"MPPT ---------------------")
+                            for i, string_item in enumerate(mppt_item.string):
+                                string_name = [
+                                    item
+                                    for item in point_list_query
+                                    if item.id == string_item.id
+                                ][0].name
+                                panel_number = len(string_item.panel)
                                 new_string = deviceList_models.Device_mppt_string(
-                                                                        id_device_mppt=new_mppt.id,
-                                                                        id_device_list=id_device_list,
-                                                                        id_point_list=string_object.id,
-                                                                        name=string_object.name, 
-                                                                        status= string_item.status,
-                                                                        namekey=string_item.id_pointkey,
-                                                                        panel=panel_number
-                                                                )
+                                    id_device_mppt=new_mppt.id,
+                                    id_device_list=id_device_list,
+                                    id_point_list=id_point_list,
+                                    name=string_name,
+                                    status=string_item.status,
+                                    namekey=string_item.id_pointkey,
+                                    panel=panel_number,
+                                )
                                 db.add(new_string)
                                 db.flush()
-                                print(f'STRING ---------------------')
-                                for i,panel_item in enumerate(string_item.panel):
-                                    print(f'PANEL ---------------------')
-                                    panel_object=[item for item in point_list_query if item.id == panel_item.id][0]
-                                    id_point_list=panel_item.id
+                                print(f"STRING ---------------------")
+                                for i, panel_item in enumerate(string_item.panel):
+                                    print(f"PANEL ---------------------")
+                                    panel_name = [
+                                        item
+                                        for item in point_list_query
+                                        if item.id == panel_item.id
+                                    ][0].name
                                     new_panel = deviceList_models.Device_panel(
-                                                                        id_device_list=id_device_list,
-                                                                        id_point_list=id_point_list,
-                                                                        id_device_string=new_string.id,
-                                                                        status= panel_item.status,
-                                                                        name=panel_object.name
-                                                                )
+                                        id_device_list=id_device_list,
+                                        id_point_list=id_point_list,
+                                        id_device_string=new_string.id,
+                                        status=panel_item.status,
+                                        name=panel_name,
+                                    )
                                     db.add(new_panel)
-                                    db.flush()   
+                                    db.flush()
 
                 # add table of device
                 for idd, item in enumerate(new_device_list):
@@ -537,7 +570,10 @@ async def create_multiple_device(
                             view_table = f"dev_{str(items.id)}_{tg}"
                             print(f"Delete view table device: {view_table}")
                             db.execute(text(f"DROP VIEW IF EXISTS {view_table}"))
-                        return 300
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Error create device",
+                        )
                     finally:
                         pass
                 db.commit()
@@ -546,7 +582,7 @@ async def create_multiple_device(
                         # rowcount_register_block=0
                         rowcount_point_list = 0
                         # insert device_point_list
-                        new_device = []
+
                         for item in new_device_list:
                             # param={
                             #     "id":item.id
@@ -575,13 +611,6 @@ async def create_multiple_device(
                             print(f"result_point_list: {result_point_list.__dict__}")
                             if result_point_list.rowcount != 0:
                                 rowcount_point_list += 1
-                            new_device.append({
-                                "id":item.id,
-                                "name":item.name,
-                                "connect_type":driver_list.name,
-                                "id_communication":id_communication,
-                                "mode":item.mode
-                                })
                         if rowcount_point_list == 0:
                             reset_data_new(new_device_list)
                         db.commit()
@@ -777,13 +806,7 @@ async def create_multiple_device(
                             )
                             db.commit()
                         #
-                        param = {
-                            "CODE": "CreateRS485Dev", 
-                            "PAYLOAD": {
-                                "id_communication":id_communication,
-                                "device":new_device
-                            }
-                            }
+                        param = {"CODE": "CreateRS485Dev", "PAYLOAD": id_communication}
                         mqtt_public("/Init/API/Requests", param)
                         return 100
                     except exc.SQLAlchemyError as err:
@@ -791,6 +814,10 @@ async def create_multiple_device(
                         print(err.args[0])
                         db.rollback()
                         reset_data_new(new_device_list)
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Error create device",
+                        )
                     finally:
                         pass
                 elif driver_list.name == "Modbus/TCP":
@@ -823,14 +850,16 @@ async def create_multiple_device(
                             )
                             print(f"result_point_list: {result_point_list.__dict__}")
                             if result_point_list.rowcount != 0:
-                                rowcount_point_list +=1
-                            new_device.append({
-                                "id":item.id,
-                                "name":item.name,
-                                "connect_type":driver_list.name,
-                                "id_communication":id_communication,
-                                "mode":item.mode
-                                })
+                                rowcount_point_list += 1
+                            new_device.append(
+                                {
+                                    "id": item.id,
+                                    "name": item.name,
+                                    "connect_type": driver_list.name,
+                                    "id_com": id_communication,
+                                    "mode": item.mode,
+                                }
+                            )
                         db.commit()
                         point_list_mppt_update = []
                         if create_device.mppt:
@@ -1036,16 +1065,13 @@ async def create_multiple_device(
                         print(err.args[0])
                         db.rollback()
                         reset_data_new(new_device_list)
+                        raise HTTPException(
+                            status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Error create device",
+                        )
                     finally:
                         if rowcount_point_list != 0:
-                            param = {
-                                    "CODE": "CreateTCPDev", 
-                                    "PAYLOAD": {
-                                        "device":new_device
-                                        },
-                                    
-                                    
-                                    }
+                            param = {"CODE": "CreateTCPDev", "PAYLOAD": new_device}
                             mqtt_public("/Init/API/Requests", param)
                         return 100
                 else:
@@ -1053,16 +1079,16 @@ async def create_multiple_device(
                 return 100
             except Exception as err:
                 print("Error create table : ", err)
-                return 300
+                return 300, err
 
         async with timeout(15) as cm:
-            response = await execute_func()
-            if response == 100:  # ok
-                return formatMessage(str(response), status.HTTP_200_OK)
-            elif response == 200:  # alarm
-                return {"status": "alert", "code": str(response)}
-            elif response == 300:  # error
-                return formatMessage(str(response), status.HTTP_400_BAD_REQUEST)
+            code, msg = await execute_func()
+            if code == 100:  # ok
+                return formatMessage(str(msg), status.HTTP_200_OK)
+            elif code == 200:  # alarm
+                return {"status": "alert", "code": str(msg)}
+            elif code == 300:  # error
+                return formatMessage(str(msg), status.HTTP_400_BAD_REQUEST)
             else:
                 return formatMessage(
                     str(response), status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -1150,14 +1176,14 @@ async def delete_device(
                             "id": item.id,
                             "name": device.name,
                             "id_communication": id_communication,
-                            "connect_type": driver_list,
+                            "driver_name": driver_list,
                         }
                     )
                     if mode == 1:  # Disable
                         result_device.update({"status": 0})
                         # status =0 of device in table device_list
                         # Disable pm2 send list to api gateway
-                        # Delete pm2 app device running
+                        # Delete app device running
                         # Restart pm2: LogDevice, LogFile, UpData
                     elif mode == 2:  # delete
                         # Delete table and view of device
@@ -1166,7 +1192,7 @@ async def delete_device(
                         result_device.delete()
                         # Delete device in table device_list
                         # Delete pm2 send list to api gateway
-                        # Delete pm2 app device running
+                        # Delete app device running
                         # Restart pm2: LogDevice, LogFile, UpData
                     else:
                         pass
@@ -1180,16 +1206,9 @@ async def delete_device(
             )
         finally:
             if delete_list:
-                param={
-                    "CODE":"DeleteDev",
-                    "PAYLOAD":{
-                        "device":delete_list,
-                        "delete_mode":mode
-                        },
-                    
-                }
-                mqtt_public("/Init/API/Requests",param)
-            return {"status": "success","code": str(100)}
+                param = {"CODE": "DeleteDev", "PAYLOAD": delete_list, "MODE": mode}
+                mqtt_public("/Init/API/Requests", param)
+            return {"status": "success", "code": str(100)}
     except Exception as err:
         raise HTTPException(status_code=500, detail="Internal server error")
 

@@ -1261,7 +1261,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "point_key":item_string["point_key"],
                                 "name":item_string["name"],
                                 "value":item_string["value"],
-                                "area":area
+                                "area":area,
+                                "number_panel": 4,# Binh ADD 
                                             })
                         
                         Quality=[]
@@ -1311,6 +1312,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "power":round(power,2),
                                 "area":round(total_area_string,2),
                                 "irradiance":round(irradiance,2),
+                                "number_panel": 4,# Binh ADD 
+                                "DC_voltage_max":400,# Binh ADD
+                                "DC_current_max":10,# Binh ADD
                                 'value':{
                                     "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                     "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
@@ -1447,6 +1451,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "id_device":device_id,
                 "mode":device_mode,
                 "device_name":device_name,
+                "effciency" : 100, # Binh ADD 
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
                 "meter_type":meter_type,

@@ -203,7 +203,6 @@ async def Get_MQTT(host, port, topic, username, password):
     MPPTKey = ""
     query = ""
     MPPTKey_string = ""
-    
     try:
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client :
@@ -228,7 +227,7 @@ async def Get_MQTT(host, port, topic, username, password):
                     result_value == result_values_dict
                     
                 mqtt_result = json.loads(message.message.decode())
-                
+                print("MQTT result", mqtt_result)
                 if mqtt_result:
                     if 'status_device' not in mqtt_result:
                         return -1 
@@ -282,8 +281,6 @@ async def Get_MQTT(host, port, topic, username, password):
                                         "MPPTAmps": MPPTAmps,
                                         "MPPTKey_string" :MPPTKey_string
                                     }
-                                    
-                                print("mppt_dict",mppt_dict)
                                 
                                 # Pass the values ​​from the dictionary into result_list_MPPT
                                 result_list_MPPT = list(mppt_dict.values())
@@ -310,8 +307,6 @@ async def Get_MQTT(host, port, topic, username, password):
                                             pass
                 else: 
                     pass
-            
-            print("result_list_MPPT",result_list_MPPT)
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
