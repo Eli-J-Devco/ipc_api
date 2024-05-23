@@ -1257,6 +1257,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 for item_panel in mppt_string_panel:
                                     if item_panel["panel_height"]!=None and item_panel["panel_width"] !=None:
                                         area=area+(item_panel["panel_height"]/1000*item_panel["panel_width"]/1000)
+                            # print(f'mppt_string_panel: {mppt_string_panel}')
                             mppt_strings.append({
                                 "point_key":item_string["point_key"],
                                 "name":item_string["name"],
