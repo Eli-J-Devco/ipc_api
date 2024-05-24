@@ -34,7 +34,7 @@ class TemplateService:
         # pm2_app_list=[f'LogFile|',f'LogDevice|']
         # await restart_program_pm2_many(pm2_app_list)
         db=get_db()
-        print(template)
+        # print(template)
         id_template=template['id']
         sql_query_select_device=all_query.select_device_through_template.format(id_template=id_template)
         result_device = db.execute(text(sql_query_select_device)).all()
