@@ -30,6 +30,7 @@ from configs.config import orm_provider as db_config
 from database.db import get_db
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
+from utils.logger_manager import setup_logger
 from utils.mqttManager import mqtt_public, mqtt_public_common
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
@@ -250,6 +251,8 @@ class apiGateway:
                             password=bytes(self.MQTT_PASSWORD, 'utf-8'),
                             connect_delays=[1, 2, 4, 8]
                             )
+            LOGGER = setup_logger(module_name='apiGateway')
+            LOGGER.warn(f'--- init ---')
             while True:
                 await client.start()
                 await self.handle_messages_api(client)
@@ -464,7 +467,7 @@ async def main():
     project_init=project_service.ProjectService()
     result=await project_init.project_inform(db_new)
     SERIAL_NUMBER=result["serial_number"]
-
+    
     api_gateway=apiGateway(
                             SERIAL_NUMBER,
                             MQTT_BROKER,

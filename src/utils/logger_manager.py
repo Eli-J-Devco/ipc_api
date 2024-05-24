@@ -118,7 +118,7 @@ def setup_logger(module_name=None, add_stdout_logger=True):
     if module_name:
         custom_logger = logging.getLogger(module_name)     
 
-    print("Clear all handlers in logger") # prevent multiple handler creation
+    # print("Clear all handlers in logger") # prevent multiple handler creation
     custom_logger.handlers.clear()
     custom_logger.disabled = False
     if add_stdout_logger:
@@ -144,7 +144,7 @@ def setup_logger(module_name=None, add_stdout_logger=True):
         # %(lineno)d Source line number where the logging call was issued (if available).
         
         LOG_FORMAT = f'%(asctime)s - {module_name} - %(pathname)s - func_name=%(funcName)s() - line=%(lineno)d - %(levelname)s - %(message)s'
-        logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
+        # logging.basicConfig(level=logging.DEBUG, format=LOG_FORMAT)
 
         #configure formmater for logger
         formatter = logging.Formatter(LOG_FORMAT)

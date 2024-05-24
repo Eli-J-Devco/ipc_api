@@ -38,7 +38,7 @@ def init_driver():
         # load file sql from mybatis
         mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
             xml= absDirname + 'mybatis/device_list.xml')
-        logging.error({absDirname + 'mybatis/device_list.xml'})
+        # logging.error({absDirname + 'mybatis/device_list.xml'})
         statement = mybatis_mapper2sql.get_statement(
         mapper, result_type='list', reindent=True, strip_comments=True)
         # 
@@ -132,7 +132,7 @@ def init_driver():
                 
     except Exception as e:
         print('Error init driver: ',e)
-        logging.error("Error init driver: ",e)
+        # logging.error("Error init driver: ",e)
 # Describe functions before writing code
 # /**
 # 	 * @description init create log file
