@@ -131,7 +131,9 @@ class Device_list(Base):
     enable_poweroff = Column(Boolean, nullable=True, default=True)
     inverter_shutdown = Column(TIMESTAMP(timezone=True), nullable=True)
     status = Column(Boolean, nullable=True, default=True)
-
+    efficiency= Column(DOUBLE, nullable=True)
+    DC_voltage= Column(DOUBLE, nullable=True)
+    DC_current= Column(DOUBLE, nullable=True)
     #
     communication = relationship("Communication", foreign_keys=[id_communication])
     # point_p_list = relationship('Point_list', foreign_keys=[point_p])

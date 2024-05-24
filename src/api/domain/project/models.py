@@ -82,8 +82,8 @@ class Project_setup(Base):
     sampling_time1cycle = Column(DOUBLE(), nullable=False, default=15)
 
     enable_zero_export = Column(Boolean, nullable=False, default=False)
-    value_zero_export = Column(DOUBLE(), nullable=False, default=100)
-
+    # value_zero_export = Column(DOUBLE(), nullable=False, default=100)
+    value_offset_zero_export= Column(DOUBLE(), nullable=False, default=100)
     # enable_limit_energy = Column(Boolean, nullable=False, default=False)
     # value_limit_energy = Column(DOUBLE(), nullable=False, default=100)
     
