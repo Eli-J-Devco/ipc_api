@@ -274,10 +274,16 @@ async def reconector(subscriber: MQTTSubscriber):
             await subscriber.session.close()
 
 
+async def get_serial_number():
+    session = await db_config.get_db()
+    serial_number = await session.execute(select(ProjectSetup))
+    await session.close()
+    return serial_number.scalars().first().serial_number
+
+
 def run_subscriber():
     session = asyncio.run(db_config.get_db())
-    serial_number = asyncio.run(session.execute(select(ProjectSetup))).scalars().first().serial_number
-    session = asyncio.run(db_config.get_db())
+    serial_number = asyncio.run(get_serial_number())
 
     re_publisher = Publisher(
         host=config.MQTT_HOST,
