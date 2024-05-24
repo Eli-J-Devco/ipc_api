@@ -67,7 +67,8 @@ class DeviceFull(BaseModel):
     driver_type: Optional[str] = None
 
     device_type: Optional[str] = None
-
+    DC_voltage: Optional[float] = 400.0
+    DC_current: Optional[float] = 10.0
 
 class Devices(BaseModel):
     id: int

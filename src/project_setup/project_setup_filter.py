@@ -93,6 +93,7 @@ class UpdateProjectSetupFilter(ProjectBaseFilter):
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None
+    value_offset_zero_export: Optional[float] = None
 
 
 class UpdateConfigInformationType(ProjectBaseFilter):

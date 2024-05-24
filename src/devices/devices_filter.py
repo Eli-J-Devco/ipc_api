@@ -69,7 +69,8 @@ class UpdateDeviceFilter(BaseModel):
     efficiency: float
     enable_poweroff: Optional[bool] = None
     inverter_shutdown: Optional[date] = None
-
+    DC_voltage: float
+    DC_current: float
 
 class AddDeviceGroupFilter(BaseModel):
     id_device_type: int

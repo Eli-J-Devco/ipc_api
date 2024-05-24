@@ -52,8 +52,9 @@ class ProjectSetup(config.Base):
     sampling_time1cycle: Mapped[int] = mapped_column(Integer, nullable=False, default=15)
 
     enable_zero_export: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
-    value_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
-
+    # value_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+    value_offset_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+    
     enable_power_limit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     value_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
     value_offset_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=0)
