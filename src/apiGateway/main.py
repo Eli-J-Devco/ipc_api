@@ -469,7 +469,6 @@ async def main():
     project_init=project_service.ProjectService()
     result=await project_init.project_inform(db_new)
     SERIAL_NUMBER=result["serial_number"]
-    await db_new.close()
     api_gateway=apiGateway(
                             SERIAL_NUMBER,
                             MQTT_BROKER,
