@@ -22,7 +22,10 @@ from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 # sys.path.append(path)
 path=os.path.dirname(__file__)+"/src/"
 from src.utils.libMySQL import *
+from src.utils.logger_manager import setup_logger
 
+LOGGER = setup_logger(module_name='main')
+LOGGER.warn(f'--- init ---')
 # Describe functions before writing code
 # /**
 # 	 * @description init all driver
