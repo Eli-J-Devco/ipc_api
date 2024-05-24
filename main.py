@@ -276,9 +276,9 @@ def enable_permission_ipc():
 # 	 */
 def delete_all_app_pm2():
     if sys.platform == 'win32':
-        os.system(f'pm2 delete all')
+        subprocess.Popen(f'pm2 delete all', shell=True).communicate()
     else:
-        os.system(f'sudo pm2 delete all')
+        subprocess.Popen(f'sudo pm2 delete all', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API of web
