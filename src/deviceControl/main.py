@@ -31,9 +31,8 @@ flag = 0
 sent_information = ""
 devices = []
 
-enable_zero_export = 0
+control_mode_detail = 0
 value_offset_zero_export = 0
-enable_power_limit = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
 
@@ -1079,7 +1078,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global enable_zero_export,value_offset_zero_export,enable_power_limit,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,enable_time_interval,time_interval,time_interval_unit
+    global value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1105,7 +1104,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 # convert value kw to w 
                 value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
             # When you receive one of the above information, give feedback to mqtt
-            if ( enable_zero_export or value_offset_zero_export or enable_power_limit or value_power_limit ) :
+            if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
                 if result_parameter_zero_export == None or result_parameter_power_limit == None :
                     comment = 400 
                 else:
@@ -1133,7 +1132,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
 # 	 */ 
 async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global enable_zero_export,enable_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
+    global control_mode_detail,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
     # Local variables
     topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
     current_time = get_utc()
@@ -1147,13 +1146,13 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
             mode_auto = int(mode_auto)
             # Compare get information update database 
             if mode_auto == 1:
-                enable_zero_export = 1
-                enable_power_limit = 0
+                control_mode_detail = 1
             elif mode_auto == 2:
-                enable_zero_export = 0
-                enable_power_limit = 1
+                control_mode_detail = 2 
             # write mode detail in database
-            confirm_mode_detail = MySQL_Update_V1("update project_setup set enable_zero_export = %s, enable_power_limit = %s", (enable_zero_export,enable_power_limit,))
+            print("mode_auto",mode_auto)
+            print("control_mode_detail",control_mode_detail)
+            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
             # When you receive one of the above information, give feedback to mqtt
             if confirm_mode_detail == None :
                 comment = 400 
@@ -1183,7 +1182,7 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
 # 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
     # Global variables
-    global enable_zero_export,value_offset_zero_export,enable_power_limit,value_power_limit,value_offset_power_limit,enable_time_interval,time_interval,time_interval_unit
+    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit
     # Local variables
     value_power_limit_temp = 0
     result_project_setup = []
@@ -1191,15 +1190,11 @@ async def process_getfirst_zeroexport_powerlimit():
     try:
         result_project_setup = await MySQL_Select_v1("select * from project_setup")
         if result_project_setup :
-            enable_zero_export = result_project_setup[0]["enable_zero_export"]
+            control_mode_detail = result_project_setup[0]["control_mode"]
             value_offset_zero_export = result_project_setup[0]["value_offset_zero_export"]
-            enable_power_limit = result_project_setup[0]["enable_power_limit"]
             value_power_limit_temp = result_project_setup[0]["value_power_limit"]
             value_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
             value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
-            print("value_power_limit_temp",value_power_limit_temp)
-            print("value_offset_power_limit",value_offset_power_limit)
-            print("value_power_limit",value_power_limit)
         else:
             pass
             
@@ -1214,13 +1209,13 @@ async def process_getfirst_zeroexport_powerlimit():
 # 	 */ 
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
-    global enable_zero_export
-    global enable_power_limit
+    global control_mode_detail
+    print("control_mode_detail",control_mode_detail)
     # Select the auto run process
-    if enable_zero_export == 1 :
+    if control_mode_detail == 1 :
         print("==============================zero_export==============================")
         await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    elif enable_power_limit == 1 :
+    elif control_mode_detail == 2 :
         print("==============================power_limit==============================")
         await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     else :
