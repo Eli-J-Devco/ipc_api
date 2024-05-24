@@ -469,23 +469,24 @@ async def main():
     project_init=project_service.ProjectService()
     result=await project_init.project_inform(db_new)
     SERIAL_NUMBER=result["serial_number"]
-    # api_gateway=apiGateway(
-    #                         SERIAL_NUMBER,
-    #                         MQTT_BROKER,
-    #                         MQTT_PORT,
-    #                         MQTT_USERNAME,
-    #                         MQTT_PASSWORD,
-    #                         )
+    await db_new.close()
+    api_gateway=apiGateway(
+                            SERIAL_NUMBER,
+                            MQTT_BROKER,
+                            MQTT_PORT,
+                            MQTT_USERNAME,
+                            MQTT_PASSWORD,
+                            )
 
-    # 
-    # tasks.append(asyncio.create_task(
-    #     api_gateway.managerApplicationsWithPM2()))
-    # tasks.append(asyncio.create_task(
-    #     api_gateway.deviceListSub()))
-    # tasks.append(asyncio.create_task(
-    #     api_gateway.deviceListPub()))
-    # tasks.append(asyncio.create_task(
-    #     api_gateway.ipc_system()))
+    
+    tasks.append(asyncio.create_task(
+        api_gateway.managerApplicationsWithPM2()))
+    tasks.append(asyncio.create_task(
+        api_gateway.deviceListSub()))
+    tasks.append(asyncio.create_task(
+        api_gateway.deviceListPub()))
+    tasks.append(asyncio.create_task(
+        api_gateway.ipc_system()))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':

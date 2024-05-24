@@ -16,7 +16,7 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 # import model.models as models
 from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
-from database.db import get_db
+# from database.db import get_db
 from database.sql.upload_channel import all_query
 from utils.mqttManager import mqtt_public, mqtt_public_common
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,

@@ -27,7 +27,6 @@ import api.domain.project.models as project_models
 import api.domain.template.models as template_models
 import model.models as models
 from configs.config import Config
-from database.db import get_db
 
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
@@ -46,6 +45,7 @@ MQTT_PASSWORD =Config.MQTT_PASSWORD
 # 	 */
 def mqtt_public(Topic,data_send):
     try:
+        from database.db import get_db
         db=get_db()
         result_project=db.query(project_models.Project_setup).first()
         db.close()
