@@ -662,7 +662,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 */ 
 async def get_value_meter():
     # Global variables
-    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s
+    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s,control_mode_detail
     # Local variables
     value_production_aray = []
     value_consumption_aray = []
@@ -710,13 +710,13 @@ async def get_value_meter():
                 if current_second != int(cycle_time1s):
                     dts = current_time - cycle_time1s
                     
-                    if enable_zero_export == 1:
+                    if control_mode_detail == 1:
                         value_production_zero_export += value_production * dts / 3600
                         value_consumption_zero_export += value_consumption * dts / 3600
                         value_production_power_limit = 0
                         value_consumption_power_limit = 0
                         
-                    elif enable_power_limit == 1:
+                    elif control_mode_detail == 2:
                         value_production_power_limit += value_production * dts / 3600
                         value_consumption_power_limit += value_consumption * dts / 3600
                         value_production_zero_export = 0
