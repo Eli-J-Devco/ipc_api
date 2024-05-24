@@ -833,7 +833,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
+    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -892,7 +892,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
-        if len(devices) == len(device_list_control_power_limit) and enable_zero_export == 0:
+        if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 # Describe process_caculator_zero_export 
