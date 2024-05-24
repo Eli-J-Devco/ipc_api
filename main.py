@@ -373,10 +373,10 @@ def init_device_service():
             f'sudo /usr/bin/python3 /sources/python/services/init_device_service/setup.py', shell=True).communicate()
         
 delete_all_app_pm2()
-init_driver()
 # init_api_web()
 init_api_gateway()
 init_mqtt_control()
+init_driver()
 init_log_file()
 init_sync_file()
 init_log_data()
