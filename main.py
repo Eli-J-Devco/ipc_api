@@ -49,6 +49,7 @@ def init_driver():
             pass
         else:           
             print("Error not found data in file mybatis")
+            LOGGER.warn(f'--- Error not found data in file mybatis ---')
             return -1
         query_all = statement[0]["select_all_device"]
         # 
@@ -57,6 +58,7 @@ def init_driver():
             pass
         else:           
             print("Error not found data device")
+            LOGGER.warn("Error not found data device")
             return -1
         result_rs485_group=[]
         for item in results:
@@ -135,6 +137,7 @@ def init_driver():
                 
     except Exception as e:
         print('Error init driver: ',e)
+        LOGGER.error(f'{e}')
         # logging.error("Error init driver: ",e)
 # Describe functions before writing code
 # /**
