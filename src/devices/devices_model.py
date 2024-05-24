@@ -59,7 +59,7 @@ class DeviceFull(BaseModel):
 
     max: Optional[float] = None
     allow_error: Optional[float] = None
-    effciency: Optional[float] = None
+    efficiency: Optional[float] = None
     enable_poweroff: Optional[bool] = 0
     inverter_shutdown: Optional[datetime.date] = None
     meter_type: Optional[int] = None

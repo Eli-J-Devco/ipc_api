@@ -66,7 +66,7 @@ class UpdateDeviceFilter(BaseModel):
     DC_voltage: float
     DC_current: float
     mode: int
-    effciency: float
+    efficiency: float
     enable_poweroff: Optional[bool] = None
     inverter_shutdown: Optional[date] = None
 

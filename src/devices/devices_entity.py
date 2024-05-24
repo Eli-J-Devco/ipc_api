@@ -86,7 +86,7 @@ class Devices(config.Base):
     send_pf: Mapped[int] = mapped_column(Integer, nullable=True)
 
     max: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    effciency: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    efficiency: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[datetime.date] = mapped_column(Date, nullable=True)
