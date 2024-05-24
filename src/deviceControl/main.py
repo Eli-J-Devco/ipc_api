@@ -904,7 +904,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,enable_power_limit , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue
+    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -994,7 +994,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 pass
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
-        if len(devices) == len(device_list_control_power_limit) and enable_power_limit == 0:
+        if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint", setpoint)
             print("P Feedback production", value_production)
