@@ -47,12 +47,13 @@ class ProjectSetup(BaseModel):
     id_time_zone: Optional[int] = None
     Time1cycle: Optional[float] = None
     sampling_time1cycle: Optional[float] = None
-
-    enable_zero_export: Optional[bool] = None
+    mode: Optional[int] = None
+    control_mode: Optional[int] = None
+    # enable_zero_export: Optional[bool] = None
     # value_zero_export: Optional[float] = None
     value_offset_zero_export: Optional[float] = None
     
-    enable_power_limit: Optional[bool] = None
+    # enable_power_limit: Optional[bool] = None
     value_power_limit: Optional[float] = None
     value_offset_power_limit: Optional[float] = None
 

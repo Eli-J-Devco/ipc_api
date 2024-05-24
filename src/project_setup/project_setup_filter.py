@@ -93,10 +93,12 @@ class UpdateProjectSetupFilter(ProjectBaseFilter):
     location: Optional[str] = None
     description: Optional[str] = None
     administrative_contact: Optional[str] = None
-    enable_zero_export: Optional[bool] = None
+    
+    control_mode: Optional[int] = None
+    # enable_zero_export: Optional[bool] = None
     value_offset_zero_export: Optional[float] = None
     
-    enable_power_limit: Optional[bool] = None
+    # enable_power_limit: Optional[bool] = None
     value_power_limit: Optional[float] = None
     value_offset_power_limit: Optional[float] = None
 
