@@ -724,7 +724,6 @@ async def check_inverter_device(device_control):
         return True  
     else:
         return False  
-
 # Describe find_inverter_information 
 # 	 * @description find_inverter_information
 # 	 * @author bnguyen
@@ -735,10 +734,10 @@ async def check_inverter_device(device_control):
 async def find_inverter_information(device_control, parameter):
     query_register = "SELECT id_pointkey, register, id_type_datatype FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template WHERE device_list.id = %s;"
     query_datatype = "SELECT value FROM config_information WHERE id = %s"
-# Get the id_pointkey on message to get information in the database
+    # Get the id_pointkey on message to get information in the database
     results_register = MySQL_Select(query_register, (device_control,))
     inverter_information = [item for item in results_register if item['id_pointkey'] in [p['id_pointkey'] for p in parameter]]
-# update datatype for result
+    # update datatype for result
     for item in inverter_information:
         item.update({"value": next((p["value"] for p in parameter if p["id_pointkey"] == item["id_pointkey"]), None)})
         item["datatype"] = MySQL_Select(query_datatype, (item["id_type_datatype"],))[0]["value"] if MySQL_Select(query_datatype, (item["id_type_datatype"],)) else None
@@ -761,7 +760,7 @@ async def write_device(
     mqtt_username, 
     mqtt_password
     )-> None:
-# Args:
+    # Args:
     #     config_para (dict): Configuration parameters.
     #     client (object): Modbus TCP client.
     #     slave_id (int): Slave ID.
@@ -771,13 +770,13 @@ async def write_device(
     #     topic_public (str): Public topic for MQTT.
     #     mqtt_username (str): MQTT username.
     #     mqtt_password (str): MQTT password.
-# Global Variables
+    # Global Variables
     global device_mode # mode of device
     global status_device # status of device
     global rated_power # rated_power
     global rated_power_custom # rated_power_custom
     global result_topic1 # result topic 
-# Local Variables
+    # Local Variables
     
     # Get Id_Systemp
     topicPublic = serial_number_project + topicPublic
@@ -821,16 +820,16 @@ async def write_device(
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
-# Check Id is INV
+                        # Check Id is INV
                         if device_control : 
                             is_inverter = await check_inverter_device(device_control)
                         else :
                             pass
-# Get information INV from Id_device
+                        # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
                             print("inverter_info",inverter_info)
-# Scan message mqtt get information register
+                            # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
                                 register = item["register"]
@@ -838,7 +837,7 @@ async def write_device(
                                 datatype = item["datatype"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
-# Man Mode
+                                # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -852,7 +851,7 @@ async def write_device(
                                         
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
-# convert back to actual value
+                                        # convert back to actual value
                                         if result_slope and slope :
                                             slope = float(result_slope[0]['slope'])
                                             
@@ -870,14 +869,14 @@ async def write_device(
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
-# Auto Mode
-                                if device_mode == 1 and value != 0 and any('status' in item for item in result_topic1):
+                                # Auto Mode
+                                if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
                                     
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
                                         value = int(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
-# check fault push the results to mqtt
+                            # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
@@ -1519,16 +1518,16 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 # 	 */
 
 async def process_update_mode_for_device(mqtt_result, serial_number_project, host, port, username, password):
-# Global variables
+    # Global variables
     global device_mode
     global status_device
     global arr
     global MQTT_TOPIC_PUD_MODECONTROL_DEVICE
-# Local variables
+    # Local variables
     topicpud = serial_number_project + MQTT_TOPIC_PUD_MODECONTROL_DEVICE
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
-# Switch to user mode that is both man and auto
+    # Switch to user mode that is both man and auto
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
         for item in mqtt_result:
             id_device = int(item["id_device"])
@@ -1561,96 +1560,95 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
 # 	 * @param {topic, message,serial_number_project, host, port, username, password}
 # 	 * @return each topic , each message
 # 	 */ 
-# async def process_message(topic, message, serial_number_project, host, port, username, password, topic1, topic2):
-#     global result_topic1
-#     global result_topic2
-#     global MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
-#     global MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
-#     global bitchecktopic1
-#     global bitchecktopic2
-#     global arr
-#     global MQTT_TOPIC_PUB_CONTROL
-#     global device_mode
-#     global rated_power
-#     global rated_power_custom
+async def process_message(topic, message, serial_number_project, host, port, username, password, topic1, topic2):
+    global result_topic1
+    global result_topic2
+    global MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
+    global MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
+    global bitchecktopic1
+    global bitchecktopic2
+    global arr
+    global MQTT_TOPIC_PUB_CONTROL
+    global device_mode
+    global rated_power
+    global rated_power_custom
 
-#     id_systemp = arr[1]
-#     id_systemp = int(id_systemp)
-#     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
-#     topic2 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
-#     custom_watt = 0 
-#     watt = 0 
-#     comment = 200
-#     current_time = ""
+    id_systemp = arr[1]
+    id_systemp = int(id_systemp)
+    topic1 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE
+    topic2 = serial_number_project + MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP
+    custom_watt = 0 
+    watt = 0 
+    comment = 200
+    current_time = ""
     
-#     try:
-#         if topic == topic1:
-#             result_topic1 = message
-#             bitchecktopic1 = 1
-#             if result_topic1 and "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
-#                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-#             else:
-#                 pass
-#             for item in result_topic1:
-#                 if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
-#                     custom_watt = item["rated_power_custom"]
-#                     watt = item["rated_power"]
-#                     rated_power = watt
-#                     rated_power_custom = custom_watt
-#                     if custom_watt and watt and watt >= custom_watt:
-#                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-#                         custom_watt = 0
-#                         watt = 0
-#                     for param in item["parameter"]:
-#                         if param["value"] is None:
-#                             current_time = get_utc()
-#                             data_send = {
-#                                 "time_stamp": current_time,
-#                                 "status": comment,
-#                             }
-#                             push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUB_CONTROL + "/Feedback", username, password, data_send)
-#                         else:
-#                             pass
-#             print("result_topic1", result_topic1)
-#         elif topic == topic2:
-#             result_topic2 = message
-#             if result_topic2 and 'confirm_mode' in result_topic2:
-#                 if result_topic2['confirm_mode'] in [0, 1]:
-#                     device_mode = result_topic2['confirm_mode']
-#                 else:
-#                     pass
-#             else:
-#                 pass
-#             print("result_topic2",result_topic2)
-#     except Exception as err:
-#         print(f"Error MQTT subscribe process_message: '{err}'")
+    try:
+        if topic == topic1:
+            result_topic1 = message
+            bitchecktopic1 = 1
+            if result_topic1 and "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
+                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+            else:
+                pass
+            for item in result_topic1:
+                if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
+                    custom_watt = item["rated_power_custom"]
+                    watt = item["rated_power"]
+                    rated_power = watt
+                    rated_power_custom = custom_watt
+                    if custom_watt and watt and watt >= custom_watt:
+                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                        custom_watt = 0
+                        watt = 0
+                    for param in item["parameter"]:
+                        if param["value"] is None:
+                            current_time = get_utc()
+                            data_send = {
+                                "time_stamp": current_time,
+                                "status": comment,
+                            }
+                            push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUB_CONTROL + "/Feedback", username, password, data_send)
+                        else:
+                            pass
+            print("result_topic1", result_topic1)
+        elif topic == topic2:
+            result_topic2 = message
+            if result_topic2 and 'confirm_mode' in result_topic2:
+                if result_topic2['confirm_mode'] in [0, 1]:
+                    device_mode = result_topic2['confirm_mode']
+                else:
+                    pass
+            else:
+                pass
+            print("result_topic2",result_topic2)
+    except Exception as err:
+        print(f"Error MQTT subscribe process_message: '{err}'")
+async def sub_mqtt1(serial_number_project, host, port, topic1, topic2, username, password):
+    topics = [topic1, topic2]
 
-# async def sub_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
-#     topics = [topic1, topic2]
+    while True:
+        try:
+            client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
+            if not client:
+                return -1
 
-#     while True:
-#         try:
-#             client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-#             if not client:
-#                 return -1
+            await client.start()
+            for topic in topics:
+                await client.subscribe(serial_number_project + topic)
 
-#             await client.start()
-#             for topic in topics:
-#                 await client.subscribe(serial_number_project + topic)
-
-#             while True:
-#                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
-#                 if message:
-#                     payload = json.loads(message.message.decode())
-#                     topic = message.topic
-#                     await process_message(topic, payload, serial_number_project, host, port, username, password, topic1, topic2)
-#         except asyncio.TimeoutError:
-#             continue
-#         except Exception as e:
-#             print(f"Error while processing message duy binh: {e}")
-#             print('Connection lost. Trying to reconnect...')
-#             await client.stop()
-#             await asyncio.sleep(5)
+            while True:
+                message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
+                if message:
+                    payload = json.loads(message.message.decode())
+                    topic = message.topic
+                    await process_message(topic, payload, serial_number_project, host, port, username, password, topic1, topic2)
+        except asyncio.TimeoutError:
+            continue
+        except Exception as e:
+            print(f"Error while processing message duy binh: {e}")
+            print('Connection lost. Trying to reconnect...')
+            await client.stop()
+            await asyncio.sleep(5)
 # Describe sud_mqtt
 # /**
 # 	 * @description sud_mqtt
