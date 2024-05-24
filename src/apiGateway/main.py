@@ -358,6 +358,7 @@ class apiGateway:
                         "device_name":item["name"],
                         "mode":item["mode"],
                         "parameters":[],
+                        "efficiency":item["efficiency"],
                         # 
                         # "rated_power":rated_power,
                         # "rated_power_custom":rated_power_custom,
@@ -367,7 +368,7 @@ class apiGateway:
                 print('An exception occurred',err)
             finally:
                 await db_new.close()
-                print('get Device_list')
+                # print('get Device_list')
             topic=f"{self.MQTT_TOPIC}/Devices/All"
             while True:
                 mqtt_data=[]

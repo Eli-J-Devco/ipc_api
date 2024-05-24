@@ -112,6 +112,16 @@ rated_power=None
 rated_power_custom=None
 min_watt_in_percent=None
 meter_type=None
+start_up_DC_input_voltage=None
+operating_DC_input_voltage=None
+# 
+rated_DC_input_voltage =None
+maximum_DC_input_current=None
+# 
+rated_DC_input_power=None
+
+
+
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -952,6 +962,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             return -1
         # print(f'results_device: {results_device}')
         id_template=results_device[0]["id_template"]
+        
         # print(f'query_register_block: {query_register_block}')
         results_RBlock= MySQL_Select(query_register_block, (id_template,))
         results_Plist= MySQL_Select(query_point_list, (id_device,))
@@ -975,6 +986,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global rated_power_custom
         global min_watt_in_percent
         global meter_type
+        global rated_DC_input_voltage
+        global maximum_DC_input_current
+        
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -984,6 +998,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         if results_device[0]['min_watt_in_percent']!=None:
             min_watt_in_percent=results_device[0]['min_watt_in_percent']
 
+        rated_DC_input_voltage=results_device[0]['DC_voltage']
+        maximum_DC_input_current=results_device[0]['DC_current']
+        
         meter_type=results_device[0]['meter_type']
         
         while True:
@@ -1176,6 +1193,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         ):
     try:
         global id_template
+        global rated_DC_input_voltage
+        global maximum_DC_input_current
+        
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
         print(f'init monitoring_device')
         # point_list
@@ -1248,22 +1268,24 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         mppt_volt=[item for item in new_point_list_device if item['parent'] == point_item["id_point"] and item['config'] =="MPPTVolt" ]
                         mppt_amps=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="MPPTAmps"]
                         mppt_string=[item for item in new_point_list_device if item['parent'] == point_item["id_point"]and item['config'] =="StringAmps"]
-                        
+                        number_mppt_panel=0
                         for item_string in mppt_string:
                             mppt_string_panel=[item for item in new_point_list_device if item['parent'] == item_string["id_point"]and item['config'] =="Panel"]
                             area=0
+                            number_panel=0
                             # print(mppt_string_panel)
                             if mppt_string_panel:
                                 for item_panel in mppt_string_panel:
                                     if item_panel["panel_height"]!=None and item_panel["panel_width"] !=None:
                                         area=area+(item_panel["panel_height"]/1000*item_panel["panel_width"]/1000)
-                            # print(f'mppt_string_panel: {mppt_string_panel}')
+                                number_panel=len(mppt_string_panel)
+                                number_mppt_panel=number_mppt_panel+number_panel
                             mppt_strings.append({
                                 "point_key":item_string["point_key"],
                                 "name":item_string["name"],
                                 "value":item_string["value"],
                                 "area":area,
-                                "number_panel": 4,# Binh ADD 
+                                "number_panel": number_panel,
                                             })
                         
                         Quality=[]
@@ -1313,9 +1335,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "power":round(power,2),
                                 "area":round(total_area_string,2),
                                 "irradiance":round(irradiance,2),
-                                "number_panel": 4,# Binh ADD 
-                                "DC_voltage_max":400,# Binh ADD
-                                "DC_current_max":10,# Binh ADD
+                                "number_panel":number_mppt_panel,
+                                "DC_voltage_max":rated_DC_input_voltage,
+                                "DC_current_max":maximum_DC_input_current,
                                 'value':{
                                     "mppt_volt":(lambda x: x[0]['value'] if x else None)(mppt_volt),
                                     "mppt_amps":(lambda x: x[0]['value'] if x else None)(mppt_amps),
@@ -1452,7 +1474,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "id_device":device_id,
                 "mode":device_mode,
                 "device_name":device_name,
-                "effciency" : 100, # Binh ADD 
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
                 "meter_type":meter_type,
