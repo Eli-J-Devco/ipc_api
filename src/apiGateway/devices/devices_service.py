@@ -8,12 +8,12 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
-import api.domain.deviceGroup.models as deviceGroup_models
-import api.domain.deviceList.models as deviceList_models
-import api.domain.project.models as project_models
-import api.domain.template.models as template_models
-import api.domain.user.models as user_models
-import model.models as models
+# import api.domain.deviceGroup.models as deviceGroup_models
+# import api.domain.deviceList.models as deviceList_models
+# import api.domain.project.models as project_models
+# import api.domain.template.models as template_models
+# import api.domain.user.models as user_models
+# import model.models as models
 from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
 # from database.db import get_db

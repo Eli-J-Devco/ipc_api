@@ -47,12 +47,12 @@ MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 from dataclasses import asdict, dataclass
 
-import api.domain.deviceGroup.models as deviceGroup_models
-import api.domain.deviceList.models as deviceList_models
-import api.domain.project.models as project_models
-import api.domain.template.models as template_models
-import api.domain.user.models as user_models
-import model.models as models
+# import api.domain.deviceGroup.models as deviceGroup_models
+# import api.domain.deviceList.models as deviceList_models
+# import api.domain.project.models as project_models
+# import api.domain.template.models as template_models
+# import api.domain.user.models as user_models
+# import model.models as models
 from apiGateway.devices import devices_service
 from apiGateway.project_setup import project_service
 from apiGateway.rs485 import rs485_service
@@ -210,8 +210,9 @@ class apiGateway:
                             #            "id":3
                             #         }
                             # }
+                            db_new=await db_config.get_db()
                             update_template=result['PAYLOAD']
-                            await template_init.init_pm2(update_template)
+                            await template_init.init_pm2(update_template,db_new)
                         case "DeleteTemplate":
                             pass
                         case "UpdatePortRS485":
@@ -222,8 +223,9 @@ class apiGateway:
                             #            "id":1
                             #         }
                             # }
+                            db_new=await db_config.get_db()
                             update_communication=result['PAYLOAD']
-                            await rs485_init.init_pm2(update_communication)
+                            await rs485_init.init_pm2(update_communication,db_new)
                         case "UpdateUploadChannels":
 
                             # {
@@ -235,9 +237,9 @@ class apiGateway:
                             #               ]
                             # }
                             
-                            
+                            db_new=await db_config.get_db()
                             upload_channel_list=result['PAYLOAD']
-                            await upload_channel_init.init_pm2(upload_channel_list)
+                            await upload_channel_init.init_pm2(upload_channel_list,db_new)
         except Exception as err:
             print(f"Error handle_messages_api: '{err}'")   
     async def managerApplicationsWithPM2(self):
@@ -467,7 +469,6 @@ async def main():
     project_init=project_service.ProjectService()
     result=await project_init.project_inform(db_new)
     SERIAL_NUMBER=result["serial_number"]
-    
     api_gateway=apiGateway(
                             SERIAL_NUMBER,
                             MQTT_BROKER,
