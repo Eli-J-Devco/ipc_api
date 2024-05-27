@@ -13,7 +13,7 @@ import psutil
 import platform
 from datetime import datetime
 import datetime
-
+import collections
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -31,12 +31,10 @@ flag = 0
 sent_information = ""
 devices = []
 
-enable_zero_export = 0
-value_zero_export = 0
-enable_power_limit = 0
+control_mode_detail = 0
+value_offset_zero_export = 0
 value_power_limit = 0
-percent_offset_power_limit = 0 
-percent_offset_zero_export = 0 
+value_offset_power_limit = 0 
 
 value_production = 0
 value_consumption = 0
@@ -52,6 +50,10 @@ value_production_zero_export = 0
 value_consumption_zero_export = 0
 value_production_power_limit = 0
 value_consumption_power_limit = 0
+# Initialize consumption queue for smoothing
+consumption_queue = collections.deque(maxlen=10)
+# Rate-limiting parameters
+max_rate_of_change = 10  # Maximum allowed change per second
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -95,6 +97,8 @@ MQTT_TOPIC_PUD_PROJECT_SETUP = "/Project/Setup"
 MQTT_TOPIC_PUD_CPU_SETUP = "/CPU/Information"
 MQTT_TOPIC_SUD_MODEGET_INFORMATION = "/Project/Get"
 MQTT_TOPIC_SUD_MODEGET_CPU = "/CPU/Get"
+MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL = "/Control/Setup/Mode/Write/Detail"
+MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK = "/Control/Setup/Mode/Write/Detail/Feedback"
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
@@ -177,7 +181,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
     topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
     timestamp = get_utc()
     try:
-# Format system_info
+        # Format system_info
         system_info = {
             "Timestamp": timestamp,
             "Time": int(time.time() * 1000),
@@ -190,7 +194,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "NetworkSpeed": {},
             "DiskIO": {}
         }
-# System Information
+        # System Information
         uname = platform.uname()
         system_info["SystemInformation"]["System"] = uname.system
         system_info["SystemInformation"]["NodeName"] = uname.node
@@ -202,7 +206,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         boot_time_timestamp = psutil.boot_time()
         bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
         system_info["BootTime"]["BootTime"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
-# CPU Information
+        # CPU Information
         system_info["CPUInfo"]["Physicalcores"] = psutil.cpu_count(logical=False)
         system_info["CPUInfo"]["Totalcores"] = psutil.cpu_count(logical=True)
         cpufreq = psutil.cpu_freq()
@@ -210,7 +214,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["CPUInfo"]["MinFrequency"] = f"{cpufreq.min:.2f}Mhz"
         system_info["CPUInfo"]["CurrentFrequency"] = f"{cpufreq.current:.2f}Mhz"
         system_info["CPUInfo"]["TotalCPUUsage"] = f"{psutil.cpu_percent()}%"
-# Memory Information
+        # Memory Information
         svmem = psutil.virtual_memory()
         system_info["MemoryInformation"]["Total"] = get_readable_size(svmem.total)
         system_info["MemoryInformation"]["Available"] = get_readable_size(svmem.available)
@@ -223,7 +227,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
             "Used": get_readable_size(swap.used),
             "Percentage": f"{swap.percent}%"
         }
-# Disk Information
+        # Disk Information
         total_disk_size = 0
         total_disk_used = 0
         disk_partitions = psutil.disk_partitions()
@@ -259,7 +263,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         }
 
         system_info["DiskInformation"] = total_disk_info
-# Network Information
+        # Network Information
         for interface_name, interface_addresses in psutil.net_if_addrs().items():
             for address in interface_addresses:
                 if str(address.family) == 'AddressFamily.AF_INET':
@@ -274,7 +278,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                         "Netmask": address.netmask,
                         "BroadcastMAC": address.broadcast
                     }
-# Network Speed Information
+        # Network Speed Information
         net_io_counters = psutil.net_io_counters()
         current_time = datetime.datetime.now()
         time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
@@ -288,7 +292,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
         net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
         net_io_counters_prev["Timestamp"] = current_time
-# Disk I/O Information
+        #  Disk I/O Information
         disk_io_counters = psutil.disk_io_counters()
         current_time = datetime.datetime.now()
         time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
@@ -302,7 +306,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
         disk_io_counters_prev["Timestamp"] = current_time
-# Push system_info to MQTT 
+        # Push system_info to MQTT 
         push_data_to_mqtt(mqtt_host,
                             mqtt_port,
                             topicPublic,
@@ -323,12 +327,12 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
     global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice
     result = []
     topic = serial_number_project + topicPublic
-# Get ModeSysTemp from database when start program
+    # Get ModeSysTemp from database when start program
     if result_ModeSysTemp is not None and result_ModeDevice is not None:
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
-# Have ModeSysTemp push to mqtt 
+        # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
             try:
                 current_time = get_utc()
@@ -350,9 +354,9 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
 # 	 * @return ModeSysTemp
 # 	 */ 
 async def process_update_mode_for_device_for_systemp(serial_number_project, host, port, username, password):
-# Global variables
+    # Global variables
     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
-# Local variables
+    # Local variables
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
@@ -391,7 +395,6 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                 print(f"Error processing JSON data: {json_err}")
         else:
             pass
-            
     except Exception as err:
         print(f"Error MQTT subscribe process_update_mode_for_device_for_systemp: '{err}'")
 # Describe pud_feedback_project_setup 
@@ -403,11 +406,11 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
 # 	 */ 
 async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     query = "SELECT * FROM `project_setup`"
-# Get information from database
+    # Get information from database
     result = await MySQL_Select_v1(query)
     if result:
         try:
-# Sent information to Mqtt
+    # Sent information to Mqtt
             data_send = result[0]
             data_send['mqtt'] = [
                 {"time_stamp": get_utc()},
@@ -428,10 +431,10 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
 async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     topic = topicPublic
     try:
-# separate mqtt information on sent infromation
+        # separate mqtt information on sent infromation
         result_set = mqtt_result.get('parameter', {})
         result_set.pop('mqtt', None)
-# Filter the received results to create a query to update database information
+        # Filter the received results to create a query to update database information
         if result_set:
             update_fields = ", ".join([f"{field} = %s" for field, value in result_set.items()])
             update_values = [value for field, value in result_set.items()]
@@ -443,7 +446,7 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                     status = 200
                 else:
                     status = 400
-# return of execution results to the end user
+                # return of execution results to the end user
                 current_time = get_utc()
                 data_send = {
                     "status": status,
@@ -532,26 +535,28 @@ async def check_inverter_device(device_control):
 # 	 * @return device_list 
 # 	 */ 
 async def get_list_device_in_automode(mqtt_result):
+    # Global variables
     global total_power
+    # Local variables
     device_list = []
-
+    # Get results mqtt
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
                 id_device = item['id_device']
                 mode = item['mode']
                 status_device = item['status_device']
-# Check device On/Off
+                # Check device On/Off
                 value_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
                 if value_array:
                     value = value_array[0]
-# Check device Fault
+    # Check device Fault
                 operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                 if operator_array:
                     operator = operator_array[0]
-# device is inv , online , auto , not fault => control 
+    # device is inv , online , auto , not fault => control 
                 if await check_inverter_device(id_device) and status_device == 'online' and mode == 1 and operator not in [7, 8]:
-# get information pmax , pmax customer , pmin
+    # get information pmax , pmax customer , pmin
                     result_pmax_custom = MySQL_Select("SELECT rated_power_custom FROM `device_list` WHERE id = %s", (id_device,))
                     p_max_custom = result_pmax_custom[0]["rated_power_custom"]
                     result_pmax = MySQL_Select("SELECT rated_power FROM `device_list` WHERE id = %s", (id_device,))
@@ -560,7 +565,7 @@ async def get_list_device_in_automode(mqtt_result):
                     p_min_percent = result_pmin_percent[0]["min_watt_in_percent"]
                     if p_max and p_min_percent:
                         p_min = (p_max*p_min_percent)/100
-# create list sent mqtt 
+    # create list sent mqtt 
                     device_list.append({
                         'id_device': id_device,
                         'mode': mode,
@@ -580,8 +585,9 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @return device_list 
 # 	 */ 
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
+    # Global variables
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS
-
+    # Local variable
     device_list = []
     operator_array = []
     wmax_array = []
@@ -591,10 +597,10 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
-
+    # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
-# get info about device
+            # get info about device
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
                 id_device = item['id_device']
                 mode = item['mode']
@@ -602,9 +608,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 p_max_custom = item['rated_power_custom']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
-# check device is inv
+                # check device is inv
                 if await check_inverter_device(id_device):
-# get info list device
+                    # get info list device
                     operator_text = {
                         0: "shutting down",
                         1: "shutting down",
@@ -622,11 +628,11 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
-# device offline   
+                    # device offline   
                     if status_device == 'offline':
                         realpower = 0.0
                         operator_text = "off"
-# Calculate pmin   
+                    # Calculate pmin   
                     if p_max_custom and p_min_percent:
                         p_min = round((p_max_custom * p_min_percent) / 100, 4)
                     else:
@@ -655,9 +661,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 * @return value_production ,value_consumption
 # 	 */ 
 async def get_value_meter():
-# Global variables
-    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s
-# Local variables
+    # Global variables
+    global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s,control_mode_detail
+    # Local variables
     value_production_aray = []
     value_consumption_aray = []
     total_value_production = 0
@@ -665,57 +671,65 @@ async def get_value_meter():
     value_production_integral = 0
     value_consumption_integral = 0
     last_update_time = start_time_minutely
+    last_update_time_production = start_time_minutely
     current_time = time.time()
-# Get Topic /Devices/All
+    # Get Topic /Devices/All
     if result_topic4:
         for item in result_topic4:
             if 'id_device' in item:
                 id_device = item['id_device']
-# Select type Meter
+                # Select type Meter
                 result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
-# Caculator Value Meter Production
+                # Caculator Value Meter Production
                 if result_type_meter:
-                    if result_type_meter[0]["name"] == "Production Meter":
+                    if result_type_meter[0]["name"] == "Production Meter": 
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
+                        print("value_production_aray",value_production_aray)
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
-                            dt = current_time - last_update_time
+                            dt = current_time - last_update_time_production
                             value_production_integral += value_production * dt/3600
-                            last_update_time = current_time
-                            # print("value_production_integral",value_production_integral)
-# Caculator Value Meter Consumption
+                            last_update_time_production = current_time
+                    # Caculator Value Meter Consumption
                     elif result_type_meter[0]["name"] == "Consumption meter":
                         value_consumption_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_consumption_aray) > 0 and value_consumption_aray[0] is not None:
                             total_value_consumption += value_consumption_aray[0]
                             value_consumption = total_value_consumption
                             dt = current_time - last_update_time
-                            value_consumption_integral += value_consumption * dt/3600
+                            value_consumption_integral += value_consumption * dt/3600 
                             last_update_time = current_time
                             # print("value_consumption_integral",value_consumption_integral)
-# Check if 1 hour has passed and Reset variable
+                # Check if 1 hour has passed and Reset variable
                 current_second = int(current_time // 1) 
                 current_minute = int(current_time // 60)
                 current_hour = int(current_time // 3600)
                 current_day = int(current_time // (3600 * 24))
-# total value of power consumption and production power in power limit and zero export mode
+                # total value of power consumption and production power in power limit and zero export mode
                 if current_second != int(cycle_time1s):
                     dts = current_time - cycle_time1s
-                    if enable_zero_export == 1:
+                    
+                    if control_mode_detail == 1:
                         value_production_zero_export += value_production * dts / 3600
                         value_consumption_zero_export += value_consumption * dts / 3600
-                    elif enable_power_limit == 1:
+                        value_production_power_limit = 0
+                        value_consumption_power_limit = 0
+                        
+                    elif control_mode_detail == 2:
                         value_production_power_limit += value_production * dts / 3600
                         value_consumption_power_limit += value_consumption * dts / 3600
-                    else:
+                        value_production_zero_export = 0
+                        value_consumption_zero_export = 0
+                        
+                    elif current_hour == 0 and current_minute == 0 and current_second == 0:
                         value_production_zero_export = 0
                         value_consumption_zero_export = 0
                         value_production_power_limit = 0
                         value_consumption_power_limit = 0
                     
                     cycle_time1s = current_time
-# Caculator powwer for 1 minute
+                # Caculator powwer for 1 minute
                 if current_minute != int(start_time_minutely // 60):
                     value_production_1m = round(value_production_integral)
                     value_consumption_1m = round(value_consumption_integral)
@@ -726,12 +740,12 @@ async def get_value_meter():
                     value_production_daily += value_production_1m
                     value_consumption_daily += value_consumption_1m
                     start_time_minutely = current_time
-# Caculator powwer for 1 hour
+                # Caculator powwer for 1 hour
                 if current_hour != int(start_time_hourly // 3600):
                     value_production_1h = 0
                     value_consumption_1h = 0
                     start_time_hourly = current_time
-# Caculator powwer for 1 day
+                # Caculator powwer for 1 day
                 if current_day != int(start_time_daily // (3600 * 24)):
                     value_production_daily = 0
                     value_consumption_daily = 0
@@ -739,11 +753,17 @@ async def get_value_meter():
             else:
                 pass
     else:
-        pass       
-
+        pass   
+# Describe monit_value_meter 
+# 	 * @description monit_value_meter
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @return value_meter push mqtt 
+# 	 */ 
 async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    # Global variables
     global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export
-
     try:
         timestamp = get_utc()
         topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
@@ -793,9 +813,12 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
         # power limit 
         value_metter["zero_export"]["totalproduction"] = round(value_production_zero_export / 1000, 4)
         value_metter["zero_export"]["totalconsumption"] = round(value_consumption_zero_export / 1000, 4)
+        value_metter["zero_export"]["differential"] = round((value_consumption_zero_export - value_production_zero_export) / 1000, 4)
+
         # power zero export 
         value_metter["power_limit"]["totalproduction"] = round(value_production_power_limit / 1000, 4)
         value_metter["power_limit"]["totalconsumption"] = round(value_consumption_power_limit / 1000, 4)
+        value_metter["power_limit"]["differential"] = round((value_production_power_limit - value_consumption_power_limit) / 1000, 4)
         
         # Push system_info to MQTT
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
@@ -809,60 +832,68 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-# Global variables
-    global result_topic4, enable_power_limit, enable_zero_export, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
-# Check device equipment qualified for control
+    # Global variables
+    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
+    # Local variables
+    power_max_device = 0
+    power_min_device = 0
+    # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-# get information about power in database and varaable devices
+    # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
         for device in devices:
-            power_max = device["p_max"]
             id_device = device["id_device"]
+            power_max_device = device["p_max"]
+            power_max_device = float(power_max_device)
+            power_min_device = device["p_min"]
+            power_min_device = float(power_min_device)
+            
             if id_device :
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                 slope = float(result_slope[0]["slope"])
-# Convert power real 
-            if power_max and slope:
-                delta = slope * 1000
-                power_max_convert = (power_max / slope) * delta
-                p_max_real = (total_power / slope) * delta
+            # Convert power real 
+            if power_max_device and slope :
+                p_max_real = total_power*1000
                 efficiency_total = (value_power_limit/p_max_real)
-                if efficiency_total > 1 :
-                        efficiency_total = 1
-                p_for_each_device_power_limit = (efficiency_total * power_max_convert) / delta
-                if p_for_each_device_power_limit > power_max_convert/delta:
-                    p_for_each_device_power_limit = (power_max_convert/delta)
-# Check device is off , on device 
-            if device['controlinv'] == 1:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "power limit",
-                    "setpoint": value_power_limit,
-                    "parameter": [
-                        {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
-                    ]
-                }
-            elif device['controlinv'] == 0:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "power limit",
-                    "setpoint": value_power_limit,
-                    "parameter": [
-                        {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
-                    ]
-                }
-# Accumulate devices that are eligible to run automatically to push to mqtt
+                # Calculate power value according to total system performance
+                if 0 <= efficiency_total <= 1:
+                    p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
+                elif efficiency_total < 0:
+                    p_for_each_device_power_limit = power_min_device / slope
+                else:
+                    p_for_each_device_power_limit = power_max_device / slope
+
+            # If the total capacity produced has not reached the set value, proceed
+            if value_production <= value_power_limit:
+                if device['controlinv'] == 1: # Check device is off , on device 
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "status": "power limit",
+                        "setpoint": value_power_limit,
+                        "feedback": value_production,
+                        "parameter": [
+                            {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
+                        ]
+                    }
+                elif device['controlinv'] == 0:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "status": "power limit",
+                        "setpoint": value_power_limit,
+                        "feedback": value_production,
+                        "parameter": [
+                            {"id_pointkey": "ControlINV", "value": 1},
+                            {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
+                        ]
+                    }
+            # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
-        if len(devices) == len(device_list_control_power_limit) and enable_zero_export == 0:
+        if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
-            print("Value setpoint", value_power_limit)
-            print("P Feedback production", value_production)
-            print("P Feedback consumption", value_consumption)
             p_for_each_device_power_limit = 0
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -872,69 +903,78 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 * @return p_for_each_device_zero_export
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-# Global variables
-    global result_topic4 ,enable_power_limit , value_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export
-# Local variables
+    # Global variables
+    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue
+    # Local variables
     efficiency_total = 0
-    power_max = 0
     id_device = 0
     result_slope = []
     slope = 1.0
-    power_max_convert = 0
-    p_max_real = 0
-    delta = 1
-    total_p_inv_prodution = 0
+    grid_balancing_power = 0
+    power_min_device = 0
+    power_max_device = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-# The actual setting value is equal to the consumption meter value minus the user-set error value
-    if value_consumption > 0 :
-        value_consumption = value_consumption - (value_consumption*value_zero_export/100)
+    if value_consumption_zero_export:
+        grid_balancing_power = value_consumption_zero_export - value_production_zero_export
+        # Add the latest consumption value to the queue
+        consumption_queue.append(value_consumption_zero_export)
+        # Calculate the average of the queue
+        avg_consumption = sum(consumption_queue) / len(consumption_queue)
+
+        # Apply rate-limiting to the setpoint
+        if not hasattr(process_caculator_zero_export, 'last_setpoint'):
+            process_caculator_zero_export.last_setpoint = avg_consumption
+        change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
+        if abs(change_in_setpoint) > max_rate_of_change:
+            setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
+        else:
+            setpoint = avg_consumption
+        process_caculator_zero_export.last_setpoint = setpoint
+
+        if grid_balancing_power > 0:
+            grid_balancing_power = grid_balancing_power - (grid_balancing_power*value_offset_zero_export/100)
+        else:
+            grid_balancing_power = 0
     else:
-        value_consumption = 0
-# Check device equipment qualified for control
+        setpoint = value_consumption
+
+    # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-# get information about power in database and varaable devices
-    if devices : 
+
+    # Get information about power in database and variable devices
+    if devices:
         device_list_control_power_limit = []
         for device in devices:
-            power_max = device["p_max"]
+            power_min_device = float(device["p_min"])
+            power_max_device = float(device["p_max"])
             id_device = device["id_device"]
-            if id_device :
+            if id_device:
                 result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
-                if result_slope :
+                if result_slope:
                     slope = float(result_slope[0]["slope"])
                 else:
                     pass
-# Convert power real 
-            if power_max and slope:
-                if total_power and value_consumption :  
-                    delta = slope*1000
-                    power_max_convert = ((power_max/slope)*delta)
-                    p_max_real = ((total_power/slope)*delta)
-# Calculate the total performance of the system
-                    efficiency_total = (value_consumption/p_max_real)
-                    if efficiency_total > 1 :
-                        efficiency_total = 1
-                    else:
-                        pass
-# Calculate the performance for each device based on the total performance
+            # Calculate the total performance of the system
+            if grid_balancing_power and power_max_device and slope:
+                efficiency_total = (grid_balancing_power / total_power)
+                # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = ((efficiency_total*power_max_convert)/delta)
-                if p_for_each_device_zero_export > power_max_convert/delta:
-                    p_for_each_device_zero_export = (power_max_convert/delta)
+                    p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
+                # Calculate power value according to total system performance
+                if 0 <= efficiency_total <= 1:
+                    p_for_each_device_zero_export = (efficiency_total * power_max_device) / slope
+                elif efficiency_total < 0:
+                    p_for_each_device_zero_export = power_min_device / slope
                 else:
-                    pass
-            if p_for_each_device_zero_export <= 0 :
-                p_for_each_device_zero_export = 0 
-            else:
-                pass# Check device is off , on device 
-            total_p_inv_prodution += p_for_each_device_zero_export
+                    p_for_each_device_zero_export = power_max_device / slope
+            # Check device is off, on device
             if device['controlinv'] == 1:
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": value_consumption,
+                    "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -944,7 +984,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": value_consumption,
+                    "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -953,109 +993,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             else:
                 pass
             device_list_control_power_limit.append(new_device)
-# check the consumption is too small with the total output output 0 to the control
-        if value_consumption < total_p_inv_prodution :
-            new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "zero export",
-                    "setpoint": value_consumption,
-                    "parameter": [
-                        {"id_pointkey": "WMax", "value": 0}
-                    ]
-                }
-            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-        else:
-            pass
-# Push data to mqtt 
-        if len(devices) == len(device_list_control_power_limit) and enable_power_limit == 0 :
-            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-            print("Value setpoint",value_consumption)
-            print("P Feedback production",value_production)
-            print("P Feedback consumption",value_consumption)
-            p_for_each_device_zero_export = 0
-        else:
-            pass
-    else:
-        pass
-# Describe process_caculator_zero_export_power_limit 
-# 	 * @description process_caculator_zero_export_power_limit
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
-# 	 * @return p_for_each_device
-# 	 */ 
-async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-# Global variables
-    global result_topic4,enable_power_limit,value_zero_export,value_consumption,devices,value_cumulative,value_subcumulative,value_production,total_power,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,p_for_each_device_power_limit
-# Local variables
-    p_for_each_device = 0
-    power_max_convert = 0
-    delta = 1
-    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-# Get value control INV 
-    await process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
-    await process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
-# get information about power in database and varable devices
-    if devices : 
-        device_list_control_power_limit = []
-        for device in devices:
-            power_max = device["p_max"]
-            id_device = device["id_device"]
-# Convert power max real 
-            if id_device :
-                result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
-                slope = float(result_slope[0]["slope"])
-            if power_max and slope:
-                if total_power and value_consumption :  
-                    # difference coefficient between actual and value in inv 333 with 3330 = 0.1
-                    delta = slope*1000
-                    power_max_convert = round((power_max/slope)*delta)
-# Power for each device 
-            await process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
-            await process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
-            if p_for_each_device_zero_export and p_for_each_device_power_limit :
-                p_for_each_device = round (p_for_each_device_zero_export + p_for_each_device_power_limit)
-            # if p_for_each_device > power_max_convert/delta:
-            #         p_for_each_device = power_max_convert/delta
-            # else:
-            #     pass
-# Check device is off , on device 
-            print("P Feedback production",value_production)
-            print("P Feedback consumption",value_consumption)
-            print("p_for_each_device",p_for_each_device)
-            print("power_max_convert",power_max_convert)
-            print("delta",delta)
-            print("p_for_each_device_zero_export",p_for_each_device_zero_export)
-            print("p_for_each_device_power_limit",p_for_each_device_power_limit)
-            print("slope",slope)
-            print("devices",devices)
-            
-            if device['controlinv'] == 1:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "zero export + power limit",
-                    "setpoint": value_consumption + value_power_limit,
-                    "parameter": [
-                        {"id_pointkey": "WMax", "value": p_for_each_device}
-                    ]
-                }
-            else:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "zero export + power limit",
-                    "setpoint": value_consumption + value_power_limit,
-                    "parameter": [
-                        {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": p_for_each_device}
-                    ]
-                }
-            device_list_control_power_limit.append(new_device)
-# Push data to mqtt 
+        # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
-            push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            print("Value setpoint", setpoint)
+            print("P Feedback production", value_production)
+            print("P Feedback consumption", value_consumption)
+            p_for_each_device_zero_export = 0
         else:
             pass
     else:
@@ -1068,36 +1012,38 @@ async def process_caculator_zero_export_power_limit(serial_number_project, mqtt_
 # 	 * @return power_max
 # 	 */ 
 async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-# Global variables
+    # Global variables
     global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-# Local variables
+    # Local variables
     power_max = 0
     result_slope = []
     slope = 1.0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     p_for_each_device = 0
-# Check device equipment qualified for control
+    # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-# get information about power in database and varable devices
+    # get information about power in database and varable devices
     if devices :
             device_list_control_power_limit = []
             for device in devices:
                 id_device = device["id_device"]
                 power_max = device["p_max"]
                 power_max = float(power_max)
-# Convert power max real 
+                power_min = device["p_min"]
+                power_min = float(power_min)
+                # Convert power max real 
                 if id_device :
                     result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`name` = 'Power Limit' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s ", (id_device,))
                     slope = float(result_slope[0]["slope"])
                 if power_max and slope :
-                    p_for_each_device = power_max/slope
-# Check device is off , on device 
+                    p_for_each_device = power_min/slope
+                # Check device is off , on device 
                 if device['controlinv'] == 1:
                     new_device = {
                         "id_device": device["id_device"],
                         "mode": device["mode"],
-                        "status": "full Power",
+                        "status": "Pmin",
                         "parameter": [
                             {"id_pointkey": "WMax", "value": p_for_each_device}
                         ]
@@ -1106,14 +1052,14 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                     new_device = {
                         "id_device": device["id_device"],
                         "mode": device["mode"],
-                        "status": "full Power",
+                        "status": "Pmin",
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
                             {"id_pointkey": "WMax", "value": p_for_each_device}
                         ]
                     }
                 device_list_control_power_limit.append(new_device)
-# Push data to mqtt 
+            # Push data to mqtt 
             if len(devices) == len(device_list_control_power_limit):
                 push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
                 print("P Feedback production",value_production)
@@ -1123,66 +1069,43 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 pass
     else:
         pass 
-# Describe process_update_zeroexport_powerlimit 
-# 	 * @description process_update_zeroexport_powerlimit
+# Describe process_update_parameter_mode_detail 
+# 	 * @description process_update_parameter_mode_detail
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
-# 	 * @return MySQL_Update enable_zero_export ,value_zero_export,enable_power_limit,value_power_limit
+# 	 * @return MySQL_Update value_offset_zero_export,value_power_limit,value_offset_power_limit
 # 	 */ 
-async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
-# Global variables
-    global enable_zero_export,value_zero_export,enable_power_limit,value_power_limit,percent_offset_power_limit,percent_offset_zero_export,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
-# Local variables
-    bitchecktopic3 = 0
+async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+    # Global variables
+    global value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
+    # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
     mode_auto = ""
-    type_mode_auto = ""
     comment = 0
-    result_checkbox_zero_export = []
-    result_textbox_zero_export = []
-    result_checkbox_power_limit = []
-    result_textbox_power_limit = []
-# Receve data from mqtt
+    value_power_limit_temp = 0
+    result_parameter_zero_export = []
+    result_parameter_power_limit = []
+    # Receve data from mqtt
     try:
-        if mqtt_result and 'mode' in mqtt_result and 'type' in mqtt_result and 'enable' in mqtt_result and 'value' in mqtt_result:
+        if mqtt_result and 'mode' in mqtt_result and 'offset' in mqtt_result:
             mode_auto = mqtt_result['mode'] 
-            type_mode_auto = mqtt_result['type']
-            bitchecktopic3 = 1
-# Compare get information update database 
-            if mode_auto == "zero_export":
-                if type_mode_auto == "checkbox":
-                    enable_zero_export = mqtt_result.get('enable', enable_zero_export)
-                    if enable_zero_export is not None:
-                        result_checkbox_zero_export = MySQL_Update_V1("update project_setup set enable_zero_export = %s", (enable_zero_export,))
-                        print("result_checkbox_zero_export",result_checkbox_zero_export)
-                elif type_mode_auto == "textbox":
-                    value_zero_export = mqtt_result.get('value', value_zero_export)
-                    if 0 <= value_zero_export <= 100:
-                        result_textbox_zero_export = MySQL_Update_V1("update project_setup set value_zero_export = %s", (value_zero_export,))
-                        print("result_textbox_zero_export",result_textbox_zero_export)
-            elif mode_auto == "power_limit":
-                if type_mode_auto == "checkbox":
-                    enable_power_limit = mqtt_result.get('enable', enable_power_limit)
-                    if enable_power_limit is not None:
-                        result_checkbox_power_limit = MySQL_Update_V1("update project_setup set enable_power_limit = %s", (enable_power_limit,))
-                        print("result_checkbox_power_limit",result_checkbox_power_limit)
-                elif type_mode_auto == "textbox":
-                    value_power_limit = mqtt_result.get('value', value_power_limit)
-                    if value_power_limit is not None:
-                        result_textbox_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s", (value_power_limit,))
-                        print("result_textbox_power_limit",result_textbox_power_limit)
-                        percent_offset_power_limit = mqtt_result.get('offset', percent_offset_power_limit)
-                        value_power_limit = (value_power_limit + (value_power_limit*percent_offset_power_limit)/100)*1000
-                        print("value_power_limit",value_power_limit)
-                if 0 <= percent_offset_power_limit <= 100:
-                    MySQL_Update_V1("update project_setup set value_offset_power_limit = %s", (percent_offset_power_limit,))
-                else:
-                    pass
-# When you receive one of the above information, give feedback to mqtt
-            if ( enable_zero_export or value_zero_export or enable_power_limit or value_power_limit ) and bitchecktopic3 == 1 :
-                if result_checkbox_zero_export == None or result_textbox_zero_export == None or result_textbox_power_limit == None or result_checkbox_power_limit == None :
+            mode_auto = int(mode_auto)
+            # Compare get information update database 
+            if mode_auto == 1:
+                value_offset_zero_export = mqtt_result["offset"]
+                result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s", (value_offset_zero_export,))
+            elif mode_auto == 2:
+                value_power_limit_temp = mqtt_result["value"]
+                value_offset_power_limit = mqtt_result["offset"]
+                # write information in database 
+                result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
+                # convert value kw to w 
+                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
+            # When you receive one of the above information, give feedback to mqtt
+            if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
+                if result_parameter_zero_export == None or result_parameter_power_limit == None :
                     comment = 400 
                 else:
                     comment = 200 
@@ -1196,9 +1119,57 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
                         mqtt_username,
                         mqtt_password,
                         data_send)
-                bitchecktopic3 = 0
             else:
                 pass
+    except Exception as err:
+        print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
+# Describe process_update_mode_detail 
+# 	 * @description process_update_mode_detail
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
+# 	 * @return MySQL_Update enable_zero_export ,enable_power_limit
+# 	 */ 
+async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+    # Global variables
+    global control_mode_detail,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
+    # Local variables
+    topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
+    current_time = get_utc()
+    mode_auto = ""
+    comment = 0
+    confirm_mode_detail = []
+    # Receve data from mqtt
+    try:
+        if mqtt_result and 'control_mode' in mqtt_result :
+            mode_auto = mqtt_result['control_mode'] 
+            mode_auto = int(mode_auto)
+            # Compare get information update database 
+            if mode_auto == 1:
+                control_mode_detail = 1
+            elif mode_auto == 2:
+                control_mode_detail = 2 
+            # write mode detail in database
+            print("mode_auto",mode_auto)
+            print("control_mode_detail",control_mode_detail)
+            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+            # When you receive one of the above information, give feedback to mqtt
+            if confirm_mode_detail == None :
+                comment = 400 
+            else:
+                comment = 200 
+            data_send = {
+                        "time_stamp" :current_time,
+                        "status":comment, 
+                        }
+            push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPudModeDetail ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+        else:
+            pass
             
     except Exception as err:
         print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
@@ -1207,24 +1178,23 @@ async def process_update_zeroexport_powerlimit(mqtt_result,serial_number_project
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {}
-# 	 * @return enable_zero_export ,value_zero_export,enable_power_limit,value_power_limit
+# 	 * @return enable_zero_export ,value_offset_zero_export,enable_power_limit,value_power_limit,value_offset_power_limit
 # 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
-# Global variables
-    global enable_zero_export,value_zero_export,enable_power_limit,value_power_limit,percent_offset_power_limit
-# Local variables
+    # Global variables
+    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit
+    # Local variables
     value_power_limit_temp = 0
     result_project_setup = []
-# Get database information the first time
+    # Get database information the first time
     try:
         result_project_setup = await MySQL_Select_v1("select * from project_setup")
         if result_project_setup :
-            enable_zero_export = result_project_setup[0]["enable_zero_export"]
-            value_zero_export = result_project_setup[0]["value_zero_export"]
-            enable_power_limit = result_project_setup[0]["enable_power_limit"]
+            control_mode_detail = result_project_setup[0]["control_mode"]
+            value_offset_zero_export = result_project_setup[0]["value_offset_zero_export"]
             value_power_limit_temp = result_project_setup[0]["value_power_limit"]
-            percent_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
-            value_power_limit = (value_power_limit_temp + (value_power_limit_temp*percent_offset_power_limit)/100)*1000
+            value_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
+            value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
         else:
             pass
             
@@ -1237,23 +1207,19 @@ async def process_getfirst_zeroexport_powerlimit():
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 # 	 */ 
-async def process_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
-    global enable_zero_export
-    global value_zero_export
-    global enable_power_limit
-    global value_power_limit
-# Select the auto run process
-    if enable_zero_export == 1 and enable_power_limit == 0:
+async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
+    # Global variables 
+    global control_mode_detail
+    print("control_mode_detail",control_mode_detail)
+    # Select the auto run process
+    if control_mode_detail == 1 :
         print("==============================zero_export==============================")
         await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    elif enable_power_limit == 1 and value_power_limit != 0 and enable_zero_export == 0:
+    elif control_mode_detail == 2 :
         print("==============================power_limit==============================")
         await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    elif enable_zero_export == 1 and enable_power_limit == 1 :
-        print("=======================zero_export + power_limit========================")
-        await process_caculator_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     else :
-        print("======================= Auto - Full P ========================")
+        print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 # Describe process_message 
 # 	 * @description processmessage from mqtt
@@ -1270,11 +1236,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_DEVICES_ALL
     global MQTT_TOPIC_SUD_MODEGET_CPU
     global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
+    global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
                                                     
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
     result_topic6 = ""
+    result_topic7 = ""
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -1285,7 +1253,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic4 = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
     topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
-    
+    topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1298,7 +1266,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic2",result_topic2)
         elif topic == topic3:
             result_topic3 = message
-            await process_update_zeroexport_powerlimit(result_topic3,serial_number_project,host, port, username, password)
+            await process_update_parameter_mode_detail(result_topic3,serial_number_project,host, port, username, password)
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
@@ -1309,6 +1277,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic6 = message
             await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
             print("result_topic6",result_topic6)
+        elif topic == topic7:
+            result_topic7 = message
+            await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
+            print("result_topic7",result_topic7)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1318,8 +1290,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6, username, password):
-    topics = [topic1, topic2, topic3, topic4, topic5, topic6]
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7, username, password):
+    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7]
     
     while True:
         try:
@@ -1365,7 +1337,7 @@ async def main():
                                                                             MQTT_PORT,
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
-        scheduler.add_job(process_zero_export_power_limit, 'cron',  second = f'*/5' , args=[serial_number_project,
+        scheduler.add_job(choose_mode_auto_detail, 'cron',  second = f'*/5' , args=[serial_number_project,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_USERNAME,
@@ -1388,6 +1360,7 @@ async def main():
                                                         MQTT_TOPIC_SUD_DEVICES_ALL,
                                                         MQTT_TOPIC_SUD_MODEGET_CPU,
                                                         MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
