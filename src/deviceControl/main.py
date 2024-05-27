@@ -917,9 +917,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        if avg_consumption < 0:
-            avg_consumption = 0
-        else:
+        if avg_consumption :
             avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
             avg_consumption = round(avg_consumption,4)
 
