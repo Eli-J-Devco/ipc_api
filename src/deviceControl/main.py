@@ -924,22 +924,20 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         
         print("avg_consumption",avg_consumption)
         # Apply rate-limiting to the setpoint
-        if not hasattr(process_caculator_zero_export, 'last_setpoint'):
-            process_caculator_zero_export.last_setpoint = avg_consumption
-        change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
-        if abs(change_in_setpoint) > max_rate_of_change:
-            setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
-        else:
-            setpoint = avg_consumption
-        process_caculator_zero_export.last_setpoint = setpoint
+        # if not hasattr(process_caculator_zero_export, 'last_setpoint'):
+        #     process_caculator_zero_export.last_setpoint = avg_consumption
+        # change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
+        # if abs(change_in_setpoint) > max_rate_of_change:
+        #     setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
+        # else:
+        #     setpoint = avg_consumption
+        # process_caculator_zero_export.last_setpoint = setpoint
         
-        print("setpoint",setpoint)
+        # print("setpoint",setpoint)
         
-        if setpoint < 0:
-            setpoint = setpoint - (setpoint*value_offset_zero_export/100)
-        else:
-            setpoint = 0
-        print("setpoint",setpoint)
+        if avg_consumption < 0:
+            avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
+
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -958,8 +956,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
             # Calculate the total performance of the system
-            if setpoint and power_max_device and slope:
-                efficiency_total = (setpoint / total_power)
+            if avg_consumption and power_max_device and slope:
+                efficiency_total = (avg_consumption / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
@@ -976,7 +974,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": setpoint,
+                    "setpoint": avg_consumption,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -986,7 +984,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": setpoint,
+                    "setpoint": avg_consumption,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -998,7 +996,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-            print("Value setpoint", setpoint)
+            print("Value setpoint", avg_consumption)
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_zero_export = 0
