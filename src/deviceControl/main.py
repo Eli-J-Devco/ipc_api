@@ -52,8 +52,6 @@ value_production_power_limit = 0
 value_consumption_power_limit = 0
 # Initialize consumption queue for smoothing
 consumption_queue = collections.deque(maxlen=10)
-# Rate-limiting parameters
-max_rate_of_change = 10  # Maximum allowed change per second
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -919,11 +917,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        if avg_consumption > 0:
+        if avg_consumption < 0:
+            avg_consumption = 0
+        else:
             avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
             avg_consumption = round(avg_consumption,4)
-        else:
-            avg_consumption = 0 
 
     # Check device equipment qualified for control
     if result_topic4:
