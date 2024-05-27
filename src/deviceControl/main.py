@@ -684,7 +684,6 @@ async def get_value_meter():
                 if result_type_meter:
                     if result_type_meter[0]["name"] == "Production Meter": 
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                        print("value_production_aray",value_production_aray)
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
                             value_production = total_value_production
@@ -916,27 +915,15 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     if value_consumption:
         grid_balancing_power = value_consumption - value_production
-        print("grid_balancing_power",grid_balancing_power)
         # Add the latest consumption value to the queue
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        # avg_consumption = int(avg_consumption)
-        print("avg_consumption",avg_consumption)
-        # Apply rate-limiting to the setpoint
-        # if not hasattr(process_caculator_zero_export, 'last_setpoint'):
-        #     process_caculator_zero_export.last_setpoint = avg_consumption
-        # change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
-        # if abs(change_in_setpoint) > max_rate_of_change:
-        #     setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
-        # else:
-        #     setpoint = avg_consumption
-        # process_caculator_zero_export.last_setpoint = setpoint
-        
-        # print("setpoint",setpoint)
-        
-        if avg_consumption < 0:
+        if avg_consumption > 0:
             avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
+            avg_consumption = round(avg_consumption,4)
+        else:
+            avg_consumption = 0 
 
     # Check device equipment qualified for control
     if result_topic4:
