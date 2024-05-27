@@ -361,7 +361,7 @@ def init_api_web_v2():
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo /usr/bin/python3 /sources/python/api_python_new/setup.py', shell=True).communicate()
+            f'sudo /usr/bin/python3 /sources/python/api_python_v2/setup.py', shell=True).communicate()
         
 # Describe functions before writing code
 # /**
