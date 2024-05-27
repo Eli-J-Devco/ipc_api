@@ -790,35 +790,35 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
                             max_production += mppt["power"]
 
         # instant power
-        value_metter["instant"]["production"] = round(value_production / 1000, 4)
-        value_metter["instant"]["consumption"] = round(value_consumption / 1000, 4)
-        value_metter["instant"]["grid_feed"] = round((value_production - value_consumption) / 1000, 4)
-        value_metter["instant"]["max_production"] = round(max_production / 1000, 4)
+        value_metter["instant"]["production"] = round(value_production , 4)
+        value_metter["instant"]["consumption"] = round(value_consumption , 4)
+        value_metter["instant"]["grid_feed"] = round((value_production - value_consumption), 4)
+        value_metter["instant"]["max_production"] = round(max_production , 4)
 
         # minutely power
-        value_metter["minutely"]["production"] = round(value_production_1m / 1000, 4)
-        value_metter["minutely"]["consumption"] = round(value_consumption_1m / 1000, 4)
-        value_metter["minutely"]["grid_feed"] = round((value_production_1m - value_consumption_1m) / 1000, 4)
+        value_metter["minutely"]["production"] = round(value_production_1m , 4)
+        value_metter["minutely"]["consumption"] = round(value_consumption_1m , 4)
+        value_metter["minutely"]["grid_feed"] = round((value_production_1m - value_consumption_1m), 4)
 
         # hourly power
-        value_metter["hourly"]["production"] = round(value_production_1h / 1000, 4)
-        value_metter["hourly"]["consumption"] = round(value_consumption_1h / 1000, 4)
-        value_metter["hourly"]["grid_feed"] = round((value_production_1h - value_consumption_1h) / 1000, 4)
+        value_metter["hourly"]["production"] = round(value_production_1h , 4)
+        value_metter["hourly"]["consumption"] = round(value_consumption_1h , 4)
+        value_metter["hourly"]["grid_feed"] = round((value_production_1h - value_consumption_1h), 4)
 
         # daily power
-        value_metter["daily"]["production"] = round(value_production_daily / 1000, 4)
-        value_metter["daily"]["consumption"] = round(value_consumption_daily / 1000, 4)
-        value_metter["daily"]["grid_feed"] = round((value_production_daily - value_consumption_daily) / 1000, 4)
+        value_metter["daily"]["production"] = round(value_production_daily , 4)
+        value_metter["daily"]["consumption"] = round(value_consumption_daily, 4)
+        value_metter["daily"]["grid_feed"] = round((value_production_daily - value_consumption_daily) , 4)
 
         # power limit 
-        value_metter["zero_export"]["totalproduction"] = round(value_production_zero_export / 1000, 4)
-        value_metter["zero_export"]["totalconsumption"] = round(value_consumption_zero_export / 1000, 4)
-        value_metter["zero_export"]["differential"] = round((value_consumption_zero_export - value_production_zero_export) / 1000, 4)
+        value_metter["zero_export"]["totalproduction"] = round(value_production_zero_export , 4)
+        value_metter["zero_export"]["totalconsumption"] = round(value_consumption_zero_export , 4)
+        value_metter["zero_export"]["differential"] = round((value_consumption_zero_export - value_production_zero_export) , 4)
 
         # power zero export 
-        value_metter["power_limit"]["totalproduction"] = round(value_production_power_limit / 1000, 4)
-        value_metter["power_limit"]["totalconsumption"] = round(value_consumption_power_limit / 1000, 4)
-        value_metter["power_limit"]["differential"] = round((value_production_power_limit - value_consumption_power_limit) / 1000, 4)
+        value_metter["power_limit"]["totalproduction"] = round(value_production_power_limit , 4)
+        value_metter["power_limit"]["totalconsumption"] = round(value_consumption_power_limit , 4)
+        value_metter["power_limit"]["differential"] = round((value_production_power_limit - value_consumption_power_limit), 4)
         
         # Push system_info to MQTT
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
