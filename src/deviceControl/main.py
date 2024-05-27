@@ -932,8 +932,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         else:
             setpoint = avg_consumption
         process_caculator_zero_export.last_setpoint = setpoint
-
-        if setpoint > 0:
+        
+        print("setpoint",setpoint)
+        
+        if setpoint < 0:
             setpoint = setpoint - (setpoint*value_offset_zero_export/100)
         else:
             setpoint = 0
