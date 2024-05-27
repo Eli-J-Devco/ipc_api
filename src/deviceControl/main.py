@@ -919,9 +919,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         if avg_consumption :
             avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
-            print("avg_consumption",avg_consumption)
             avg_consumption = round(avg_consumption,4)
-            print("avg_consumption",avg_consumption)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
