@@ -52,6 +52,8 @@ value_production_power_limit = 0
 value_consumption_power_limit = 0
 # Initialize consumption queue for smoothing
 consumption_queue = collections.deque(maxlen=10)
+# Rate-limiting parameters
+max_rate_of_change = 10  # Maximum allowed change per second
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -892,6 +894,21 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
+# Bộ điều khiển PID
+class PID:
+    def __init__(self, Kp, Ki, Kd):
+        self.Kp = Kp
+        self.Ki = Ki
+        self.Kd = Kd
+        self.previous_error = 0
+        self.integral = 0
+
+    def update(self, error, dt):
+        self.integral += error * dt
+        derivative = (error - self.previous_error) / dt
+        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
+        self.previous_error = error
+        return output
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -911,15 +928,34 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_min_device = 0
     power_max_device = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    
+    # Initialize PID controller
+    pid = PID(Kp=1.0, Ki=0.1, Kd=0.01)
+    sampling_time = 1  # in seconds, adjust as needed
+    
     if value_consumption:
         grid_balancing_power = value_consumption - value_production
         # Add the latest consumption value to the queue
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        if avg_consumption :
-            avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
-            avg_consumption = round(avg_consumption,4)
+        
+        # Apply rate-limiting to the setpoint
+        if not hasattr(process_caculator_zero_export, 'last_setpoint'):
+            process_caculator_zero_export.last_setpoint = avg_consumption
+        change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
+        if abs(change_in_setpoint) > max_rate_of_change:
+            setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
+        else:
+            setpoint = avg_consumption
+        process_caculator_zero_export.last_setpoint = setpoint
+        
+        setpoint = pid.update(setpoint, sampling_time)
+        
+        if setpoint :
+            setpoint = setpoint - (setpoint*value_offset_zero_export/100)
+            setpoint = round(setpoint,4)
+            
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -938,8 +974,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
             # Calculate the total performance of the system
-            if avg_consumption and power_max_device and slope:
-                efficiency_total = (avg_consumption / total_power)
+            if setpoint and power_max_device and slope:
+                efficiency_total = (setpoint / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
@@ -956,7 +992,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": avg_consumption,
+                    "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
@@ -966,7 +1002,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "id_device": device["id_device"],
                     "mode": device["mode"],
                     "status": "zero export",
-                    "setpoint": avg_consumption,
+                    "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
@@ -978,7 +1014,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-            print("Value setpoint", avg_consumption)
+            print("Value setpoint", setpoint)
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_zero_export = 0
