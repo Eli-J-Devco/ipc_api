@@ -916,11 +916,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     if value_consumption_zero_export:
         grid_balancing_power = value_consumption_zero_export - value_production_zero_export
+        
         # Add the latest consumption value to the queue
         consumption_queue.append(value_consumption_zero_export)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-
         # Apply rate-limiting to the setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
@@ -931,10 +931,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             setpoint = avg_consumption
         process_caculator_zero_export.last_setpoint = setpoint
 
-        if grid_balancing_power > 0:
-            grid_balancing_power = grid_balancing_power - (grid_balancing_power*value_offset_zero_export/100)
+        if setpoint > 0:
+            setpoint = setpoint - (setpoint*value_offset_zero_export/100)
         else:
-            grid_balancing_power = 0
+            setpoint = 0
     else:
         setpoint = value_consumption
 
@@ -956,8 +956,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
             # Calculate the total performance of the system
-            if grid_balancing_power and power_max_device and slope:
-                efficiency_total = (grid_balancing_power / total_power)
+            if setpoint and power_max_device and slope:
+                efficiency_total = (setpoint / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
@@ -1122,7 +1122,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
             else:
                 pass
     except Exception as err:
-        print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
+        print(f"Error MQTT subscribe process_update_parameter_mode_detail: '{err}'")
 # Describe process_update_mode_detail 
 # 	 * @description process_update_mode_detail
 # 	 * @author bnguyen
@@ -1150,8 +1150,6 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
             elif mode_auto == 2:
                 control_mode_detail = 2 
             # write mode detail in database
-            print("mode_auto",mode_auto)
-            print("control_mode_detail",control_mode_detail)
             confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
             # When you receive one of the above information, give feedback to mqtt
             if confirm_mode_detail == None :
@@ -1172,7 +1170,7 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
             pass
             
     except Exception as err:
-        print(f"Error MQTT subscribe process_update_zeroexport_powerlimit: '{err}'")
+        print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
