@@ -927,27 +927,33 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     grid_balancing_power = 0
     power_min_device = 0
     power_max_device = 0
+    setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     
+    ############################################################################
     # Initialize PID controller
     pid = PID(Kp=1.0, Ki=0.1, Kd=0.01)
     sampling_time = 1  # in seconds, adjust as needed
     
     if value_consumption:
         grid_balancing_power = value_consumption - value_production
-        # Add the latest consumption value to the queue
+        # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(grid_balancing_power)
-        # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         
         # Apply rate-limiting to the setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
-        change_in_setpoint = avg_consumption - process_caculator_zero_export.last_setpoint
-        if abs(change_in_setpoint) > max_rate_of_change:
-            setpoint = process_caculator_zero_export.last_setpoint + max_rate_of_change * (1 if change_in_setpoint > 0 else -1)
-        else:
-            setpoint = avg_consumption
+
+        # Calculate the new setpoint
+        new_setpoint = avg_consumption
+
+        # Limit the change in setpoint
+        setpoint = max(
+            process_caculator_zero_export.last_setpoint - max_rate_of_change,
+            min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
+        )
+
         process_caculator_zero_export.last_setpoint = setpoint
         
         setpoint = pid.update(setpoint, sampling_time)
@@ -955,7 +961,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         if setpoint :
             setpoint = setpoint - (setpoint*value_offset_zero_export/100)
             setpoint = round(setpoint,4)
-            
+    ############################################################################
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
