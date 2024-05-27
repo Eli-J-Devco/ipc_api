@@ -916,11 +916,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     if value_consumption:
         grid_balancing_power = value_consumption - value_production
-        
+        print("grid_balancing_power",grid_balancing_power)
         # Add the latest consumption value to the queue
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
+        
+        print("avg_consumption",avg_consumption)
         # Apply rate-limiting to the setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
@@ -935,7 +937,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             setpoint = setpoint - (setpoint*value_offset_zero_export/100)
         else:
             setpoint = 0
-
+        print("setpoint",setpoint)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
