@@ -921,7 +921,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         consumption_queue.append(grid_balancing_power)
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        
+        avg_consumption = int(avg_consumption)
         print("avg_consumption",avg_consumption)
         # Apply rate-limiting to the setpoint
         # if not hasattr(process_caculator_zero_export, 'last_setpoint'):
