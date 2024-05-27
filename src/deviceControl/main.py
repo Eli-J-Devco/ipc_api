@@ -918,8 +918,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         # Calculate the average of the queue
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         if avg_consumption :
-            print("avg_consumption",avg_consumption)
             avg_consumption = avg_consumption - (avg_consumption*value_offset_zero_export/100)
+            print("avg_consumption",avg_consumption)
             avg_consumption = round(avg_consumption,4)
             print("avg_consumption",avg_consumption)
     # Check device equipment qualified for control
