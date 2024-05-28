@@ -926,30 +926,25 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     """
     # Calculate the error
     error = setpoint - feedback
-    print("error",error)
     # Ensure error is not too small
     if abs(error) < 0.001:
         error = 0.001 * (1 if error > 0 else -1)
     
     # Proportional term
     p_term = Kp * error
-    print("p_term",p_term)
     # Integral term
     global integral
     integral += error * dt
     i_term = Ki * integral
-    print("i_term",i_term)
     # Derivative term
     global previous_error
     derivative = (error - previous_error) / dt
     d_term = Kd * derivative
     previous_error = error
-    print("d_term",d_term)
     # Calculate the total control output
     output = p_term + i_term + d_term
-    print("output",output)
     # Ensure output is an integer and set to 0 if less than 0
-    output = max(0, round(output))
+    output = max(0, output)
     
     return output
 # Describe process_caculator_zero_export 
@@ -988,9 +983,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         setpoint = round(setpoint, 4)
         # Update setpoint using simplified PID controller with feedback
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
+        print("output",output)
         if output:
             output -= output * value_offset_zero_export / 100
             output = round(output, 4)
+            
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -1011,8 +1008,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             # Calculate the total performance of the system
             if output and power_max_device and slope:
                 efficiency_total = (output / total_power)
-                print("output",output)
-                print("total_power",total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
@@ -1023,6 +1018,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     p_for_each_device_zero_export = power_min_device / slope
                 else:
                     p_for_each_device_zero_export = power_max_device / slope
+                
+                p_for_each_device_zero_export = int(p_for_each_device_zero_export)
             # Check device is off, on device
             if device['controlinv'] == 1:
                 new_device = {
