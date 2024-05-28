@@ -956,6 +956,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             setpoint = setpoint - (setpoint*value_offset_zero_export/100)
             setpoint = round(setpoint,4)
             
+        setpoint = max(0, setpoint)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
