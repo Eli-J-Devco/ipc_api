@@ -35,6 +35,18 @@ control_mode_detail = 0
 value_offset_zero_export = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
+# PID controller parameters
+Kp = 1
+Ki = 0.01
+Kd = 0.01
+dt = 0.1 
+# Khởi tạo biến toàn cục
+integral = 0
+previous_error = 0
+# so lan tin trung binh dong
+consumption_queue = collections.deque(maxlen=10)
+# gioi hanj gia tri tang moi lan dao dong chi 10 
+max_rate_of_change = 10  # Maximum allowed change per second
 
 value_production = 0
 value_consumption = 0
@@ -50,10 +62,6 @@ value_production_zero_export = 0
 value_consumption_zero_export = 0
 value_production_power_limit = 0
 value_consumption_power_limit = 0
-# Initialize consumption queue for smoothing
-consumption_queue = collections.deque(maxlen=10)
-# Rate-limiting parameters
-max_rate_of_change = 10  # Maximum allowed change per second
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -682,7 +690,7 @@ async def get_value_meter():
                 result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
                 # Caculator Value Meter Production
                 if result_type_meter:
-                    if result_type_meter[0]["name"] == "Production Meter": 
+                    if result_type_meter[0]["name"] == "PV System Inverter": 
                         value_production_aray = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                         if len(value_production_aray) > 0 and value_production_aray[0] is not None:
                             total_value_production += value_production_aray[0]
@@ -894,21 +902,56 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
-# Bộ điều khiển PID
-class PID:
-    def __init__(self, Kp, Ki, Kd):
-        self.Kp = Kp
-        self.Ki = Ki
-        self.Kd = Kd
-        self.previous_error = 0
-        self.integral = 0
-
-    def update(self, error, dt):
-        self.integral += error * dt
-        derivative = (error - self.previous_error) / dt
-        output = self.Kp * error + self.Ki * self.integral + self.Kd * derivative
-        self.previous_error = error
-        return output
+# Describe simple_pid 
+# 	 * @description simple_pid
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {Kp, Ki, Kd, setpoint, feedback, previous_error, integral, dt}
+# 	 * @return output, error, integral
+# 	 */ 
+def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
+    """
+    Implements a basic PID controller.
+    
+    Args:
+        setpoint (float): The desired value or target.
+        feedback (float): The measured or current value.
+        Kp (float): The proportional gain.
+        Ki (float): The integral gain.
+        Kd (float): The derivative gain.
+        dt (float): The time step or sample time.
+    
+    Returns:
+        float: The control output.
+    """
+    # Calculate the error
+    error = setpoint - feedback
+    print("error",error)
+    # Ensure error is not too small
+    if abs(error) < 0.001:
+        error = 0.001 * (1 if error > 0 else -1)
+    
+    # Proportional term
+    p_term = Kp * error
+    print("p_term",p_term)
+    # Integral term
+    global integral
+    integral += error * dt
+    i_term = Ki * integral
+    print("i_term",i_term)
+    # Derivative term
+    global previous_error
+    derivative = (error - previous_error) / dt
+    d_term = Kd * derivative
+    previous_error = error
+    print("d_term",d_term)
+    # Calculate the total control output
+    output = p_term + i_term + d_term
+    print("output",output)
+    # Ensure output is an integer and set to 0 if less than 0
+    output = max(0, round(output))
+    
+    return output
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -918,51 +961,36 @@ class PID:
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue
+    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt
     # Local variables
     efficiency_total = 0
     id_device = 0
     result_slope = []
     slope = 1.0
-    grid_balancing_power = 0
     power_min_device = 0
     power_max_device = 0
     setpoint = 0
+    output = 0 
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-    
-    ############################################################################
-    # Initialize PID controller
-    pid = PID(Kp=1.0, Ki=0.1, Kd=0.01)
-    sampling_time = 1  # in seconds, adjust as needed
-    
-    if value_consumption:
-        grid_balancing_power = value_consumption - value_production
+    if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
-        consumption_queue.append(grid_balancing_power)
+        consumption_queue.append(value_consumption)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        
-        # Apply rate-limiting to the setpoint
+        # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
-
-        # Calculate the new setpoint
         new_setpoint = avg_consumption
-
-        # Limit the change in setpoint
         setpoint = max(
             process_caculator_zero_export.last_setpoint - max_rate_of_change,
             min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
         )
-
         process_caculator_zero_export.last_setpoint = setpoint
-        
-        setpoint = pid.update(setpoint, sampling_time)
-        
-        if setpoint :
-            setpoint = setpoint - (setpoint*value_offset_zero_export/100)
-            setpoint = round(setpoint,4)
-            
-        setpoint = max(0, setpoint)
+        setpoint = round(setpoint, 4)
+        # Update setpoint using simplified PID controller with feedback
+        output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
+        if output:
+            output -= output * value_offset_zero_export / 100
+            output = round(output, 4)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -981,8 +1009,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
             # Calculate the total performance of the system
-            if setpoint and power_max_device and slope:
-                efficiency_total = (setpoint / total_power)
+            if output and power_max_device and slope:
+                efficiency_total = (output / total_power)
+                print("output",output)
+                print("total_power",total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
