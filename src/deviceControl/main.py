@@ -57,11 +57,12 @@ value_consumption_1m = 0
 value_production_1h = 0
 value_consumption_1h = 0
 value_production_daily = 0
-value_consumption_daily = 0
+value_consumption_daily = 0 
 value_production_zero_export = 0
 value_consumption_zero_export = 0
 value_production_power_limit = 0
 value_consumption_power_limit = 0
+maxpower_production_instant = 0.0
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -770,11 +771,10 @@ async def get_value_meter():
 # 	 */ 
 async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export
+    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export,maxpower_production_instant
     try:
         timestamp = get_utc()
         topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
-        max_production = 0.0
 
         # Format data
         value_metter = {
@@ -794,13 +794,13 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
                 if "mppt" in device:
                     for mppt in device["mppt"]:
                         if "power" in mppt:
-                            max_production += mppt["power"]
+                            maxpower_production_instant += mppt["power"]
 
         # instant power
         value_metter["instant"]["production"] = round(value_production , 4)
         value_metter["instant"]["consumption"] = round(value_consumption , 4)
         value_metter["instant"]["grid_feed"] = round((value_production - value_consumption), 4)
-        value_metter["instant"]["max_production"] = round(max_production , 4)
+        value_metter["instant"]["max_production"] = round(maxpower_production_instant , 4)
 
         # minutely power
         value_metter["minutely"]["production"] = round(value_production_1m , 4)
@@ -956,7 +956,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt
+    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -967,7 +967,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     setpoint = 0
     output = 0 
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-    if value_consumption :
+    if value_consumption and maxpower_production_instant > 0.01:
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
@@ -983,7 +983,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         setpoint = round(setpoint, 4)
         # Update setpoint using simplified PID controller with feedback
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
-        print("output",output)
         if output:
             output -= output * value_offset_zero_export / 100
             output = round(output, 4)
