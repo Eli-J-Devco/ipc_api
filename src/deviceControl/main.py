@@ -900,6 +900,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :
+            print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 # Describe simple_pid 
@@ -1259,7 +1260,6 @@ async def process_getfirst_zeroexport_powerlimit():
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global control_mode_detail
-    print("control_mode_detail",control_mode_detail)
     # Select the auto run process
     if control_mode_detail == 1 :
         print("==============================zero_export==============================")
