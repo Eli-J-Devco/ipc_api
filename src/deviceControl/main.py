@@ -919,29 +919,20 @@ async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqt
     # Local variables
     topicPudParaPID = serial_number_project + MQTT_TOPIC_PUD_PID_FEEDBACK
     current_time = get_utc()
-    mode_auto = ""
-    comment = 0
-    confirm_mode_detail = []
     # Receve data from mqtt
     try:
-        if mqtt_result and 'control_mode' in mqtt_result :
-            mode_auto = mqtt_result['control_mode'] 
-            mode_auto = int(mode_auto)
-            # Compare get information update database 
-            if mode_auto == 1:
-                control_mode_detail = 1
-            elif mode_auto == 2:
-                control_mode_detail = 2 
-            # write mode detail in database
-            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+        if mqtt_result and 'parameterPID' in mqtt_result :
+            Kp = mqtt_result['parameterPID']["Kp"]
+            Ki = mqtt_result['parameterPID']["Ki"]
+            Kd = mqtt_result['parameterPID']["Kd"]
+            dt = mqtt_result['parameterPID']["dt"]
             # When you receive one of the above information, give feedback to mqtt
-            if confirm_mode_detail == None :
-                comment = 400 
-            else:
-                comment = 200 
             data_send = {
                         "time_stamp" :current_time,
-                        "status":comment, 
+                        "confirm Kp":Kp, 
+                        "confirm Kp":Ki, 
+                        "confirm Kp":Kd, 
+                        "confirm Kp":dt, 
                         }
             push_data_to_mqtt(mqtt_host,
                     mqtt_port,
@@ -951,7 +942,7 @@ async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqt
                     data_send)
         else:
             pass
-            
+        
     except Exception as err:
         print(f"Error MQTT subscribe process_caculator_parameter_pid: '{err}'")
 def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
@@ -1232,20 +1223,29 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
     # Local variables
     topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
     current_time = get_utc()
+    mode_auto = ""
+    comment = 0
+    confirm_mode_detail = []
     # Receve data from mqtt
     try:
-        if mqtt_result and 'parameterPID' in mqtt_result :
-            Kp = mqtt_result['parameterPID']["Kp"]
-            Ki = mqtt_result['parameterPID']["Ki"]
-            Kd = mqtt_result['parameterPID']["Kd"]
-            dt = mqtt_result['parameterPID']["dt"]
+        if mqtt_result and 'control_mode' in mqtt_result :
+            mode_auto = mqtt_result['control_mode'] 
+            mode_auto = int(mode_auto)
+            # Compare get information update database 
+            if mode_auto == 1:
+                control_mode_detail = 1
+            elif mode_auto == 2:
+                control_mode_detail = 2 
+            # write mode detail in database
+            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
             # When you receive one of the above information, give feedback to mqtt
+            if confirm_mode_detail == None :
+                comment = 400 
+            else:
+                comment = 200 
             data_send = {
                         "time_stamp" :current_time,
-                        "confirm Kp":Kp, 
-                        "confirm Kp":Ki, 
-                        "confirm Kp":Kd, 
-                        "confirm Kp":dt, 
+                        "status":comment, 
                         }
             push_data_to_mqtt(mqtt_host,
                     mqtt_port,
