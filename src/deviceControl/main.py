@@ -116,6 +116,8 @@ MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
+MQTT_TOPIC_SUD_PID = "Control/Parameter/PID"
+MQTT_TOPIC_PUD_PID_FEEDBACK = "Control/Parameter/PID/Feedback"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -911,6 +913,47 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 * @param {Kp, Ki, Kd, setpoint, feedback, previous_error, integral, dt}
 # 	 * @return output, error, integral
 # 	 */ 
+async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+    # Global variables
+    global Kp, Ki, Kd,dt
+    # Local variables
+    topicPudParaPID = serial_number_project + MQTT_TOPIC_PUD_PID_FEEDBACK
+    current_time = get_utc()
+    mode_auto = ""
+    comment = 0
+    confirm_mode_detail = []
+    # Receve data from mqtt
+    try:
+        if mqtt_result and 'control_mode' in mqtt_result :
+            mode_auto = mqtt_result['control_mode'] 
+            mode_auto = int(mode_auto)
+            # Compare get information update database 
+            if mode_auto == 1:
+                control_mode_detail = 1
+            elif mode_auto == 2:
+                control_mode_detail = 2 
+            # write mode detail in database
+            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+            # When you receive one of the above information, give feedback to mqtt
+            if confirm_mode_detail == None :
+                comment = 400 
+            else:
+                comment = 200 
+            data_send = {
+                        "time_stamp" :current_time,
+                        "status":comment, 
+                        }
+            push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPudParaPID ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+        else:
+            pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe process_caculator_parameter_pid: '{err}'")
 def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     """
     Implements a basic PID controller.
@@ -1189,29 +1232,20 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
     # Local variables
     topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK
     current_time = get_utc()
-    mode_auto = ""
-    comment = 0
-    confirm_mode_detail = []
     # Receve data from mqtt
     try:
-        if mqtt_result and 'control_mode' in mqtt_result :
-            mode_auto = mqtt_result['control_mode'] 
-            mode_auto = int(mode_auto)
-            # Compare get information update database 
-            if mode_auto == 1:
-                control_mode_detail = 1
-            elif mode_auto == 2:
-                control_mode_detail = 2 
-            # write mode detail in database
-            confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+        if mqtt_result and 'parameterPID' in mqtt_result :
+            Kp = mqtt_result['parameterPID']["Kp"]
+            Ki = mqtt_result['parameterPID']["Ki"]
+            Kd = mqtt_result['parameterPID']["Kd"]
+            dt = mqtt_result['parameterPID']["dt"]
             # When you receive one of the above information, give feedback to mqtt
-            if confirm_mode_detail == None :
-                comment = 400 
-            else:
-                comment = 200 
             data_send = {
                         "time_stamp" :current_time,
-                        "status":comment, 
+                        "confirm Kp":Kp, 
+                        "confirm Kp":Ki, 
+                        "confirm Kp":Kd, 
+                        "confirm Kp":dt, 
                         }
             push_data_to_mqtt(mqtt_host,
                     mqtt_port,
@@ -1287,12 +1321,14 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_MODEGET_CPU
     global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
+    global MQTT_TOPIC_SUD_PID
                                                     
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
     result_topic6 = ""
     result_topic7 = ""
+    result_topic8 = ""
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -1304,6 +1340,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
+    topic8 = serial_number_project + MQTT_TOPIC_SUD_PID
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1331,6 +1368,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
+        elif topic == topic8:
+            result_topic8 = message
+            await process_caculator_parameter_pid(result_topic8,serial_number_project, host, port, username, password)
+            print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1340,8 +1381,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7, username, password):
-    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7]
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8, username, password):
+    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7,topic8]
     
     while True:
         try:
@@ -1411,6 +1452,7 @@ async def main():
                                                         MQTT_TOPIC_SUD_MODEGET_CPU,
                                                         MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                         MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+                                                        MQTT_TOPIC_SUD_PID,
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
