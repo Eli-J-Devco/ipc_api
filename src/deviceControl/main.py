@@ -32,14 +32,15 @@ sent_information = ""
 devices = []
 
 control_mode_detail = 0
+value_threshold_zero_export = 0
 value_offset_zero_export = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
 # PID controller parameters
-Kp = 1
-Ki = 0.01
-Kd = 0.01
-dt = 0.1 
+Kp = 0
+Ki = 0
+Kd = 0
+dt = 0
 # Khởi tạo biến toàn cục
 integral = 0
 previous_error = 0
@@ -57,11 +58,12 @@ value_consumption_1m = 0
 value_production_1h = 0
 value_consumption_1h = 0
 value_production_daily = 0
-value_consumption_daily = 0
+value_consumption_daily = 0 
 value_production_zero_export = 0
 value_consumption_zero_export = 0
 value_production_power_limit = 0
 value_consumption_power_limit = 0
+maxpower_production_instant = 0.0
 
 start_time_minutely = time.time()
 start_time_hourly = time.time()
@@ -115,6 +117,8 @@ MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
+MQTT_TOPIC_SUD_PID = "/Control/Parameter/PID"
+MQTT_TOPIC_PUD_PID_FEEDBACK = "/Control/Parameter/PID/Feedback"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -770,12 +774,11 @@ async def get_value_meter():
 # 	 */ 
 async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export
+    global result_topic4, value_production, value_consumption, value_production_1m, value_consumption_1m, value_production_1h, value_consumption_1h, value_production_daily, value_consumption_daily, MQTT_TOPIC_PUD_MONIT_METER,value_consumption_power_limit,value_production_power_limit,value_consumption_zero_export,value_production_zero_export,maxpower_production_instant
     try:
         timestamp = get_utc()
         topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
-        max_production = 0.0
-
+        maxpower_production_instant_temp = 0
         # Format data
         value_metter = {
             "Timestamp": timestamp,
@@ -789,18 +792,18 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 
         if result_topic4:
             # await get_value_meter_zero_export()
-            # await get_value_meter_power_limit()
             for device in result_topic4:
                 if "mppt" in device:
                     for mppt in device["mppt"]:
                         if "power" in mppt:
-                            max_production += mppt["power"]
+                            maxpower_production_instant_temp += mppt["power"]
+                            maxpower_production_instant = maxpower_production_instant_temp
 
         # instant power
         value_metter["instant"]["production"] = round(value_production , 4)
         value_metter["instant"]["consumption"] = round(value_consumption , 4)
         value_metter["instant"]["grid_feed"] = round((value_production - value_consumption), 4)
-        value_metter["instant"]["max_production"] = round(max_production , 4)
+        value_metter["instant"]["max_production"] = round(maxpower_production_instant , 4)
 
         # minutely power
         value_metter["minutely"]["production"] = round(value_production_1m , 4)
@@ -862,8 +865,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 slope = float(result_slope[0]["slope"])
             # Convert power real 
             if power_max_device and slope :
-                p_max_real = total_power*1000
-                efficiency_total = (value_power_limit/p_max_real)
+                efficiency_total = (value_power_limit/total_power)
+                print("value_power_limit",value_power_limit)
+                print("total_power",total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -900,6 +904,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :
+            print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 # Describe simple_pid 
@@ -909,6 +914,49 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 * @param {Kp, Ki, Kd, setpoint, feedback, previous_error, integral, dt}
 # 	 * @return output, error, integral
 # 	 */ 
+async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+    # Global variables
+    global Kp, Ki, Kd,dt
+    # Local variables
+    result_parameter_PID = []
+    topicPudParaPID = serial_number_project + MQTT_TOPIC_PUD_PID_FEEDBACK
+    current_time = get_utc()
+    comment = 0
+    # Receve data from mqtt
+    try:
+        if mqtt_result and 'parameterPID' in mqtt_result :
+            Kp = mqtt_result['parameterPID']["Kp"]
+            Ki = mqtt_result['parameterPID']["Ki"]
+            Kd = mqtt_result['parameterPID']["Kd"]
+            dt = mqtt_result['parameterPID']["dt"]
+            
+            result_parameter_PID = MySQL_Update_V1("update project_setup set kp_zero_export = %s ,ki_zero_export = %s ,kd_zero_export = %s,delta_time_zero_export = %s ", (Kp,Ki,Kd,dt))
+            
+            # When you receive one of the above information, give feedback to mqtt
+            if result_parameter_PID == None :
+                comment = 400 
+            else:
+                comment = 200 
+                    
+            data_send = {
+                        "time_stamp" :current_time,
+                        "status":comment,
+                        "confirm Kp":Kp, 
+                        "confirm Ki":Ki, 
+                        "confirm Kd":Kd, 
+                        "confirm dt":dt, 
+                        }
+            push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPudParaPID ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+        else:
+            pass
+        
+    except Exception as err:
+        print(f"Error MQTT subscribe process_caculator_parameter_pid: '{err}'")
 def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     """
     Implements a basic PID controller.
@@ -956,7 +1004,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt
+    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -967,7 +1015,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     setpoint = 0
     output = 0 
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
-    if value_consumption :
+    if value_consumption and maxpower_production_instant > 0.01:
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
@@ -983,7 +1031,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         setpoint = round(setpoint, 4)
         # Update setpoint using simplified PID controller with feedback
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
-        print("output",output)
         if output:
             output -= output * value_offset_zero_export / 100
             output = round(output, 4)
@@ -1130,7 +1177,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
+    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1147,14 +1194,15 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
             # Compare get information update database 
             if mode_auto == 1:
                 value_offset_zero_export = mqtt_result["offset"]
-                result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s", (value_offset_zero_export,))
+                value_threshold_zero_export = mqtt_result["threshold"]
+                result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (value_offset_zero_export,value_threshold_zero_export,))
             elif mode_auto == 2:
                 value_power_limit_temp = mqtt_result["value"]
                 value_offset_power_limit = mqtt_result["offset"]
                 # write information in database 
                 result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
-                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
+                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
                 if result_parameter_zero_export == None or result_parameter_power_limit == None :
@@ -1232,7 +1280,7 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
 # 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
     # Global variables
-    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit
+    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit,value_threshold_zero_export,Kp,Ki,Kd,dt
     # Local variables
     value_power_limit_temp = 0
     result_project_setup = []
@@ -1244,7 +1292,12 @@ async def process_getfirst_zeroexport_powerlimit():
             value_offset_zero_export = result_project_setup[0]["value_offset_zero_export"]
             value_power_limit_temp = result_project_setup[0]["value_power_limit"]
             value_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
-            value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
+            value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
+            value_threshold_zero_export = result_project_setup[0]["threshold_zero_export"]
+            Kp = result_project_setup[0]["kp_zero_export"]
+            Ki = result_project_setup[0]["ki_zero_export"]
+            Kd = result_project_setup[0]["kd_zero_export"]
+            dt = result_project_setup[0]["delta_time_zero_export"]
         else:
             pass
             
@@ -1260,7 +1313,6 @@ async def process_getfirst_zeroexport_powerlimit():
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global control_mode_detail
-    print("control_mode_detail",control_mode_detail)
     # Select the auto run process
     if control_mode_detail == 1 :
         print("==============================zero_export==============================")
@@ -1287,12 +1339,14 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_MODEGET_CPU
     global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
+    global MQTT_TOPIC_SUD_PID
                                                     
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
     result_topic6 = ""
     result_topic7 = ""
+    result_topic8 = ""
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -1304,6 +1358,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
+    topic8 = serial_number_project + MQTT_TOPIC_SUD_PID
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1331,6 +1386,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
+        elif topic == topic8:
+            result_topic8 = message
+            await process_caculator_parameter_pid(result_topic8,serial_number_project, host, port, username, password)
+            print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1340,8 +1399,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7, username, password):
-    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7]
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8, username, password):
+    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7,topic8]
     
     while True:
         try:
@@ -1352,7 +1411,6 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, to
             await client.start()
             for topic in topics:
                 await client.subscribe(serial_number_project + topic)
-
             while True:
                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
                 if message:
@@ -1411,6 +1469,7 @@ async def main():
                                                         MQTT_TOPIC_SUD_MODEGET_CPU,
                                                         MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                         MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+                                                        MQTT_TOPIC_SUD_PID,
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
