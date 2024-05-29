@@ -53,8 +53,9 @@ def init_driver():
             return -1
         query_all = statement[0]["select_all_device"]
         # 
-        LOGGER.warn(query_all)
+        LOGGER.warn(f'query_all: {query_all}')
         results = MySQL_Select(query_all, ())
+        LOGGER.warn(f'results: {results}')
         if type(results) == list and len(results)>=1:
             pass
         else:           
