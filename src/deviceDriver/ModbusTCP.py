@@ -1331,7 +1331,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 "id": point_item["id"],
                                 "point_key":point_item["point_key"],
                                 "name": point_item["name"],
-                                "power":round(power,2),
+                                "power":round(power,2)/1000,
                                 "area":round(total_area_string,2),
                                 "irradiance":round(irradiance,2),
                                 "number_panel":number_mppt_panel,
