@@ -381,7 +381,7 @@ def init_device_service():
         # use run with ubuntu/linux
         subprocess.Popen(
             f'sudo /usr/bin/python3 /sources/python/services/init_device_service/setup.py', shell=True).communicate()
-        
+time.sleep(10)        
 delete_all_app_pm2()
 # init_api_web()
 init_api_gateway()
