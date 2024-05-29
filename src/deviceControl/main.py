@@ -862,8 +862,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 slope = float(result_slope[0]["slope"])
             # Convert power real 
             if power_max_device and slope :
-                p_max_real = total_power
-                efficiency_total = (value_power_limit/p_max_real)
+                efficiency_total = (value_power_limit/total_power)
+                print("value_power_limit",value_power_limit)
+                print("total_power",total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
