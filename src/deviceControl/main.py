@@ -32,14 +32,15 @@ sent_information = ""
 devices = []
 
 control_mode_detail = 0
+value_threshold_zero_export = 0
 value_offset_zero_export = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
 # PID controller parameters
-Kp = 0.1
-Ki = 0.01
-Kd = 0.01
-dt = 0.1 
+Kp = 0
+Ki = 0
+Kd = 0
+dt = 0
 # Khởi tạo biến toàn cục
 integral = 0
 previous_error = 0
@@ -116,8 +117,8 @@ MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
-MQTT_TOPIC_SUD_PID = "Control/Parameter/PID"
-MQTT_TOPIC_PUD_PID_FEEDBACK = "Control/Parameter/PID/Feedback"
+MQTT_TOPIC_SUD_PID = "/Control/Parameter/PID"
+MQTT_TOPIC_PUD_PID_FEEDBACK = "/Control/Parameter/PID/Feedback"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -917,8 +918,10 @@ async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqt
     # Global variables
     global Kp, Ki, Kd,dt
     # Local variables
+    result_parameter_PID = []
     topicPudParaPID = serial_number_project + MQTT_TOPIC_PUD_PID_FEEDBACK
     current_time = get_utc()
+    comment = 0
     # Receve data from mqtt
     try:
         if mqtt_result and 'parameterPID' in mqtt_result :
@@ -926,13 +929,22 @@ async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqt
             Ki = mqtt_result['parameterPID']["Ki"]
             Kd = mqtt_result['parameterPID']["Kd"]
             dt = mqtt_result['parameterPID']["dt"]
+            
+            result_parameter_PID = MySQL_Update_V1("update project_setup set kp_zero_export = %s ,ki_zero_export = %s ,kd_zero_export = %s,delta_time_zero_export = %s ", (Kp,Ki,Kd,dt))
+            
             # When you receive one of the above information, give feedback to mqtt
+            if result_parameter_PID == None :
+                comment = 400 
+            else:
+                comment = 200 
+                    
             data_send = {
                         "time_stamp" :current_time,
+                        "status":comment,
                         "confirm Kp":Kp, 
-                        "confirm Kp":Ki, 
-                        "confirm Kp":Kd, 
-                        "confirm Kp":dt, 
+                        "confirm Ki":Ki, 
+                        "confirm Kd":Kd, 
+                        "confirm dt":dt, 
                         }
             push_data_to_mqtt(mqtt_host,
                     mqtt_port,
@@ -1165,7 +1177,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
+    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1182,7 +1194,8 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
             # Compare get information update database 
             if mode_auto == 1:
                 value_offset_zero_export = mqtt_result["offset"]
-                result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s", (value_offset_zero_export,))
+                value_threshold_zero_export = mqtt_result["threshold"]
+                result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (value_offset_zero_export,value_threshold_zero_export,))
             elif mode_auto == 2:
                 value_power_limit_temp = mqtt_result["value"]
                 value_offset_power_limit = mqtt_result["offset"]
@@ -1267,7 +1280,7 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
 # 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
     # Global variables
-    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit
+    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit,value_threshold_zero_export,Kp,Ki,Kd,dt
     # Local variables
     value_power_limit_temp = 0
     result_project_setup = []
@@ -1280,6 +1293,11 @@ async def process_getfirst_zeroexport_powerlimit():
             value_power_limit_temp = result_project_setup[0]["value_power_limit"]
             value_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
             value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
+            value_threshold_zero_export = result_project_setup[0]["threshold_zero_export"]
+            Kp = result_project_setup[0]["kp_zero_export"]
+            Ki = result_project_setup[0]["ki_zero_export"]
+            Kd = result_project_setup[0]["kd_zero_export"]
+            dt = result_project_setup[0]["delta_time_zero_export"]
         else:
             pass
             
@@ -1393,7 +1411,6 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, to
             await client.start()
             for topic in topics:
                 await client.subscribe(serial_number_project + topic)
-
             while True:
                 message = await asyncio.wait_for(client.messages.get(), timeout=5.0)
                 if message:
