@@ -789,13 +789,12 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 
         if result_topic4:
             # await get_value_meter_zero_export()
-            # await get_value_meter_power_limit()
             for device in result_topic4:
                 if "mppt" in device:
                     for mppt in device["mppt"]:
                         if "power" in mppt:
                             maxpower_production_instant_temp += mppt["power"]
-                            maxpower_production_instant_temp = maxpower_production_instant
+                            maxpower_production_instant = maxpower_production_instant_temp
 
         # instant power
         value_metter["instant"]["production"] = round(value_production , 4)
