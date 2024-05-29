@@ -1245,7 +1245,7 @@ async def process_getfirst_zeroexport_powerlimit():
             value_offset_zero_export = result_project_setup[0]["value_offset_zero_export"]
             value_power_limit_temp = result_project_setup[0]["value_power_limit"]
             value_offset_power_limit = result_project_setup[0]["value_offset_power_limit"]
-            value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
+            value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
         else:
             pass
             
