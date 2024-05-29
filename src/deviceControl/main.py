@@ -862,7 +862,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 slope = float(result_slope[0]["slope"])
             # Convert power real 
             if power_max_device and slope :
-                p_max_real = total_power*1000
+                p_max_real = total_power
                 efficiency_total = (value_power_limit/p_max_real)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
@@ -1153,7 +1153,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 # write information in database 
                 result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
-                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)*1000
+                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
                 if result_parameter_zero_export == None or result_parameter_power_limit == None :
