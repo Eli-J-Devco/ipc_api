@@ -36,7 +36,7 @@ value_offset_zero_export = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
 # PID controller parameters
-Kp = 1
+Kp = 0.1
 Ki = 0.01
 Kd = 0.01
 dt = 0.1 
