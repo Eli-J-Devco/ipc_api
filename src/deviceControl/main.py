@@ -775,7 +775,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
     try:
         timestamp = get_utc()
         topicPublic = serial_number_project + MQTT_TOPIC_PUD_MONIT_METER
-
+        maxpower_production_instant_temp = 0
         # Format data
         value_metter = {
             "Timestamp": timestamp,
@@ -794,7 +794,8 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
                 if "mppt" in device:
                     for mppt in device["mppt"]:
                         if "power" in mppt:
-                            maxpower_production_instant += mppt["power"]
+                            maxpower_production_instant_temp += mppt["power"]
+                            maxpower_production_instant_temp = maxpower_production_instant
 
         # instant power
         value_metter["instant"]["production"] = round(value_production , 4)
