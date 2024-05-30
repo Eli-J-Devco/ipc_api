@@ -974,10 +974,6 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     """
     # Calculate the error
     error = setpoint - feedback
-    # Ensure error is not too small
-    if abs(error) < 0.001:
-        error = 0.001 * (1 if error > 0 else -1)
-    
     # Proportional term
     p_term = Kp * error
     # Integral term
@@ -991,9 +987,12 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     previous_error = error
     # Calculate the total control output
     output = p_term + i_term + d_term
-    # Ensure output is an integer and set to 0 if less than 0
-    output = max(0, output)
-    output = min (output,setpoint)
+    # If setpoint = feedback, maintain output
+    if abs(error) < 0.001:
+        output = output
+    else:
+        output = max(0, output)
+        output = min(output, setpoint)
     return output
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
