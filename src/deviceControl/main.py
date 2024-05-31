@@ -1036,6 +1036,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             print("output2: ", output)
             output = round(output, 4)
             print("output3: ", output)
+            print("setpoint: ", setpoint)
+            print("value_consumption: ", value_consumption)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
