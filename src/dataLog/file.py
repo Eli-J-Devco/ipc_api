@@ -499,9 +499,9 @@ async def insert_sync(id_device):
 async def delete_data_when_sync():
     try:
         # Delete rows from project_setup table where synced = 1
-        query = "DELETE FROM project_setup WHERE synced = 1;"
+        query = "DELETE FROM sync_data WHERE synced = 1;"
         result_delete = await MySQL_Delete(query)
-        print(f"Deleted {result_delete.rowcount} rows from project_setup table")
+        print(f"Deleted {result_delete.rowcount} rows from sync_data table")
     except Exception as err:
         print(f"Error MQTT subscribe delete_data_when_sync: '{err}'")
         
