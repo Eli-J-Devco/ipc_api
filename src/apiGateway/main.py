@@ -319,7 +319,9 @@ class apiGateway:
                         if 'min_watt_in_percent' in result.keys():
                             self.DeviceList[i]["min_watt_in_percent"]=result["min_watt_in_percent"]
                         if 'meter_type' in result.keys():
-                            self.DeviceList[i]["meter_type"]=result["meter_type"]        
+                            self.DeviceList[i]["meter_type"]=result["meter_type"] 
+                        if 'inverter_type' in result.keys():
+                            self.DeviceList[i]["inverter_type"]=result["inverter_type"]        
 
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
@@ -364,6 +366,7 @@ class apiGateway:
                         "mode":item["mode"],
                         "parameters":[],
                         "efficiency":item["efficiency"],
+                        # "inverter_type":item["inverter_type"],
                         # 
                         # "rated_power":rated_power,
                         # "rated_power_custom":rated_power_custom,
