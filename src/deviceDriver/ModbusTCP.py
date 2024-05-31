@@ -119,7 +119,7 @@ rated_DC_input_voltage =None
 maximum_DC_input_current=None
 # 
 rated_DC_input_power=None
-
+inverter_type=None
 
 
 # config[0] -- id
@@ -987,7 +987,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global meter_type
         global rated_DC_input_voltage
         global maximum_DC_input_current
-        
+        global inverter_type
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -1001,7 +1001,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         maximum_DC_input_current=results_device[0]['DC_current']
         
         meter_type=results_device[0]['meter_type']
-        
+        inverter_type =results_device[0]['inverter_type']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1212,6 +1212,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global rated_power_custom
             global min_watt_in_percent
             global meter_type
+            global inverter_type
             new_point_list_device=[]
             new_point=[]
             mppt=[]
@@ -1476,6 +1477,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
                 "meter_type":meter_type,
+                "inverter_type":inverter_type,
                 "status_device":status_device,
                 "timestamp":getUTC(),
                 "message":msg_device,

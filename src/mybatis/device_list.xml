@@ -51,8 +51,9 @@
 	      device_list.min_watt_in_percent,
         device_list.meter_type,
         device_list.DC_voltage,
-        device_list.DC_current
-        
+        device_list.DC_current,
+        device_list.inverter_type
+
         FROM device_list
         INNER JOIN device_type ON device_list.id_device_type=device_type.id
         INNER JOIN communication ON device_list.id_communication=communication.id
