@@ -581,7 +581,7 @@ async def main():
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
         scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
-        scheduler.add_job(delete_data_when_sync, 'cron',  minute = f'*/1', args=[arr])
+        scheduler.add_job(delete_data_when_sync, 'cron',  minute = f'*/1', args=[])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
