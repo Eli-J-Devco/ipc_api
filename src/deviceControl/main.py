@@ -993,6 +993,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     else:
         output = max(0, output)
         output = min(output, setpoint)
+        print("output: ", output)
     return output
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
