@@ -993,7 +993,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     else:
         output = max(0, output)
         output = min(output, setpoint)
-        print("output: ", output)
+        print("output1: ", output)
     return output
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -1033,8 +1033,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
         if output:
             output -= output * value_offset_zero_export / 100
+            print("output2: ", output)
             output = round(output, 4)
-            
+            print("output3: ", output)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
