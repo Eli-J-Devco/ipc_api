@@ -489,7 +489,23 @@ async def insert_sync(id_device):
         MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,value_many)
     else :
         pass
-
+#--------------------------------------------------------------------
+# /**
+# 	 * @description Insert data to Database
+# 	 * @author bnguyen
+# 	 * @since 04-01-2024
+# 	 * @param {}
+# 	 * @return  
+# 	 */ 
+async def delete_data_when_sync():
+    try:
+        # Delete rows from project_setup table where synced = 1
+        query = "DELETE FROM project_setup WHERE synced = 1;"
+        result_delete = await MySQL_Delete(query)
+        print(f"Deleted {result_delete.rowcount} rows from project_setup table")
+    except Exception as err:
+        print(f"Error MQTT subscribe delete_data_when_sync: '{err}'")
+        
 async def main():
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     # Query global 
@@ -566,6 +582,7 @@ async def main():
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
         scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
+        scheduler.add_job(delete_data_when_sync, 'cron',  hour = f'*/1', second=1)
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
