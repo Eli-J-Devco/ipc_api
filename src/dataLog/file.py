@@ -489,7 +489,6 @@ async def insert_sync(id_device):
         MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,value_many)
     else :
         pass
-#--------------------------------------------------------------------
 # /**
 # 	 * @description Insert data to Database
 # 	 * @author bnguyen
@@ -582,7 +581,7 @@ async def main():
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
         scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
-        scheduler.add_job(delete_data_when_sync, 'interval',  hours = f'*/1', second=1)
+        scheduler.add_job(delete_data_when_sync, 'cron',  minute = f'*/1', args=[arr])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
