@@ -1194,7 +1194,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         global id_template
         global rated_DC_input_voltage
         global maximum_DC_input_current
-        
+        global inverter_type
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
         print(f'init monitoring_device')
         # point_list
@@ -1212,7 +1212,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global rated_power_custom
             global min_watt_in_percent
             global meter_type
-            global inverter_type
+            
             new_point_list_device=[]
             new_point=[]
             mppt=[]
