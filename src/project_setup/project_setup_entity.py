@@ -55,6 +55,13 @@ class ProjectSetup(config.Base):
     # enable_zero_export: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     # value_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
     value_offset_zero_export: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
+    threshold_zero_export= mapped_column(DOUBLE, nullable=False, default=0)
+    kp_zero_export= mapped_column(DOUBLE, nullable=False, default=1)
+    ki_zero_export= mapped_column(DOUBLE, nullable=False, default=0.1)
+    kd_zero_export= mapped_column(DOUBLE, nullable=False, default=0)
+    delta_time_zero_export= mapped_column(DOUBLE, nullable=False, default=1)
+    
+    
     
     # enable_power_limit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     value_power_limit: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)

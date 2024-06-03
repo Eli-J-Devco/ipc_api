@@ -69,6 +69,7 @@ class DeviceFull(BaseModel):
     device_type: Optional[str] = None
     DC_voltage: Optional[float] = 400.0
     DC_current: Optional[float] = 10.0
+    inverter_type: Optional[int] = 2
 
 class Devices(BaseModel):
     id: int

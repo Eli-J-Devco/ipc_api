@@ -71,7 +71,7 @@ class UpdateDeviceFilter(BaseModel):
     inverter_shutdown: Optional[date] = None
     DC_voltage: float
     DC_current: float
-
+    inverter_type: int
 class AddDeviceGroupFilter(BaseModel):
     id_device_type: int
     name: str

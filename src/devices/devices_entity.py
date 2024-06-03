@@ -102,7 +102,8 @@ class Devices(config.Base):
     point_list_pf = relationship("Point", foreign_keys=[point_pf])
     DC_voltage: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     DC_current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-
+    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
+    
 class DeviceType(config.Base):
     __tablename__ = "device_type"
 
