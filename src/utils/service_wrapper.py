@@ -37,8 +37,11 @@ class ServiceWrapper:
                 if isinstance(result, HTTPException):
                     raise result
 
-                if isinstance(result, (JSONResponse, dict, list)):
+                if isinstance(result, JSONResponse):
                     return result
+
+                if isinstance(result, (list, dict)):
+                    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
                 if isinstance(result, str):
                     return JSONResponse(status_code=status.HTTP_200_OK, content={"message": result})
