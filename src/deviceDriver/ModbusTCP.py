@@ -1075,7 +1075,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                     for itemR in result_rb["data"]:
                                         INC = INC+1
                                         Data.append({"MRA": INC, "Value": itemR, })
+                        print(Data[0])               
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
+                        print(new_Data[0])
                         # 
                         # for item_rb in status_rb:
                         #     for item_rbs in status_register_block:
