@@ -972,6 +972,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
     Returns:
         float: The control output.
     """
+    output = 0
     # Calculate the error
     error = setpoint - feedback
     # Proportional term
@@ -1031,6 +1032,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         setpoint = round(setpoint, 4)
         # Update setpoint using simplified PID controller with feedback
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
+        print("output",output)
         if output:
             output -= output * value_offset_zero_export / 100
             output = round(output, 4)
