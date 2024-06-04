@@ -877,7 +877,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     p_for_each_device_power_limit = power_max_device / slope
 
             # If the total capacity produced has not reached the set value, proceed
-            if value_production <= value_power_limit:
+            if value_power_limit:
                 if device['controlinv'] == 1: # Check device is off , on device 
                     new_device = {
                         "id_device": device["id_device"],
