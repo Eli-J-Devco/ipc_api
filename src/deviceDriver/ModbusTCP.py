@@ -230,6 +230,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                 case 0:# not used           
                     result_rb = None
                 case 1:# Read Coils
+                    # 0x
                     ADDR = ADDRs                        
                     result_rb = client.read_coils(
                                     ADDR, COUNT, unit=slave_ID)
@@ -237,20 +238,23 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                         
                     # return result_rb
 
-                case 2:# Read Discrete Inputs      
-                    ADDR = ADDRs
+                case 2:# Read Discrete Inputs
+                    #  1x 
+                    ADDR = ADDRs #-10000
                     result_rb = client.read_discrete_inputs(
                                         ADDR, COUNT, unit=slave_ID)
                     # return result_rb
                 
                 case 3:# Read Holding Registers
-                    ADDR = ADDRs
+                    # 4x
+                    ADDR = ADDRs #-40000
                     result_rb = client.read_holding_registers(
                                         ADDR, COUNT, unit=slave_ID)
                     # return result_rb
 
                 case 4:# Read Input Registers
-                    ADDR = ADDRs
+                    # 3x
+                    ADDR = ADDRs #-30000
                     result_rb = client.read_input_registers(
                                         ADDR, COUNT, unit=slave_ID)
                     # return result_rb
@@ -330,7 +334,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                     case 3: # Short Signed 16-bit
                         result = []
                         for itemD in data_of_register:
-                            if point_list_item['register'] == itemD["MRA"]:
+                            if point_list_item['register'] == itemD["MRA"]and point_list_item['func'] == itemD["func"]:
                                 result.append(itemD["Value"])
                         # print(f'result: --- {result}')        
                         if len(result) > 0:
@@ -344,7 +348,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                         result = []
                         point_value :int = None
                         for itemD in data_of_register:
-                            if point_list_item['register'] == itemD["MRA"]:
+                            if point_list_item['register'] == itemD["MRA"] and point_list_item['func'] == itemD["func"]:
                                 result.append(itemD["Value"])
                         # print(f'result: --- {result}')        
                         if len(result) > 0:
@@ -363,11 +367,17 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                         R1=int(point_list_item['register'])
                         if R1:
                             R2=R1+1
-                            Rn.append(R1)
-                            Rn.append(R2)
+                            Rn.append({
+                                "register":R1,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R2,
+                                "func":point_list_item['func']
+                            })
                         for item in Rn:
                             for itemD in data_of_register:
-                                if item == itemD["MRA"]:
+                                if item["register"] == itemD["MRA"] and item['func'] == itemD["func"]:
                                     result.append(itemD["Value"])      
                         if len(result) > 0:
                             
@@ -385,11 +395,17 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                         R1=int(point_list_item['register'])
                         if R1:
                             R2=R1+1
-                            Rn.append(R1)
-                            Rn.append(R2)
+                            Rn.append({
+                                "register":R1,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R2,
+                                "func":point_list_item['func']
+                            })
                         for item in Rn:
                             for itemD in data_of_register:
-                                if item == itemD["MRA"]:
+                                if item == itemD["MRA"] and item['func'] == itemD["func"]:
                                     result.append(itemD["Value"])      
                         if len(result) > 0:
                             
@@ -410,13 +426,29 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                             R3=R1+2
                             R4=R1+3
                             
-                            Rn.append(R1)
-                            Rn.append(R2)
-                            Rn.append(R3)
-                            Rn.append(R4)
+                            # Rn.append(R1)
+                            # Rn.append(R2)
+                            # Rn.append(R3)
+                            # Rn.append(R4)
+                            Rn.append({
+                                "register":R1,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R2,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R3,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R4,
+                                "func":point_list_item['func']
+                            })
                         for item in Rn:
                             for itemD in data_of_register:
-                                if item == itemD["MRA"]:
+                                if item == itemD["MRA"] and item['func'] == itemD["func"]:
                                     result.append(itemD["Value"])      
                         if len(result) > 0:
                             
@@ -437,13 +469,29 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                             R3=R1+2
                             R4=R1+3
                             
-                            Rn.append(R1)
-                            Rn.append(R2)
-                            Rn.append(R3)
-                            Rn.append(R4)
+                            # Rn.append(R1)
+                            # Rn.append(R2)
+                            # Rn.append(R3)
+                            # Rn.append(R4)
+                            Rn.append({
+                                "register":R1,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R2,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R3,
+                                "func":point_list_item['func']
+                            })
+                            Rn.append({
+                                "register":R4,
+                                "func":point_list_item['func']
+                            })
                         for item in Rn:
                             for itemD in data_of_register:
-                                if item == itemD["MRA"]:
+                                if item == itemD["MRA"] and item['func'] == itemD["func"]:
                                     result.append(itemD["Value"])      
                         if len(result) > 0:
                             
@@ -455,13 +503,14 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                         else:
                             data_have=0
                     case 9: # Float 32-bit real value IEEE-754       
+                        
                         result = []
                         point_value : float = None
                         for itemD in data_of_register:
-                            if point_list_item['register'] == itemD["MRA"]:
+                            if point_list_item['register'] == itemD["MRA"]and point_list_item['func'] == itemD["func"]:
                                 result.append(itemD["Value"])
                         for itemD in data_of_register:
-                            if point_list_item['register']+1 == itemD["MRA"]:
+                            if point_list_item['register']+1 == itemD["MRA"]and point_list_item['func'] == itemD["func"]:
                                 result.append(itemD["Value"])
                         if len(result) > 0:
                             decoder = BinaryPayloadDecoder.fromRegisters(
@@ -590,8 +639,9 @@ def convert_register_to_point_list(point_list_item,data_of_register):
 # 	 * @param {client, unit, datatype,register, value}
 # 	 * @return data (msg)
 # 	 */   
-def write_modbus_tcp(client, unit, datatype,register, value):
+def write_modbus_tcp(client, unit=None, datatype=None, modbus_func=None,register=None, value=None):
     try:
+        print(f'modbus_func: {modbus_func}')
         builder = BinaryPayloadBuilder(
         byteorder=Endian.Big)
         match datatype:
@@ -615,27 +665,62 @@ def write_modbus_tcp(client, unit, datatype,register, value):
                 pass
         payload = builder.build()
         address=register
-        result = client.write_registers(
-        address, payload, skip_encode=True, unit=unit)
-        print(f'result: {result.function_code }')
-        if result.function_code == 16:
-            msg ={ "msg":"Write success to INV-"+str(register),
-                   "code":result.function_code,
-                   "value":0
-                  }
-        else:
-             msg ={ "msg":"Write error to INV-"+str(register),
-                   "code":result.function_code,
-                   "value":1
-                  }
-        return msg
+        match datatype:
+            case 1:
+                result = client.write_coils(
+                address, [value], skip_encode=True, unit=unit)
+                if hasattr(result, "function_code"):
+                    print(f'result: {result.function_code }')
+                    if result.function_code == 15:
+                        msg ={ "msg":"Write success to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":0
+                            }
+                    else:
+                        msg ={ "msg":"Write error to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":1
+                            }
+                    return msg
+            case 3:
+                result = client.write_registers(
+                address, payload, skip_encode=True, unit=unit)
+                if hasattr(result, "function_code"):
+                    print(f'result: {result.function_code }')
+                    if result.function_code == 16:
+                        msg ={ "msg":"Write success to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":0
+                            }
+                    else:
+                        msg ={ "msg":"Write error to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":1
+                            }
+                    return msg
+            case 5:
+                result = client.write_coils(
+                address,  [value], skip_encode=True, unit=unit)
+                if hasattr(result, "function_code"):
+                    print(f'result: {result.function_code }')
+                    if result.function_code == 15:
+                        msg ={ "msg":"Write success to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":0
+                            }
+                    else:
+                        msg ={ "msg":"Write error to INV-"+str(register),
+                            "code":result.function_code,
+                            "value":1
+                            }
+                    return msg
     except Exception as err:
-      print(f'Error write_modbus_tcp : {err}')
-      return {
-                "msg":err,
-                "code":"",
-                "value":2
-            }
+        print(f'Error write_modbus_tcp : {err}')
+        return {
+                    "msg":err,
+                    "code":"",
+                    "value":2
+                }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
     if slopeenabled==1:
@@ -742,7 +827,14 @@ async def check_inverter_device(device_control):
 # 	 * @return value , register , datatype , id_point_key 
 # 	 */ 
 async def find_inverter_information(device_control, parameter):
-    query_register = "SELECT id_pointkey, register, id_type_datatype FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template WHERE device_list.id = %s;"
+    # query_register = """SELECT id_pointkey, register, id_type_datatype 
+    #                     FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template 
+    #                     WHERE device_list.id = %s;"""
+    query_register = """SELECT id_pointkey, point_list.register, point_list.id_type_datatype ,table_type_function.value AS modbus_func
+                        FROM device_point_list_map 
+                        INNER JOIN point_list ON device_point_list_map.id_point_list = point_list.id 
+                        LEFT JOIN config_information table_type_function ON point_list.id_type_function=table_type_function.id
+                        WHERE device_point_list_map.id_device_list = %s;"""
     query_datatype = "SELECT value FROM config_information WHERE id = %s"
     # Get the id_pointkey on message to get information in the database
     results_register = MySQL_Select(query_register, (device_control,))
@@ -845,6 +937,7 @@ async def write_device(
                                 register = item["register"]
                                 id_pointkey = item['id_pointkey']
                                 datatype = item["datatype"]
+                                modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
@@ -852,10 +945,10 @@ async def write_device(
                                     print("---------- Manual control mode ----------")
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
                                         if value == True :
-                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=1)
+                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func, register, value=1)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(1,device_control,name_device_points_list_map))
                                         elif value == False :
-                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=0)
+                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func,register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
                                         
@@ -872,12 +965,14 @@ async def write_device(
                                                     parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
-                                                        write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"], inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
+                                                        write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
+                                                                        inverter_info_temp[0]["modbus_func"],
+                                                                        inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
                                             elif id_pointkey in ["VarMax", "WMax", "WMaxPercent", "VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
                                                 value /= slope
                                                 
                                             # Write down the inv value after conversion
-                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
@@ -885,7 +980,7 @@ async def write_device(
                                     
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
                                         value = int(value)
-                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, register, value=value)
+                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
                                 code_value = results_write_modbus['code']
@@ -1074,10 +1169,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                     INC = ADDR-1
                                     for itemR in result_rb["data"]:
                                         INC = INC+1
-                                        Data.append({"MRA": INC, "Value": itemR, })
-                        print(Data[0])               
+                                        Data.append({"MRA": INC, "Value": itemR,"func":FUNCTION })
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
-                        print(new_Data[0])
                         # 
                         # for item_rb in status_rb:
                         #     for item_rbs in status_register_block:

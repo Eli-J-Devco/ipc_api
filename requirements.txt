@@ -46,3 +46,4 @@ netifaces
 pyserial
 SQLAlchemy-Utils
 sqlalchemy-views
+aiomysql==0.2.0
