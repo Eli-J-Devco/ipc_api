@@ -1211,7 +1211,8 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 value_power_limit_temp = mqtt_result["value"]
                 value_offset_power_limit = mqtt_result["offset"]
                 # write information in database 
-                result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
+                if value_power_limit_temp > total_power :
+                    result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
                 if value_power_limit_temp <= total_power :
                     value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
