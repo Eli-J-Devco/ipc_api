@@ -847,7 +847,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Local variables
     power_max_device = 0
     power_min_device = 0
-    new_device = ""
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -869,6 +868,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 efficiency_total = (value_power_limit/total_power)
                 print("value_power_limit",value_power_limit)
                 print("total_power",total_power)
+                print("value_production",value_production)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -876,8 +876,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     p_for_each_device_power_limit = power_min_device / slope
                 else:
                     p_for_each_device_power_limit = power_max_device / slope
+
             # If the total capacity produced has not reached the set value, proceed
-            if value_production :
+            if value_production <= value_power_limit:
                 if device['controlinv'] == 1: # Check device is off , on device 
                     new_device = {
                         "id_device": device["id_device"],
@@ -1214,22 +1215,18 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                     pass
                 else :
                     value_offset_zero_export = value_offset_zero_export_temp
-                    
                 value_threshold_zero_export_temp = mqtt_result["threshold"]
                 if value_threshold_zero_export_temp is None:
                     pass
                 else :
                     value_threshold_zero_export = value_threshold_zero_export_temp
-                    
                 result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (value_offset_zero_export,value_threshold_zero_export,))
             elif mode_auto == 2:
                 value_offset_power_limit_temp = mqtt_result["offset"]
-                    
                 if value_offset_power_limit_temp is None:
                     pass
                 else :
                     value_offset_power_limit = value_offset_power_limit_temp
-                    
                 value_power_limit_temp = mqtt_result["value"]
                 if value_power_limit_temp is not None :
                     if value_power_limit_temp <= total_power:
@@ -1239,7 +1236,6 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
-                    
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
                 if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit > total_power:
