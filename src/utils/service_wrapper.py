@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import json
 import logging
 from typing import Callable, Tuple, Any, Dict, Coroutine
 
@@ -37,11 +38,8 @@ class ServiceWrapper:
                 if isinstance(result, HTTPException):
                     raise result
 
-                if isinstance(result, JSONResponse):
+                if isinstance(result, (JSONResponse, list, dict)):
                     return result
-
-                if isinstance(result, (list, dict)):
-                    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
                 if isinstance(result, str):
                     return JSONResponse(status_code=status.HTTP_200_OK, content={"message": result})
