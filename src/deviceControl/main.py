@@ -1257,7 +1257,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                     
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
-                if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit_temp > total_power:
+                if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit > total_power:
                     comment = 400 
                 else:
                     comment = 200 
