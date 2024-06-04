@@ -1015,7 +1015,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     setpoint = 0
     output = 0 
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    print("value_consumption",value_consumption)
+    print("value_threshold_zero_export",value_threshold_zero_export)
     if value_consumption >= value_threshold_zero_export:
+        print("da vao ham")
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
