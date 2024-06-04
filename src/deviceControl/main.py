@@ -1196,6 +1196,8 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
     current_time = get_utc()
     mode_auto = ""
     comment = 0
+    value_offset_zero_export_temp = 0
+    value_threshold_zero_export_temp = 0
     value_power_limit_temp = 0
     result_parameter_zero_export = []
     result_parameter_power_limit = []
@@ -1206,8 +1208,17 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
             mode_auto = int(mode_auto)
             # Compare get information update database 
             if mode_auto == 1:
-                value_offset_zero_export = mqtt_result["offset"]
-                value_threshold_zero_export = mqtt_result["threshold"]
+                value_offset_zero_export_temp = mqtt_result["offset"]
+                if value_offset_zero_export_temp is None:
+                    pass
+                else :
+                    value_offset_zero_export = value_offset_zero_export_temp
+                value_threshold_zero_export_temp = mqtt_result["threshold"]
+                if value_threshold_zero_export_temp is None:
+                    pass
+                else :
+                    value_threshold_zero_export = value_threshold_zero_export_temp
+                    
                 result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (value_offset_zero_export,value_threshold_zero_export,))
             elif mode_auto == 2:
                 value_power_limit_temp = mqtt_result["value"]
