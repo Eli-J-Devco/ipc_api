@@ -1017,8 +1017,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
     print("value_consumption",value_consumption)
     print("value_threshold_zero_export",value_threshold_zero_export)
-    if value_consumption >= value_threshold_zero_export:
-        print("da vao ham")
+    if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
@@ -1091,8 +1090,18 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                     ]
                 }
-            else:
-                pass
+            if value_consumption >= value_threshold_zero_export:
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "status": "zero export",
+                    "setpoint": setpoint,
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": 0}
+                    ]
+                }
+                
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
