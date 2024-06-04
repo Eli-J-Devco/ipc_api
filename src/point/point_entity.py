@@ -24,10 +24,10 @@ class Point(config.Base):
     id_point_list_type: Mapped[int] = mapped_column(Integer, ForeignKey("point_list_type.id", ondelete="CASCADE",
                                                                         onupdate="CASCADE"), nullable=False, default=1)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    nameedit: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    nameedit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     id_type_units: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                    onupdate="CASCADE"), nullable=True)
-    unitsedit: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    unitsedit: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     id_pointtype: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                   onupdate="CASCADE"), nullable=True)
     id_config_information: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
@@ -41,14 +41,14 @@ class Point(config.Base):
     id_type_function: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                       onupdate="CASCADE"), nullable=True, default=269)
     slope: Mapped[float] = mapped_column(DOUBLE, nullable=False)
-    slopeenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    slopeenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     offset: Mapped[float] = mapped_column(DOUBLE, nullable=False)
-    offsetenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    offsetenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     multreg: Mapped[int] = mapped_column(Integer, nullable=False)
-    multregenabled: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
-    userscaleenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    multregenabled: Mapped[bool] = mapped_column(Integer, nullable=True, default=False)
+    userscaleenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     invalidvalue: Mapped[int] = mapped_column(Integer, nullable=False)
-    invalidvalueenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    invalidvalueenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     id_control_group: Mapped[int] = mapped_column(Integer, ForeignKey("point_list_control_group.id", ondelete="CASCADE",
                                                                       onupdate="CASCADE"), nullable=True)
     extendednumpoints: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -99,14 +99,14 @@ class ManualPoint(config.Base):
     id_type_byteorder: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                        onupdate="CASCADE"), nullable=False, default=252)
     slope: Mapped[float] = mapped_column(DOUBLE, nullable=False)
-    slopeenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    slopeenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     offset: Mapped[float] = mapped_column(DOUBLE, nullable=False)
-    offsetenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    offsetenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     multreg: Mapped[int] = mapped_column(Integer, nullable=False)
-    multregenabled: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
-    userscaleenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    multregenabled: Mapped[bool] = mapped_column(Integer, nullable=True, default=False)
+    userscaleenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     invalidvalue: Mapped[int] = mapped_column(Integer, nullable=False)
-    invalidvalueenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
+    invalidvalueenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     id_control_group: Mapped[int] = mapped_column(Integer, ForeignKey("point_list_control_group.id", ondelete="CASCADE",
                                                                       onupdate="CASCADE"), nullable=True)
     extendednumpoints: Mapped[int] = mapped_column(Integer, nullable=True)
