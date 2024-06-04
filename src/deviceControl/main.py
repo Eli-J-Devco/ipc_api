@@ -878,6 +878,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     p_for_each_device_power_limit = power_max_device / slope
 
             # If the total capacity produced has not reached the set value, proceed
+            print("value_production",value_production)
+            print("value_power_limit",value_power_limit)
+            
             if value_production >= value_power_limit:
                 if device['controlinv'] == 1: # Check device is off , on device 
                     new_device = {
@@ -1249,7 +1252,6 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                         value_power_limit = value_power_limit_temp
                         # write information in database 
                         if value_power_limit <= total_power :
-                            print("dung dieu kien luu vao database")
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
