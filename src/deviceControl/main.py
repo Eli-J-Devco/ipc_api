@@ -1199,6 +1199,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
     value_offset_zero_export_temp = 0
     value_threshold_zero_export_temp = 0
     value_power_limit_temp = 0
+    value_offset_power_limit_temp = 0
     result_parameter_zero_export = []
     result_parameter_power_limit = []
     # Receve data from mqtt
@@ -1213,6 +1214,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                     pass
                 else :
                     value_offset_zero_export = value_offset_zero_export_temp
+                    
                 value_threshold_zero_export_temp = mqtt_result["threshold"]
                 if value_threshold_zero_export_temp is None:
                     pass
@@ -1222,13 +1224,24 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 result_parameter_zero_export = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (value_offset_zero_export,value_threshold_zero_export,))
             elif mode_auto == 2:
                 value_power_limit_temp = mqtt_result["value"]
-                value_offset_power_limit = mqtt_result["offset"]
+                if value_power_limit_temp is None:
+                    pass
+                else :
+                    value_power_limit = value_power_limit_temp
+                    
+                value_offset_power_limit_temp = mqtt_result["offset"]
+                
+                if value_offset_power_limit_temp is None:
+                    pass
+                else :
+                    value_offset_power_limit = value_offset_power_limit_temp
+                    
                 # write information in database 
-                if value_power_limit_temp > total_power :
+                if value_power_limit_temp <= total_power :
                     result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
-                if value_power_limit_temp <= total_power :
-                    value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
+                    value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
+                    
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
                 if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit_temp > total_power:
