@@ -641,7 +641,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
 # 	 */   
 def write_modbus_tcp(client, unit=None, datatype=None, modbus_func=None,register=None, value=None):
     try:
-        print(f'modbus_func: {modbus_func}')
+        print(f'datatype: {datatype}|modbus_func: {modbus_func}')
         builder = BinaryPayloadBuilder(
         byteorder=Endian.Big)
         match datatype:
@@ -665,7 +665,7 @@ def write_modbus_tcp(client, unit=None, datatype=None, modbus_func=None,register
                 pass
         payload = builder.build()
         address=register
-        match datatype:
+        match modbus_func:
             case 1:
                 result = client.write_coils(
                 address, [value], skip_encode=True, unit=unit)
