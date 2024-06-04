@@ -847,6 +847,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Local variables
     power_max_device = 0
     power_min_device = 0
+    new_device = ""
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
