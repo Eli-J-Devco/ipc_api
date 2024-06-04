@@ -1240,7 +1240,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 if value_power_limit_temp is None :
                     pass
                 else :
-                    if value_power_limit_temp >= total_power :
+                    if value_power_limit_temp <= total_power :
                         value_power_limit = value_power_limit_temp
                     else:
                         pass
