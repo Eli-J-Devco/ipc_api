@@ -866,9 +866,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Convert power real 
             if power_max_device and slope :
                 efficiency_total = (value_power_limit/total_power)
-                print("value_power_limit",value_power_limit)
-                print("total_power",total_power)
-                print("value_production",value_production)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -1238,7 +1235,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
-                if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit > total_power:
+                if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power):
                     comment = 400 
                 else:
                     comment = 200 
