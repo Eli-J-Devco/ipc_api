@@ -1004,7 +1004,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
+    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1033,11 +1033,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
         if output:
             output -= output * value_offset_zero_export / 100
-            print("output2: ", output)
             output = round(output, 4)
-            print("output3: ", output)
-            print("setpoint: ", setpoint)
-            print("value_consumption: ", value_consumption)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -1070,18 +1066,31 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     p_for_each_device_zero_export = power_max_device / slope
                 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            # Check device is off, on device
-            if device['controlinv'] == 1:
-                new_device = {
-                    "id_device": device["id_device"],
-                    "mode": device["mode"],
-                    "status": "zero export",
-                    "setpoint": setpoint,
-                    "parameter": [
-                        {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
-                    ]
-                }
-            elif device['controlinv'] == 0:
+            if value_consumption >= value_threshold_zero_export :
+                # Check device is off, on device
+                if device['controlinv'] == 1:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "status": "zero export",
+                        "setpoint": setpoint,
+                        "parameter": [
+                            {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
+                        ]
+                    }
+                elif device['controlinv'] == 0:
+                    new_device = {
+                        "id_device": device["id_device"],
+                        "mode": device["mode"],
+                        "status": "zero export",
+                        "setpoint": setpoint,
+                        "parameter": [
+                            {"id_pointkey": "ControlINV", "value": 1},
+                            {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
+                        ]
+                    }
+            
+            else:
                 new_device = {
                     "id_device": device["id_device"],
                     "mode": device["mode"],
@@ -1089,11 +1098,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
+                        {"id_pointkey": "WMax", "value": 0}
                     ]
                 }
-            else:
-                pass
+                
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
@@ -1180,7 +1188,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
+    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1205,10 +1213,11 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 # write information in database 
                 result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
-                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
+                if value_power_limit_temp <= total_power :
+                    value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
-                if result_parameter_zero_export == None or result_parameter_power_limit == None :
+                if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit_temp > total_power:
                     comment = 400 
                 else:
                     comment = 200 
