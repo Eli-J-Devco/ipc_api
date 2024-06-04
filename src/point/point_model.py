@@ -29,6 +29,7 @@ class PointBase(PointShort):
     register_value: Optional[int] = Field(None, alias="register")
     id_type_datatype: Optional[int] = None
     id_type_byteorder: Optional[int] = None
+    id_type_function: Optional[int] = None
     slope: Optional[float] = None
     slopeenabled: Optional[bool] = None
     offset: Optional[float] = None
@@ -54,6 +55,7 @@ class PointOutput(PointBase):
     type_point_list: Optional[ConfigInformationShort] = None
     type_point: Optional[ConfigInformationShort] = None
     type_class: Optional[ConfigInformationShort] = None
+    type_function: Optional[ConfigInformationShort] = None
 
     class Config:
         orm_mode = True

@@ -21,6 +21,7 @@ class ScreenBase(BaseModel):
 class ConfigInformationShort(BaseModel):
     id: int
     name: str
+    type: Optional[int] = None
 
 
 class ProjectSetup(BaseModel):

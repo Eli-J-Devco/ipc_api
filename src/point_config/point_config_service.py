@@ -75,6 +75,19 @@ class PointConfigService(PointControlGroupConfigService):
                                                       ConfigInformationType().TYPE_BYTEORDER))
 
     @async_db_request_handler
+    async def get_type_function(self, session: AsyncSession) -> list[ConfigInformationShort]:
+        """
+        Get type function
+        :author: nhan.tran
+        :date: 20-05-2024
+        :param session:
+        :return: list[ConfigInformationShort]
+        """
+        return await (self.project_setup_service
+                      .get_config_information_by_type(session,
+                                                      ConfigInformationType().TYPE_MODBUS_FUNCTION))
+
+    @async_db_request_handler
     async def get_type_class(self, session: AsyncSession) -> list[ConfigInformationShort]:
         """
         Get type class
@@ -135,5 +148,5 @@ class PointConfigService(PointControlGroupConfigService):
             point_unit=point_unit,
             type_point=point_type,
             type_point_list=point_list,
-            type_class=point_class
+            type_class=point_class,
         )

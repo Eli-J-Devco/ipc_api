@@ -62,7 +62,7 @@ class ConfigInformationType:
 class ConfigInformationEnum:
     TYPE_DATATYPE = ConfigInformationGroup(MIN=1, MAX=15, ID_TYPE=1)
     TYPE_BYTEORDER = ConfigInformationGroup(MIN=16, MAX=252, ID_TYPE=2)
-    TYPE_UNIT = ConfigInformationGroup(MIN=23, MAX=134, ID_TYPE=3)
+    TYPE_UNIT = ConfigInformationGroup(MIN=22, MAX=134, ID_TYPE=3)
     TYPE_BAUD_RATE = ConfigInformationGroup(MIN=135, MAX=140, ID_TYPE=4)
     TYPE_PARITY = ConfigInformationGroup(MIN=141, MAX=145, ID_TYPE=4)
     TYPE_STOP_BIT = ConfigInformationGroup(MIN=146, MAX=149, ID_TYPE=4)
