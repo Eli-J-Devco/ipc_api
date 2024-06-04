@@ -1033,11 +1033,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
         if output:
             output -= output * value_offset_zero_export / 100
-            print("output2: ", output)
             output = round(output, 4)
-            print("output3: ", output)
-            print("setpoint: ", setpoint)
-            print("value_consumption: ", value_consumption)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -1180,7 +1176,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
+    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1205,10 +1201,11 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 # write information in database 
                 result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                 # convert value kw to w 
-                value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
+                if value_power_limit_temp <= total_power :
+                    value_power_limit = (value_power_limit_temp - (value_power_limit_temp*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
             if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
-                if result_parameter_zero_export == None or result_parameter_power_limit == None :
+                if result_parameter_zero_export == None or result_parameter_power_limit == None or value_power_limit_temp > total_power:
                     comment = 400 
                 else:
                     comment = 200 
