@@ -1029,11 +1029,14 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         process_caculator_zero_export.last_setpoint = setpoint
         setpoint = round(setpoint, 4)
         # Update setpoint using simplified PID controller with feedback
-        output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
-        print("output",output)
-        if output:
-            output -= output * value_offset_zero_export / 100
-            output = round(output, 4)
+        # output = pid_controller(setpoint, value_production, Kp, Ki, Kd, dt)
+        # print("output",output)
+        # if output:
+        #     output -= output * value_offset_zero_export / 100
+        #     output = round(output, 4)
+        if setpoint:
+            setpoint -= setpoint * value_offset_zero_export / 100
+            setpoint = round(setpoint, 4)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -1052,8 +1055,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     pass
             # Calculate the total performance of the system
-            if output and power_max_device and slope:
-                efficiency_total = (output / total_power)
+            if setpoint and power_max_device and slope:
+                efficiency_total = (setpoint / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
