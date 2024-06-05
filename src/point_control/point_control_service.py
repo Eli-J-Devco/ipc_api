@@ -3,6 +3,8 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
+
 from fastapi import status, HTTPException
 from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
@@ -17,6 +19,7 @@ from .point_control_filter import PointControlAddFilter, ControlGroupAddFilter, 
 from .point_control_model import PointControl, PointControlRefresh
 from ..config import env_config
 from ..devices.devices_service import DevicesService
+from ..point.point_entity import Point
 from ..point.point_filter import DeletePointFilter
 from ..point.point_model import PointBase
 from ..point.point_service import PointService
@@ -34,8 +37,9 @@ class PointControlService:
         self.point_config_service = point_config_service
 
     @async_db_request_handler
-    async def get_control_group_point(self, id_template: int,
-                                      session: AsyncSession) -> list[PointListControlGroupChildren]:
+    async def get_control_group_point(self,
+                                      session: AsyncSession,
+                                      id_template: int | None = None) -> list[PointListControlGroupChildren]:
         """
         Get control group point
         :author: nhan.tran
@@ -44,11 +48,10 @@ class PointControlService:
         :param session:
         :return: list[PointListControlGroupChildren]
         """
-        control_groups = await self.point_config_service.get_control_groups(id_template, session)
+        control_groups = await self.point_config_service.get_control_groups(session, id_template)
         response = []
         for control_group in control_groups:
             query = (select(PointControlEntity)
-                     .where(PointControlEntity.id_template == id_template)
                      .where(PointControlEntity.id_control_group == control_group.id)
                      .where(PointControlEntity.status == 1))
             result = await session.execute(query)
@@ -98,7 +101,7 @@ class PointControlService:
         :return: PointControlRefresh
         """
         points = await self.point_service.get_points(id_template, session)
-        point_controls = await self.get_control_group_point(id_template, session)
+        point_controls = await self.get_control_group_point(session, id_template)
 
         return PointControlRefresh(points=points, point_controls=point_controls)
 
@@ -216,7 +219,7 @@ class PointControlService:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                  detail="Control group with the same name already exists")
 
-        new_group = PointListControlGroup(**PointControl(**body.dict(exclude={"id_points"}))
+        new_group = PointListControlGroup(**PointControl(**body.dict(exclude={"id_points", "add_type"}))
                                           .dict(exclude_unset=True),
                                           namekey=body.name.replace(" ", ""),
                                           status=1)
@@ -224,11 +227,30 @@ class PointControlService:
         await session.flush()
 
         if body.id_points:
-            for id_point in body.id_points:
-                await self.add_existing_point_to_group(new_group.id,
-                                                       session,
-                                                       PointControlAddFilter(id_control_group=new_group.id,
-                                                                             id_point=id_point))
+            # Add type:
+            # - 0: Clone from existing control group
+            # - 1: Add existing points of this template to group
+            if body.add_type == 1:
+                for id_point in body.id_points:
+                    await self.add_existing_point_to_group(new_group.id,
+                                                           session,
+                                                           PointControlAddFilter(id_control_group=new_group.id,
+                                                                                 id_point=id_point))
+            else:
+                points = []
+                logging.info("==============================")
+                logging.info(body.id_points)
+                logging.info("==============================")
+                for id_point in body.id_points:
+                    logging.info("==============================")
+                    logging.info(id_point)
+                    logging.info("==============================")
+                    point = await self.point_service.get_point_by_id(id_point, session)
+                    point.id_control_group = new_group.id
+                    points.append(Point(**PointBase(**point.dict(exclude={"id"})).dict(exclude_unset=True),
+                                  id_template=body.id_template))
+
+                session.add_all(points)
 
         await session.commit()
         return await self.get_template_detail(new_group.id_template, session)

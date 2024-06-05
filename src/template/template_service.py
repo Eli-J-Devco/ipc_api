@@ -4,23 +4,26 @@
 # *
 # *********************************************************/
 import json
-from typing import Any, Sequence
+from typing import Sequence
 
 from fastapi import HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import JSONResponse
 
-from .template_entity import Template as TemplateEntity, Template
+from .template_entity import Template as TemplateEntity
 from .template_filter import GetTemplateFilter
 from .template_model import Template, TemplateOutput, TemplateConfig
 from ..devices.devices_service import DevicesService
 from ..point.point_filter import AddPointListFilter
 from ..point.point_service import PointService
+from ..point_config.point_config_model import PointListControlGroupChildren
 from ..point_config.point_config_service import PointConfigService
+from ..point_config.point_control_group_config_service import PointControlGroupConfigService
+from ..point_control.point_control_entity import PointControl as PointControlEntity
 from ..point_control.point_control_service import PointControlService
 from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
 from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
@@ -96,7 +99,7 @@ class TemplateService:
         if func:
             return await ServiceWrapper.async_wrapper(func)(id_template, session, *args, **kwargs)
 
-        return template.__dict__
+        return Template(**template.__dict__)
 
     @async_db_request_handler
     async def get_template_by_name(self, name: str,
@@ -123,7 +126,7 @@ class TemplateService:
         if func:
             return await ServiceWrapper.async_wrapper(func)(name, session, *args, **kwargs)
 
-        return template.__dict__
+        return Template(**template.__dict__)
 
     @async_db_request_handler
     async def get_manual(self, id_device_type: int, session: AsyncSession) -> TemplateOutput:
@@ -152,7 +155,7 @@ class TemplateService:
         points = await self.point_service.get_points(id_template, session)
         point_mppt = await self.point_mppt_service.get_mppt_point_formatted(id_template, session)
         register_blocks = await self.register_block_service.get_register_block(id_template, session)
-        point_controls = await self.point_control_service.get_control_group_point(id_template, session)
+        point_controls = await self.point_control_service.get_control_group_point(session, id_template)
         device_group = await self.get_device_group_by_template(id_template, session)
         device_type = None
         if device_group is not None:
@@ -275,3 +278,23 @@ class TemplateService:
         await session.execute(query)
         await session.commit()
         return await self.get_template(GetTemplateFilter(), session)
+
+    @async_db_request_handler
+    async def get_control_group_by_device_type(self, session: AsyncSession,
+                                               id_template: int):
+        id_device_group = await self.get_device_group_by_template(id_template, session)
+        id_device_type = await self.devices_service.get_device_type_by_device_group(id_device_group, session)
+        if id_device_type is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
+
+        control_groups = await (PointControlGroupConfigService
+                                .get_control_group_by_device_type(id_device_type, session))
+        response = []
+        for control_group in control_groups:
+            query = (select(PointControlEntity)
+                     .where(PointControlEntity.id_control_group == control_group.id)
+                     .where(PointControlEntity.status == 1))
+            result = await session.execute(query)
+            points = jsonable_encoder(result.scalars().all())
+            response.append(PointListControlGroupChildren(**control_group.__dict__, children=points))
+        return response

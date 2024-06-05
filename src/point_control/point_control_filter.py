@@ -9,6 +9,10 @@ from pydantic.main import BaseModel
 
 
 # region Control Group
+class GetControlGroupFilter(BaseModel):
+    id_template: Optional[int] = None
+
+
 class ControlGroupBaseFilter(BaseModel):
     name: str
     id_template: int
@@ -18,6 +22,7 @@ class ControlGroupBaseFilter(BaseModel):
 
 class ControlGroupAddFilter(ControlGroupBaseFilter):
     id_points: Optional[list[int]] = []
+    add_type: Optional[int] = None
 
 
 class ControlGroupUpdateFilter(ControlGroupBaseFilter):

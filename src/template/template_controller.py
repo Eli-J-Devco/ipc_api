@@ -44,6 +44,14 @@ class TemplateController:
                          user: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.template_service.get_template_config)(session)
 
+    @Post("/config/control_group/")
+    async def get_control_group_by_device_type(self,
+                                               id_template: int,
+                                               session: AsyncSession = Depends(config.get_db),
+                                               user: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.template_service
+                                                  .get_control_group_by_device_type)(session, id_template)
+
     @Post("/add/")
     async def add_template(self,
                            template: Template,
@@ -54,10 +62,11 @@ class TemplateController:
                                                   .get_template_by_name)(template.name,
                                                                          session))
 
-        if not isinstance(is_template_exist, dict):
+        if is_template_exist is None:
             return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)
 
-        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"message": "Template already exists"})
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
+                            content={"message": f"Template with name: {template.name} already exists"})
 
     @Post("/delete/")
     async def delete_template(self,

@@ -34,6 +34,8 @@ class PointclassType(BaseModel):
 class PointListControlGroup(BaseModel):
     id: Optional[int] = None
     id_template: Optional[int] = None
+    id_device_type: Optional[int] = None
+    device_type: Optional[str] = None
     name: Optional[str] = None
     namekey: Optional[str] = None
     description: Optional[str] = None
