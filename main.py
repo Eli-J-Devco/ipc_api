@@ -64,29 +64,29 @@ def init_driver():
             return -1
         result_rs485_group=[]
         for item in results:
-        
-            # call driver ModbusTCP
-            if item["connect_type"] == "Modbus/TCP":
-                # name of pid pm2=Dev|id_communication|connect_type|id|name
-                id_communication=item["id_communication"]
-                id = item["id"]
-                name = item["name"]
-                connect_type=item["connect_type"]
-                pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
-                print(f'pid: {pid}')
-                if sys.platform == 'win32':
-                    # use run with window
+            if item['type']==0:
+                # call driver ModbusTCP
+                if item["connect_type"] == "Modbus/TCP":
+                    # name of pid pm2=Dev|id_communication|connect_type|id|name
+                    id_communication=item["id_communication"]
+                    id = item["id"]
+                    name = item["name"]
+                    connect_type=item["connect_type"]
+                    pid = f'Dev|{id_communication}|{connect_type}|{id}|{name}'
+                    print(f'pid: {pid}')
+                    if sys.platform == 'win32':
+                        # use run with window
 
-                    subprocess.Popen(
-                        f'pm2 start {absDirname}/deviceDriver/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-                else:
-                    # use run with ubuntu/linux
-                
-                    subprocess.Popen(
-                        f'sudo pm2 start {absDirname}/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-            # join the same group ModbusRTU
-            if item["connect_type"] == "RS485":
-                result_rs485_group.append(item)
+                        subprocess.Popen(
+                            f'pm2 start {absDirname}/deviceDriver/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                    else:
+                        # use run with ubuntu/linux
+                    
+                        subprocess.Popen(
+                            f'sudo pm2 start {absDirname}/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                # join the same group ModbusRTU
+                if item["connect_type"] == "RS485":
+                    result_rs485_group.append(item)
         # Initialize the device RS485 RTU
         if len(result_rs485_group)>0:
                 result_rs485_list = [x for i, x in enumerate(result_rs485_group) if x['serialport_group'] not in {y['serialport_group'] for y in result_rs485_group[:i]}]
