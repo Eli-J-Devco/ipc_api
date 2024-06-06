@@ -3,7 +3,6 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import logging
 
 from fastapi import status, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -238,13 +237,7 @@ class PointControlService:
                                                                                  id_point=id_point))
             else:
                 points = []
-                logging.info("==============================")
-                logging.info(body.id_points)
-                logging.info("==============================")
                 for id_point in body.id_points:
-                    logging.info("==============================")
-                    logging.info(id_point)
-                    logging.info("==============================")
                     point = await self.point_service.get_point_by_id(id_point, session)
                     point.id_control_group = new_group.id
                     points.append(Point(**PointBase(**point.dict(exclude={"id"})).dict(exclude_unset=True),

@@ -91,6 +91,7 @@ class Devices(config.Base):
     enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[datetime.date] = mapped_column(Date, nullable=True)
     meter_type: Mapped[int] = mapped_column(Integer, nullable=True)
+    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
@@ -100,10 +101,8 @@ class Devices(config.Base):
     point_list_p = relationship("Point", foreign_keys=[point_p])
     point_list_q = relationship("Point", foreign_keys=[point_q])
     point_list_pf = relationship("Point", foreign_keys=[point_pf])
-    DC_voltage: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    DC_current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
-    
+
+
 class DeviceType(config.Base):
     __tablename__ = "device_type"
 

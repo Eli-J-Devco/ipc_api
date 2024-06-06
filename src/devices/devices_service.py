@@ -224,13 +224,19 @@ class DevicesService:
         :return: list[DeviceFull] | HTTPException
         """
         devices = []
-        logging.info(f"Rate power: {body.rated_power}")
+        rtu_bus_address = body.rtu_bus_address
+        tcp_gateway_port = body.tcp_gateway_port
         for _ in range(body.num_of_devices):
+            if body.num_of_devices > 1:
+                if body.inc_mode == IncreaseMode.RTU:
+                    rtu_bus_address += _
+                else:
+                    tcp_gateway_port += _
             new_devices = DevicesEntity(
                 **DeviceFull(
                     **body.dict(exclude_unset=True, exclude={"rtu_bus_address", "tcp_gateway_port"}),
-                    rtu_bus_address=body.rtu_bus_address + (_ if body.inc_mode == IncreaseMode.RTU else 0),
-                    tcp_gateway_port=body.tcp_gateway_port + (_ if body.inc_mode == IncreaseMode.TCP else 0),
+                    rtu_bus_address=rtu_bus_address,
+                    tcp_gateway_port=tcp_gateway_port,
                     rated_power_custom=body.rated_power,
                 ).dict(exclude_none=True)
             )
@@ -339,7 +345,7 @@ class DevicesService:
         return points
 
     @async_db_request_handler
-    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession) -> list[DeviceFull] | HTTPException:
+    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession, pagination: Pagination) -> list[DeviceFull] | HTTPException:
         """
         Update device in database and send message to MQTT broker
         :author: nhan.tran
@@ -355,6 +361,7 @@ class DevicesService:
         query = (update(DevicesEntity)
                  .where(DevicesEntity.id == body.id)
                  .values(**body.dict(exclude_unset=True,
+                                     exclude_none=True,
                                      exclude={"inverter_shutdown"}),
                          inverter_shutdown=inverter_shutdown))
         await session.execute(query)
@@ -370,7 +377,7 @@ class DevicesService:
         await self.sender.start()
         self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                          json.dumps(update_msg).encode("ascii"))
-        return await self.get_devices(session)
+        return await self.get_devices(session, pagination)
 
     @async_db_request_handler
     async def update_device_points(self, template_id: int, session: AsyncSession) -> bool:

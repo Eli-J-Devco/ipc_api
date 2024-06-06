@@ -23,13 +23,13 @@ class DeviceFull(BaseModel):
     rtu_bus_address: Optional[int] = None
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None
-    enable: Optional[bool] = None
+    enable: Optional[bool] = False
 
     rated_power: Optional[float] = 1500.0
     rated_power_custom: Optional[float] = 1500.0
     min_watt_in_percent: Optional[float] = 5.0
-    DC_voltage: Optional[float] = 48.0
-    DC_current: Optional[float] = 30.0
+    DC_voltage: Optional[float] = 400.0
+    DC_current: Optional[float] = 10.0
     compensate_watt_factor: Optional[float] = 1.0
     battery_mode: Optional[int] = 1
     battery_normal_watt: Optional[float] = 1500.0
@@ -59,17 +59,15 @@ class DeviceFull(BaseModel):
 
     max: Optional[float] = None
     allow_error: Optional[float] = None
-    efficiency: Optional[float] = None
+    efficiency: Optional[float] = 98
     enable_poweroff: Optional[bool] = 0
     inverter_shutdown: Optional[datetime.date] = None
     meter_type: Optional[int] = None
+    inverter_type: Optional[int] = 2
     status: Optional[bool] = True
     driver_type: Optional[str] = None
-
     device_type: Optional[str] = None
-    DC_voltage: Optional[float] = 400.0
-    DC_current: Optional[float] = 10.0
-    inverter_type: Optional[int] = 2
+
 
 class Devices(BaseModel):
     id: int

@@ -31,6 +31,7 @@ class AddDevicesModeFilter(BaseModel):
 class AddInverterFilter(BaseModel):
     rated_power: Optional[float] = 0.0
     mode: Optional[int] = 0
+    inverter_type: Optional[int] = 2
 
 
 class AddMeterFilter(BaseModel):
@@ -57,21 +58,20 @@ class GetDeviceFilter(BaseModel):
 class UpdateDeviceFilter(BaseModel):
     id: int
     name: str
-    rtu_bus_address: int
-    tcp_gateway_ip: str
-    tcp_gateway_port: int
-    rated_power: float
-    rated_power_custom: float
-    min_watt_in_percent: float
-    DC_voltage: float
-    DC_current: float
-    mode: int
-    efficiency: float
+    rtu_bus_address: Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    tcp_gateway_port: Optional[int] = None
+    rated_power: Optional[float] = None
+    rated_power_custom: Optional[float] = None
+    min_watt_in_percent: Optional[float] = None
+    DC_voltage: Optional[float] = None
+    DC_current: Optional[float] = None
+    mode: Optional[int] = None
+    efficiency: Optional[float] = None
     enable_poweroff: Optional[bool] = None
     inverter_shutdown: Optional[date] = None
-    DC_voltage: float
-    DC_current: float
-    inverter_type: int
+
+
 class AddDeviceGroupFilter(BaseModel):
     id_device_type: int
     name: str
