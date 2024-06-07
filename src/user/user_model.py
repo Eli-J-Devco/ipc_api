@@ -14,7 +14,6 @@ from ..role.role_model import RoleBase
 class User(BaseModel):
     id: Optional[int] = None
 
-
 class UserBase(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -33,9 +32,9 @@ class UserUpdate(UserBase):
     role: Optional[list[RoleBase]]
 
 
-class UserUpdatePassword(User):
+class UserUpdatePassword(BaseModel):
     old_password: str
-    password: str
+    new_password: str
 
 
 class UserList(UserBase):

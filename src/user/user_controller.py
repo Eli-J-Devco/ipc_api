@@ -3,6 +3,8 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
+
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
@@ -74,7 +76,7 @@ class UserController:
                       .async_wrapper(self.user_service
                                      .get_user_by_id)(body.id,
                                                       session,
-                                                      self.user_service.delete_user,))
+                                                      self.user_service.delete_user, ))
 
     @Post("/activate/")
     async def activate_user(self,
@@ -107,18 +109,17 @@ class UserController:
                               current_user: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
-                                     .get_user_by_id)(user.id,
-                                                      session,
-                                                      self.user_service.update_password,
-                                                      user, ))
+                                     .get_user_by_email)(current_user.email,
+                                                         session,
+                                                         self.user_service.update_password,
+                                                         user, ))
 
     @Post("/password/reset/")
     async def reset_password(self,
                              body: User,
-                             session: AsyncSession = Depends(config.get_db),
-                             user: Authentication = Depends(get_current_user)):
+                             session: AsyncSession = Depends(config.get_db)):
         return await (ServiceWrapper
                       .async_wrapper(self.user_service
                                      .get_user_by_id)(body.id,
                                                       session,
-                                                      self.user_service.reset_password,))
+                                                      self.user_service.reset_password, ))

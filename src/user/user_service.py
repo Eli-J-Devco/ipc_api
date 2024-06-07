@@ -9,26 +9,25 @@ import string
 from datetime import datetime
 from typing import Any, Sequence
 
-from nest.core.decorators.database import async_db_request_handler
-from nest.core import Injectable
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, update, delete, func, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import JSONResponse
 
+from .user_entity import User as UserEntity
 from .user_filter import GetUserFilter
 from .user_model import UserCreate, UserFull, UserUpdate, UserUpdatePassword, UserList
-from .user_entity import User as UserEntity
-
+from ..authentication.authentication_model import Authentication
+from ..authentication.authentication_repository import AuthenticationRepository
 from ..config import env_config
 from ..role.role_entity import (UserRoleMap as UserRoleMapEntity, )
-from ..role.role_model import UserRoleMapBase, RoleBase
+from ..role.role_model import UserRoleMapBase
 from ..role.role_service import RoleService
 from ..utils.PaginationModel import Pagination
 from ..utils.password_hasher import hash_password
 from ..utils.service_wrapper import ServiceWrapper
-from ..utils.password_hasher import verify
 from ..utils.utils import validate_email, validate_phone, validate_password, generate_pagination_response
 
 
@@ -188,7 +187,7 @@ class UserService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         if func:
-            return await ServiceWrapper.async_wrapper(func)(user.id, session, *args, **kwargs)
+            return await ServiceWrapper.async_wrapper(func)(user.email, session, *args, **kwargs)
 
         return user
 
@@ -282,30 +281,34 @@ class UserService:
         return "User deactivated successfully"
 
     @async_db_request_handler
-    async def update_password(self, user_id: int,
+    async def update_password(self, username: str,
                               session: AsyncSession,
                               update_user: UserUpdatePassword) -> str:
         """
         Update user password
         :author: nhan.tran
         :date: 20-05-2024
-        :param user_id:
+        :param username:
         :param session:
         :param update_user:
         :return: str
         """
-        query = select(UserEntity).where(UserEntity.id == user_id)
+        authentication = AuthenticationRepository().get_authentication_config()
+        query = select(UserEntity).where(UserEntity.email == username)
         result = await session.execute(query)
         user = result.scalars().first()
 
-        if not verify(update_user.old_password, user.password):
+        user_provider = Authentication(password=update_user.old_password)
+        decrypted_user_credential = authentication.decrypt_user_credential(user_provider)
+
+        if not (authentication.verify_password(decrypted_user_credential.password, user.password)):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect old password")
 
-        validate_password(update_user.password)
+        validate_password(update_user.new_password)
 
         query = (update(UserEntity)
-                 .where(UserEntity.id == user_id)
-                 .values(password=hash_password(update_user.password)))
+                 .where(UserEntity.email == username)
+                 .values(password=hash_password(update_user.new_password)))
         await session.execute(query)
         await session.commit()
         return "Password updated successfully"

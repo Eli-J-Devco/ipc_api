@@ -19,8 +19,12 @@ from ..utils.password_hasher import decrypt, verify
 
 
 class Authentication(BaseModel):
-    username: str
+    username: Optional[str] = None
     password: str
+
+
+class ForgotPassword(BaseModel):
+    username: str
 
 
 class Token(BaseModel):
@@ -85,7 +89,8 @@ class AuthenticationConfig:
         :return: Authentication | HTTPException
         """
         try:
-            username = (decrypt(user.username, self.get_password_secret_key().encode())).decode()
+            username = (decrypt(user.username, self.get_password_secret_key().encode())).decode() \
+                if user.username else None
             password = (decrypt(user.password, self.get_password_secret_key().encode())).decode()
             return Authentication(username=username, password=password)
         except Exception as e:

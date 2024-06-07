@@ -3,6 +3,8 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import random
+import string
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -10,7 +12,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from nest.core import Injectable, Depends
 from nest.core.decorators.database import async_db_request_handler
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .authentication_model import Authentication, AuthenticationResponse
@@ -20,6 +22,8 @@ from ..project_setup.project_setup_service import ProjectSetupService
 from ..role.role_service import RoleService
 from ..user.user_entity import User
 from ..user.user_service import UserService
+from ..utils.password_hasher import hash_password
+from ..utils.utils import validate_password
 
 
 @Injectable
@@ -121,3 +125,30 @@ class AuthenticationService:
         token = self.authentication.verify_access_token(token, credentials_exception)
         user = await session.get(User, token.get("user_id"))
         return user
+
+    @async_db_request_handler
+    async def forgot_password(self, email: str, session: AsyncSession) -> JSONResponse | HTTPException:
+        query = select(User).where(User.email == email)
+        result = await session.execute(query)
+        user = result.scalars().first()
+        if user is None:
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        random_str = string.ascii_letters + string.digits + string.punctuation
+        while True:
+            try:
+                new_password = ''.join(random.choices(random_str, k=20))
+                validate_password(new_password)
+                break
+            except Exception as e:
+                pass
+
+        query = (update(User)
+                 .where(User.email == email)
+                 .values(password=hash_password(new_password)))
+        await session.execute(query)
+        await session.commit()
+        return JSONResponse(status_code=status.HTTP_200_OK, content={
+            "message": "Password has been reset.",
+            "new_password": new_password
+        })
