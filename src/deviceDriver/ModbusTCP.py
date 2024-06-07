@@ -1537,14 +1537,14 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                                     "control_enabled":1
                                                 }
                                             )
-                                        elif item_point_attr['control_menu_order'] == 2:
+                                        elif item_point_attr['control_type_input'] == 1:
                                             new_point_control_attr.append(
                                                 {
                                                     **item_point_attr,
                                                     "control_enabled":(lambda x: 1  if x==0 else 0)(control_enable)
                                                 }
                                             )
-                                        elif item_point_attr['control_menu_order'] == 3:
+                                        elif item_point_attr['control_type_input'] == 3:
                                             new_point_control_attr.append(
                                                 {
                                                     **item_point_attr,
