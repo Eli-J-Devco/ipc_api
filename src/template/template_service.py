@@ -103,6 +103,7 @@ class TemplateService:
 
     @async_db_request_handler
     async def get_template_by_name(self, name: str,
+                                   id_device_group: int,
                                    session: AsyncSession,
                                    func=None, *args, **kwargs) -> Template | TemplateOutput:
         """
@@ -117,6 +118,7 @@ class TemplateService:
         :return:
         """
         query = (select(TemplateEntity)
+                 .where(TemplateEntity.id_device_group == id_device_group)
                  .where(TemplateEntity.name == name))
         result = await session.execute(query)
         template = result.scalars().first()

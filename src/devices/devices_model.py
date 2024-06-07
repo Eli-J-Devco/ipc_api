@@ -71,6 +71,7 @@ class DeviceFull(BaseModel):
 
 class Devices(BaseModel):
     id: int
+    id_device_type: int
     name: str
 
 

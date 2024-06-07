@@ -58,7 +58,7 @@ class Devices(config.Base):
 
     point: Mapped[int] = mapped_column(Integer, nullable=True)
     pv: Mapped[int] = mapped_column(Integer, nullable=True)
-    mode: Mapped[int] = mapped_column(Integer, nullable=True)
+    mode: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
     model: Mapped[int] = mapped_column(Integer, nullable=True)
     function: Mapped[int] = mapped_column(Integer, nullable=True)
     point_p: Mapped[int] = mapped_column(Integer,

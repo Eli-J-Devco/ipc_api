@@ -6,31 +6,30 @@
 import base64
 import datetime
 import json
-import logging
 import uuid
-from typing import Sequence, Any
+from typing import Sequence
 
-from nest.core.decorators.database import async_db_request_handler
-from nest.core import Injectable
 from fastapi import HTTPException, status
-
-from sqlalchemy import select, update, text, Row, RowMapping
+from mqtt_service.model import MessageModel, Topic, MetaData
+from mqtt_service.mqtt import Publisher
+from nest.core import Injectable
+from nest.core.decorators.database import async_db_request_handler
+from sqlalchemy import select, update, text, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from mqtt_service.mqtt import Publisher
-from mqtt_service.model import MessageModel, Topic, MetaData
-
-from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    AddDeviceGroupFilter
-from .devices_model import Devices, DeviceFull, Action, DeviceConfigOutput
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
                              DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType, )
-from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
+from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
+    AddDeviceGroupFilter
+from .devices_model import Devices, DeviceFull, Action
 from ..config import env_config
+from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..utils.PaginationModel import Pagination
 from ..utils.utils import generate_pagination_response
+
+SYMBOLIC_DEVICES = ["Circuit Breaker"]
 
 
 @Injectable
@@ -82,8 +81,8 @@ class DevicesService:
 
         output = []
         for device in devices:
-            driver_type = device.communication.__dict__.get("name")
-            device_type = device.device_type.__dict__.get("name")
+            driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
+            device_type = device.device_type.__dict__.get("name") if device.device_type is not None else None
             device = device.__dict__
             device["driver_type"] = driver_type
             device["device_type"] = device_type
@@ -223,53 +222,58 @@ class DevicesService:
         :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
+        device_type = await self.get_device_type_by_id(body.id_device_type, session)
+        is_circuit_breaker_device = device_type.name.index("Circuit Breaker") != -1
         devices = []
         rtu_bus_address = body.rtu_bus_address
         tcp_gateway_port = body.tcp_gateway_port
         for _ in range(body.num_of_devices):
-            if body.num_of_devices > 1:
+            if body.num_of_devices > 1 and not is_circuit_breaker_device:
                 if body.inc_mode == IncreaseMode.RTU:
                     rtu_bus_address += _
                 else:
                     tcp_gateway_port += _
             new_devices = DevicesEntity(
                 **DeviceFull(
-                    **body.dict(exclude_unset=True, exclude={"rtu_bus_address", "tcp_gateway_port"}),
+                    **body.dict(exclude_unset=True, exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
                     rtu_bus_address=rtu_bus_address,
                     tcp_gateway_port=tcp_gateway_port,
                     rated_power_custom=body.rated_power,
+                    id_communication=body.id_communication if not is_circuit_breaker_device else None
                 ).dict(exclude_none=True)
             )
             session.add(new_devices)
             await session.flush()
 
-            tg = datetime.datetime.now(datetime.timezone.utc).strftime(
-                "%Y%m%d"
-            )
+            if not is_circuit_breaker_device:
+                tg = datetime.datetime.now(datetime.timezone.utc).strftime(
+                    "%Y%m%d"
+                )
 
-            query = (update(DevicesEntity)
-                     .where(DevicesEntity.id == new_devices.id)
-                     .values(table_name=f"dev_{new_devices.id}",
-                             view_table=f"dev_{new_devices.id}_{tg}"))
+                query = (update(DevicesEntity)
+                         .where(DevicesEntity.id == new_devices.id)
+                         .values(table_name=f"dev_{new_devices.id}",
+                                 view_table=f"dev_{new_devices.id}_{tg}"))
 
-            await session.execute(query)
+                await session.execute(query)
             devices.append(new_devices.id)
         await session.commit()
 
-        serial_number = await ProjectSetupService().get_project_serial_number(session)
-        code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
-        creating_msg = MessageModel(
-            metadata=MetaData(retry=3),
-            topic=Topic(target=f"{serial_number}/{Action.CREATE.value}",
-                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
-            message={"type": Action.CREATE.value,
-                     "code": code,
-                     "devices": devices}
-        )
-        await self.sender.start()
-        self.sender.send(f"{serial_number}/{Action.CREATE.value}",
-                         base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
-        await self.sender.stop()
+        if not is_circuit_breaker_device:
+            serial_number = await ProjectSetupService().get_project_serial_number(session)
+            code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
+            creating_msg = MessageModel(
+                metadata=MetaData(retry=3),
+                topic=Topic(target=f"{serial_number}/{Action.CREATE.value}",
+                            failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
+                message={"type": Action.CREATE.value,
+                         "code": code,
+                         "devices": devices}
+            )
+            await self.sender.start()
+            self.sender.send(f"{serial_number}/{Action.CREATE.value}",
+                             base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
+            await self.sender.stop()
 
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
@@ -290,22 +294,39 @@ class DevicesService:
         """
         if isinstance(device_id, int):
             device_id = [device_id]
-        serial_number = await ProjectSetupService().get_project_serial_number(session)
-        del_msg = MessageModel(
-            metadata=MetaData(retry=3),
-            topic=Topic(target=f"{serial_number}/{Action.DELETE.value}",
-                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
-            message={"type": Action.DELETE.value,
-                     "code": CodeEnum.DeleteDev.name,
-                     "devices": device_id}
-        )
-        await self.sender.start()
-        self.sender.send(f"{serial_number}/{Action.DELETE.value}",
-                         base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
-        await self.sender.stop()
+
+        deleted_devices = []
+        for i in device_id:
+            device = await self.get_device_by_id(i, session)
+            if device is not None:
+                device_type = await self.get_device_type_by_id(device.id_device_type, session)
+                if device_type.name not in SYMBOLIC_DEVICES:
+                    deleted_devices.append(device.id)
+                else:
+                    query = (delete(DevicesEntity)
+                             .where(DevicesEntity.id == i))
+                    await session.execute(query)
+
+        if len(deleted_devices) > 0:
+            serial_number = await ProjectSetupService().get_project_serial_number(session)
+            del_msg = MessageModel(
+                metadata=MetaData(retry=3),
+                topic=Topic(target=f"{serial_number}/{Action.DELETE.value}",
+                            failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
+                message={"type": Action.DELETE.value,
+                         "code": CodeEnum.DeleteDev.name,
+                         "devices": deleted_devices}
+            )
+            await self.sender.start()
+            self.sender.send(f"{serial_number}/{Action.DELETE.value}",
+                             base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
+            await self.sender.stop()
 
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
+
+        await session.commit()
+        session.expire_all()
         return await self.get_devices(session, pagination)
 
     @async_db_request_handler

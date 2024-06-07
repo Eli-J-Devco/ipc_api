@@ -3,6 +3,8 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
+
 from nest.core import Controller, Post, Depends
 from fastapi import status
 from fastapi.responses import JSONResponse
@@ -60,10 +62,11 @@ class TemplateController:
         is_template_exist = await (ServiceWrapper
                                    .async_wrapper(self.template_service
                                                   .get_template_by_name)(template.name,
+                                                                         template.id_device_group,
                                                                          session))
-
-        if is_template_exist is None:
-            return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)
+        if isinstance(is_template_exist, JSONResponse):
+            if is_template_exist.status_code != status.HTTP_200_OK:
+                return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)
 
         return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST,
                             content={"message": f"Template with name: {template.name} already exists"})
