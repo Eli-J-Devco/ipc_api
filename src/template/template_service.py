@@ -156,6 +156,7 @@ class TemplateService:
         """
         points = await self.point_service.get_points(id_template, session)
         point_mppt = await self.point_mppt_service.get_mppt_point_formatted(id_template, session)
+        point_string = await self.point_mppt_service.get_string_point_formatted(id_template, session)
         register_blocks = await self.register_block_service.get_register_block(id_template, session)
         point_controls = await self.point_control_service.get_control_group_point(session, id_template)
         device_group = await self.get_device_group_by_template(id_template, session)
@@ -166,6 +167,7 @@ class TemplateService:
 
         return TemplateOutput(points=points,
                               point_mppt=point_mppt,
+                              point_string=point_string,
                               register_blocks=register_blocks,
                               point_controls=point_controls,
                               device_type=device_type.name)

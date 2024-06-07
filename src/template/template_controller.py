@@ -64,6 +64,9 @@ class TemplateController:
                                                   .get_template_by_name)(template.name,
                                                                          template.id_device_group,
                                                                          session))
+        logging.info("===========================================")
+        logging.info(is_template_exist.__dict__)
+        logging.info("===========================================")
         if isinstance(is_template_exist, JSONResponse):
             if is_template_exist.status_code != status.HTTP_200_OK:
                 return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)

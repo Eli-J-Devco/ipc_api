@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..point.point_model import PointOutput
 from ..point_config.point_config_model import PointListControlGroupChildren
-from ..point_mppt.point_mppt_model import PointMppt
+from ..point_mppt.point_mppt_model import PointMppt, PointString
 from ..project_setup.project_setup_model import ConfigInformationShort
 from ..register_block.register_block_model import RegisterBlock
 
@@ -24,6 +24,7 @@ class Template(BaseModel):
 class TemplateOutput(BaseModel):
     points: list[PointOutput] = None
     point_mppt: list[PointMppt] = None
+    point_string: list[PointString] = None
     register_blocks: list[RegisterBlock] = None
     point_controls: list[PointListControlGroupChildren] = None
     device_type: Optional[str] = None

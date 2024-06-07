@@ -14,6 +14,7 @@ class AddPanelFilter(GetPointFilter):
     parent: Optional[int] = 0
     is_clone_from_last: Optional[bool] = False
     num_of_panels: Optional[int] = 0
+    is_string_only: Optional[bool] = False
 
 
 class AddStringFilter(AddPanelFilter):
@@ -27,3 +28,4 @@ class AddMPPTFilter(AddStringFilter):
 class DeletePointFilter(BaseModel):
     id_points: list[int]
     id_template: int
+    is_string_only: Optional[bool] = False
