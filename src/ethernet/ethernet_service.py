@@ -112,5 +112,4 @@ class EthernetService:
         builtin_nics = []
         for interface in interfaces:
             builtin_nics.append(NetworkInterfaceConfig(nic=EthernetConfig(namekey=interface)).get_network_config())
-
         return builtin_nics

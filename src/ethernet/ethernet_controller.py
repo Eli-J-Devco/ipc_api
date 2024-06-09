@@ -39,7 +39,7 @@ class EthernetController:
     async def get_ifconfig(self,
                            session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
-        network = ServiceWrapper.sync_wrapper(self.ethernet_service.get_network_config)()
-        mode = await ServiceWrapper.async_wrapper(self.ethernet_service.get_ethernet_mode)(session)
+        network = self.ethernet_service.get_network_config()
+        mode = await self.ethernet_service.get_ethernet_mode(session)
 
         return {"network": network, "mode": mode}

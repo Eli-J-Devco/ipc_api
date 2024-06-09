@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 from pathlib import Path
 import netifaces
 from yaml import load, dump
@@ -40,10 +41,12 @@ class NetworkInterfaceConfig:
     def get_network_config(self):
         ipaddress = netifaces.ifaddresses(self._namekey)
         if netifaces.AF_INET in ipaddress:
-            print(ipaddress[netifaces.AF_INET])
-            self._ip_address = ipaddress[netifaces.AF_INET][0]['addr']
-            self._subnet_mask = ipaddress[netifaces.AF_INET][0]['netmask']
-            self._gateway = ipaddress[netifaces.AF_INET][0]['broadcast']
+            self._ip_address = ipaddress[netifaces.AF_INET][0]['addr'] \
+                if len(ipaddress[netifaces.AF_INET]) > 0 and 'addr' in ipaddress[netifaces.AF_INET][0] else None
+            self._subnet_mask = ipaddress[netifaces.AF_INET][0]['netmask'] \
+                if len(ipaddress[netifaces.AF_INET]) > 0 and 'netmask' in ipaddress[netifaces.AF_INET][0] else None
+            self._gateway = ipaddress[netifaces.AF_INET][0]['broadcast'] \
+                if len(ipaddress[netifaces.AF_INET]) > 0 and 'broadcast' in ipaddress[netifaces.AF_INET][0] else None
         return self.to_dict()
 
 
