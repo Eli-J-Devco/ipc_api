@@ -1941,16 +1941,21 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                     for param in item["parameter"]:
                                         if param["id_pointkey"] == "WMaxPercentEnable":
                                             power_limit_percent_enable = param["value"]
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, "Power Limit Percent Enable"))
                                         elif param["id_pointkey"] == "WMaxPercent":
                                             power_limit_percent = param["value"]
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, "Power Limit Percent"))
                                         elif param["id_pointkey"] == "VarMaxPercentEnable":
                                             reactive_limit_percent_enable = param["value"]
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent_enable, device_control, "Reactive Power Limit Percent Enable"))
                                         elif param["id_pointkey"] == "VarMaxPercent":
                                             reactive_limit_percent = param["value"]
+                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, "Reactive Power Limit Percent"))
                             if power_limit_percent_enable == 1:
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                             if reactive_limit_percent_enable == 1:
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+                                
                             if custom_watt and watt and watt >= custom_watt: 
                                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                                 custom_watt = 0
