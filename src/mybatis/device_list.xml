@@ -85,6 +85,7 @@
         device_point_list_map.name,
         device_point_list_map.low_alarm,
         device_point_list_map.high_alarm,
+        device_point_list_map.output_values,
         driver_list.name AS connect_type,
         device_type.name AS device_type, 
         device_group.name AS device_group,
