@@ -998,7 +998,7 @@ async def write_device(
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     print("power_limit_percent",power_limit_percent)
                                                     print("rated_power_custom",rated_power_custom)
-                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*power_limit_percent / slope_wmax}]
+                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*(power_limit_percent/100) / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
@@ -1010,7 +1010,7 @@ async def write_device(
                                             #         slope_wmax = float(result_slope_wmax[0]['slope'])
                                             #         print("rated_reactive_custom",rated_reactive_custom)
                                             #         print("reactive_limit_percent",reactive_limit_percent)
-                                            #         parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*reactive_limit_percent / slope_wmax}]
+                                            #         parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*(reactive_limit_percent/100) / slope_wmax}]
                                             #         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                             #         if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                             #             write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
