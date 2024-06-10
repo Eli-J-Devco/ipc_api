@@ -985,7 +985,8 @@ async def write_device(
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func,register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
-                                        
+                                        print("id_pointkey",id_pointkey)
+                                        print("value",value)
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                         # convert back to actual value
