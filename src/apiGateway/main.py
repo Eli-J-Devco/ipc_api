@@ -31,7 +31,7 @@ from configs.config import orm_provider as db_config
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
 from utils.logger_manager import setup_logger
-from utils.mqttManager import mqtt_public, mqtt_public_common
+from utils.mqttManager import mqtt_public, mqtt_public_common, mqttService
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2,
@@ -47,6 +47,9 @@ MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 from dataclasses import asdict, dataclass
 
+# from api.domain.sld_group.sld_group_model import (SldGroupBase,
+#                                                   SldGroupResponse,
+#                                                   SldGroupUpdate)
 # import api.domain.deviceGroup.models as deviceGroup_models
 # import api.domain.deviceList.models as deviceList_models
 # import api.domain.project.models as project_models
@@ -468,68 +471,98 @@ class apiGateway:
         except Exception as err:
             print('Error MQTT system_inform: ',err)
     # 
-    async def handle_single_line_diagram(self,client,Topic):
-        try:
-            sld_init=single_line_service.SLDService()
-            print("handle_single_line_diagram")
-            while True:
-                message = await client.messages.get()
-                if message is None:
-                    print('Broker connection lost!')
-                    break
-                result=json.loads(message.message.decode())
-                print(message.topic)
-                if message.topic==f'{Topic}/Request' and  'code' in result.keys() and 'payload'in result.keys():
-                    payload=result["payload"]
-                    match result['code']:
-                        case "addGroup":
-                            """
-                            {
-                            "code":"addGroup",
-                            "payload":
-                                {
-                                    "name":"Group 1",
-                                    "type":0
-                                }
-                            }
-                            """
+    # async def handle_single_line_diagram(self,client,Topic):
+    #     try:
+    #         sld_init=single_line_service.SLDService()
+    #         mqttServiceInit=mqttService(self.MQTT_BROKER,
+    #                                     self.MQTT_PORT,
+    #                                     self.MQTT_USERNAME,
+    #                                     self.MQTT_PASSWORD,
+    #                                     self.MQTT_TOPIC)
+    #         while True:
+    #             message = await client.messages.get()
+    #             if message is None:
+    #                 print('Broker connection lost!')
+    #                 break
+    #             result=json.loads(message.message.decode())
+    #             print(message.topic)
+    #             if message.topic==f'{Topic}/Request' and  'code' in result.keys() and 'payload'in result.keys():
+    #                 payload=result["payload"]
+    #                 match result['code']:
+    #                     case "getGroup":
+    #                         db_new=await db_config.get_db()
+    #                         add_group_result=await sld_init.get_all_group(result['code'],
+    #                                                                     "",db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=add_group_result.dict())
+    #                     case "addGroup":
+    #                         """
+    #                         {
+    #                         "code":"addGroup",
+    #                         "payload":
+    #                             {   
+    #                                 "name":"Group 1",
+    #                                 "type":0
+    #                             }
+    #                         }
+    #                         """
                             
-                            db_new=await db_config.get_db()
-                            await sld_init.add_group(payload,db_new)
-                        case "updateGroup":
-                            """
-                            {
-                            "code":"updateGroup",
-                            "payload":
-                                {
-                                    "id":1,
-                                    "name":"Group 1",
-                                    "type":0
-                                }
-                            }
-                            """
+    #                         db_new=await db_config.get_db()
+    #                         add_group_result=await sld_init.add_group(result['code'],
+    #                                                                     SldGroupBase(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=add_group_result.dict())
+    #                     case "updateGroup":
+    #                         """
+    #                         {
+    #                         "code":"updateGroup",
+    #                         "payload":
+    #                             {
+    #                                 "id":1,
+    #                                 "name":"Group 1",
+    #                                 "type":0
+    #                             }
+    #                         }
+    #                         """
                             
-                            db_new=await db_config.get_db()
-                            await sld_init.add_group(payload,db_new)
-        except Exception as err:
-            print('Error MQTT handle_single_line_diagram',err)
-    async def single_line_diagram(self):
-        try:
-            Topic=self.MQTT_TOPIC+"/"+"sld"
-            client = mqttools.Client(host=self.MQTT_BROKER, 
-                                port=self.MQTT_PORT ,
-                                username= self.MQTT_USERNAME, 
-                                password=bytes(self.MQTT_PASSWORD, 'utf-8'),
-                                subscriptions=[Topic+"/#"],
-                                connect_delays=[1, 2, 4, 8]
-                                )
-            print(Topic)
-            while True:
-                await client.start()
-                await self.handle_single_line_diagram(client,Topic)
-                await client.stop()
-        except Exception as err:
-            print('Error MQTT sld: ',err)
+    #                         db_new=await db_config.get_db()
+    #                         update_group_result=await sld_init.update_group(result['code'],
+    #                                                                         SldGroupUpdate(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=update_group_result.dict())
+    #                     case "deleteGroup":
+    #                         """
+    #                         {
+    #                         "code":"deleteGroup",
+    #                         "payload":
+    #                             {
+    #                                 "id":47,
+    #                             }
+    #                         }
+    #                         """
+                            
+    #                         db_new=await db_config.get_db()
+    #                         delete_group_result=await sld_init.delete_group(result['code'],
+    #                                                                         SldGroupUpdate(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=delete_group_result.dict())
+                            
+    #     except Exception as err:
+    #         print('Error MQTT handle_single_line_diagram',err)
+    # async def single_line_diagram(self):
+    #     try:
+    #         Topic=self.MQTT_TOPIC+"/"+"sld"
+    #         client = mqttools.Client(host=self.MQTT_BROKER, 
+    #                             port=self.MQTT_PORT ,
+    #                             username= self.MQTT_USERNAME, 
+    #                             password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+    #                             subscriptions=[Topic+"/#"],
+    #                             connect_delays=[1, 2, 4, 8]
+    #                             )
+    #         print(Topic)
+    #         while True:
+    #             await client.start()
+    #             await self.handle_single_line_diagram(client,Topic)
+    #             await client.stop()
+    #     except Exception as err:
+    #         print('Error MQTT sld: ',err)
+
 async def main():
     tasks = []
     db_new=await db_config.get_db()
@@ -555,8 +588,8 @@ async def main():
         api_gateway.deviceListPub()))
     tasks.append(asyncio.create_task(
         api_gateway.ipc_system()))
-    tasks.append(asyncio.create_task(
-        api_gateway.single_line_diagram()))
+    # tasks.append(asyncio.create_task(
+    #     api_gateway.single_line_diagram()))
     
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':

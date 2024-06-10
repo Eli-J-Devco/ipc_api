@@ -21,6 +21,11 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+from uuid import uuid1
+
+import mqttools
+from mqttools import SessionResumeError
+
 import api.domain.deviceGroup.models as deviceGroup_models
 import api.domain.deviceList.models as deviceList_models
 import api.domain.project.models as project_models
@@ -88,3 +93,31 @@ def mqtt_public_common(host,port,topic,username,password,data_send):
                                'password':f'{password}'})
     except Exception as err:
         print(f"Error MQTT public: '{err}'")
+
+class mqttService:
+    def __init__(self, host: str, port:int,username: str,password: str,serial_number: str):
+        self.host=host
+        self.port=port
+        self.username=username
+        self.password=bytes(password, 'utf-8')
+        self.serial_number=serial_number
+        self.sender = mqttools.Client(host=self.host, 
+                            port=self.port,
+                            username= self.username, 
+                            password=self.password,
+                            client_id='mqttools-{}'.format(uuid1().node),
+                            session_expiry_interval=15
+                            )
+    async def send(self,topic_parent: str,
+                        message:str, 
+                        resume_session: bool = True):
+        try:
+            await self.sender.start(resume_session=resume_session)
+        except SessionResumeError:
+            await self.sender.start()
+        finally:
+            payload = json.dumps(message)
+            self.sender.publish(mqttools.Message(
+                f"{self.serial_number}/{topic_parent}", payload.encode("ascii")))
+            await self.sender.stop()
+        

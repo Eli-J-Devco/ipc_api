@@ -120,8 +120,15 @@ maximum_DC_input_current=None
 # 
 rated_DC_input_power=None
 inverter_type=None
+# 
 
+power_limit_percent=None
+power_limit_percent_enable=None
+reactive_limit_percent=None
+reactive_limit_percent_enable=None
+rated_reactive_custom=None
 
+# 
 # config[0] -- id
 # ----- mybatis -----
 # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(

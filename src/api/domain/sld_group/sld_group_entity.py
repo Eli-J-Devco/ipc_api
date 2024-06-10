@@ -28,14 +28,14 @@ class SldGroup(db_config.Base):
 #                                                              ondelete="CASCADE",
 #                                                              onupdate="CASCADE"), 
 #                                               nullable=False)
-#     # id_device_list: Mapped[int] = mapped_column(Integer, 
-#     #                                           ForeignKey("device_list.id",
-#     #                                                          ondelete="CASCADE",
-#     #                                                          onupdate="CASCADE"), 
-#     #                                           nullable=False)
-#     # status: Mapped[bool] = mapped_column(Boolean, nullable=False)
+#     id_device_list: Mapped[int] = mapped_column(Integer, 
+#                                               ForeignKey("device_list.id",
+#                                                              ondelete="CASCADE",
+#                                                              onupdate="CASCADE"), 
+#                                               nullable=False)
+#     status: Mapped[bool] = mapped_column(Boolean, nullable=False)
 #     sld_group = relationship("SldGroup", foreign_keys=[id_sld_group])
-#     # device_list = relationship("Device_list", foreign_keys=[id_device_list])
+#     device_list = relationship("Device_list", foreign_keys=[id_device_list])
     
 # class SLD_GROUP_METER(db_config.Base):
 #     __tablename__ = "sld_group_meter"
