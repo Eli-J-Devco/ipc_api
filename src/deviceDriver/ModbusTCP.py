@@ -884,6 +884,11 @@ async def write_device(
     global status_device # status of device
     global rated_power # rated_power
     global rated_power_custom # rated_power_custom
+    global power_limit_percent
+    global power_limit_percent_enable
+    global reactive_limit_percent
+    global reactive_limit_percent_enable
+    global rated_reactive_custom
     global result_topic1 # result topic 
     # Local Variables
     
@@ -1811,6 +1816,10 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     try:
         global rated_power
         global rated_power_custom
+        global power_limit_percent
+        global power_limit_percent_enable
+        global reactive_limit_percent
+        global reactive_limit_percent_enable
         client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
         if not client:
             return -1 
@@ -1847,6 +1856,21 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                             rated_power = watt
                             rated_power_custom = custom_watt
 
+                            for item in result_topic1:
+                                if "parameter" in item:
+                                    for param in item["parameter"]:
+                                        if param["id_pointkey"] == "WMaxPercentEnable":
+                                            power_limit_percent_enable = param["value"]
+                                        elif param["id_pointkey"] == "WMaxPercent":
+                                            power_limit_percent = param["value"]
+                                        elif param["id_pointkey"] == "VarMaxPercentEnable":
+                                            reactive_limit_percent_enable = param["value"]
+                                        elif param["id_pointkey"] == "VarMaxPercent":
+                                            reactive_limit_percent = param["value"]
+                                        print("power_limit_percent_enable",power_limit_percent_enable)
+                                        print("power_limit_percent",power_limit_percent)
+                                        print("reactive_limit_percent_enable",reactive_limit_percent_enable)
+                                        print("reactive_limit_percent",reactive_limit_percent)
                             if custom_watt and watt and watt >= custom_watt: 
                                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                                 custom_watt = 0
