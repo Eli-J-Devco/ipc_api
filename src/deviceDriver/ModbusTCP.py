@@ -1430,10 +1430,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                             **item,
                             "timestamp":getUTC()
                             })
-                    # new_point_list_device.append({
-                    #         **item,
-                    #         "timestamp":getUTC()
-                    #         })
             # 
             if new_point_list_device:
                 for point_item in new_point_list_device:
