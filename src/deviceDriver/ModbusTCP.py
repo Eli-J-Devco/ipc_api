@@ -163,7 +163,25 @@ def point_object(Config,
                  control_enabled=1,# show/hide = 1/0, get from Device
                  panel_height=None,
                  panel_width=None,
+                 output_values=None
                  ):
+    # 
+    # modify_value=None
+    # match point_key:
+    #     case "WMaxPercent":
+    #         modify_value=int(output_values)
+    #         power_limit_percent=modify_value
+    #     case "WMaxPercentEnable":
+    #         modify_value=int(output_values)
+    #         power_limit_percent_enable=modify_value
+    #     case "VarMaxPercent":
+    #         modify_value=int(output_values)
+    #         reactive_limit_percent=modify_value
+    #     case "VarMaxPercentEnable":
+    #         modify_value=int(output_values)
+    #         reactive_limit_percent_enable=modify_value
+    #     case _:
+    modify_value=value
     
     return {"config":Config,
             "id_point_list_type":id_point_type,
@@ -174,7 +192,7 @@ def point_object(Config,
             "point_key":point_key,
             "name": name, 
             "unit": unit, 
-            "value":  value, 
+            "value":  modify_value, 
             "quality":quality,
             "timestamp":(lambda x:  getUTC() if x ==None else x) (timestamp),
             "message":message,
@@ -188,7 +206,7 @@ def point_object(Config,
             "control_enabled":control_enabled,
             "panel_height":panel_height,
             "panel_width":panel_width,
-            
+            "output_values":output_values
             }
 # Describe functions before writing code
 # /**
@@ -552,7 +570,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             control_max=point_list_item['control_max'],
                                                             control_enabled=1,
                                                             panel_height=point_list_item['panel_height'],
-                                                            panel_width=point_list_item['panel_width']
+                                                            panel_width=point_list_item['panel_width'],
+                                                            output_values=point_list_item['output_values'],
                                                             )
                 else:
                     if point_value != None:
@@ -583,7 +602,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 control_max=point_list_item['control_max'],
                                                 control_enabled=1,
                                                 panel_height=point_list_item['panel_height'],
-                                                panel_width=point_list_item['panel_width']
+                                                panel_width=point_list_item['panel_width'],
+                                                output_values=point_list_item['output_values'],
                                                 )
                 return point_list
             case "Internal":
@@ -607,7 +627,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_max=point_list_item['control_max'],
                                         control_enabled=1,
                                         panel_height=point_list_item['panel_height'],
-                                        panel_width=point_list_item['panel_width']
+                                        panel_width=point_list_item['panel_width'],
+                                        output_values=point_list_item['output_values'],
                                         )
                 return point_list
             case "Equation":
@@ -631,7 +652,8 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         control_max=point_list_item['control_max'],
                                         control_enabled=1,
                                         panel_height=point_list_item['panel_height'],
-                                        panel_width=point_list_item['panel_width']
+                                        panel_width=point_list_item['panel_width'],
+                                        output_values=point_list_item['output_values'],
                                         )
                 return point_list
         
@@ -1036,6 +1058,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global device_id
         global device_mode
         global id_template
+        global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         pathSource=path
         print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
@@ -1071,9 +1094,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         
         # print(f'query_register_block: {query_register_block}')
         results_RBlock= MySQL_Select(query_register_block, (id_template,))
-        results_Plist= MySQL_Select(query_point_list, (id_device,))
-        # print(f'results_rblock: {results_RBlock[0]}')
-        # print(f'results_plist: {results_Plist}')
+        results_default_Plist= MySQL_Select(query_point_list, (id_device,))
+
         # Check the register Modbus
         if type(results_RBlock) == list and len(results_RBlock)>=1:
             pass
@@ -1081,11 +1103,28 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
             print("Error device register not found")
             # return -1
         # Check the point list Modbus
-        if type(results_Plist) == list and len(results_Plist)>=1:
+        if type(results_default_Plist) == list and len(results_default_Plist)>=1:
             pass
         else:           
             print("Error device point list not found")
-            # return -1 
+            # return -1
+        # results_Plist=results_default_Plist
+        results_Plist=[]
+        if results_default_Plist:
+            for itemP in results_default_Plist:
+                match itemP["pointkey"]:
+                    case "WMaxPercent":
+                        power_limit_percent=int(itemP["output_values"])
+                    case "WMaxPercentEnable":
+                        power_limit_percent_enable=int(itemP["output_values"])
+                    case "VarMaxPercent":
+                        reactive_limit_percent=int(itemP["output_values"])
+                    case "VarMaxPercentEnable":
+                        reactive_limit_percent_enable=int(itemP["output_values"])
+                    case _:
+                        pass
+                results_Plist.append({**itemP})
+        
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
         global rated_power
@@ -1242,7 +1281,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_max=item['control_max'],
                                                 control_enabled=item['control_enabled'],
                                                 panel_height=item['panel_height'],
-                                                panel_width=item['panel_width']
+                                                panel_width=item['panel_width'],
+                                                output_values=item['output_values'],
                                                 ))
                     else:
                         # print(results_Plist[0])
@@ -1270,7 +1310,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 control_max=item['control_max'],
                                                 control_enabled=1,
                                                 panel_height=item['panel_height'],
-                                                panel_width=item['panel_width']
+                                                panel_width=item['panel_width'],
+                                                output_values=item['output_values'],
                                                 )
                             )
                         
@@ -1311,6 +1352,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global  device_name,status_device,msg_device,status_register_block,point_list_device
+            global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
             global device_id
             global NAME_DEVICE_TYPE
             global ID_DEVICE_TYPE
@@ -1361,10 +1403,33 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         
                     } for item in results_control_group]
             for item in point_list_device:
-                new_point_list_device.append({
-                    **item,
-                    "timestamp":getUTC()
-                })
+                
+                match item["point_key"]:
+                    case "WMaxPercent":
+                        new_point_list_device.append({
+                            **item,
+                            "value":power_limit_percent,
+                            })
+                    case "WMaxPercentEnable":
+                        new_point_list_device.append({
+                            **item,
+                            "value":power_limit_percent_enable,
+                            })
+                    case "VarMaxPercent":
+                        new_point_list_device.append({
+                            **item,
+                            "value":reactive_limit_percent,
+                            })
+                    case "VarMaxPercentEnable":
+                        new_point_list_device.append({
+                            **item,
+                            "value":reactive_limit_percent_enable,
+                            })
+                    case _:
+                        new_point_list_device.append({
+                            **item,
+                            "timestamp":getUTC()
+                            })
             # 
             if new_point_list_device:
                 for point_item in new_point_list_device:
