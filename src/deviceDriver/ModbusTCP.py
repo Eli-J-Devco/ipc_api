@@ -1934,8 +1934,10 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                             reactive_limit_percent = param["value"]
                             if power_limit_percent_enable == 1:
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+                            if reactive_limit_percent_enable == 1:
+                                item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             # In lại result_topic1 sau khi xử lý
-                            print(result_topic1)
+                            print("result_topic1",result_topic1)
                             if custom_watt and watt and watt >= custom_watt: 
                                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                                 custom_watt = 0
