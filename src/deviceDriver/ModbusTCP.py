@@ -1913,7 +1913,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
     current_time = ""
     power_limit = 0
     reactive_power_limit = 0
-    control_inv = 1
+    control_inv = True
     # variable topic 2
     global device_mode
     
@@ -1990,9 +1990,10 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                             if reactive_limit_percent_enable == 1:
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
-                            if control_inv == 0 :
+                            if control_inv == False :
                                 parameter.append({"id_pointkey": "Conn_RvrtTms", "value": 0})
-                                control_inv = 1
+                                control_inv = True
+                                print("result_topic1",result_topic1)
                             if custom_watt and watt and watt >= custom_watt: 
                                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                                 custom_watt = 0
