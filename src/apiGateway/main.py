@@ -273,45 +273,29 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                # print(f'Topic:   {message.topic}')
                 result=json.loads(message.message.decode())
-                
                 for i,item in enumerate(self.DeviceList):
-                    # print('------------------')
-                    # print(item)
-                    # print(f'{Topic}/{item["id_device"]}')
                     if message.topic==f'{Topic}/{item["id_device"]}':
-                        # print(item)
                         if 'id_device_type' in result.keys():
                             self.DeviceList[i]["id_device_type"]=result["id_device_type"]
-                            
                         if 'name_device_type' in result.keys():
                             self.DeviceList[i]["name_device_type"]=result["name_device_type"]
-                            
                         if 'status_device' in result.keys():
                             self.DeviceList[i]["status_device"]=result["status_device"]
-                            
                         if 'timestamp' in result.keys():
                             self.DeviceList[i]["timestamp"]=result["timestamp"]
-                            
                         if 'message' in result.keys():
                             self.DeviceList[i]["message"]=result["message"]
-                            
                         if 'status_register' in result.keys():
                             self.DeviceList[i]["status_register"]=result["status_register"]
-                            
                         if 'point_count' in result.keys():
                             self.DeviceList[i]["point_count"]=result["point_count"]
-                            
                         if 'parameters' in result.keys():
                             self.DeviceList[i]["parameters"]=result["parameters"]
-                            
                         if 'fields' in result.keys():
                             self.DeviceList[i]["fields"]=result["fields"]
-                            
                         if 'mppt' in result.keys():
                             self.DeviceList[i]["mppt"]=result["mppt"]
-                            
                         if 'mode' in result.keys():
                             self.DeviceList[i]["mode"]=result["mode"]
                         if 'control_group' in result.keys():
@@ -325,8 +309,9 @@ class apiGateway:
                         if 'meter_type' in result.keys():
                             self.DeviceList[i]["meter_type"]=result["meter_type"] 
                         if 'inverter_type' in result.keys():
-                            self.DeviceList[i]["inverter_type"]=result["inverter_type"]        
-
+                            self.DeviceList[i]["inverter_type"]=result["inverter_type"]
+                        if 'parent' in result.keys():
+                            self.DeviceList[i]["parent"]=result["parent"]
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
     async def deviceListSub(self):
@@ -357,24 +342,13 @@ class apiGateway:
 
                 for item in result_device:
                     
-                    # rated_power=None
-                    # rated_power_custom=None
-                    # if item.rated_power!= None:
-                    #     rated_power=item.rated_power
-                    # if item.rated_power_custom!= None:
-                    #     rated_power_custom=item.rated_power_custom
-                    
                     self.DeviceList.append({
                         "id_device":item["id"],
                         "device_name":item["name"],
                         "mode":item["mode"],
                         "parameters":[],
                         "efficiency":item["efficiency"],
-                        # "inverter_type":item["inverter_type"],
-                        # 
-                        # "rated_power":rated_power,
-                        # "rated_power_custom":rated_power_custom,
-                        # "min_watt_in_percent":item.min_watt_in_percent,
+                        # "parent":item["parent"],
                     })
             except Exception as err:
                 print('An exception occurred',err)

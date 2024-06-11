@@ -128,7 +128,7 @@ power_limit_percent_enable=None
 reactive_limit_percent=None
 reactive_limit_percent_enable=None
 rated_reactive_custom=None
-
+device_parent=None
 # 
 # config[0] -- id
 # ----- mybatis -----
@@ -1153,6 +1153,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global rated_DC_input_voltage
         global maximum_DC_input_current
         global inverter_type
+        global device_parent
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -1167,6 +1168,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         
         meter_type=results_device[0]['meter_type']
         inverter_type =results_device[0]['inverter_type']
+        device_parent=results_device[0]['device_parent']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1362,6 +1364,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         global rated_DC_input_voltage
         global maximum_DC_input_current
         global inverter_type
+        global device_parent
+        
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
         print(f'init monitoring_device')
         # point_list
@@ -1669,6 +1673,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             # print(f'new_control_group: {new_control_group}')
             data_device={
                 "id_device":device_id,
+                "parent":device_parent,
                 "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
@@ -1691,6 +1696,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             }
             data_device_short={
                 "id_device":device_id,
+                "parent":device_parent,
                 "mode":device_mode,
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
