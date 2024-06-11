@@ -986,29 +986,47 @@ async def write_device(
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func,register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
-                                        
+                                        print("id_pointkey",id_pointkey)
+                                        print("value",value)
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                         # convert back to actual value
                                         if result_slope and slope :
                                             slope = float(result_slope[0]['slope'])
                                             
-                                            if id_pointkey == "WMaxPercentEnable" and value == 1:
+                                            if power_limit_percent_enable == 1:
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
-                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom / slope_wmax}]
+                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*(power_limit_percent/100) / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
                                                                         inverter_info_temp[0]["modbus_func"],
                                                                         inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
+                                                        
+                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, 'Power Limit Percent Enable'))
+                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
+                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom*(power_limit_percent/100) / slope_wmax, device_control, 'Power Limit'))
+                                            # if reactive_limit_percent_enable == 1:
+                                            #     result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
+                                            #     if result_slope_wmax:
+                                            #         slope_wmax = float(result_slope_wmax[0]['slope'])
+                                            #         parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*(reactive_limit_percent/100) / slope_wmax}]
+                                            #         inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
+                                            #         if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
+                                            #             write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
+                                            #                             inverter_info_temp[0]["modbus_func"],
+                                            #                             inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
+                                                        # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent_enable, device_control, 'Reactive Power Limit Percent Enable'))
+                                                        # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
                                             elif id_pointkey in ["VarMax", "WMax", "WMaxPercent", "VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
+                                                print("name device point list",name_device_points_list_map)
+                                                MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 value /= slope
-                                                
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
-                                            MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
@@ -1935,16 +1953,21 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                     for param in item["parameter"]:
                                         if param["id_pointkey"] == "WMaxPercentEnable":
                                             power_limit_percent_enable = param["value"]
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, 'Power Limit Percent Enable'))
                                         elif param["id_pointkey"] == "WMaxPercent":
                                             power_limit_percent = param["value"]
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                         elif param["id_pointkey"] == "VarMaxPercentEnable":
                                             reactive_limit_percent_enable = param["value"]
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent_enable, device_control, 'Reactive Power Limit Percent Enable'))
                                         elif param["id_pointkey"] == "VarMaxPercent":
                                             reactive_limit_percent = param["value"]
-                                        print("power_limit_percent_enable",power_limit_percent_enable)
-                                        print("power_limit_percent",power_limit_percent)
-                                        print("reactive_limit_percent_enable",reactive_limit_percent_enable)
-                                        print("reactive_limit_percent",reactive_limit_percent)
+                                            # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
+                            if power_limit_percent_enable == 1:
+                                item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+                            if reactive_limit_percent_enable == 1:
+                                item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+                                
                             if custom_watt and watt and watt >= custom_watt: 
                                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                                 custom_watt = 0
