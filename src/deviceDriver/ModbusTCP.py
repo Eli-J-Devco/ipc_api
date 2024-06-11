@@ -1966,6 +1966,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                                 power_limit_percent = param["value"]
                                             else:
                                                 power_limit_percent = (power_limit/rated_power_custom)*100
+                                                power_limit_percent = int(power_limit_percent)
                                         elif param["id_pointkey"] == "VarMaxPercentEnable":
                                             reactive_limit_percent_enable = param["value"]
                                         if param["id_pointkey"] == "VarMax":
@@ -1975,6 +1976,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                                 reactive_limit_percent = param["value"]
                                             else:
                                                 reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
+                                                reactive_power_limit = int(reactive_power_limit)
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                             if reactive_limit_percent_enable == 1:
                                 item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
