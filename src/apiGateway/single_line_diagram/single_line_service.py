@@ -130,27 +130,94 @@ class SLDService:
         finally:
             await session.close()
             return SldGroupResponse(code=code, status= status, payload={})
-    # @async_db_request_handler
-    # async def delete_group(self, payload,session: AsyncSession):
+    # async def handle_single_line_diagram(self,client,Topic):
     #     try:
-    #         sql_add_group=all_query.add_sld_group.format(name=payload["name"],group_type=payload["type"] )
-    #         result= await session.execute(text(sql_add_group))
-    #         await session.commit()
-    #     except Exception as e:
-    #         print("Error add_group: ", e)
-    #     finally:
-    #         print('add_group end')
-    #         await session.close()
-    # @async_db_request_handler
-    # async def add_group_inv(self, payload,session: AsyncSession):
+    #         sld_init=single_line_service.SLDService()
+    #         mqttServiceInit=mqttService(self.MQTT_BROKER,
+    #                                     self.MQTT_PORT,
+    #                                     self.MQTT_USERNAME,
+    #                                     self.MQTT_PASSWORD,
+    #                                     self.MQTT_TOPIC)
+    #         while True:
+    #             message = await client.messages.get()
+    #             if message is None:
+    #                 print('Broker connection lost!')
+    #                 break
+    #             result=json.loads(message.message.decode())
+    #             print(message.topic)
+    #             if message.topic==f'{Topic}/Request' and  'code' in result.keys() and 'payload'in result.keys():
+    #                 payload=result["payload"]
+    #                 match result['code']:
+    #                     case "getGroup":
+    #                         db_new=await db_config.get_db()
+    #                         add_group_result=await sld_init.get_all_group(result['code'],
+    #                                                                     "",db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=add_group_result.dict())
+    #                     case "addGroup":
+    #                         """
+    #                         {
+    #                         "code":"addGroup",
+    #                         "payload":
+    #                             {   
+    #                                 "name":"Group 1",
+    #                                 "type":0
+    #                             }
+    #                         }
+    #                         """
+                            
+    #                         db_new=await db_config.get_db()
+    #                         add_group_result=await sld_init.add_group(result['code'],
+    #                                                                     SldGroupBase(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=add_group_result.dict())
+    #                     case "updateGroup":
+    #                         """
+    #                         {
+    #                         "code":"updateGroup",
+    #                         "payload":
+    #                             {
+    #                                 "id":1,
+    #                                 "name":"Group 1",
+    #                                 "type":0
+    #                             }
+    #                         }
+    #                         """
+                            
+    #                         db_new=await db_config.get_db()
+    #                         update_group_result=await sld_init.update_group(result['code'],
+    #                                                                         SldGroupUpdate(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=update_group_result.dict())
+    #                     case "deleteGroup":
+    #                         """
+    #                         {
+    #                         "code":"deleteGroup",
+    #                         "payload":
+    #                             {
+    #                                 "id":47,
+    #                             }
+    #                         }
+    #                         """
+                            
+    #                         db_new=await db_config.get_db()
+    #                         delete_group_result=await sld_init.delete_group(result['code'],
+    #                                                                         SldGroupUpdate(**payload),db_new)
+    #                         await mqttServiceInit.send(topic_parent=f'sld/Response',message=delete_group_result.dict())
+                            
+    #     except Exception as err:
+    #         print('Error MQTT handle_single_line_diagram',err)
+    # async def single_line_diagram(self):
     #     try:
-    #         sql_add_group=all_query.add_sld_group.format(id_sld_group=payload["id_sld_group"],group_type=payload["type"] )
-    #         result= await session.execute(text(sql_add_group))
-    #         await session.commit()
-    #     except Exception as e:
-    #         print("Error add_group: ", e)
-    #     finally:
-    #         print('add_group end')
-    #         await session.close()
-    # @async_db_request_handler
-    # async def add_group_meter(self, payload,session: AsyncSession):
+    #         Topic=self.MQTT_TOPIC+"/"+"sld"
+    #         client = mqttools.Client(host=self.MQTT_BROKER, 
+    #                             port=self.MQTT_PORT ,
+    #                             username= self.MQTT_USERNAME, 
+    #                             password=bytes(self.MQTT_PASSWORD, 'utf-8'),
+    #                             subscriptions=[Topic+"/#"],
+    #                             connect_delays=[1, 2, 4, 8]
+    #                             )
+    #         print(Topic)
+    #         while True:
+    #             await client.start()
+    #             await self.handle_single_line_diagram(client,Topic)
+    #             await client.stop()
+    #     except Exception as err:
+    #         print('Error MQTT sld: ',err)
