@@ -341,20 +341,20 @@ class apiGateway:
                 result_device=[row._asdict() for row in result.all()]
 
                 for item in result_device:
-                    
                     self.DeviceList.append({
                         "id_device":item["id"],
                         "device_name":item["name"],
                         "mode":item["mode"],
                         "parameters":[],
                         "efficiency":item["efficiency"],
-                        # "parent":item["parent"],
+                        "parent":item["parent"],
+                        "inverter_type":item["inverter_type"],
+                        "meter_type":item["meter_type"],
                     })
             except Exception as err:
                 print('An exception occurred',err)
             finally:
                 await db_new.close()
-                # print('get Device_list')
             topic=f"{self.MQTT_TOPIC}/Devices/All"
             while True:
                 mqtt_data=[]
@@ -392,8 +392,7 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
-                    
-                    
+
                 mqtt_public_common(self.MQTT_BROKER,
                                 self.MQTT_PORT,
                                 topic,

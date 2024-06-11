@@ -1450,7 +1450,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                             })
                     case "ACPowerFactor":
                         cosPhi=item["value"]
-                        if cosPhi!=None and cosPhi!="null":
+                        if cosPhi!=None and cosPhi!="null" and cosPhi!=0:
                             sinPhi=math.sqrt(1-cosPhi**2)
                             tanPhi=sinPhi/cosPhi
                             rated_reactive_custom=round(rated_power_custom*tanPhi,2)
