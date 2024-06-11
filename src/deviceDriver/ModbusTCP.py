@@ -1966,6 +1966,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                     for param in item["parameter"]:
                                         if param["id_pointkey"] == "ControlINV":
                                             control_inv = param["value"]
+                                            print("control_inv", control_inv)
                                         if param["id_pointkey"] == "WMaxPercentEnable":
                                             power_limit_percent_enable = param["value"]
                                         if param["id_pointkey"] == "WMax":
