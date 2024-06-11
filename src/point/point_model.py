@@ -46,6 +46,7 @@ class PointBase(PointShort):
     constants: Optional[str] = None
     active: Optional[bool] = None
     status: Optional[bool] = True
+    control_type_input: Optional[int] = None
 
 
 class PointOutput(PointBase):
@@ -56,6 +57,7 @@ class PointOutput(PointBase):
     type_point: Optional[ConfigInformationShort] = None
     type_class: Optional[ConfigInformationShort] = None
     type_function: Optional[ConfigInformationShort] = None
+    type_control_input: Optional[ConfigInformationShort] = None
 
     class Config:
         orm_mode = True

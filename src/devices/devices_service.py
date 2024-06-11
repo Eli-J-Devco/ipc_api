@@ -6,6 +6,7 @@
 import base64
 import datetime
 import json
+import logging
 import uuid
 from typing import Sequence
 
@@ -19,10 +20,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
-                             DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType, )
+                             DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType,
+                             DeviceComponent as DeviceComponentEntity,)
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    AddDeviceGroupFilter
-from .devices_model import Devices, DeviceFull, Action
+    AddDeviceGroupFilter, GetDeviceComponentFilter
+from .devices_model import Devices, DeviceFull, Action, DeviceComponent, DeviceComponentBase, DeviceComponentList
 from ..config import env_config
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
 from ..project_setup.project_setup_service import ProjectSetupService
@@ -447,3 +449,41 @@ class DevicesService:
         session.add(new_device_group)
         await session.commit()
         return "Device group added successfully"
+
+    @async_db_request_handler
+    async def get_device_components_by_main_type(self,
+                                                 device_type: GetDeviceComponentFilter,
+                                                 session: AsyncSession) -> Sequence[DeviceComponent]:
+        query = (select(DeviceComponentEntity)
+                 .where(DeviceComponentEntity.main_type == device_type.main_type))
+        if device_type.sub_type:
+            query = (select(DeviceComponentEntity)
+                     .where(DeviceComponentEntity.main_type == device_type.main_type)
+                     .where(DeviceComponentEntity.sub_type == device_type.sub_type))
+
+        result = await session.execute(query)
+        components = result.scalars().all()
+        output = []
+        for component in components:
+            base_component = DeviceComponentBase(**component.__dict__)
+            output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
+                                          name=component.component_type.name))
+        return output
+
+    @async_db_request_handler
+    async def get_all_device_components(self, session: AsyncSession):
+        device_types = await self.get_device_type(session)
+
+        output = []
+        for device_type in device_types:
+            device_component = await (self
+                                      .get_device_components_by_main_type(GetDeviceComponentFilter(main_type=device_type.id),
+                                                                          session))
+            if not device_component:
+                continue
+
+            base_output = DeviceComponentList(device_type=device_type,
+                                              component=device_component)
+            output.append(base_output)
+
+        return output

@@ -16,7 +16,7 @@ from starlette.responses import JSONResponse
 
 from .template_entity import Template as TemplateEntity
 from .template_filter import GetTemplateFilter
-from .template_model import Template, TemplateOutput, TemplateConfig
+from .template_model import GetTemplate, TemplateOutput, TemplateConfig, TemplateBase
 from ..devices.devices_service import DevicesService
 from ..point.point_filter import AddPointListFilter
 from ..point.point_service import PointService
@@ -50,7 +50,7 @@ class TemplateService:
 
     @async_db_request_handler
     async def get_template(self, body: GetTemplateFilter,
-                           session: AsyncSession) -> Sequence[Template] | TemplateOutput:
+                           session: AsyncSession) -> Sequence[TemplateBase] | TemplateOutput:
         """
         Get template
         :author: nhan.tran
@@ -72,12 +72,17 @@ class TemplateService:
             query = select(TemplateEntity).where(TemplateEntity.type == body.type)
 
         result = await session.execute(query)
-        return result.scalars().all()
+        output = []
+        for template in result.scalars().all():
+            device_group = template.device_group.__dict__.get('name', None)
+            output.append(GetTemplate(**TemplateBase(**template.__dict__).dict(), device_group=device_group))
+
+        return output
 
     @async_db_request_handler
     async def get_template_by_id(self, id_template: int,
                                  session: AsyncSession,
-                                 func=None, *args, **kwargs) -> Template | TemplateOutput:
+                                 func=None, *args, **kwargs) -> TemplateBase | TemplateOutput:
         """
         Get template by ID
         :author: nhan.tran
@@ -87,25 +92,25 @@ class TemplateService:
         :param func:
         :param args:
         :param kwargs:
-        :return: Template | TemplateOutput
+        :return: TemplateBase | TemplateOutput
         """
         query = (select(TemplateEntity)
                  .where(TemplateEntity.id == id_template))
         result = await session.execute(query)
         template = result.scalars().first()
         if template is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TemplateBase not found")
 
         if func:
             return await ServiceWrapper.async_wrapper(func)(id_template, session, *args, **kwargs)
 
-        return Template(**template.__dict__)
+        return TemplateBase(**template.__dict__)
 
     @async_db_request_handler
     async def get_template_by_name(self, name: str,
                                    id_device_group: int,
                                    session: AsyncSession,
-                                   func=None, *args, **kwargs) -> Template | TemplateOutput:
+                                   func=None, *args, **kwargs) -> TemplateBase | TemplateOutput:
         """
         Get template by name
         :author: nhan.tran
@@ -123,12 +128,12 @@ class TemplateService:
         result = await session.execute(query)
         template = result.scalars().first()
         if template is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="TemplateBase not found")
 
         if func:
             return await ServiceWrapper.async_wrapper(func)(name, session, *args, **kwargs)
 
-        return Template(**template.__dict__)
+        return TemplateBase(**template.__dict__)
 
     @async_db_request_handler
     async def get_manual(self, id_device_type: int, session: AsyncSession) -> TemplateOutput:
@@ -211,7 +216,7 @@ class TemplateService:
                               if isinstance(type_function, JSONResponse) else type_function)
 
     @async_db_request_handler
-    async def add_template(self, session: AsyncSession, new_template: Template) -> dict[str, int] | HTTPException:
+    async def add_template(self, session: AsyncSession, new_template: TemplateBase) -> dict[str, int] | HTTPException:
         """
         Add template
         :author: nhan.tran
@@ -263,19 +268,19 @@ class TemplateService:
 
     @async_db_request_handler
     async def delete_template(self, id_template: int,
-                              session: AsyncSession) -> Sequence[Template] | TemplateOutput | HTTPException:
+                              session: AsyncSession) -> Sequence[TemplateBase] | TemplateOutput | HTTPException:
         """
         Delete template
         :author: nhan.tran
         :date: 20-05-2024
         :param id_template:
         :param session:
-        :return: Sequence[Template] | TemplateOutput | HTTPException
+        :return: Sequence[TemplateBase] | TemplateOutput | HTTPException
         """
         devices = await self.devices_service.get_device_by_template(id_template, session)
         if devices:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                 detail="Template is in use and cannot be deleted")
+                                 detail="TemplateBase is in use and cannot be deleted")
 
         query = (delete(TemplateEntity)
                  .where(TemplateEntity.id == id_template))

@@ -75,3 +75,8 @@ class UpdateDeviceFilter(BaseModel):
 class AddDeviceGroupFilter(BaseModel):
     id_device_type: int
     name: str
+
+
+class GetDeviceComponentFilter(BaseModel):
+    main_type: int
+    sub_type: Optional[int] = None

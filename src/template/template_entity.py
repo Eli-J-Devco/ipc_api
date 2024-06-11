@@ -19,6 +19,6 @@ class Template(config.Base):
 
     point_list = relationship("Point", back_populates="template_library")
     register_list = relationship("RegisterBlock", back_populates="template_library")
-    device_group = relationship("DeviceGroup", foreign_keys=[id_device_group])
+    device_group = relationship("DeviceGroup", foreign_keys=[id_device_group], lazy="immediate")
 
 

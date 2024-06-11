@@ -15,6 +15,7 @@ class Devices(config.Base):
     __tablename__ = "device_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    parent: Mapped[int] = mapped_column(Integer, nullable=True)
     table_name: Mapped[str] = mapped_column(String, unique=True)
     view_table: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[str] = mapped_column(String, unique=True)
@@ -125,3 +126,22 @@ class DeviceGroup(config.Base):
     type: Mapped[bool] = mapped_column(Integer, nullable=True)
 
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])
+
+
+class DeviceComponent(config.Base):
+    __tablename__ = "device_component"
+    main_type: Mapped[int] = mapped_column(Integer,
+                                           ForeignKey("device_type.id",
+                                                               ondelete="RESTRICT",
+                                                               onupdate="RESTRICT"),
+                                           primary_key=True,
+                                           nullable=False)
+    sub_type: Mapped[int] = mapped_column(Integer, nullable=True)
+    component: Mapped[int] = mapped_column(Integer, ForeignKey("device_type.id",
+                                                               ondelete="RESTRICT",
+                                                               onupdate="RESTRICT"),
+                                           primary_key=True,
+                                           nullable=False)
+
+    main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
+    component_type = relationship("DeviceType", foreign_keys=[component], lazy="immediate")

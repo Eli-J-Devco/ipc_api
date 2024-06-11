@@ -12,11 +12,12 @@ from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
-from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter, AddPointListFilter
+from .point_filter import DeletePointFilter, AddPointFilter, UpdatePointUnitFilter, AddPointListFilter, ControlInputType
 from .point_model import PointBase, PointOutput, PointShort
 from ..config import env_config
 from ..devices.devices_service import DevicesService
 from ..point_config.point_config_filter import (PointType)
+from ..project_setup.project_setup_model import ConfigInformationShort
 from ..utils.service_wrapper import ServiceWrapper
 from ..utils.utils import generate_id
 
@@ -93,7 +94,10 @@ class PointService:
             return await ServiceWrapper.async_wrapper(func)(id_point, session, *args, **kwargs)
 
         await session.refresh(point_entity)
-        return PointOutput(**jsonable_encoder(point_entity))
+        return PointOutput(**jsonable_encoder(point_entity),
+                           type_control_input=ConfigInformationShort(id=point_entity.control_type_input,
+                                                                     name=ControlInputType(point_entity
+                                                                                           .control_type_input).name))
 
     @async_db_request_handler
     async def get_points(self, id_template: int, session: AsyncSession) -> list[PointEntity]:

@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 class DeviceFull(BaseModel):
     id: Optional[int] = None
+    parent: Optional[int] = None
     table_name: Optional[str] = None
     view_table: Optional[str] = None
     name: Optional[str] = None
@@ -109,3 +110,20 @@ class Action(enum.Enum):
 class DeviceConfigOutput(BaseModel):
     device_types: list[DeviceType]
     device_groups: list[DeviceGroup]
+
+
+class DeviceComponentBase(BaseModel):
+    sub_type: Optional[int] = None
+    component: Optional[int] = None
+
+
+class DeviceComponent(DeviceComponentBase):
+    name: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class DeviceComponentList(BaseModel):
+    device_type: DeviceType
+    component: list[DeviceComponent]

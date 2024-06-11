@@ -7,7 +7,8 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter
+from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter, \
+    GetDeviceComponentFilter
 from .devices_service import DevicesService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
@@ -86,3 +87,17 @@ class DevicesController:
     async def get_device_point_map(self, device_id: int, session: AsyncSession = Depends(config.get_db),
                                    auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.devices_service.get_device_points)(device_id, session)
+
+    @Post("/component/get/")
+    async def get_device_component(self,
+                                   device_type: GetDeviceComponentFilter,
+                                   session: AsyncSession = Depends(config.get_db),
+                                   auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service
+                                                  .get_device_components_by_main_type)(device_type, session)
+
+    @Post("/component/get/all/")
+    async def get_all_device_component(self,
+                                       session: AsyncSession = Depends(config.get_db),
+                                       auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.devices_service.get_all_device_components)(session)

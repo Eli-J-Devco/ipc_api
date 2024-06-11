@@ -14,7 +14,7 @@ from .template_filter import GetTemplateFilter
 from ..config import config
 
 from .template_service import TemplateService
-from .template_model import Template
+from .template_model import TemplateBase
 from ..authentication.authentication_repository import get_current_user
 from ..authentication.authentication_model import Authentication
 from ..utils.service_wrapper import ServiceWrapper
@@ -56,7 +56,7 @@ class TemplateController:
 
     @Post("/add/")
     async def add_template(self,
-                           template: Template,
+                           template: TemplateBase,
                            session: AsyncSession = Depends(config.get_db),
                            user: Authentication = Depends(get_current_user)):
         is_template_exist = await (ServiceWrapper
@@ -64,9 +64,6 @@ class TemplateController:
                                                   .get_template_by_name)(template.name,
                                                                          template.id_device_group,
                                                                          session))
-        logging.info("===========================================")
-        logging.info(is_template_exist.__dict__)
-        logging.info("===========================================")
         if isinstance(is_template_exist, JSONResponse):
             if is_template_exist.status_code != status.HTTP_200_OK:
                 return await ServiceWrapper.async_wrapper(self.template_service.add_template)(session, template)

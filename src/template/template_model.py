@@ -14,11 +14,16 @@ from ..project_setup.project_setup_model import ConfigInformationShort
 from ..register_block.register_block_model import RegisterBlock
 
 
-class Template(BaseModel):
+class TemplateBase(BaseModel):
+    id: Optional[int] = None
     name: Optional[str] = None
     id_device_group: Optional[int] = None
     status: Optional[bool] = True
     type: Optional[int] = 1
+
+
+class GetTemplate(TemplateBase):
+    device_group: Optional[str] = None
 
 
 class TemplateOutput(BaseModel):

@@ -58,6 +58,8 @@ class Point(config.Base):
     active: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
 
+    control_type_input: Mapped[int] = mapped_column(Integer, nullable=True)
+
     template_library = relationship("Template", back_populates="point_list", foreign_keys=[id_template])
     type_units = relationship("ConfigInformation", foreign_keys=[id_type_units], lazy="immediate")
     type_datatype = relationship("ConfigInformation", foreign_keys=[id_type_datatype], lazy="immediate")

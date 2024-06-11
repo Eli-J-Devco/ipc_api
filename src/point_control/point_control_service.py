@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 
 from fastapi import status, HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -19,12 +20,13 @@ from .point_control_model import PointControl, PointControlRefresh
 from ..config import env_config
 from ..devices.devices_service import DevicesService
 from ..point.point_entity import Point
-from ..point.point_filter import DeletePointFilter
-from ..point.point_model import PointBase
+from ..point.point_filter import DeletePointFilter, ControlInputType
+from ..point.point_model import PointBase, PointOutput
 from ..point.point_service import PointService
 from ..point_config.point_config_entity import PointListControlGroup
 from ..point_config.point_config_model import PointListControlGroupChildren
 from ..point_config.point_config_service import PointConfigService
+from ..project_setup.project_setup_model import ConfigInformationShort
 from ..utils.service_wrapper import ServiceWrapper
 from ..utils.utils import generate_id
 
@@ -55,7 +57,14 @@ class PointControlService:
                      .where(PointControlEntity.status == 1))
             result = await session.execute(query)
             points = jsonable_encoder(result.scalars().all())
-            response.append(PointListControlGroupChildren(**control_group.__dict__, children=points))
+            output = []
+
+            for point in points:
+                type_control_input = ConfigInformationShort(id=point["control_type_input"],
+                                                            name=ControlInputType(point["control_type_input"]).name)
+                output.append(PointOutput(**point,
+                                          type_control_input=type_control_input))
+            response.append(PointListControlGroupChildren(**control_group.__dict__, children=output))
         return response
 
     @async_db_request_handler

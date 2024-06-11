@@ -3,9 +3,19 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import enum
+
 from pydantic.main import BaseModel
 
 from .point_model import PointBase
+
+
+class ControlInputType(enum.Enum):
+    NotImplemented = 0
+    Number = 1
+    String = 2
+    Percent = 3
+    Bool = 4
 
 
 class PointFilter(BaseModel):
