@@ -1397,27 +1397,27 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 case "PV System Inverter":
                     pass
                 case "Solar Tracker":
-                    pass
+                    device_mode=None
                 case "Production Meter":
-                    pass
+                    device_mode=None
                 case "Weather Station":
-                    pass
+                    device_mode=None
                 case "Datalogger":
-                    pass
+                    device_mode=None
                 case "Sensor":
-                    pass
+                    device_mode=None
                 case "Load meter":
-                    pass
+                    device_mode=None
                 case "SMA Communication products":
-                    pass
+                    device_mode=None
                 case "Consumption meter":
-                    pass
+                    device_mode=None
                 case "Cell Modem":
-                    pass
+                    device_mode=None
                 case "Virtual Meter":
-                    pass
+                    device_mode=None
                 case "UPS":
-                    pass
+                    device_mode=None
             #
             if results_control_group:
                 control_group=[
