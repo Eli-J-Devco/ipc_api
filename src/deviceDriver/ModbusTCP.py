@@ -1000,7 +1000,7 @@ async def write_device(
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*(power_limit_percent/100) / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
-                                                    if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
+                                                    if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
                                                                         inverter_info_temp[0]["modbus_func"],
                                                                         inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
@@ -1013,15 +1013,18 @@ async def write_device(
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*(reactive_limit_percent/100) / slope_wmax}]
+                                                    print("reactive_limit_percent_enable",reactive_limit_percent_enable)
+                                                    print("reactive_limit_percent",reactive_limit_percent)
+                                                    print("rated_reactive_custom",rated_reactive_custom)
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
-                                                    if inverter_info_temp and inverter_info_temp[0]["value"] and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
+                                                    if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
                                                                         inverter_info_temp[0]["modbus_func"],
                                                                         inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent_enable, device_control, 'Reactive Power Limit Percent Enable'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_reactive_custom*(reactive_limit_percent/100), device_control, 'Reactive Power Limit'))
-                                            elif id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
+                                            if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
                                                 print("name device point list",name_device_points_list_map)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 value /= slope
