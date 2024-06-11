@@ -9,6 +9,7 @@
 import asyncio
 import datetime
 import json
+import math
 import os
 import sys
 import time
@@ -1380,7 +1381,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global rated_power_custom
             global min_watt_in_percent
             global meter_type
-            
+            global rated_reactive_custom
             new_point_list_device=[]
             new_point=[]
             mppt=[]
@@ -1444,6 +1445,12 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                             **item,
                             "value":reactive_limit_percent_enable,
                             })
+                    case "ACPowerFactor":
+                        cosPhi=item["value"]
+                        if cosPhi!=None and cosPhi!="null":
+                            sinPhi=math.sqrt(1-cosPhi**2)
+                            tanPhi=sinPhi/cosPhi
+                            rated_reactive_custom=round(rated_power_custom*tanPhi,2)
                     case _:
                         new_point_list_device.append({
                             **item,
@@ -1681,6 +1688,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
+                "rated_reactive_custom":rated_reactive_custom
             }
             data_device_short={
                 "id_device":device_id,
@@ -1701,6 +1709,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
+                "rated_reactive_custom":rated_reactive_custom
             }
             
             if device_name !="" and serial_number_project!= None:
