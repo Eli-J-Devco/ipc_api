@@ -664,7 +664,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     })
     result = {
         "devices": device_list,
-        "total_power": total_power
+        "total_max_power": total_power
     }
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
