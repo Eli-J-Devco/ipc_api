@@ -244,14 +244,14 @@ class apiGateway:
                             db_new=await db_config.get_db()
                             upload_channel_list=result['PAYLOAD']
                             await upload_channel_init.init_pm2(upload_channel_list,db_new)
-                        case "NoLogDev":
-                            {
-                                "CODE": "NoLogDev", 
-                                "PAYLOAD":{
-                                    "CODE":"Create/Update/Delete",
-                                    "device":[]
-                                }
-                            }   
+                        # case "NoLogDev":
+                        #     {
+                        #         "CODE": "NoLogDev", 
+                        #         "PAYLOAD":{
+                        #             "CODE":"Create/Update/Delete",
+                        #             "device":[]
+                        #         }
+                        #     }   
                             
         except Exception as err:
             print(f"Error handle_messages_api: '{err}'")   
