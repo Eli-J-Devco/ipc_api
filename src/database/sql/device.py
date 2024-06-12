@@ -41,6 +41,7 @@ class Query():
         driver_list.name AS connect_type, 
         device_type.name AS device_type,
         device_type.id AS id_device_type,
+        device_type.type AS device_type_value,
         device_group.name AS device_group,
         template_library.name AS template_name,
         device_list.rated_power,
@@ -49,11 +50,11 @@ class Query():
 
         FROM device_list
         INNER JOIN device_type ON device_list.id_device_type=device_type.id
-        INNER JOIN communication ON device_list.id_communication=communication.id
-        INNER JOIN driver_list ON communication.id_driver_list=driver_list.id      
+        LEFT JOIN communication ON device_list.id_communication=communication.id
+        LEFT JOIN driver_list ON communication.id_driver_list=driver_list.id      
         
-        INNER JOIN template_library ON template_library.id=device_list.id_template
-        INNER JOIN device_group ON device_group.id=template_library.id_device_group
+        LEFT JOIN template_library ON template_library.id=device_list.id_template
+        LEFT JOIN device_group ON device_group.id=template_library.id_device_group
         WHERE 
         device_list.id={id_device};
         """
