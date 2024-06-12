@@ -662,8 +662,11 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-
-    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, device_list)
+    result = {
+        "devices": device_list,
+        "total_max_power": total_power
+    }
+    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
 # Describe get_value_meter 
 # 	 * @description get_value_meter
@@ -875,30 +878,29 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     p_for_each_device_power_limit = power_max_device / slope
 
             # If the total capacity produced has not reached the set value, proceed
-            if value_production <= value_power_limit:
-                if device['controlinv'] == 1: # Check device is off , on device 
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "status": "power limit",
-                        "setpoint": value_power_limit,
-                        "feedback": value_production,
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
-                        ]
-                    }
-                elif device['controlinv'] == 0:
-                    new_device = {
-                        "id_device": device["id_device"],
-                        "mode": device["mode"],
-                        "status": "power limit",
-                        "setpoint": value_power_limit,
-                        "feedback": value_production,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
-                        ]
-                    }
+            if device['controlinv'] == 1: # Check device is off , on device 
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "status": "power limit",
+                    "setpoint": value_power_limit,
+                    "feedback": value_production,
+                    "parameter": [
+                        {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
+                    ]
+                }
+            elif device['controlinv'] == 0:
+                new_device = {
+                    "id_device": device["id_device"],
+                    "mode": device["mode"],
+                    "status": "power limit",
+                    "setpoint": value_power_limit,
+                    "feedback": value_production,
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
+                    ]
+                }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :

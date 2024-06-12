@@ -227,15 +227,18 @@ async def Get_MQTT(host, port, topic, username, password):
                     result_value == result_values_dict
                     
                 mqtt_result = json.loads(message.message.decode())
-                print("MQTT result", mqtt_result)
                 if mqtt_result:
                     if 'status_device' not in mqtt_result:
+                        print(f"Error: 'status_device' not in mqtt_result: {mqtt_result}")
                         return -1 
                     if 'message' not in mqtt_result:
+                        print(f"Error: 'message' not in mqtt_result: {mqtt_result}")
                         return -1 
                     if 'status_register' not in mqtt_result:
+                        print(f"Error: 'status_register' not in mqtt_result: {mqtt_result}")
                         return -1 
                     if 'fields' not in mqtt_result:
+                        print(f"Error: 'fields' not in mqtt_result: {mqtt_result}")
                         return -1       
                     status_device = mqtt_result['status_device']        
                     msg_device = mqtt_result['message']
@@ -306,6 +309,7 @@ async def Get_MQTT(host, port, topic, username, password):
                                         else:
                                             pass
                 else: 
+                    print(f"Error: mqtt_result is {mqtt_result}")
                     pass
             
     except Exception as err:
@@ -393,9 +397,8 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
-
-        print("query",query)
-        print("val",val)
+        print("query", query)
+        print("val", val)
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
