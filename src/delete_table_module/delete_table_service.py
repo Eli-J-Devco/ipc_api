@@ -1,6 +1,6 @@
 import logging
 
-from sqlalchemy import text, MetaData
+from sqlalchemy import text, MetaData, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import delete
 
@@ -83,6 +83,9 @@ class DeleteTableService:
     @async_db_request_handler
     async def delete_device(device_id: int, session: AsyncSession):
         logging.info(f"Deleting device {device_id}")
+        query = update(DevicesEntity).where(DevicesEntity.parent == device_id).values(parent=None)
+        await session.execute(query)
+
         query = delete(DevicesEntity).where(DevicesEntity.id == device_id)
         await session.execute(query)
         await session.commit()

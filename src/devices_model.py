@@ -53,9 +53,9 @@ class Communication(BaseModel):
 class DeviceModel(BaseModel):
     id: int
     name: str
-    table_name: str
+    table_name: Optional[str] = None
     view_table: Optional[str] = None
-    id_template: int
+    id_template: Optional[int] = None
 
     points: Optional[list[Point]] = None
     communication: Optional[Communication] = None

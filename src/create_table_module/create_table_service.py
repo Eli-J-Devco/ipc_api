@@ -219,7 +219,7 @@ class CreateTableService:
 
         output = []
         for device in devices:
-            communication = device.communication.__dict__
+            communication = device.communication.__dict__ if device.communication else None
             del device.__dict__["communication"]
             output.append(DeviceModel(**device.__dict__, communication=communication))
         return output

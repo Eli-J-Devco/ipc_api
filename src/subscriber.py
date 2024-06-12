@@ -125,6 +125,7 @@ class MQTTSubscriber(Subscriber):
         action_type = data.message.get("type")
         code = data.message.get("code")
         retry = data.metadata.retry
+        meta_code = data.metadata.code
 
         try:
             all_devices = await self.create_table_service.get_devices(self.session)
@@ -143,34 +144,37 @@ class MQTTSubscriber(Subscriber):
             if not devices_info:
                 logger.error("No devices found")
                 return
-            
+
             logger.info("Processing devices")
             result = {}
             for device in devices_info:
-                result[device.id] = await self.action[action_type](device, retry, code)
+                result[device.id] = await self.action[action_type](device, retry, code, meta_code)
 
-            if action_type != Action.UPDATE.value:
-                pm2_msg = PM2MessageModel(CODE=code,
-                                          PAYLOAD=PayloadModel(id_communication=devices_info[0].communication.id,
-                                                               device=[PM2DeviceModel(id=device.id,
-                                                                                      name=device.name,
-                                                                                      id_communication=device.communication.id,
-                                                                                      connect_type=device.communication.name,
-                                                                                      mode=0)
-                                                                       for device in devices_info if
-                                                                       result[device.id] == 200],
-                                                               delete_mode=2 if action_type == Action.DELETE.value else None))
-            else:
-                pm2_msg = PM2MessageModel(CODE=code,
-                                          PAYLOAD=PayloadModel(id=devices_info[0].id_template,))
-            await self.pm2_service.send(pm2_msg)
+            send_device = [PM2DeviceModel(id=device.id,
+                                          name=device.name,
+                                          id_communication=device.communication.id,
+                                          connect_type=device.communication.name,
+                                          mode=0)
+                           for device in devices_info if
+                           result[device.id] == 200]
+            if len(send_device) > 0:
+                if action_type != Action.UPDATE.value:
+                    pm2_msg = PM2MessageModel(CODE=code,
+                                              PAYLOAD=PayloadModel(
+                                                  id_communication=devices_info[0].communication.id,
+                                                  device=send_device,
+                                                  delete_mode=2 if action_type == Action.DELETE.value else None))
+                else:
+                    pm2_msg = PM2MessageModel(CODE=code,
+                                              PAYLOAD=PayloadModel(id=devices_info[0].id_template, ))
+                await self.pm2_service.send(pm2_msg)
             await self.session.commit()
         except Exception as e:
             logger.error(f"Error processing data: {e}")
             await self.session.rollback()
             raise e
 
-    async def create_table(self, device: DeviceModel, retry: int, code: str):
+    async def create_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
             logger.info(f"Creating table for device: {device.table_name}")
             result = await self.create_table_service.create_table(device.table_name,
@@ -201,11 +205,12 @@ class MQTTSubscriber(Subscriber):
                                         message={"type": Action.CREATE.value,
                                                  "devices": [device.id],
                                                  "code": code},
-                                        metadata={"retry": retry}),
+                                        metadata={"retry": retry,
+                                                  "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
 
-    async def update_table(self, device: DeviceModel, retry: int, code: str):
+    async def update_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
             logger.info(f"Updating table for device: {device.table_name}")
             result = await self.update_table_service.update_table(device,
@@ -223,11 +228,12 @@ class MQTTSubscriber(Subscriber):
                                         message={"type": Action.UPDATE.value,
                                                  "devices": [device.id],
                                                  "code": code},
-                                        metadata={"retry": retry}),
+                                        metadata={"retry": retry,
+                                                  "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
 
-    async def delete_table(self, device: DeviceModel, retry: int, code: str):
+    async def delete_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
             logger.info(f"Deleting table for device: {device.table_name}")
             result = await self.delete_table_service.delete_table(device.table_name, self.session)
@@ -259,7 +265,8 @@ class MQTTSubscriber(Subscriber):
                                         message={"type": Action.DELETE.value,
                                                  "devices": [device.id],
                                                  "code": code},
-                                        metadata={"retry": retry}),
+                                        metadata={"retry": retry,
+                                                  "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
 
@@ -272,6 +279,9 @@ async def reconector(subscriber: MQTTSubscriber):
             await subscriber.disconnect_broker()
         except KeyboardInterrupt:
             await subscriber.session.close()
+            await subscriber.retry_publisher.disconnect()
+            await subscriber.dead_letter_publisher.disconnect()
+            break
 
 
 async def get_serial_number():
@@ -282,9 +292,10 @@ async def get_serial_number():
 
 
 def run_subscriber():
-    session = asyncio.run(db_config.get_db())
     serial_number = asyncio.run(get_serial_number())
 
+    event_loop = asyncio.new_event_loop()
+    session = event_loop.run_until_complete(db_config.get_db())
     re_publisher = Publisher(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
@@ -322,4 +333,5 @@ def run_subscriber():
         serial_number=serial_number
     )
 
-    asyncio.run(reconector(subscriber))
+    event_loop.run_until_complete(reconector(subscriber))
+    event_loop.close()

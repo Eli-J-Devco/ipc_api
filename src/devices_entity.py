@@ -52,6 +52,7 @@ class Devices(config.Base):
     __tablename__ = "device_list"
 
     id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
+    parent: Mapped[int] = mapped_column(INTEGER, nullable=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     table_name: Mapped[str] = mapped_column(String(255), unique=True)
     view_table: Mapped[str] = mapped_column(String(255), unique=True)
