@@ -1044,7 +1044,7 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                elif code_value == 144 and (device_mode == 0 and len(inverter_info) >= 1):
+                                elif code_value == 144 or (device_mode == 0 and len(inverter_info) >= 1):
                                     comment = 400
                             data_send = {
                                 "time_stamp": current_time,
@@ -1769,6 +1769,7 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
                     if device_mode in [0, 1]:
+                        print("device_mode", device_mode)
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                         result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
                         mode_all = all(item['mode'] == device_mode for item in result_checkmode_control)
