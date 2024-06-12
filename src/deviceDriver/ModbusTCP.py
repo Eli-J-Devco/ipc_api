@@ -1393,49 +1393,20 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             new_point=[]
             mppt=[]
             control_group=[]
-            print(f'point_list_device -1 : {len(point_list_device)}')
             # 
-            # monitor_service_init=monitoring_service.MonitorService(id_template,rated_DC_input_voltage,maximum_DC_input_current,device_parent,
-            #     device_id,device_name,status_device,msg_device,status_register_block,point_list_device,
-            #     power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable,
-            #     name_device_type=NAME_DEVICE_TYPE,
-            #     id_device_type=ID_DEVICE_TYPE,
-            #     device_mode=device_mode,
-            #     rated_power=rated_power,
-            #     rated_power_custom=rated_power_custom,
-            #     min_watt_in_percent=min_watt_in_percent,
-            #     rated_reactive_custom=rated_reactive_custom,
-            #     meter_type=meter_type,inverter_type=inverter_type)
+            monitor_service_init=monitoring_service.MonitorService(id_template,rated_DC_input_voltage,maximum_DC_input_current,device_parent,
+                device_id,device_name,status_device,msg_device,status_register_block,point_list_device,
+                power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable,
+                name_device_type=NAME_DEVICE_TYPE,
+                id_device_type=ID_DEVICE_TYPE,
+                device_mode=device_mode,
+                rated_power=rated_power,
+                rated_power_custom=rated_power_custom,
+                min_watt_in_percent=min_watt_in_percent,
+                rated_reactive_custom=rated_reactive_custom,
+                meter_type=meter_type,inverter_type=inverter_type)
 
-            # device_mode=monitor_service_init.device_type()
-            # match NAME_DEVICE_TYPE:
-            #     case "PV System Inverter":
-            #         pass
-            #     case "Solar Tracker":
-            #         device_mode=None
-            #     case "Production Meter":
-            #         device_mode=None
-            #     case "Weather Station":
-            #         device_mode=None
-            #     case "Datalogger":
-            #         device_mode=None
-            #     case "Sensor":
-            #         device_mode=None
-            #     case "Load meter":
-            #         device_mode=None
-            #     case "SMA Communication products":
-            #         device_mode=None
-            #     case "Consumption meter":
-            #         device_mode=None
-            #     case "Cell Modem":
-            #         device_mode=None
-            #     case "Virtual Meter":
-            #         device_mode=None
-            #     case "UPS":
-            #         device_mode=None
-            #     case "String Combiner":
-            #         device_mode=None
-            #
+            device_mode=monitor_service_init.device_type()
             if results_control_group:
                 control_group=[
                     {
@@ -1485,7 +1456,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                             "timestamp":getUTC()
                             })
             # 
-            print(f'new_point_list_device -1 : {len(new_point_list_device)}')
             if new_point_list_device:
                 for point_item in new_point_list_device:
                     if point_item['config']=="MPPT":
