@@ -110,6 +110,7 @@ class DeviceType(config.Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
+    type: Mapped[int] = mapped_column(Integer, nullable=True)
 
 
 class DeviceGroup(config.Base):
@@ -136,7 +137,7 @@ class DeviceComponent(config.Base):
                                                                onupdate="RESTRICT"),
                                            primary_key=True,
                                            nullable=False)
-    sub_type: Mapped[int] = mapped_column(Integer, nullable=True)
+    sub_type: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
     component: Mapped[int] = mapped_column(Integer, ForeignKey("device_type.id",
                                                                ondelete="RESTRICT",
                                                                onupdate="RESTRICT"),

@@ -38,11 +38,25 @@ class AddMeterFilter(BaseModel):
     meter_type: Optional[int] = 0
 
 
-class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter):
+class DeviceComponentFilter(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    id_device_type: Optional[int] = None
+
+
+class AddComponentFilter(BaseModel):
+    components: Optional[list[DeviceComponentFilter]] = None
+
+
+class DeviceSecret(BaseModel):
+    secret: Optional[str] = None
+
+
+class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter, AddComponentFilter, DeviceSecret):
     name: str
     id_device_type: int
     id_device_group: int
-    id_template: int
+    id_template: Optional[int] = None
     id_communication: int
     device_virtual: bool
     rtu_bus_address: Optional[int] = None
@@ -77,6 +91,14 @@ class AddDeviceGroupFilter(BaseModel):
     name: str
 
 
-class GetDeviceComponentFilter(BaseModel):
+class DeviceComponentFilter(BaseModel):
+    type: Optional[int] = None
+
+
+class GetDeviceComponentFilter(DeviceComponentFilter):
     main_type: int
     sub_type: Optional[int] = None
+
+
+class DeleteDeviceFilter(DeviceSecret):
+    device_id: int | list[int] = None

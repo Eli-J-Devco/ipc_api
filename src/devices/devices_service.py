@@ -21,9 +21,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .devices_entity import (Devices as DevicesEntity,
                              DeviceType as DeviceTypeEntity,
                              DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType,
-                             DeviceComponent as DeviceComponentEntity,)
+                             DeviceComponent as DeviceComponentEntity, )
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    AddDeviceGroupFilter, GetDeviceComponentFilter
+    AddDeviceGroupFilter, GetDeviceComponentFilter, DeleteDeviceFilter
 from .devices_model import Devices, DeviceFull, Action, DeviceComponent, DeviceComponentBase, DeviceComponentList
 from ..config import env_config
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
@@ -225,7 +225,7 @@ class DevicesService:
         :return: list[DeviceFull] | HTTPException
         """
         device_type = await self.get_device_type_by_id(body.id_device_type, session)
-        is_circuit_breaker_device = device_type.name.index("Circuit Breaker") != -1
+        is_circuit_breaker_device = device_type.name.find("Circuit Breaker") != -1
         devices = []
         rtu_bus_address = body.rtu_bus_address
         tcp_gateway_port = body.tcp_gateway_port
@@ -237,7 +237,8 @@ class DevicesService:
                     tcp_gateway_port += _
             new_devices = DevicesEntity(
                 **DeviceFull(
-                    **body.dict(exclude_unset=True, exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
+                    **body.dict(exclude_unset=True,
+                                exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
                     rtu_bus_address=rtu_bus_address,
                     tcp_gateway_port=tcp_gateway_port,
                     rated_power_custom=body.rated_power,
@@ -258,6 +259,20 @@ class DevicesService:
                                  view_table=f"dev_{new_devices.id}_{tg}"))
 
                 await session.execute(query)
+
+            if body.components:
+                for component in body.components:
+                    is_exist = await self.get_device_by_id(component.id, session) if component.id else None
+                    if is_exist:
+                        query = (update(DevicesEntity)
+                                 .where(DevicesEntity.id == component.id)
+                                 .values(parent=new_devices.id))
+                        await session.execute(query)
+                    else:
+                        new_component = DevicesEntity(name=component.name,
+                                                      parent=new_devices.id,
+                                                      id_device_type=component.id_device_type)
+                        session.add(new_component)
             devices.append(new_devices.id)
         await session.commit()
 
@@ -265,7 +280,8 @@ class DevicesService:
             serial_number = await ProjectSetupService().get_project_serial_number(session)
             code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
             creating_msg = MessageModel(
-                metadata=MetaData(retry=3),
+                metadata=MetaData(retry=3,
+                                  code=body.secret),
                 topic=Topic(target=f"{serial_number}/{Action.CREATE.value}",
                             failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
                 message={"type": Action.CREATE.value,
@@ -282,20 +298,22 @@ class DevicesService:
         return await self.get_devices(session, pagination)
 
     @async_db_request_handler
-    async def delete_device(self, device_id: int | list[int],
+    async def delete_device(self, devices: DeleteDeviceFilter,
                             session: AsyncSession,
                             pagination: Pagination = None) -> list[DeviceFull] | HTTPException:
         """
         Delete device from database and send message to MQTT broker
         :author: nhan.tran
         :date: 20-05-2024
-        :param device_id:
+        :param devices:
         :param session:
         :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
-        if isinstance(device_id, int):
-            device_id = [device_id]
+        if isinstance(devices.device_id, int):
+            device_id = [devices.device_id]
+        else:
+            device_id = devices.device_id
 
         deleted_devices = []
         for i in device_id:
@@ -312,7 +330,8 @@ class DevicesService:
         if len(deleted_devices) > 0:
             serial_number = await ProjectSetupService().get_project_serial_number(session)
             del_msg = MessageModel(
-                metadata=MetaData(retry=3),
+                metadata=MetaData(retry=3,
+                                  code=devices.secret),
                 topic=Topic(target=f"{serial_number}/{Action.DELETE.value}",
                             failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
                 message={"type": Action.DELETE.value,
@@ -368,13 +387,17 @@ class DevicesService:
         return points
 
     @async_db_request_handler
-    async def update_device(self, body: UpdateDeviceFilter, session: AsyncSession, pagination: Pagination) -> list[DeviceFull] | HTTPException:
+    async def update_device(self,
+                            body: UpdateDeviceFilter,
+                            session: AsyncSession,
+                            pagination: Pagination) -> list[DeviceFull] | HTTPException:
         """
         Update device in database and send message to MQTT broker
         :author: nhan.tran
         :date: 20-05-2024
         :param body:
         :param session:
+        :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
         inverter_shutdown = None
@@ -455,30 +478,32 @@ class DevicesService:
                                                  device_type: GetDeviceComponentFilter,
                                                  session: AsyncSession) -> Sequence[DeviceComponent]:
         query = (select(DeviceComponentEntity)
-                 .where(DeviceComponentEntity.main_type == device_type.main_type))
-        if device_type.sub_type:
-            query = (select(DeviceComponentEntity)
-                     .where(DeviceComponentEntity.main_type == device_type.main_type)
-                     .where(DeviceComponentEntity.sub_type == device_type.sub_type))
+                 .where(DeviceComponentEntity.main_type == device_type.main_type)
+                 .where(
+                    DeviceComponentEntity.sub_type == device_type.sub_type
+                    if device_type.sub_type else text("1=1")))
 
         result = await session.execute(query)
         components = result.scalars().all()
         output = []
         for component in components:
+            logging.info(f"Component: {component.__dict__}")
             base_component = DeviceComponentBase(**component.__dict__)
             output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
-                                          name=component.component_type.name))
+                                          name=component.component_type.name,
+                                          type=component.component_type.type))
         return output
 
     @async_db_request_handler
-    async def get_all_device_components(self, session: AsyncSession):
+    async def get_all_device_components(self,
+                                        session: AsyncSession):
         device_types = await self.get_device_type(session)
 
         output = []
         for device_type in device_types:
-            device_component = await (self
-                                      .get_device_components_by_main_type(GetDeviceComponentFilter(main_type=device_type.id),
-                                                                          session))
+            device_component = await (self.get_device_components_by_main_type(GetDeviceComponentFilter(
+                main_type=device_type.id, ),
+                session))
             if not device_component:
                 continue
 

@@ -8,7 +8,7 @@ from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter, \
-    GetDeviceComponentFilter
+    GetDeviceComponentFilter, DeviceComponentFilter, DeleteDeviceFilter
 from .devices_service import DevicesService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
@@ -50,13 +50,13 @@ class DevicesController:
                                      .add_devices)(devices, session, pagination))
 
     @Post("/delete/")
-    async def delete_device(self, device_id: int | list[int] = None,
+    async def delete_device(self, devices: DeleteDeviceFilter,
                             pagination: Pagination = Depends(),
                             session: AsyncSession = Depends(config.get_db),
                             auth: Authentication = Depends(get_current_user)):
         return await (ServiceWrapper
                       .async_wrapper(self.devices_service
-                                     .delete_device)(device_id, session, pagination))
+                                     .delete_device)(devices, session, pagination))
 
     @Post("/update/")
     async def update_device(self, device: UpdateDeviceFilter,

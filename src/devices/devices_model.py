@@ -87,6 +87,7 @@ class DeviceUploadChannelMap(BaseModel):
 class DeviceType(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+    type: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -119,6 +120,7 @@ class DeviceComponentBase(BaseModel):
 
 class DeviceComponent(DeviceComponentBase):
     name: Optional[str] = None
+    type: Optional[int] = None
 
     class Config:
         orm_mode = True
