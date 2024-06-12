@@ -397,7 +397,8 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
-
+        print("query", query)
+        print("val", val)
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
