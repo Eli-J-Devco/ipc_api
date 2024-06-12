@@ -38,6 +38,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
+from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
@@ -1379,7 +1380,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         # 0=Independent, 1=Depends one, 2=Depends two
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
-            global  device_name,status_device,msg_device,status_register_block,point_list_device
+            global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
             global device_id
             global NAME_DEVICE_TYPE
@@ -1394,31 +1395,47 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             new_point=[]
             mppt=[]
             control_group=[]
-            match NAME_DEVICE_TYPE:
-                case "PV System Inverter":
-                    pass
-                case "Solar Tracker":
-                    device_mode=None
-                case "Production Meter":
-                    device_mode=None
-                case "Weather Station":
-                    device_mode=None
-                case "Datalogger":
-                    device_mode=None
-                case "Sensor":
-                    device_mode=None
-                case "Load meter":
-                    device_mode=None
-                case "SMA Communication products":
-                    device_mode=None
-                case "Consumption meter":
-                    device_mode=None
-                case "Cell Modem":
-                    device_mode=None
-                case "Virtual Meter":
-                    device_mode=None
-                case "UPS":
-                    device_mode=None
+            # 
+            monitor_service_init=monitoring_service.MonitorService(id_template,rated_DC_input_voltage,maximum_DC_input_current,device_parent,
+                device_id,device_name,status_device,msg_device,status_register_block,point_list_device,
+                power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable,
+                name_device_type=NAME_DEVICE_TYPE,
+                id_device_type=ID_DEVICE_TYPE,
+                device_mode=device_mode,
+                rated_power=rated_power,
+                rated_power_custom=rated_power_custom,
+                min_watt_in_percent=min_watt_in_percent,
+                rated_reactive_custom=rated_reactive_custom,
+                meter_type=meter_type,inverter_type=inverter_type)
+
+            device_mode=monitor_service_init.device_type()
+            # match NAME_DEVICE_TYPE:
+            #     case "PV System Inverter":
+            #         pass
+            #     case "Solar Tracker":
+            #         device_mode=None
+            #     case "Production Meter":
+            #         device_mode=None
+            #     case "Weather Station":
+            #         device_mode=None
+            #     case "Datalogger":
+            #         device_mode=None
+            #     case "Sensor":
+            #         device_mode=None
+            #     case "Load meter":
+            #         device_mode=None
+            #     case "SMA Communication products":
+            #         device_mode=None
+            #     case "Consumption meter":
+            #         device_mode=None
+            #     case "Cell Modem":
+            #         device_mode=None
+            #     case "Virtual Meter":
+            #         device_mode=None
+            #     case "UPS":
+            #         device_mode=None
+            #     case "String Combiner":
+            #         device_mode=None
             #
             if results_control_group:
                 control_group=[
@@ -1568,20 +1585,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     if int(item_type["id"])==int(item_point["id_point_list_type"]):
                         if  item_point["id"]>=0:
                             new_point_type.append({
-                                # "config":item_point["config"],
-                                # "id_point_list_type":item_point["id_point_list_type"],
-                                # "name_point_list_type":item_point["name_point_list_type"],
-                                # "id_point":item_point["id_point"],
-                                # "parent":item_point["parent"],
-                                # "id":item_point["id"],
-                                # "point_key":item_point["point_key"],
-                                # "name":item_point["name"],
-                                # "unit":item_point["unit"],
-                                # "value":item_point["value"],
-                                # "timestamp":item_point["timestamp"],
-                                # "quality":item_point["quality"],
-                                # "message":item_point["message"],
-                                # "point_type":item_point["point_type"],
                                 **item_point
                             })
                 parameters.append({
@@ -1675,7 +1678,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     **item_group,
                     "fields":new_point_control_attr
                 })
-            # print(f'new_control_group: {new_control_group}')
             data_device={
                 "id_device":device_id,
                 "parent":device_parent,
@@ -1706,16 +1708,11 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "device_name":device_name,
                 "id_device_type":ID_DEVICE_TYPE,
                 "name_device_type":NAME_DEVICE_TYPE,
-                # "meter_type":meter_type,
                 "status_device":status_device,
                 "timestamp":getUTC(),
                 "message":msg_device,
                 "status_register":status_register_block,
-                # "point_count":len(new_point),
-                # "parameters":parameters,
                 "fields":new_point,
-                # "mppt":mppt,
-                # "control_group":new_control_group
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
