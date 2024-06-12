@@ -46,4 +46,38 @@ class MonitorService:
                 return self.device_mode
             case _:
                 return None
-    
+    def combiner_box(self, point_list):
+        # combiner=[
+        #             {
+        #                 "config": "StringAmps",
+        #                 "id_point": 28,
+        #                 "name":"STRING1",
+        #                 "value":{
+        #                     "string_amps": 0.1,
+        #                     "number_panel": 4,
+        #                 }
+        #             },
+        #         ]
+        match self.name_device_type:
+            case "String Combiner":
+                combiner_string=[]
+                combiner_string=[item for item in point_list if item["config"]=="StringAmps" ]
+                combiner_box=[]
+                for item_string in combiner_string:
+                    combiner_string_panel=[item for item in point_list if item['parent'] == item_string["id_point"]and item['config'] =="Panel"]
+                    combiner_box.append(
+                        {
+                            # **item_string,
+                            "config": item_string["config"],
+                            "id_point": item_string["id_point"],
+                            "name":item_string["name"],
+                            "value":{
+                                "string_amps": item_string["value"],
+                                "number_panel":len(combiner_string_panel)
+                            }
+                        }
+                    )
+                    
+                return combiner_box
+            case _:
+                return []

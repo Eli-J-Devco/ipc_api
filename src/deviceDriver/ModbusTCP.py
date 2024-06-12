@@ -1652,6 +1652,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     **item_group,
                     "fields":new_point_control_attr
                 })
+            combiner=monitor_service_init.combiner_box(new_point)
+            
             data_device={
                 "id_device":device_id,
                 "parent":device_parent,
@@ -1669,6 +1671,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "parameters":parameters,
                 "fields":new_point,
                 "mppt":mppt,
+                "combiner":combiner,
                 "control_group":new_control_group,
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
