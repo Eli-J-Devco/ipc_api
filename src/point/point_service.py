@@ -94,10 +94,8 @@ class PointService:
             return await ServiceWrapper.async_wrapper(func)(id_point, session, *args, **kwargs)
 
         await session.refresh(point_entity)
-        return PointOutput(**jsonable_encoder(point_entity),
-                           type_control_input=ConfigInformationShort(id=point_entity.control_type_input,
-                                                                     name=ControlInputType(point_entity
-                                                                                           .control_type_input).name))
+
+        return PointOutput(**jsonable_encoder(point_entity))
 
     @async_db_request_handler
     async def get_points(self, id_template: int, session: AsyncSession) -> list[PointEntity]:

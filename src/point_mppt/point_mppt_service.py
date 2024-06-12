@@ -422,7 +422,8 @@ class PointMpptService:
 
         if not panel:
             panel = PointMpptBase(id_config_information=PointType().MPPT_PANEL,
-                                  parent=body.parent)
+                                  parent=body.parent,
+                                  id_pointtype=279)
             is_last = False
         body.is_clone_from_last = is_last
         for _ in range(num_of_panels):
