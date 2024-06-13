@@ -4,6 +4,15 @@
 # *
 # *********************************************************/
 
+import datetime
+import math
+
+
+def getUTC():
+    now = datetime.datetime.now(
+        datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    return now
+
 class MonitorService:
     def __init__(self,
                 id_template,rated_DC_input_voltage,maximum_DC_input_current,device_parent,
@@ -13,7 +22,9 @@ class MonitorService:
                 id_device_type,
                 device_mode : None,
                 rated_power,rated_power_custom,min_watt_in_percent,rated_reactive_custom,
-                meter_type,inverter_type=None):
+                meter_type,inverter_type=None,
+                emergency_stop=None
+                ):
             
             # 
             self.id_template=id_template
@@ -39,6 +50,7 @@ class MonitorService:
             self.rated_reactive_custom=rated_reactive_custom
             self.meter_type=meter_type
             self.inverter_type=inverter_type
+            self.emergency_stop=emergency_stop
             # 
     def device_type(self):
         match self.name_device_type:
@@ -46,6 +58,47 @@ class MonitorService:
                 return self.device_mode
             case _:
                 return None
+    def point_list_change_para_control(self):
+        new_point_list_device=[]
+        for item in self.point_list_device:
+            
+            match item["point_key"]:
+                case "WMaxPercent":
+                    new_point_list_device.append({
+                        **item,
+                        "value":self.power_limit_percent,
+                        })
+                case "WMaxPercentEnable":
+                    new_point_list_device.append({
+                        **item,
+                        "value":self.power_limit_percent_enable,
+                        })
+                case "VarMaxPercent":
+                    new_point_list_device.append({
+                        **item,
+                        "value":self.reactive_limit_percent,
+                        })
+                case "VarMaxPercentEnable":
+                    new_point_list_device.append({
+                        **item,
+                        "value":self.reactive_limit_percent_enable,
+                        })
+                case "ACPowerFactor":
+                    cosPhi=item["value"]
+                    if cosPhi!=None and cosPhi!="null" and cosPhi!=0:
+                        sinPhi=math.sqrt(1-cosPhi**2)
+                        tanPhi=sinPhi/cosPhi
+                        rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
+                    new_point_list_device.append({
+                        **item,
+                        "timestamp":getUTC()
+                        })
+                case _:
+                    new_point_list_device.append({
+                        **item,
+                        "timestamp":getUTC()
+                        })
+        return new_point_list_device
     def combiner_box(self, point_list):
         # combiner=[
         #             {
