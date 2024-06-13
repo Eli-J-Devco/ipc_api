@@ -1159,6 +1159,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global maximum_DC_input_current
         global inverter_type
         global device_parent
+        global emergency_stop
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -1617,7 +1618,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     **item_group,
                     "fields":new_point_control_attr
                 })
-            combiner=monitor_service_init.combiner_box(new_point)
+            combiner_box=monitor_service_init.combiner_box(new_point)
             
             data_device={
                 "id_device":device_id,
@@ -1636,7 +1637,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "parameters":parameters,
                 "fields":new_point,
                 "mppt":mppt,
-                "combiner":combiner,
+                "combiner_box":combiner_box,
                 "control_group":new_control_group,
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,

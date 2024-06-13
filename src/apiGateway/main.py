@@ -328,6 +328,10 @@ class apiGateway:
                             self.DeviceList[i]["inverter_type"]=result["inverter_type"]
                         if 'parent' in result.keys():
                             self.DeviceList[i]["parent"]=result["parent"]
+                        if 'combiner_box' in result.keys():
+                            self.DeviceList[i]["combiner"]=result["combiner"]
+                        if 'emergency_stop' in result.keys():
+                            self.DeviceList[i]["emergency_stop"]=result["emergency_stop"]      
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
     async def deviceListSub(self):
