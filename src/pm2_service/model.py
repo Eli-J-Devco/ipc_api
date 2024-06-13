@@ -21,9 +21,10 @@ class CodeEnum(enum.Enum):
 class DeviceModel(BaseModel):
     id: int
     name: str
-    connect_type: str
-    id_communication: int
+    connect_type: Optional[str] = None
+    id_communication: Optional[int] = None
     mode: int = 0
+    device_type_value: int = 0
 
 
 class PayloadModel(BaseModel):

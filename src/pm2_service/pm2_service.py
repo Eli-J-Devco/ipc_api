@@ -27,7 +27,6 @@ class PM2Service:
             await self.sender.start()
         finally:
             self.sender.send(f"{self.serial_number}/{config.MQTT_INITIALIZE_TOPIC}",
-                             json.dumps(message.dict(exclude_unset=True,
-                                                     exclude_none=True)).encode("ascii"))
+                             json.dumps(message.dict()).encode("ascii"))
             await self.sender.stop()
 

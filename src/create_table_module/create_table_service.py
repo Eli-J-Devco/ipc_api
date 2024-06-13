@@ -220,8 +220,12 @@ class CreateTableService:
         output = []
         for device in devices:
             communication = device.communication.__dict__ if device.communication else None
+            device_type = device.device_type.__dict__ if device.device_type else None
             del device.__dict__["communication"]
-            output.append(DeviceModel(**device.__dict__, communication=communication))
+            del device.__dict__["device_type"]
+            output.append(DeviceModel(**device.__dict__,
+                                      communication=communication,
+                                      device_type=device_type))
         return output
 
     @staticmethod

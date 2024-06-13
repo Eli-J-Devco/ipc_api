@@ -48,6 +48,13 @@ class Communication(config.Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
 
+class DeviceType(config.Base):
+    __tablename__ = "device_type"
+
+    id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
+    type: Mapped[int] = mapped_column(INTEGER, nullable=True)
+
+
 class Devices(config.Base):
     __tablename__ = "device_list"
 
@@ -64,8 +71,15 @@ class Devices(config.Base):
                                                                       ondelete="CASCADE",
                                                                       onupdate="CASCADE"),
                                                   nullable=True)
+    id_device_type: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_type.id",
+                                                                    ondelete="CASCADE",
+                                                                    onupdate="CASCADE"),
+                                                nullable=True)
 
-    communication = relationship("Communication", backref="device_list", foreign_keys=[id_communication], lazy="immediate")
+    communication = relationship("Communication", backref="device_list",
+                                 foreign_keys=[id_communication], lazy="immediate")
+    device_type = relationship("DeviceType", backref="device_list",
+                               foreign_keys=[id_device_type], lazy="immediate")
 
 
 class DeviceMppt(config.Base):

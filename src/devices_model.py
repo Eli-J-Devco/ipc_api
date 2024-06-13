@@ -50,6 +50,11 @@ class Communication(BaseModel):
     name: str
 
 
+class DeviceType(BaseModel):
+    id: int
+    type: int
+
+
 class DeviceModel(BaseModel):
     id: int
     name: str
@@ -59,6 +64,7 @@ class DeviceModel(BaseModel):
 
     points: Optional[list[Point]] = None
     communication: Optional[Communication] = None
+    device_type: Optional[DeviceType] = None
 
     class Config:
         orm_mode = True

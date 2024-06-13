@@ -152,16 +152,18 @@ class MQTTSubscriber(Subscriber):
 
             send_device = [PM2DeviceModel(id=device.id,
                                           name=device.name,
-                                          id_communication=device.communication.id,
-                                          connect_type=device.communication.name,
-                                          mode=0)
+                                          id_communication=device.communication.id if device.communication else None,
+                                          connect_type=device.communication.name if device.communication else None,
+                                          mode=0,
+                                          device_type_value=device.device_type.type,)
                            for device in devices_info if
                            result[device.id] == 200]
+
             if len(send_device) > 0:
                 if action_type != Action.UPDATE.value:
                     pm2_msg = PM2MessageModel(CODE=code,
                                               PAYLOAD=PayloadModel(
-                                                  id_communication=devices_info[0].communication.id,
+                                                  id_communication=send_device[0].id_communication,
                                                   device=send_device,
                                                   delete_mode=2 if action_type == Action.DELETE.value else None))
                 else:
@@ -235,20 +237,21 @@ class MQTTSubscriber(Subscriber):
 
     async def delete_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
-            logger.info(f"Deleting table for device: {device.table_name}")
-            result = await self.delete_table_service.delete_table(device.table_name, self.session)
-            if isinstance(result, Exception):
-                raise result
+            if device.device_type.type == 0:
+                logger.info(f"Deleting table for device: {device.table_name}")
+                result = await self.delete_table_service.delete_table(device.table_name, self.session)
+                if isinstance(result, Exception):
+                    raise result
 
-            logger.info(f"Deleting device mppt for device: {device.table_name}")
-            result = await self.delete_table_service.delete_device_mppt(device, self.session)
-            if isinstance(result, Exception):
-                raise result
+                logger.info(f"Deleting device mppt for device: {device.table_name}")
+                result = await self.delete_table_service.delete_device_mppt(device, self.session)
+                if isinstance(result, Exception):
+                    raise result
 
-            logger.info(f"Deleting device point list map for device: {device.table_name}")
-            result = await self.delete_table_service.delete_device_point_list_map(device, self.session)
-            if isinstance(result, Exception):
-                raise result
+                logger.info(f"Deleting device point list map for device: {device.table_name}")
+                result = await self.delete_table_service.delete_device_point_list_map(device, self.session)
+                if isinstance(result, Exception):
+                    raise result
 
             logger.info(f"Deleting device")
             result = await self.delete_table_service.delete_device(device.id, self.session)
@@ -294,7 +297,11 @@ async def get_serial_number():
 def run_subscriber():
     serial_number = asyncio.run(get_serial_number())
 
-    event_loop = asyncio.new_event_loop()
+    try:
+        event_loop = asyncio.get_event_loop()
+    except RuntimeError:
+        event_loop = asyncio.new_event_loop()
+
     session = event_loop.run_until_complete(db_config.get_db())
     re_publisher = Publisher(
         host=config.MQTT_HOST,
@@ -333,5 +340,5 @@ def run_subscriber():
         serial_number=serial_number
     )
 
-    event_loop.run_until_complete(reconector(subscriber))
-    event_loop.close()
+    event_loop.create_task(reconector(subscriber))
+    event_loop.run_forever()
