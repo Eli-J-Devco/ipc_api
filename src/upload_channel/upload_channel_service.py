@@ -59,7 +59,6 @@ class UploadChannelService:
 
             type_protocol = channel.type_protocol.__dict__ if channel.type_protocol else None
             logging_interval = channel.logging_interval.__dict__ if channel.logging_interval else None
-            devices = [device.__dict__ for device in devices]
 
             channel = UploadChannel(**channel.__dict__).dict(exclude_unset=True)
             output.append(UploadChannelConfig(**channel,
