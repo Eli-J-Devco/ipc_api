@@ -30,6 +30,6 @@ def run_server_tcp():
         zero_mode=True
     )
     context = ModbusServerContext(slaves=store, single=True)
-    StartTcpServer(context, address=("0.0.0.0", 504))
+    StartTcpServer(context, address=("0.0.0.0", 502))
 if __name__ == "__main__":
     run_server_tcp()
