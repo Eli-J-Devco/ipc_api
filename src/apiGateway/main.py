@@ -117,7 +117,7 @@ class apiGateway:
                     break
                 # print(f'Topic:   {message.topic}')
                 result=json.loads(message.message.decode())
-                # print(f'Message: {result}')
+                print(f'Message: {result}')
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":
@@ -187,6 +187,7 @@ class apiGateway:
                             #             "name": device.name,
                             #             "id_communication": id_communication,
                             #             "connect_type": driver_name,
+                            #             "device_type_value":0
                             #             }
                             #             ],
                             #         "delete_mode":mode
@@ -244,6 +245,21 @@ class apiGateway:
                             db_new=await db_config.get_db()
                             upload_channel_list=result['PAYLOAD']
                             await upload_channel_init.init_pm2(upload_channel_list,db_new)
+                        case "CreateNoLogDev":
+                            # {
+                            #     "CODE": "CreateNoLogDev", 
+                            #     "PAYLOAD":{
+                            #         "device":[
+                            #             {
+                            #                 "id":1,
+                            #                 "name":"CB",
+                            #             }
+                            #         ]
+                            #     }
+                            # }   
+                            db_new=await db_config.get_db()
+                            new_device=result['PAYLOAD']
+                            await device_init.create_dev_no_log(new_device,db_new)
         except Exception as err:
             print(f"Error handle_messages_api: '{err}'")   
     async def managerApplicationsWithPM2(self):

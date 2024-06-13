@@ -245,13 +245,15 @@ class DevicesService:
             id_device=[]
             for item in device:
                 id_device.append(item['id'])
-                if item["connect_type"]=="RS485":
-                    # id_communication=item['id_communication']
-                    communication_list.append(item['id_communication'])
-                elif item["connect_type"]=="Modbus/TCP":
-                    device_tcp.append(f'Dev|{item["id_communication"]}|Modbus/TCP|{item["id"]}')
+                if 'device_type_value' in item.keys():
+                    if item["connect_type"]==1:
+                        pass
+                    else:
+                        if item["connect_type"]=="RS485":
+                            communication_list.append(item['id_communication'])
+                        elif item["connect_type"]=="Modbus/TCP":
+                            device_tcp.append(f'Dev|{item["id_communication"]}|Modbus/TCP|{item["id"]}')
             if self.update_device_list:
-                print(f'id_device: {id_device}')
                 if id_device:
                     for item_delete in id_device:
                         for index, msg in enumerate(self.update_device_list):
@@ -320,24 +322,66 @@ class DevicesService:
             result_device= result.all()
             
             connect_type=None
+            device_type_value=None
+            device_type_name=None
+            device_name=None
             if result_device:
                 results_device_dict = [row._asdict() for row in result_device][0]
                 id_communication=results_device_dict["id_communication"]
                 connect_type=results_device_dict["connect_type"]
                 name_device=results_device_dict["name"]
-            match connect_type:
-                case "RS485":
-                    serialport_group=results_device_dict["serialport_group"]
-                    pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{serialport_group}']
-                    await restart_program_pm2_many(pm2_app_list)
-                case "Modbus/TCP":
-                    pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
-                    await delete_program_pm2_many(pm2_app_list)
-                    pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
-                    await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
+                device_type_value=results_device_dict["device_type_value"]
+                device_type_name=results_device_dict["device_type"]
+                device_name=results_device_dict["name"]
+            
+            if device_type_value:
+                for i,item in enumerate(self.update_device_list):
+                    if item["id_device"] ==id_device:
+                        self.update_device_list[i]["device_name"]=device_name
+            else:
+                match connect_type:
+                    case "RS485":
+                        serialport_group=results_device_dict["serialport_group"]
+                        pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{serialport_group}']
+                        await restart_program_pm2_many(pm2_app_list)
+                    case "Modbus/TCP":
+                        pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
+                        await delete_program_pm2_many(pm2_app_list)
+                        pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
+                        await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
+                
         except Exception as e:
             print("Error update_dev: ", e)
         finally:
             print('update_dev end')
             await session.close() 
     # @staticmethod
+    @async_db_request_handler
+    async def create_dev_no_log(self, create_devices,session: AsyncSession):
+        try:
+            new_device=create_devices['device']
+            # Insert Device to MQTT
+            device_list=[item["id_device"] for item in self.update_device_list]
+            for item_device in new_device:
+                if len(device_list):
+                    if  item_device["id"] in device_list:
+                        pass
+                    else:
+                        self.update_device_list.append({
+                        "id_device":item_device["id"],
+                        "device_name":item_device["name"],
+                        "mode":None,
+                        "parameters":[],
+                    })
+                else:
+                    self.update_device_list.append({
+                        "id_device":item_device["id"],
+                        "device_name":item_device["name"],
+                        "mode":None,
+                        "parameters":[],
+                    })
+        except Exception as e:
+            print("Error create_dev_no_log: ", e)
+        finally:
+            print('create_dev_no_log end')
+            await session.close() 
