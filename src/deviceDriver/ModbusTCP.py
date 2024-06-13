@@ -1047,7 +1047,7 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                elif code_value == 144 or (device_mode == 0 and len(inverter_info) >= 1):
+                                elif (device_mode == 0 and len(inverter_info) >= 1):
                                     comment = 400
                             data_send = {
                                 "time_stamp": current_time,
