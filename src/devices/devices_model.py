@@ -10,6 +10,15 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class DeviceType(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+
 class DeviceFull(BaseModel):
     id: Optional[int] = None
     parent: Optional[int] = None
@@ -67,7 +76,7 @@ class DeviceFull(BaseModel):
     inverter_type: Optional[int] = 2
     status: Optional[bool] = True
     driver_type: Optional[str] = None
-    device_type: Optional[str] = None
+    device_type: Optional[DeviceType] = None
 
 
 class Devices(BaseModel):
@@ -83,14 +92,6 @@ class DeviceUploadChannelMap(BaseModel):
     class Config:
         orm_mode = True
 
-
-class DeviceType(BaseModel):
-    id: Optional[int] = None
-    name: Optional[str] = None
-    type: Optional[int] = None
-
-    class Config:
-        orm_mode = True
 
 
 class DeviceGroup(BaseModel):

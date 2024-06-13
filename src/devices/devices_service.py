@@ -23,16 +23,13 @@ from .devices_entity import (Devices as DevicesEntity,
                              DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType,
                              DeviceComponent as DeviceComponentEntity, )
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    AddDeviceGroupFilter, GetDeviceComponentFilter, DeleteDeviceFilter
+    AddDeviceGroupFilter, GetDeviceComponentFilter, DeleteDeviceFilter, SymbolicDevice
 from .devices_model import Devices, DeviceFull, Action, DeviceComponent, DeviceComponentBase, DeviceComponentList
 from ..config import env_config
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..utils.PaginationModel import Pagination
 from ..utils.utils import generate_pagination_response
-
-SYMBOLIC_DEVICES = ["Circuit Breaker"]
-
 
 @Injectable
 class DevicesService:
@@ -84,10 +81,13 @@ class DevicesService:
         output = []
         for device in devices:
             driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
-            device_type = device.device_type.__dict__.get("name") if device.device_type is not None else None
+            device_type = device.device_type
+            device_type_name = device.device_type.__dict__.get("name") if device.device_type is not None else None
+
             device = device.__dict__
-            device["driver_type"] = driver_type
-            device["device_type"] = device_type
+            device["driver_type"] = driver_type if device_type.__dict__.get("type") != 1 else device_type_name
+            device["device_type"] = device_type.__dict__ if device_type else None
+
             output.append(DeviceFull(**device))
 
         return generate_pagination_response(output,
@@ -225,16 +225,18 @@ class DevicesService:
         :return: list[DeviceFull] | HTTPException
         """
         device_type = await self.get_device_type_by_id(body.id_device_type, session)
-        is_circuit_breaker_device = device_type.name.find("Circuit Breaker") != -1
+        is_symbolic_device = device_type.type == 1
         devices = []
+        symbolic_devices = []
         rtu_bus_address = body.rtu_bus_address
         tcp_gateway_port = body.tcp_gateway_port
         for _ in range(body.num_of_devices):
-            if body.num_of_devices > 1 and not is_circuit_breaker_device:
+            if body.num_of_devices > 1 and not is_symbolic_device:
                 if body.inc_mode == IncreaseMode.RTU:
                     rtu_bus_address += _
                 else:
                     tcp_gateway_port += _
+
             new_devices = DevicesEntity(
                 **DeviceFull(
                     **body.dict(exclude_unset=True,
@@ -242,13 +244,13 @@ class DevicesService:
                     rtu_bus_address=rtu_bus_address,
                     tcp_gateway_port=tcp_gateway_port,
                     rated_power_custom=body.rated_power,
-                    id_communication=body.id_communication if not is_circuit_breaker_device else None
+                    id_communication=body.id_communication if not is_symbolic_device else None
                 ).dict(exclude_none=True)
             )
             session.add(new_devices)
             await session.flush()
 
-            if not is_circuit_breaker_device:
+            if not is_symbolic_device:
                 tg = datetime.datetime.now(datetime.timezone.utc).strftime(
                     "%Y%m%d"
                 )
@@ -259,6 +261,8 @@ class DevicesService:
                                  view_table=f"dev_{new_devices.id}_{tg}"))
 
                 await session.execute(query)
+            else:
+                symbolic_devices.append(SymbolicDevice(id=new_devices.id, name=new_devices.name))
 
             if body.components:
                 for component in body.components:
@@ -273,11 +277,14 @@ class DevicesService:
                                                       parent=new_devices.id,
                                                       id_device_type=component.id_device_type)
                         session.add(new_component)
+                        await session.flush()
+                        symbolic_devices.append(SymbolicDevice(id=new_component.id, name=new_component.name))
             devices.append(new_devices.id)
         await session.commit()
 
-        if not is_circuit_breaker_device:
-            serial_number = await ProjectSetupService().get_project_serial_number(session)
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
+        await self.sender.start()
+        if not is_symbolic_device:
             code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
             creating_msg = MessageModel(
                 metadata=MetaData(retry=3,
@@ -288,11 +295,18 @@ class DevicesService:
                          "code": code,
                          "devices": devices}
             )
-            await self.sender.start()
             self.sender.send(f"{serial_number}/{Action.CREATE.value}",
                              base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
-            await self.sender.stop()
-
+        else:
+            msg = {
+                "CODE": "CreateNoLogDev",
+                "PAYLOAD": {
+                    "device": [device.dict() for device in symbolic_devices]
+                }
+            }
+            self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
+                             json.dumps(msg))
+        await self.sender.stop()
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
         return await self.get_devices(session, pagination)
@@ -318,14 +332,8 @@ class DevicesService:
         deleted_devices = []
         for i in device_id:
             device = await self.get_device_by_id(i, session)
-            if device is not None:
-                device_type = await self.get_device_type_by_id(device.id_device_type, session)
-                if device_type.name not in SYMBOLIC_DEVICES:
-                    deleted_devices.append(device.id)
-                else:
-                    query = (delete(DevicesEntity)
-                             .where(DevicesEntity.id == i))
-                    await session.execute(query)
+            if device:
+                deleted_devices.append(device.id)
 
         if len(deleted_devices) > 0:
             serial_number = await ProjectSetupService().get_project_serial_number(session)
@@ -457,7 +465,7 @@ class DevicesService:
         return True
 
     @async_db_request_handler
-    async def add_device_group(self, body: AddDeviceGroupFilter, session: AsyncSession) -> str:
+    async def add_device_group(self, body: AddDeviceGroupFilter, session: AsyncSession) -> dict:
         """
         Add device group to database
         :author: nhan.tran
@@ -470,18 +478,22 @@ class DevicesService:
                                              id_device_type=body.id_device_type,
                                              type=1)
         session.add(new_device_group)
+        await session.flush()
         await session.commit()
-        return "Device group added successfully"
+        return {
+            "message": "Device group added successfully",
+            "id": new_device_group.id
+        }
 
     @async_db_request_handler
     async def get_device_components_by_main_type(self,
                                                  device_type: GetDeviceComponentFilter,
                                                  session: AsyncSession) -> Sequence[DeviceComponent]:
         query = (select(DeviceComponentEntity)
-                 .where(DeviceComponentEntity.main_type == device_type.main_type)
-                 .where(
-                    DeviceComponentEntity.sub_type == device_type.sub_type
-                    if device_type.sub_type else text("1=1")))
+        .where(DeviceComponentEntity.main_type == device_type.main_type)
+        .where(
+            DeviceComponentEntity.sub_type == device_type.sub_type
+            if device_type.sub_type else text("1=1")))
 
         result = await session.execute(query)
         components = result.scalars().all()

@@ -27,6 +27,7 @@ class GetTemplate(TemplateBase):
 
 
 class TemplateOutput(BaseModel):
+    name: str = None
     points: list[PointOutput] = None
     point_mppt: list[PointMppt] = None
     point_string: list[PointString] = None

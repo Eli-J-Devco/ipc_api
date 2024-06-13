@@ -23,6 +23,11 @@ class IncreaseMode:
     RTU: int = 2
 
 
+class SymbolicDevice(BaseModel):
+    id: int
+    name: str
+
+
 class AddDevicesModeFilter(BaseModel):
     num_of_devices: Optional[int] = 1
     inc_mode: Optional[int] = 1

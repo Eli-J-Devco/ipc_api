@@ -62,9 +62,10 @@ class TemplateService:
         if body.id is not None:
             query = select(TemplateEntity).where(TemplateEntity.id == body.id)
             result = await session.execute(query)
-            if result.scalars().first().type != 1:
+            template = result.scalars().first()
+            if template.type != 1:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Method not allowed")
-            return await ServiceWrapper.async_wrapper(self.get_template_detail)(body.id, session)
+            return await ServiceWrapper.async_wrapper(self.get_template_detail)(template.name, body.id, session)
 
         if body.type is None:
             query = select(TemplateEntity)
@@ -150,11 +151,12 @@ class TemplateService:
         return TemplateOutput(points=points, point_mppt=point_mppt)
 
     @async_db_request_handler
-    async def get_template_detail(self, id_template: int, session: AsyncSession) -> TemplateOutput:
+    async def get_template_detail(self, template: str, id_template: int, session: AsyncSession) -> TemplateOutput:
         """
         Get template detail by ID
         :author: nhan.tran
         :date: 20-05-2024
+        :param template:
         :param id_template:
         :param session:
         :return: TemplateOutput
@@ -170,7 +172,8 @@ class TemplateService:
             id_device_type = await self.devices_service.get_device_type_by_device_group(device_group, session)
             device_type = await self.devices_service.get_device_type_by_id(id_device_type, session)
 
-        return TemplateOutput(points=points,
+        return TemplateOutput(name=template,
+                              points=points,
                               point_mppt=point_mppt,
                               point_string=point_string,
                               register_blocks=register_blocks,
@@ -211,7 +214,7 @@ class TemplateService:
                                               .get_type_function)(session))
 
         return TemplateConfig(**json.loads(point_config.body.decode("utf8"))
-                              if isinstance(point_config, JSONResponse) else point_config,
+        if isinstance(point_config, JSONResponse) else point_config,
                               type_function=json.loads(type_function.body.decode("utf8"))
                               if isinstance(type_function, JSONResponse) else type_function)
 
