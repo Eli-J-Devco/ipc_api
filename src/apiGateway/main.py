@@ -329,7 +329,7 @@ class apiGateway:
                         if 'parent' in result.keys():
                             self.DeviceList[i]["parent"]=result["parent"]
                         if 'combiner_box' in result.keys():
-                            self.DeviceList[i]["combiner"]=result["combiner"]
+                            self.DeviceList[i]["combiner_box"]=result["combiner_box"]
                         if 'emergency_stop' in result.keys():
                             self.DeviceList[i]["emergency_stop"]=result["emergency_stop"]      
         except Exception as err:
