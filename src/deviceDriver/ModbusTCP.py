@@ -130,6 +130,8 @@ reactive_limit_percent=None
 reactive_limit_percent_enable=None
 rated_reactive_custom=None
 device_parent=None
+emergency_stop=None
+
 # 
 # config[0] -- id
 # ----- mybatis -----
@@ -1157,6 +1159,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global maximum_DC_input_current
         global inverter_type
         global device_parent
+        global emergency_stop
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
             
@@ -1172,6 +1175,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         meter_type=results_device[0]['meter_type']
         inverter_type =results_device[0]['inverter_type']
         device_parent=results_device[0]['device_parent']
+        emergency_stop=results_device[0]['emergency_stop']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1389,7 +1393,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             global min_watt_in_percent
             global meter_type
             global rated_reactive_custom
-            new_point_list_device=[]
+            global emergency_stop
             new_point=[]
             mppt=[]
             control_group=[]
@@ -1417,45 +1421,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         "fields":[]
                         
                     } for item in results_control_group]
-            for item in point_list_device:
-                
-                match item["point_key"]:
-                    case "WMaxPercent":
-                        new_point_list_device.append({
-                            **item,
-                            "value":power_limit_percent,
-                            })
-                    case "WMaxPercentEnable":
-                        new_point_list_device.append({
-                            **item,
-                            "value":power_limit_percent_enable,
-                            })
-                    case "VarMaxPercent":
-                        new_point_list_device.append({
-                            **item,
-                            "value":reactive_limit_percent,
-                            })
-                    case "VarMaxPercentEnable":
-                        new_point_list_device.append({
-                            **item,
-                            "value":reactive_limit_percent_enable,
-                            })
-                    case "ACPowerFactor":
-                        cosPhi=item["value"]
-                        if cosPhi!=None and cosPhi!="null" and cosPhi!=0:
-                            sinPhi=math.sqrt(1-cosPhi**2)
-                            tanPhi=sinPhi/cosPhi
-                            rated_reactive_custom=round(rated_power_custom*tanPhi,2)
-                        new_point_list_device.append({
-                            **item,
-                            "timestamp":getUTC()
-                            })
-                    case _:
-                        new_point_list_device.append({
-                            **item,
-                            "timestamp":getUTC()
-                            })
-            # 
+            new_point_list_device=monitor_service_init.point_list_change_para_control()
             if new_point_list_device:
                 for point_item in new_point_list_device:
                     if point_item['config']=="MPPT":
@@ -1652,6 +1618,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     **item_group,
                     "fields":new_point_control_attr
                 })
+            combiner_box=monitor_service_init.combiner_box(new_point)
+            
             data_device={
                 "id_device":device_id,
                 "parent":device_parent,
@@ -1669,11 +1637,13 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "parameters":parameters,
                 "fields":new_point,
                 "mppt":mppt,
+                "combiner_box":combiner_box,
                 "control_group":new_control_group,
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
-                "rated_reactive_custom":rated_reactive_custom
+                "rated_reactive_custom":rated_reactive_custom,
+                "emergency_stop":emergency_stop
             }
             data_device_short={
                 "id_device":device_id,
@@ -1690,7 +1660,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power":rated_power,
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
-                "rated_reactive_custom":rated_reactive_custom
+                "rated_reactive_custom":rated_reactive_custom,
+                "emergency_stop":emergency_stop
             }
             
             if device_name !="" and serial_number_project!= None:

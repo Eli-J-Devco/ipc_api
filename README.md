@@ -172,8 +172,9 @@ remote_username admin
 remote_clientid level03-line01-broker
 topic # both
 try_private false
-
-
+<!-- MQTT Server -->
+sudo nano /etc/mosquitto/conf.d/default.conf
+sudo systemctl restart mosquitto
 <!--  -->
 connection bridge-01
 address 192.168.80.230:1883

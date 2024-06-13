@@ -381,6 +381,29 @@ def init_device_service():
         # use run with ubuntu/linux
         subprocess.Popen(
             f'sudo /usr/bin/python3 /sources/python/services/init_device_service/setup.py', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run create virtual device
+# 	 * @author vnguyen
+# 	 * @since 13-06-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_virtual_device():
+    try:
+        absDirname=path
+        pid="VirtualDevice"
+        if sys.platform == 'win32':
+            # use run with window          
+            print("init_virtual_device run only linux")
+        else:
+            # use run with ubuntu/linux
+            subprocess.Popen(
+                f'sudo pm2 start {absDirname}/deviceDriver/virtualDevice/virtual_device.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    except Exception as e:
+        print('Error init driver: ',e)
+        LOGGER.error(f'{e}')
+
 time.sleep(10)        
 delete_all_app_pm2()
 # init_api_web()
@@ -392,6 +415,7 @@ init_sync_file()
 init_log_data()
 init_api_web_v2()
 init_device_service()
+init_virtual_device()
 
 
 
