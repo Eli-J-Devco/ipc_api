@@ -1065,7 +1065,7 @@ async def write_device(
                             result_topic1 = []
 
                     except Exception as err:
-                        print(f"Error MQTT subscribe: '{err}'")
+                        print(f"write_device: '{err}'")
 
 # Describe functions before writing code
 # /**
@@ -1940,7 +1940,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                         if reactive_limit_percent_enable == 1 :
                                                             reactive_limit_percent = param["value"]
                                                         else:
-                                                            reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
+                                                            # reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
                                                             reactive_power_limit = int(reactive_power_limit)
                                         if power_limit_percent_enable == 1:
                                             item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
@@ -1983,7 +1983,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                     pass
                 
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"sud_mqtt: '{err}'")
 
 async def main():
     tasks = []
