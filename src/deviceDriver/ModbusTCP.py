@@ -57,7 +57,7 @@ MQTT_TOPIC_PUB_CONTROL = "/Control"
 MQTT_TOPIC_PUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE = "/Control/Write"
-MQTT_TOPIC_SUD_CONTROL_AUTO = "//Control/WriteAuto"
+MQTT_TOPIC_SUD_CONTROL_AUTO = "/Control/WriteAuto"
 # 
 ModeSysTemp = "" 
 device_name=""
