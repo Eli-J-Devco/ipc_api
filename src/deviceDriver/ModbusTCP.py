@@ -957,7 +957,6 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
-                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -997,11 +996,14 @@ async def write_device(
                                         # convert back to actual value
                                         if result_slope and slope :
                                             slope = float(result_slope[0]['slope'])
-                                            
+                                            print("slope",slope)
                                             if power_limit_percent_enable == 1:
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
+                                                    print("rated_power_custom",rated_power_custom)
+                                                    print("power_limit_percent",power_limit_percent)
+                                                    print("slope_wmax",slope_wmax)
                                                     parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*(power_limit_percent/100) / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
