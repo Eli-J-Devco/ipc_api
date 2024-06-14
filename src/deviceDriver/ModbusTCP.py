@@ -126,9 +126,9 @@ inverter_type=None
 # 
 
 power_limit_percent=0
-power_limit_percent_enable=0
+power_limit_percent_enable=None
 reactive_limit_percent=0
-reactive_limit_percent_enable=0
+reactive_limit_percent_enable=None
 rated_reactive_custom=0
 device_parent=None
 emergency_stop=None
