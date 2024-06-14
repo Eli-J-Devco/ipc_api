@@ -955,9 +955,10 @@ async def write_device(
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
-            
+            print("device_control",device_control)
             if id_systemp == device_control :
                 parameter = item['parameter']
+                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1891,7 +1892,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                 continue
             
             if message.topic in [topic1, topic3]:
-                print("topic3",topic3)
                 result_topic1 = json.loads(message.message.decode())
                 #process
                 if result_topic1 :
