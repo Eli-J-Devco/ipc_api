@@ -21,7 +21,8 @@ class MonitorService:
                 name_device_type,
                 id_device_type,
                 device_mode : None,
-                rated_power,rated_power_custom,min_watt_in_percent,rated_reactive_custom,
+                rated_power,rated_power_custom,min_watt_in_percent,
+                # rated_reactive_custom,
                 meter_type,inverter_type=None,
                 emergency_stop=None
                 ):
@@ -47,10 +48,11 @@ class MonitorService:
             self.rated_power=rated_power
             self.rated_power_custom=rated_power_custom
             self.min_watt_in_percent=min_watt_in_percent
-            self.rated_reactive_custom=rated_reactive_custom
+            # self.rated_reactive_custom=rated_reactive_custom
             self.meter_type=meter_type
             self.inverter_type=inverter_type
             self.emergency_stop=emergency_stop
+            self.rated_reactive_custom=None
             # 
     def device_type(self):
         match self.name_device_type:
@@ -89,6 +91,8 @@ class MonitorService:
                         sinPhi=math.sqrt(1-cosPhi**2)
                         tanPhi=sinPhi/cosPhi
                         self.rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
+                        if self.rated_reactive_custom==-0.0:
+                            self.rated_reactive_custom=0.0
                     new_point_list_device.append({
                         **item,
                         "timestamp":getUTC()

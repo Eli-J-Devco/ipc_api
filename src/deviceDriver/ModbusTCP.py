@@ -1400,7 +1400,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 rated_power=rated_power,
                 rated_power_custom=rated_power_custom,
                 min_watt_in_percent=min_watt_in_percent,
-                rated_reactive_custom=rated_reactive_custom,
+                # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
 
             device_mode=monitor_service_init.device_type()
@@ -1415,6 +1415,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         
                     } for item in results_control_group]
             new_point_list_device=monitor_service_init.point_list_change_para_control()
+            rated_reactive_custom=monitor_service_init.rated_reactive_custom
             if new_point_list_device:
                 for point_item in new_point_list_device:
                     if point_item['config']=="MPPT":
