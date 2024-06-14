@@ -1913,7 +1913,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                     if param["id_pointkey"] == "WMax":
                                                         power_limit = param["value"]
                                                     elif param["id_pointkey"] == "WMaxPercent":
-                                                        if power_limit_percent_enable == 1 :
+                                                        if power_limit_percent_enable == 1 and rated_power_custom != 0:
                                                             power_limit_percent = param["value"]
                                                         else:
                                                             power_limit_percent = (power_limit/rated_power_custom)*100
@@ -1926,8 +1926,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                         if reactive_limit_percent_enable == 1 :
                                                             reactive_limit_percent = param["value"]
                                                         else:
-                                                            if rated_reactive_custom != 0:
-                                                                print("Reactive power limit",rated_reactive_custom)
+                                                            if rated_reactive_custom not in [0,None]:
                                                                 reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
                                                                 reactive_limit_percent = int(reactive_limit_percent)
                                         if power_limit_percent_enable == 1:
