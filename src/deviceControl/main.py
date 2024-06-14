@@ -879,7 +879,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 
             # If the total capacity produced has not reached the set value, proceed
             if value_production < value_power_limit:
-                print("vaof chieeuf thuan")
                 if device['controlinv'] == 1: # Check device is off , on device 
                     new_device = {
                         "id_device": device["id_device"],
@@ -904,7 +903,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
             else:
-                print("vao chieu nguoc")
                 new_device = {
                         "id_device": device["id_device"],
                         "mode": device["mode"],
@@ -1086,7 +1084,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     p_for_each_device_zero_export = power_max_device / slope
                 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            if (value_consumption >= value_threshold_zero_export) and (value_production > value_consumption):
+            if (value_consumption >= value_threshold_zero_export) and (value_production < value_consumption):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
                     new_device = {
