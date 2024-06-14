@@ -57,7 +57,7 @@ MQTT_TOPIC_PUB_CONTROL = "/Control"
 MQTT_TOPIC_PUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE = "/Control/Write"
-MQTT_TOPIC_SUD_CONTROL_AUTO = "//Control/WriteAuto"
+MQTT_TOPIC_SUD_CONTROL_AUTO = "/Control/WriteAuto"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -954,11 +954,9 @@ async def write_device(
     if result_topic1 :
         for item in result_topic1:
             device_control = item['id_device']
-            parameter = item['parameter']
-            print("parameter",parameter)
             device_control = int(device_control) # Get Id_device from message mqtt
-            
             if id_systemp == device_control :
+                parameter = item['parameter']
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -991,14 +989,11 @@ async def write_device(
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func,register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
-                                        print("id_pointkey",id_pointkey)
-                                        print("value",value)
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                         # convert back to actual value
                                         if result_slope and slope :
                                             slope = float(result_slope[0]['slope'])
-                                            
                                             if power_limit_percent_enable == 1:
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
@@ -1018,9 +1013,6 @@ async def write_device(
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*(reactive_limit_percent/100) / slope_wmax}]
-                                                    print("reactive_limit_percent_enable",reactive_limit_percent_enable)
-                                                    print("reactive_limit_percent",reactive_limit_percent)
-                                                    print("rated_reactive_custom",rated_reactive_custom)
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
@@ -1030,9 +1022,9 @@ async def write_device(
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_reactive_custom*(reactive_limit_percent/100), device_control, 'Reactive Power Limit'))
                                             if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
-                                                print("name device point list",name_device_points_list_map)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
-                                                value /= slope
+                                                if slope is not None and slope != 0:
+                                                    value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                             # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
@@ -1058,7 +1050,7 @@ async def write_device(
                             result_topic1 = []
 
                     except Exception as err:
-                        print(f"Error MQTT subscribe: '{err}'")
+                        print(f"write_device: '{err}'")
 
 # Describe functions before writing code
 # /**
@@ -1860,6 +1852,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
     power_limit = 0
     reactive_power_limit = 0
     control_inv = 1
+    result_topic1_temp = ""
     # variable topic 2
     global device_mode
     
@@ -1891,75 +1884,79 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                 print("Not find message from MQTT")
                 continue
             
-            if message.topic == [topic1 ,topic3]:
-                result_topic1 = json.loads(message.message.decode())
-                #process
-                if result_topic1 :
-                    if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
-                        await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-                    else:
-                        pass
-                    # update custom_watt in database
-                    for item in result_topic1:
-                        print("result_topic1", result_topic1)
-                        if device_mode == 0 :
-                            if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
-                                custom_watt = item["rated_power_custom"] 
-                                watt = item["rated_power"]
-                                rated_power = watt
-                                rated_power_custom = custom_watt
-                                for item in result_topic1:
-                                    if "parameter" in item:
+            if message.topic in [topic1, topic3]:
+                result_topic1_temp = json.loads(message.message.decode())
+                for item in result_topic1_temp:
+                    if "id_device" in item and item["id_device"] == id_systemp:
+                        result_topic1 = result_topic1_temp
+                        #process
+                        if result_topic1 :
+                            if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
+                                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+                            else:
+                                pass
+                            # update custom_watt in database
+                            for item in result_topic1:
+                                print("result_topic1", result_topic1)
+                                if device_mode == 0 :
+                                    if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
+                                        custom_watt = item["rated_power_custom"] 
+                                        watt = item["rated_power"]
+                                        rated_power = watt
+                                        rated_power_custom = custom_watt
+                                        for item in result_topic1:
+                                            if "parameter" in item:
+                                                for param in item["parameter"]:
+                                                    if param["id_pointkey"] == "WMaxPercentEnable":
+                                                        power_limit_percent_enable = param["value"]
+                                                    if param["id_pointkey"] == "WMax":
+                                                        power_limit = param["value"]
+                                                    elif param["id_pointkey"] == "WMaxPercent":
+                                                        if power_limit_percent_enable == 1 :
+                                                            power_limit_percent = param["value"]
+                                                        else:
+                                                            power_limit_percent = (power_limit/rated_power_custom)*100
+                                                            power_limit_percent = int(power_limit_percent)
+                                                    elif param["id_pointkey"] == "VarMaxPercentEnable":
+                                                        reactive_limit_percent_enable = param["value"]
+                                                    if param["id_pointkey"] == "VarMax":
+                                                        reactive_power_limit = param["value"]
+                                                    elif param["id_pointkey"] == "VarMaxPercent":
+                                                        if reactive_limit_percent_enable == 1 :
+                                                            reactive_limit_percent = param["value"]
+                                                        else:
+                                                            if rated_reactive_custom != 0:
+                                                                print("Reactive power limit",rated_reactive_custom)
+                                                                reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
+                                                                reactive_limit_percent = int(reactive_limit_percent)
+                                        if power_limit_percent_enable == 1:
+                                            item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+                                        if reactive_limit_percent_enable == 1:
+                                            item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+                                        if custom_watt and watt and watt >= custom_watt: 
+                                            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                                            custom_watt = 0
+                                            watt = 0
                                         for param in item["parameter"]:
-                                            if param["id_pointkey"] == "WMaxPercentEnable":
-                                                power_limit_percent_enable = param["value"]
-                                            if param["id_pointkey"] == "WMax":
-                                                power_limit = param["value"]
-                                            elif param["id_pointkey"] == "WMaxPercent":
-                                                if power_limit_percent_enable == 1 :
-                                                    power_limit_percent = param["value"]
-                                                else:
-                                                    power_limit_percent = (power_limit/rated_power_custom)*100
-                                                    power_limit_percent = int(power_limit_percent)
-                                            elif param["id_pointkey"] == "VarMaxPercentEnable":
-                                                reactive_limit_percent_enable = param["value"]
-                                            if param["id_pointkey"] == "VarMax":
-                                                reactive_power_limit = param["value"]
-                                            elif param["id_pointkey"] == "VarMaxPercent":
-                                                if reactive_limit_percent_enable == 1 :
-                                                    reactive_limit_percent = param["value"]
-                                                else:
-                                                    reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
-                                                    reactive_power_limit = int(reactive_power_limit)
-                                if power_limit_percent_enable == 1:
-                                    item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
-                                if reactive_limit_percent_enable == 1:
-                                    item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
-                                if custom_watt and watt and watt >= custom_watt: 
-                                    MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                                    custom_watt = 0
-                                    watt = 0
-                                for param in item["parameter"]:
-                                    if param["value"] is None:
-                                        data_send = {
-                                            "time_stamp": current_time,
-                                            "status": comment, 
-                                        }
-                                        push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
-                                    else:
-                                        pass
-                            else :
-                                for item in result_topic1:
-                                    if item["id_device"] == id_systemp and "parameter" in item:
-                                        for param in item["parameter"]:
-                                            if param["id_pointkey"] == "ControlINV":
-                                                control_inv = param["value"]
-                                                print("control_inv",control_inv)
-                                    if control_inv == False :
-                                        print("control_inv1",control_inv)
-                                        item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
-                                        control_inv = True
-                                print("result_topic1",result_topic1)
+                                            if param["value"] is None:
+                                                data_send = {
+                                                    "time_stamp": current_time,
+                                                    "status": comment, 
+                                                }
+                                                push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                                            else:
+                                                pass
+                                    else :
+                                        for item in result_topic1:
+                                            if item["id_device"] == id_systemp and "parameter" in item:
+                                                for param in item["parameter"]:
+                                                    if param["id_pointkey"] == "ControlINV":
+                                                        control_inv = param["value"]
+                                                        print("control_inv",control_inv)
+                                            if control_inv == False :
+                                                print("control_inv1",control_inv)
+                                                item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
+                                                control_inv = True
                         
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
@@ -1973,7 +1970,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                     pass
                 
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"sud_mqtt: '{err}'")
 
 async def main():
     tasks = []
@@ -2007,7 +2004,7 @@ async def main():
         MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
         MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
         MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
-        
+        print("rated_reactive_custom",rated_reactive_custom)
         # 
         tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,
                                                             serial_number_project,
