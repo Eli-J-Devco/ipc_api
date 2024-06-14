@@ -2004,7 +2004,7 @@ async def main():
         MQTT_PORT_LIST.append(MQTT_PORT_CLOUD)
         MQTT_USERNAME_LIST.append(MQTT_USERNAME_CLOUD)
         MQTT_PASSWORD_LIST.append(MQTT_PASSWORD_CLOUD)
-        
+        print("rated_reactive_custom",rated_reactive_custom)
         # 
         tasks.append(asyncio.create_task(monitoring_device(results_point_list_type,
                                                             serial_number_project,
