@@ -1926,6 +1926,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                             reactive_limit_percent = param["value"]
                                                         else:
                                                             if rated_reactive_custom != 0:
+                                                                print("Reactive power limit",rated_reactive_custom)
                                                                 reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
                                                                 reactive_limit_percent = int(reactive_limit_percent)
                                         if power_limit_percent_enable == 1:
