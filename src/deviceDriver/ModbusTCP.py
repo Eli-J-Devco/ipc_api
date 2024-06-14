@@ -125,11 +125,11 @@ rated_DC_input_power=None
 inverter_type=None
 # 
 
-power_limit_percent=None
-power_limit_percent_enable=None
-reactive_limit_percent=None
-reactive_limit_percent_enable=None
-rated_reactive_custom=None
+power_limit_percent=0
+power_limit_percent_enable=0
+reactive_limit_percent=0
+reactive_limit_percent_enable=0
+rated_reactive_custom=0
 device_parent=None
 emergency_stop=None
 
@@ -989,23 +989,15 @@ async def write_device(
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func,register, value=0)
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s',(0,device_control,name_device_points_list_map))
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
-                                        print("id_pointkey",id_pointkey)
-                                        print("value",value)
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
                                         # convert back to actual value
                                         if result_slope and slope :
                                             slope = float(result_slope[0]['slope'])
-                                            print("slope",slope)
                                             if power_limit_percent_enable == 1:
-                                                print("da vao day 1")
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
-                                                print("result_slope_wmax",result_slope_wmax)
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
-                                                    print("rated_power_custom",rated_power_custom)
-                                                    print("power_limit_percent",power_limit_percent)
-                                                    print("slope_wmax",slope_wmax)
                                                     parameter_temp = [{'id_pointkey': 'WMax', 'value': rated_power_custom*(power_limit_percent/100) / slope_wmax}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
@@ -1017,14 +1009,10 @@ async def write_device(
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom*(power_limit_percent/100), device_control, 'Power Limit'))
                                             if reactive_limit_percent_enable == 1:
-                                                print("da vao day 2")
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     parameter_temp = [{'id_pointkey': 'VarMax', 'value': rated_reactive_custom*(reactive_limit_percent/100) / slope_wmax}]
-                                                    print("reactive_limit_percent_enable",reactive_limit_percent_enable)
-                                                    print("reactive_limit_percent",reactive_limit_percent)
-                                                    print("rated_reactive_custom",rated_reactive_custom)
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
@@ -1034,11 +1022,8 @@ async def write_device(
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_reactive_custom*(reactive_limit_percent/100), device_control, 'Reactive Power Limit'))
                                             if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
-                                                print("name device point list",name_device_points_list_map)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
-                                                    print("value",value)
-                                                    print("slope",slope)
                                                     value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
@@ -1940,8 +1925,9 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                         if reactive_limit_percent_enable == 1 :
                                                             reactive_limit_percent = param["value"]
                                                         else:
-                                                            # reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
-                                                            reactive_power_limit = int(reactive_power_limit)
+                                                            if rated_reactive_custom != 0:
+                                                                reactive_limit_percent = (reactive_power_limit/rated_reactive_custom)*100
+                                                                reactive_limit_percent = int(reactive_limit_percent)
                                         if power_limit_percent_enable == 1:
                                             item["parameter"] = [param for param in item["parameter"] if param["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                                         if reactive_limit_percent_enable == 1:
