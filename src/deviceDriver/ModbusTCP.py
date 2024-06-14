@@ -954,11 +954,10 @@ async def write_device(
     if result_topic1 :
         for item in result_topic1:
             device_control = item['id_device']
-            parameter = item['parameter']
-            print("parameter",parameter)
             device_control = int(device_control) # Get Id_device from message mqtt
             
             if id_systemp == device_control :
+                parameter = item['parameter']
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
