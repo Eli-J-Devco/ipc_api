@@ -88,7 +88,7 @@ class MonitorService:
                     if cosPhi!=None and cosPhi!="null" and cosPhi!=0:
                         sinPhi=math.sqrt(1-cosPhi**2)
                         tanPhi=sinPhi/cosPhi
-                        rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
+                        self.rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
                     new_point_list_device.append({
                         **item,
                         "timestamp":getUTC()
