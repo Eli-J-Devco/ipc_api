@@ -112,7 +112,7 @@ MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK = "/Control/Setup/Mode/Write/De
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
-MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT = "/Control/Write"
+MQTT_TOPIC_PUD_CONTROL_AUTO = "/Control/WriteAuto"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
 MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
@@ -846,7 +846,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
+    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -905,7 +905,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
-            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 # Describe simple_pid 
 # 	 * @description simple_pid
@@ -1005,7 +1005,7 @@ def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
+    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1015,7 +1015,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max_device = 0
     setpoint = 0
     output = 0 
-    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption)
@@ -1071,7 +1071,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     p_for_each_device_zero_export = power_max_device / slope
                 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            if value_consumption >= value_threshold_zero_export :
+            if (value_consumption >= value_threshold_zero_export) and (value_production > value_consumption):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
                     new_device = {
@@ -1128,12 +1128,12 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
 # 	 */ 
 async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_AUTO
     # Local variables
     power_max = 0
     result_slope = []
     slope = 1.0
-    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_POWER_LIMIT
+    topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     p_for_each_device = 0
     # Check device equipment qualified for control
     if result_topic4:

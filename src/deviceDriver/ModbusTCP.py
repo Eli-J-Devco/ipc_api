@@ -57,6 +57,7 @@ MQTT_TOPIC_PUB_CONTROL = "/Control"
 MQTT_TOPIC_PUD_MODECONTROL_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE = "/Control/Write"
+MQTT_TOPIC_SUD_CONTROL_AUTO = "//Control/WriteAuto"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -1834,13 +1835,14 @@ async def sub_mqtt1(serial_number_project, host, port, topic1, topic2, username,
 # 	 * @param {serial_number_project, host, port, topic1, topic2, username, password}
 # 	 * @return confirm_mode_device or MySQL_Update rated_power
 # 	 */
-async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, password):
+async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, username, password):
     
     global result_topic1 
     global result_topic2 
     
     topic1 = serial_number_project + topic1
     topic2 = serial_number_project + topic2
+    topic3 = serial_number_project + topic3
     
     global bitchecktopic1 
     global bitchecktopic2
@@ -1876,6 +1878,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
         await client.start()
         await client.subscribe(topic1)
         await client.subscribe(topic2)
+        await client.subscribe(topic3)
         
         while True:
             current_time = get_utc()
@@ -1888,7 +1891,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                 print("Not find message from MQTT")
                 continue
             
-            if message.topic == topic1:
+            if message.topic == [topic1 ,topic3]:
                 result_topic1 = json.loads(message.message.decode())
                 #process
                 if result_topic1 :
@@ -1905,7 +1908,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2, username, 
                                 watt = item["rated_power"]
                                 rated_power = watt
                                 rated_power_custom = custom_watt
-
                                 for item in result_topic1:
                                     if "parameter" in item:
                                         for param in item["parameter"]:
@@ -2019,6 +2021,7 @@ async def main():
                                                         MQTT_PORT,
                                                         MQTT_TOPIC_SUD_CONFIRM_MODE_DEVICE,
                                                         MQTT_TOPIC_SUD_CONFIRM_MODE_SYSTEMP,
+                                                        MQTT_TOPIC_SUD_CONTROL_AUTO,
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
