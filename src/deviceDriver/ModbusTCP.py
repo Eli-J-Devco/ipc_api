@@ -125,11 +125,11 @@ rated_DC_input_power=None
 inverter_type=None
 # 
 
-power_limit_percent=0
+power_limit_percent=None
 power_limit_percent_enable=None
-reactive_limit_percent=0
+reactive_limit_percent=None
 reactive_limit_percent_enable=None
-rated_reactive_custom=0
+rated_reactive_custom=None
 device_parent=None
 emergency_stop=None
 
