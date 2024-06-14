@@ -1891,7 +1891,7 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                 print("Not find message from MQTT")
                 continue
             
-            if message.topic == [topic1 ,topic3]:
+            if message.topic in [topic1, topic3]:
                 result_topic1 = json.loads(message.message.decode())
                 #process
                 if result_topic1 :
