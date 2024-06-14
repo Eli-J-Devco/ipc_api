@@ -998,7 +998,9 @@ async def write_device(
                                             slope = float(result_slope[0]['slope'])
                                             print("slope",slope)
                                             if power_limit_percent_enable == 1:
+                                                print("da vao day 1")
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
+                                                print("result_slope_wmax",result_slope_wmax)
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     print("rated_power_custom",rated_power_custom)
@@ -1015,6 +1017,7 @@ async def write_device(
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom*(power_limit_percent/100), device_control, 'Power Limit'))
                                             if reactive_limit_percent_enable == 1:
+                                                print("da vao day 2")
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
@@ -1033,7 +1036,8 @@ async def write_device(
                                             if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
                                                 print("name device point list",name_device_points_list_map)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
-                                                value /= slope
+                                                if slope is not None and slope != 0:
+                                                    value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                             # MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
