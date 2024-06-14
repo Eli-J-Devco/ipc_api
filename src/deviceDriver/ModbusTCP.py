@@ -1037,6 +1037,8 @@ async def write_device(
                                                 print("name device point list",name_device_points_list_map)
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
+                                                    print("value",value)
+                                                    print("slope",slope)
                                                     value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
@@ -1899,7 +1901,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
             
             if message.topic in [topic1, topic3]:
                 result_topic1_temp = json.loads(message.message.decode())
-                print("result_topic1_temp", result_topic1_temp)
                 for item in result_topic1_temp:
                     if "id_device" in item and item["id_device"] == id_systemp:
                         result_topic1 = result_topic1_temp
@@ -1969,7 +1970,6 @@ async def sud_mqtt(serial_number_project, host, port, topic1, topic2,topic3, use
                                                 print("control_inv1",control_inv)
                                                 item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                                                 control_inv = True
-                                        print("result_topic1",result_topic1)
                         
             elif message.topic == topic2:
                 result_topic2 = json.loads(message.message.decode())
