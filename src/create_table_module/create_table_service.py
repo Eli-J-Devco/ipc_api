@@ -102,6 +102,7 @@ class CreateTableService:
 
         if not points:
             logging.error(f"No mppt points found for {device.table_name}")
+            await self.add_device_string(device, None, None, session=session)
             return
 
         for point in points:
@@ -123,8 +124,12 @@ class CreateTableService:
         logging.info(f"Adding device string for {device.table_name}")
         query = (select(PointListEntity)
                  .where(PointListEntity.id_template == device.id_template)
-                 .where(PointListEntity.parent == point_id)
                  .where(PointListEntity.id_config_information == PointType.STRING.value))
+        if point_id and id_device_mppt:
+            query = (select(PointListEntity)
+                     .where(PointListEntity.id_template == device.id_template)
+                     .where(PointListEntity.parent == point_id)
+                     .where(PointListEntity.id_config_information == PointType.STRING.value))
         result = await session.execute(query)
         points = result.scalars().all()
         if not points:
