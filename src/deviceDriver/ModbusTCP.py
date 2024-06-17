@@ -1694,19 +1694,11 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
         for item in mqtt_result:
             id_device = int(item["id_device"])
-            id_device = int(id_device)
-<<<<<<< HEAD
-            print("id_device", id_device)
-=======
-            print(f"da vao duoc day id_device : {id_device} ,id_systemp : {id_systemp} ")
->>>>>>> master
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
-                print(f"da vao toi day id_device :{id_device} va id_systemp :{id_systemp}")
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
                     if device_mode in [0, 1]:
-                        print("device_mode", device_mode)
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                         result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
                         mode_all = all(item['mode'] == device_mode for item in result_checkmode_control)
@@ -1755,7 +1747,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     reactive_power_limit = 0
     control_inv = 1
 
-    if mqtt_result and any(item.get('id_device') == id_systemp for item in mqtt_result):
+    if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if result_topic1:
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
@@ -1764,7 +1756,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 pass
 
             for item in result_topic1:
-                if item["id_device"] == id_systemp and "rated_power_custom" in item and "rated_power" in item:
+                if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     rated_power = watt
@@ -1807,11 +1799,15 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         else:
                             pass
                 else:
-                    if "parameter" in item and item["id_device"] == id_systemp and device_mode == 0 and item["id_pointkey"] == "ControlINV":
-                        control_inv = next((param["value"] for param in item["parameter"] if param["id_pointkey"] == "ControlINV"), False)
-                        if not control_inv:
-                            item.setdefault("parameter", []).append({"id_pointkey": "Conn_RvrtTms", "value": 0})
-                            control_inv = True
+                    if "parameter" in item and int(item["id_device"]) == id_systemp:
+                        for param in item["parameter"]:
+                            if param["id_pointkey"] == "ControlINV":
+                                control_inv = param["value"]
+                                if not control_inv:
+                                    if "parameter" not in item:
+                                        item["parameter"] = []
+                                    item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
+                                    control_inv = True
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
@@ -1847,7 +1843,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             else:
                 pass
     except Exception as err:
-        print(f"Error MQTT subscribe process_message: '{err}'")
+        print(f"Error process_message: '{err}'")
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
