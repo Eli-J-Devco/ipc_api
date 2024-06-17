@@ -609,7 +609,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
-    
+    Note = ''
     # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
@@ -663,10 +663,16 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
+    if system_performance < 85:
+        Note = f"The system is operating at only", system_performance, "% of the required capacity."
+    elif 85 <= system_performance < 100:
+        Note = f"The system is operating at", system_performance, "% of the required capacity, which is good."
+    else:
+        Note = f"Warning: The system is operating at", system_performance, "%, which exceeds the required capacity."
     result = {
         "devices": device_list,
         "total_max_power": total_power,
-        "system_performance":system_performance
+        "Note":Note
     }
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
@@ -913,7 +919,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": 0}
+                            {"id_pointkey": "WMax", "value": max(0, p_for_each_device_power_limit - (value_production - value_power_limit))}
                         ]
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
@@ -1122,7 +1128,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": 0}
+                        {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - (value_production - value_consumption))}
                     ]
                 }
             
