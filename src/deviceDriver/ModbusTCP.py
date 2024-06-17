@@ -1694,6 +1694,7 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
         for item in mqtt_result:
             id_device = int(item["id_device"])
+            id_device = int(id_device)
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
