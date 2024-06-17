@@ -1695,6 +1695,7 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
         for item in mqtt_result:
             id_device = int(item["id_device"])
             id_device = int(id_device)
+            print(f"da vao duoc day id_device : {id_device} ,id_systemp : {id_systemp} ")
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
@@ -1826,11 +1827,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic3 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_AUTO
     
     result_topic1_Temp = []
-    print("topic",topic)
-    print("message",message)
-    print("topic1",topic1)
-    print("topic2",topic2)
-    print("topic3",topic3)
+
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
