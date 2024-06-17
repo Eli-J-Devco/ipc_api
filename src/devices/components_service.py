@@ -2,6 +2,7 @@ import logging
 
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
+from fastapi import HTTPException, status
 from sqlalchemy import select, text, Sequence, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.encoders import jsonable_encoder
@@ -10,6 +11,7 @@ from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, Sym
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, DeviceGroup
 from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
 from .devices_utils_service import UtilsService
+from ..template.template_entity import Template
 from ..template.template_model import TemplateBase
 
 
@@ -36,9 +38,17 @@ class ComponentsService:
                 await session.execute(query)
                 continue
 
+            query = (select(Template)
+                     .where(Template.id_device_group == component.id_device_group))
+            result = await session.execute(query)
+            template = result.scalars().first()
+            if not template:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+
             new_component = DevicesEntity(name=component.name,
                                           parent=parent,
-                                          id_device_type=component.id_device_type)
+                                          id_device_type=component.id_device_type,
+                                          id_template=template.id, )
             session.add(new_component)
             await session.flush()
             symbolic_devices.append(SymbolicDevice(id=new_component.id, name=new_component.name))
@@ -49,10 +59,10 @@ class ComponentsService:
                                                  device_type: GetDeviceComponentFilter,
                                                  session: AsyncSession) -> Sequence[DeviceComponent]:
         query = (select(DeviceComponentEntity)
-        .where(DeviceComponentEntity.main_type == device_type.main_type)
-        .where(
-            DeviceComponentEntity.sub_type == device_type.sub_type
-            if device_type.sub_type else text("1=1")))
+                 .where(DeviceComponentEntity.main_type == device_type.main_type)
+                 .where(
+                    DeviceComponentEntity.sub_type == device_type.sub_type
+                    if device_type.sub_type else text("1=1")))
 
         result = await session.execute(query)
         components = result.scalars().all()
