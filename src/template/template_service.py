@@ -169,8 +169,8 @@ class TemplateService:
         device_group = await self.get_device_group_by_template(id_template, session)
         device_type = None
         if device_group is not None:
-            id_device_type = await self.devices_service.get_device_type_by_device_group(device_group, session)
-            device_type = await self.devices_service.get_device_type_by_id(id_device_type, session)
+            id_device_type = await self.devices_service.utils_service.get_device_type_by_device_group(device_group, session)
+            device_type = await self.devices_service.utils_service.get_device_type_by_id(id_device_type, session)
 
         return TemplateOutput(name=template,
                               points=points,
@@ -234,7 +234,7 @@ class TemplateService:
         if new_template.id_device_group is None:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device group is required")
 
-        id_device_type = await self.devices_service.get_device_type_by_device_group(new_template.id_device_group,
+        id_device_type = await self.devices_service.utils_service.get_device_type_by_device_group(new_template.id_device_group,
                                                                                     session)
         if id_device_type is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
@@ -295,7 +295,7 @@ class TemplateService:
     async def get_control_group_by_device_type(self, session: AsyncSession,
                                                id_template: int):
         id_device_group = await self.get_device_group_by_template(id_template, session)
-        id_device_type = await self.devices_service.get_device_type_by_device_group(id_device_group, session)
+        id_device_type = await self.devices_service.utils_service.get_device_type_by_device_group(id_device_group, session)
         if id_device_type is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
 

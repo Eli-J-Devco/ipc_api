@@ -47,6 +47,7 @@ class DeviceComponentFilter(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     id_device_type: Optional[int] = None
+    type: Optional[int] = None
 
 
 class AddComponentFilter(BaseModel):
@@ -74,7 +75,11 @@ class GetDeviceFilter(BaseModel):
     id_device: Optional[int] = None
 
 
-class UpdateDeviceFilter(BaseModel):
+class ListDeviceFilter(BaseModel):
+    id: Optional[int] = None
+
+
+class UpdateDeviceFilter(AddComponentFilter):
     id: int
     name: str
     rtu_bus_address: Optional[int] = None
@@ -96,8 +101,8 @@ class AddDeviceGroupFilter(BaseModel):
     name: str
 
 
-class DeviceComponentFilter(BaseModel):
-    type: Optional[int] = None
+# class DeviceComponentFilter(BaseModel):
+#     type: Optional[int] = None
 
 
 class GetDeviceComponentFilter(DeviceComponentFilter):

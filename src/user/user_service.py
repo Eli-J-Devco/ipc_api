@@ -25,7 +25,7 @@ from ..config import env_config
 from ..role.role_entity import (UserRoleMap as UserRoleMapEntity, )
 from ..role.role_model import UserRoleMapBase
 from ..role.role_service import RoleService
-from ..utils.PaginationModel import Pagination
+from ..utils.pagination_model import Pagination
 from ..utils.password_hasher import hash_password
 from ..utils.service_wrapper import ServiceWrapper
 from ..utils.utils import validate_email, validate_phone, validate_password, generate_pagination_response

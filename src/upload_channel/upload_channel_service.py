@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from .upload_channel_model import UploadChannel, UploadChannelConfig, UploadChannelConfigs
 from .upload_channel_entity import UploadChannel as UploadChannelEntity, \
     UploadChannelDeviceMap as UploadChannelDeviceMapEntity
+from ..devices.devices_filter import ListDeviceFilter
 
 from ..devices.devices_model import DeviceUploadChannelMap
 from ..devices.devices_service import DevicesService
@@ -83,7 +84,7 @@ class UploadChannelService:
         type_protocols = await (ProjectSetupService()
                                 .get_config_information_by_type(session,
                                                                 ConfigInformationType.TYPE_UPLOAD_PROTOCOL))
-        devices = await DevicesService().get_devices(session)
+        devices = await DevicesService().get_devices(ListDeviceFilter(), session)
 
         configs = UploadChannelConfigs(type_protocols=[type_protocol.__dict__
                                                        for type_protocol in type_protocols],

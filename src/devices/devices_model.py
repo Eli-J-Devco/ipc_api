@@ -9,6 +9,8 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from ..template.template_model import TemplateBase
+
 
 class DeviceType(BaseModel):
     id: Optional[int] = None
@@ -77,6 +79,7 @@ class DeviceFull(BaseModel):
     status: Optional[bool] = True
     driver_type: Optional[str] = None
     device_type: Optional[DeviceType] = None
+    children: Optional[bool] = False
 
 
 class Devices(BaseModel):
@@ -91,7 +94,6 @@ class DeviceUploadChannelMap(BaseModel):
 
     class Config:
         orm_mode = True
-
 
 
 class DeviceGroup(BaseModel):
@@ -130,3 +132,14 @@ class DeviceComponent(DeviceComponentBase):
 class DeviceComponentList(BaseModel):
     device_type: DeviceType
     component: list[DeviceComponent]
+
+
+class Component(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    device_type: Optional[DeviceType] = None
+    device_group: Optional[DeviceGroup] = None
+    template_library: Optional[TemplateBase] = None
+
+    class Config:
+        orm_mode = True

@@ -5,6 +5,7 @@
 # *********************************************************/
 import json
 import logging
+import types
 from typing import Callable, Tuple, Any, Dict, Coroutine
 
 from fastapi.responses import JSONResponse
@@ -38,7 +39,7 @@ class ServiceWrapper:
                 if isinstance(result, HTTPException):
                     raise result
 
-                if isinstance(result, (JSONResponse, list, dict)):
+                if isinstance(result, (JSONResponse, list, dict, tuple)):
                     return result
 
                 if isinstance(result, str):
@@ -46,6 +47,9 @@ class ServiceWrapper:
 
                 if isinstance(result, BaseModel):
                     return JSONResponse(status_code=status.HTTP_200_OK, content=result.dict(exclude_unset=True))
+
+                if not result:
+                    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
 
                 return result.__dict__
             except HTTPException as e:

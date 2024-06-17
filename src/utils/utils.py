@@ -9,7 +9,7 @@ import secrets
 import string
 from re import match
 
-from .PaginationModel import PaginationResponse
+from .pagination_model import PaginationResponse
 
 
 def get_timedelta(value, unit) -> datetime.timedelta:

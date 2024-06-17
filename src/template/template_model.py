@@ -21,6 +21,9 @@ class TemplateBase(BaseModel):
     status: Optional[bool] = True
     type: Optional[int] = 1
 
+    class Config:
+        orm_mode = True
+
 
 class GetTemplate(TemplateBase):
     device_group: Optional[str] = None

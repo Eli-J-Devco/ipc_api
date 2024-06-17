@@ -17,7 +17,7 @@ from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 
 from ..config import config
-from ..utils.PaginationModel import Pagination
+from ..utils.pagination_model import Pagination
 from ..utils.service_wrapper import ServiceWrapper
 
 
