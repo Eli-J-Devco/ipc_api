@@ -1825,6 +1825,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic3 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_AUTO
     
     result_topic1_Temp = []
+    print("topic",topic)
+    print("message",message)
+    print("topic1",topic1)
+    print("topic2",topic2)
+    print("topic3",topic3)
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
@@ -1850,17 +1855,14 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, username, password):
     topics = [topic1, topic2, topic3]
-    
     while True:
         try:
             client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
             if not client:
                 return -1
-            
             await client.start()
             for topic in topics:
                 await client.subscribe(serial_number_project + topic)
-            
             while True:
                 try:
                     message = await asyncio.wait_for(client.messages.get(), timeout=10.0)  # Tăng thời gian chờ phản hồi lên 10 giây
