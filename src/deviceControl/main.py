@@ -1426,6 +1426,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
+            print("result_topic5",result_topic5)
         elif topic == topic6:
             result_topic6 = message
             await insert_information_project_setup_when_request(result_topic6,serial_number_project, host, port, username, password)
