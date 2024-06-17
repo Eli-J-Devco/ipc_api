@@ -1773,8 +1773,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             reactive_limit_percent_enable = param["value"]
                         elif param["id_pointkey"] == "VarMax":
                             reactive_power_limit = param["value"]
-                        elif param["id_pointkey"] == "VarMaxPercent":
-                            reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
+                        # elif param["id_pointkey"] == "VarMaxPercent":
+                        #     reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
 
                     if power_limit_percent_enable:
                         item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
@@ -1796,9 +1796,16 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         else:
                             pass
 
-                    if control_inv == False:
-                        item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
-                        control_inv = True
+                else:
+                    if "parameter" in item and item["id_device"] == id_systemp:
+                        for param in item["parameter"]:
+                            if param["id_pointkey"] == "ControlINV":
+                                control_inv = param["value"]
+                        if not control_inv:
+                            if "parameter" not in item:
+                                item["parameter"] = []
+                            item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
+                            control_inv = True
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
