@@ -38,8 +38,8 @@ value_power_limit = 0
 value_offset_power_limit = 0 
 
 # Performance Systemp 
-UnderPerformance = 70
-AcceptablePerformance = 100
+low_performance = 0
+high_performance = 0
 
 consumption_queue = collections.deque(maxlen=10)
 max_rate_of_change = 10  # Maximum allowed change per second
@@ -510,7 +510,8 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
                                             port,
                                             topicpud,
                                             username,
-                                            password)                       
+                                            password)     
+            await process_getfirst_zeroexport_powerlimit()
         else:
             pass
     except Exception as err:
@@ -577,7 +578,7 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 */ 
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
-    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,UnderPerformance , AcceptablePerformance 
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance 
     
     # Local variable
     device_list = []
@@ -644,12 +645,15 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-    if system_performance < UnderPerformance:
+    if system_performance < low_performance:
         Note = "System performance is below expectations."
-    elif UnderPerformance <= system_performance < AcceptablePerformance:
+    elif low_performance <= system_performance < high_performance:
         Note = "System performance is meeting"
     else:
         Note = "System performance is exceeding established thresholds."
+        
+    print("low_performance",low_performance)
+    print("high_performance",high_performance)
     result = {
         "devices": device_list,
         "total_max_power": total_power,
@@ -1217,46 +1221,46 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
 # 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
 # 	 * @return MySQL_Update enable_zero_export ,enable_power_limit
 # 	 */ 
-async def process_update_alarm_setting(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
-    # Global variables
-    global UnderPerformance , AcceptablePerformance ,MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
-    # Local variables
-    topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
-    current_time = get_utc()
-    comment = 0
-    confirm_mode_detail = 0
-    # Receve data from mqtt
-    try:
-        # Receive data from MQTT
-        if mqtt_result and 'alarm_type' in mqtt_result:
-            alarm_type = mqtt_result['alarm_type']
-            if alarm_type == 'performance':
-                performance_thresholds = mqtt_result['performance_thresholds']
-                UnderPerformance = performance_thresholds['underperformance']
-                AcceptablePerformance = performance_thresholds['acceptable_performance']
-            # write mode detail in database
-            # confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
-            confirm_mode_detail = 1
-            # When you receive one of the above information, give feedback to mqtt
-            if confirm_mode_detail == None :
-                comment = 400 
-            else:
-                comment = 200 
-            data_send = {
-                        "time_stamp" :current_time,
-                        "status":comment, 
-                        }
-            push_data_to_mqtt(mqtt_host,
-                    mqtt_port,
-                    topicPudModeDetail ,
-                    mqtt_username,
-                    mqtt_password,
-                    data_send)
-        else:
-            pass
+# async def process_update_alarm_setting(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+#     # Global variables
+#     global low_performance , high_performance ,MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
+#     # Local variables
+#     topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
+#     current_time = get_utc()
+#     comment = 0
+#     confirm_mode_detail = 0
+#     # Receve data from mqtt
+#     try:
+#         # Receive data from MQTT
+#         if mqtt_result and 'alarm_type' in mqtt_result:
+#             alarm_type = mqtt_result['alarm_type']
+#             if alarm_type == 'performance':
+#                 performance_thresholds = mqtt_result['performance_thresholds']
+#                 low_performance = performance_thresholds['underperformance']
+#                 high_performance = performance_thresholds['acceptable_performance']
+#             # write mode detail in database
+#             # confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+#             confirm_mode_detail = 1
+#             # When you receive one of the above information, give feedback to mqtt
+#             if confirm_mode_detail == None :
+#                 comment = 400 
+#             else:
+#                 comment = 200 
+#             data_send = {
+#                         "time_stamp" :current_time,
+#                         "status":comment, 
+#                         }
+#             push_data_to_mqtt(mqtt_host,
+#                     mqtt_port,
+#                     topicPudModeDetail ,
+#                     mqtt_username,
+#                     mqtt_password,
+#                     data_send)
+#         else:
+#             pass
             
-    except Exception as err:
-        print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
+#     except Exception as err:
+#         print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
@@ -1266,7 +1270,7 @@ async def process_update_alarm_setting(mqtt_result,serial_number_project, mqtt_h
 # 	 */ 
 async def process_getfirst_zeroexport_powerlimit():
     # Global variables
-    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit,value_threshold_zero_export,Kp,Ki,Kd,dt
+    global control_mode_detail,value_offset_zero_export,value_power_limit,value_offset_power_limit,value_threshold_zero_export,Kp,Ki,Kd,dt,low_performance,high_performance
     # Local variables
     value_power_limit_temp = 0
     result_project_setup = []
@@ -1284,6 +1288,8 @@ async def process_getfirst_zeroexport_powerlimit():
             Ki = result_project_setup[0]["ki_zero_export"]
             Kd = result_project_setup[0]["kd_zero_export"]
             dt = result_project_setup[0]["delta_time_zero_export"]
+            low_performance = result_project_setup[0]["low_performance"]
+            high_performance = result_project_setup[0]["high_performance"]
         else:
             pass
             
@@ -1378,10 +1384,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
         # elif topic == topic8:
         #     result_topic8 = message
         #     print("result_topic8",result_topic8)
-        elif topic == topic9:
-            result_topic9 = message
-            await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
-            print("result_topic9",result_topic9)
+        # elif topic == topic9:
+        #     result_topic9 = message
+        #     await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
+        #     print("result_topic9",result_topic9)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
