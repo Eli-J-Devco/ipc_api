@@ -131,6 +131,7 @@ sudo apt install ufw
 sudo ufw status
 <!-- Open Port 1883 and start firewall -->
 sudo ufw allow 1883 
+sudo ufw deny 1883
 sudo ufw enable
 <!-- Verify Mosquitto is not already running -->
 pgrep mosquitto
@@ -193,6 +194,9 @@ remote_clientid level03-line01-broker
 #remote_username nextwave
 topic # both
 try_private true
+<!-- MQTT Test -->
+mosquitto_sub -h localhost -u nextwave -P 123654789 -t test/1 
+mosquitto_pub -h localhost -u nextwave -P 123654789 -t test/1 -m 'Hello from localhost'
 <!--  -->
 http {
 

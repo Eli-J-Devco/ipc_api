@@ -1666,12 +1666,12 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                     username[0],
                                     password[0],
                                     data_device)
-                func_mqtt_public(   host[0],
-                                    port[0],
-                                    serial_number_project+"/"+"Shorts/"+""+device_id,
-                                    username[0],
-                                    password[0],
-                                    data_device_short)
+                # func_mqtt_public(   host[0],
+                #                     port[0],
+                #                     serial_number_project+"/"+"Shorts/"+""+device_id,
+                #                     username[0],
+                #                     password[0],
+                #                     data_device_short)
             await asyncio.sleep(1)
         
     except Exception as err:
