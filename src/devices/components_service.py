@@ -1,18 +1,23 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
 import logging
+from typing import Sequence
 
+from fastapi import HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
-from fastapi import HTTPException, status
-from sqlalchemy import select, text, Sequence, update, or_
+from sqlalchemy import select, text, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.encoders import jsonable_encoder
 
+from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, DeviceGroup
-from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
 from .devices_utils_service import UtilsService
 from ..template.template_entity import Template
-from ..template.template_model import TemplateBase
 
 
 @Injectable
@@ -24,7 +29,16 @@ class ComponentsService:
     async def add_components_parent(self,
                                     parent: int,
                                     components: list[DeviceComponentFilter],
-                                    session: AsyncSession):
+                                    session: AsyncSession) -> Sequence[SymbolicDevice]:
+        """
+        Add parent to components
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param parent:
+        :param components:
+        :param session:
+        :return: Sequence[SymbolicDevice]
+        """
         symbolic_devices = []
         query = update(DevicesEntity).where(DevicesEntity.parent == parent).values(parent=None)
         await session.execute(query)
@@ -58,6 +72,14 @@ class ComponentsService:
     async def get_device_components_by_main_type(self,
                                                  device_type: GetDeviceComponentFilter,
                                                  session: AsyncSession) -> Sequence[DeviceComponent]:
+        """
+        Get device components by main type
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param device_type:
+        :param session:
+        :return: Sequence[DeviceComponent]
+        """
         query = (select(DeviceComponentEntity)
                  .where(DeviceComponentEntity.main_type == device_type.main_type)
                  .where(
@@ -77,7 +99,14 @@ class ComponentsService:
 
     @async_db_request_handler
     async def get_all_device_type_components(self,
-                                             session: AsyncSession):
+                                             session: AsyncSession) -> Sequence[DeviceComponentList]:
+        """
+        Get all device type components
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param session:
+        :return: Sequence[DeviceComponentList]
+        """
         device_types = await self.utils_service.get_device_type(session)
 
         output = []
@@ -100,6 +129,16 @@ class ComponentsService:
                                    sub_type: int,
                                    components: list[DeviceComponentFilter],
                                    session: AsyncSession) -> bool:
+        """
+        Component validation
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param parent:
+        :param sub_type:
+        :param components:
+        :param session:
+        :return: bool
+        """
         query = (select(DeviceComponentEntity)
                  .where(DeviceComponentEntity.main_type == parent)
                  .where(or_(DeviceComponentEntity.sub_type == sub_type, DeviceComponentEntity.sub_type.is_(None))))
@@ -116,7 +155,15 @@ class ComponentsService:
         return True
 
     @async_db_request_handler
-    async def get_all_device_components(self, device_id: int, session: AsyncSession):
+    async def get_all_device_components(self, device_id: int, session: AsyncSession) -> list[int]:
+        """
+        Get all device components
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param device_id:
+        :param session:
+        :return: list[int]
+        """
         query = select(DevicesEntity).where(DevicesEntity.parent == device_id)
         result = await session.execute(query)
         components = result.scalars().all()
@@ -133,7 +180,15 @@ class ComponentsService:
     @async_db_request_handler
     async def get_device_components(self,
                                     device_id: int,
-                                    session: AsyncSession):
+                                    session: AsyncSession) -> list[Component]:
+        """
+        Get device components
+        :author: nhan.tran
+        :date: 17-06-2024
+        :param device_id:
+        :param session:
+        :return: list[Component]
+        """
         query = select(DevicesEntity).where(DevicesEntity.parent == device_id)
         result = await session.execute(query)
         components = result.scalars().all()

@@ -425,8 +425,19 @@ class DevicesService:
                 "id": body.id,
             }
         }
+
+        update_project_mode = MessageModel(
+                metadata=MetaData(retry=3),
+                topic=Topic(target=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
+                            failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
+                message={"type": Action.SET_PROJECT_MODE.value,
+                         "code": None,
+                         "devices": []}
+            )
         self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                          json.dumps(update_msg).encode("ascii"))
+        self.sender.send(f"{serial_number}/{Action.DELETE.value}",
+                         base64.b64encode(json.dumps(update_project_mode.dict()).encode("ascii")))
         await self.sender.stop()
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
