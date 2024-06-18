@@ -161,7 +161,8 @@ def point_object(Config,
                  control_enabled=1,# show/hide = 1/0, get from Device
                  panel_height=None,
                  panel_width=None,
-                 output_values=None
+                 output_values=None,
+                 slope=None
                  ):
     # 
     # modify_value=None
@@ -204,7 +205,8 @@ def point_object(Config,
             "control_enabled":control_enabled,
             "panel_height":panel_height,
             "panel_width":panel_width,
-            "output_values":output_values
+            "output_values":output_values,
+            "slope":slope
             }
 # Describe functions before writing code
 # /**
@@ -570,6 +572,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                             panel_height=point_list_item['panel_height'],
                                                             panel_width=point_list_item['panel_width'],
                                                             output_values=point_list_item['output_values'],
+                                                            slope=point_list_item['slope'],
                                                             )
                 else:
                     if point_value != None:
@@ -602,6 +605,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                                 panel_height=point_list_item['panel_height'],
                                                 panel_width=point_list_item['panel_width'],
                                                 output_values=point_list_item['output_values'],
+                                                slope=point_list_item['slope'],
                                                 )
                 return point_list
             case "Internal":
@@ -627,6 +631,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         panel_height=point_list_item['panel_height'],
                                         panel_width=point_list_item['panel_width'],
                                         output_values=point_list_item['output_values'],
+                                        slope=point_list_item['slope'],
                                         )
                 return point_list
             case "Equation":
@@ -652,6 +657,7 @@ def convert_register_to_point_list(point_list_item,data_of_register):
                                         panel_height=point_list_item['panel_height'],
                                         panel_width=point_list_item['panel_width'],
                                         output_values=point_list_item['output_values'],
+                                        slope=point_list_item['slope'],
                                         )
                 return point_list
         
@@ -1298,6 +1304,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 panel_height=item['panel_height'],
                                                 panel_width=item['panel_width'],
                                                 output_values=item['output_values'],
+                                                slope=item['slope'],
                                                 ))
                     else:
                         
@@ -1327,6 +1334,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 panel_height=item['panel_height'],
                                                 panel_width=item['panel_width'],
                                                 output_values=item['output_values'],
+                                                slope=item['slope'],
                                                 )
                             )
                         
