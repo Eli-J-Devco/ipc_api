@@ -915,7 +915,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
             
             if value_power_limit :
-                system_performance = (value_production/value_power_limit)*100
+                system_performance = round((value_production / value_power_limit) * 100, 1)
             
         if len(devices) == len(device_list_control_power_limit) :
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
