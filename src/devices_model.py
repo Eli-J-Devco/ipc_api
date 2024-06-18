@@ -27,6 +27,7 @@ class Action(enum.Enum):
     UPDATE = "InitDevices/update"
     DELETE = "InitDevices/delete"
     DEAD_LETTER = "InitDevices/dead-letter"
+    SET_PROJECT_MODE = "InitDevices/set-project-mode"
 
 
 class Point(BaseModel):

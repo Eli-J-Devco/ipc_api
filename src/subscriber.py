@@ -9,14 +9,14 @@ import uuid
 from mqtt_service.model import MessageModel, Topic
 from mqtt_service.mqtt import Subscriber, Publisher
 from mqttools import SessionResumeError
-from sqlalchemy import Double, select
+from sqlalchemy import Double, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .async_db.src.async_db.config import OrmProvider
 from .config import orm_provider as db_config, config
 from .create_table_module.create_table_service import CreateTableService, TableColumn
 from .delete_table_module.delete_table_service import DeleteTableService
-from .devices_entity import ProjectSetup
+from .devices_entity import ProjectSetup, Devices
 from .devices_model import Action, DeviceModel, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
 from .pm2_service.pm2_service import PM2Service
@@ -127,6 +127,11 @@ class MQTTSubscriber(Subscriber):
         retry = data.metadata.retry
         meta_code = data.metadata.code
 
+        if action_type == Action.SET_PROJECT_MODE.value:
+            await self.set_project_mode()
+            await self.session.commit()
+            return
+
         try:
             all_devices = await self.create_table_service.get_devices(self.session)
             devices_info = []
@@ -159,6 +164,7 @@ class MQTTSubscriber(Subscriber):
                            for device in devices_info if
                            result[device.id] == 200]
 
+            await self.set_project_mode()
             if len(send_device) > 0:
                 if action_type != Action.UPDATE.value:
                     pm2_msg = PM2MessageModel(CODE=code,
@@ -273,36 +279,49 @@ class MQTTSubscriber(Subscriber):
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
 
+    async def set_project_mode(self):
+        logger.info("Setting project mode")
+        query = select(Devices).where(Devices.inverter_type.is_not(None))
+        devices = await self.session.execute(query)
+        devices = devices.scalars().all()
 
-async def reconector(subscriber: MQTTSubscriber):
-    while True:
-        try:
-            await subscriber.connect_broker()
-            await subscriber.get_message()
-            await subscriber.disconnect_broker()
-        except KeyboardInterrupt:
-            await subscriber.session.close()
-            await subscriber.retry_publisher.disconnect()
-            await subscriber.dead_letter_publisher.disconnect()
-            break
+        query = select(ProjectSetup)
+        project = await self.session.execute(query)
+        project = project.scalars().first()
+        logger.info(f"Current project mode: {project.mode}")
+
+        is_auto = False
+        is_manual = False
+        for device in devices:
+            if is_manual and is_auto:
+                break
+
+            if not is_manual and device.mode == 0:
+                is_manual = True
+                continue
+
+            if not is_auto and device.mode == 1:
+                is_auto = True
+                continue
+
+        mode = 2
+        if is_manual and is_auto:
+            mode = 2
+        elif is_manual:
+            mode = 0
+        elif is_auto:
+            mode = 1
+        logger.info(f"Setting project mode to {mode}")
+
+        if mode != project.mode:
+            query = update(ProjectSetup).where(ProjectSetup.id == project.id).values(mode=mode)
+            await self.session.execute(query)
+        logger.info("Project mode set")
 
 
-async def get_serial_number():
+async def reconector():
+    serial_number = await get_serial_number()
     session = await db_config.get_db()
-    serial_number = await session.execute(select(ProjectSetup))
-    await session.close()
-    return serial_number.scalars().first().serial_number
-
-
-def run_subscriber():
-    serial_number = asyncio.run(get_serial_number())
-
-    try:
-        event_loop = asyncio.get_event_loop()
-    except RuntimeError:
-        event_loop = asyncio.new_event_loop()
-
-    session = event_loop.run_until_complete(db_config.get_db())
     re_publisher = Publisher(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
@@ -339,6 +358,25 @@ def run_subscriber():
         password=config.MQTT_PASSWORD.encode("utf-8"),
         serial_number=serial_number
     )
+    while True:
+        try:
+            await subscriber.connect_broker()
+            await subscriber.get_message()
+            await subscriber.disconnect_broker()
+        except KeyboardInterrupt:
+            await subscriber.session.close()
+            await subscriber.retry_publisher.disconnect()
+            await subscriber.dead_letter_publisher.disconnect()
+            asyncio.get_running_loop().close()
+            break
 
-    event_loop.create_task(reconector(subscriber))
-    event_loop.run_forever()
+
+async def get_serial_number():
+    session = await db_config.get_db()
+    serial_number = await session.execute(select(ProjectSetup))
+    await session.close()
+    return serial_number.scalars().first().serial_number
+
+
+def run_subscriber():
+    asyncio.run(reconector())

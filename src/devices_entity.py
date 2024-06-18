@@ -9,6 +9,7 @@ class ProjectSetup(config.Base):
 
     id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
     serial_number: Mapped[str] = mapped_column(String(255), nullable=True)
+    mode: Mapped[int] = mapped_column(INTEGER, nullable=True)
 
 
 class ConfigInformation(config.Base):
@@ -75,6 +76,8 @@ class Devices(config.Base):
                                                                     ondelete="CASCADE",
                                                                     onupdate="CASCADE"),
                                                 nullable=True)
+    mode: Mapped[int] = mapped_column(INTEGER, nullable=True)
+    inverter_type: Mapped[int] = mapped_column(INTEGER, nullable=True)
 
     communication = relationship("Communication", backref="device_list",
                                  foreign_keys=[id_communication], lazy="immediate")
