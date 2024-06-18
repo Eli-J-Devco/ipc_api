@@ -36,17 +36,12 @@ value_threshold_zero_export = 0
 value_offset_zero_export = 0
 value_power_limit = 0
 value_offset_power_limit = 0 
-# PID controller parameters
-Kp = 0
-Ki = 0
-Kd = 0
-dt = 0
-# Khởi tạo biến toàn cục
-integral = 0
-previous_error = 0
-# so lan tin trung binh dong
+
+# Performance Systemp 
+UnderPerformance = 70
+AcceptablePerformance = 100
+
 consumption_queue = collections.deque(maxlen=10)
-# gioi hanj gia tri tang moi lan dao dong chi 10 
 max_rate_of_change = 10  # Maximum allowed change per second
 
 value_production = 0
@@ -119,6 +114,9 @@ MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
 MQTT_TOPIC_SUD_PID = "/Control/Parameter/PID"
 MQTT_TOPIC_PUD_PID_FEEDBACK = "/Control/Parameter/PID/Feedback"
+
+MQTT_TOPIC_SUD_SETTING_ARLAM = "/Control/Alarm/Setting"
+MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK = "/Control/Alarm/Feedback"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -598,7 +596,8 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 */ 
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
-    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,UnderPerformance , AcceptablePerformance 
+    
     # Local variable
     device_list = []
     operator_array = []
@@ -663,15 +662,16 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-    if system_performance < 85:
-        Note = f"The system is operating at only", system_performance, "% of the required capacity."
-    elif 85 <= system_performance < 100:
-        Note = f"The system is operating at", system_performance, "% of the required capacity, which is good."
+    if system_performance < UnderPerformance:
+        Note = "System performance is below expectations."
+    elif UnderPerformance <= system_performance < AcceptablePerformance:
+        Note = "System performance is meeting"
     else:
-        Note = f"Warning: The system is operating at", system_performance, "%, which exceeds the required capacity."
+        Note = "System performance is exceeding established thresholds."
     result = {
         "devices": device_list,
         "total_max_power": total_power,
+        "system_performance" :system_performance,
         "Note":Note
     }
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
@@ -932,95 +932,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
-# Describe simple_pid 
-# 	 * @description simple_pid
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {Kp, Ki, Kd, setpoint, feedback, previous_error, integral, dt}
-# 	 * @return output, error, integral
-# 	 */ 
-async def process_caculator_parameter_pid(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
-    # Global variables
-    global Kp, Ki, Kd,dt
-    # Local variables
-    result_parameter_PID = []
-    topicPudParaPID = serial_number_project + MQTT_TOPIC_PUD_PID_FEEDBACK
-    current_time = get_utc()
-    comment = 0
-    # Receve data from mqtt
-    try:
-        if mqtt_result and 'parameterPID' in mqtt_result :
-            Kp = mqtt_result['parameterPID']["Kp"]
-            Ki = mqtt_result['parameterPID']["Ki"]
-            Kd = mqtt_result['parameterPID']["Kd"]
-            dt = mqtt_result['parameterPID']["dt"]
-            
-            result_parameter_PID = MySQL_Update_V1("update project_setup set kp_zero_export = %s ,ki_zero_export = %s ,kd_zero_export = %s,delta_time_zero_export = %s ", (Kp,Ki,Kd,dt))
-            
-            # When you receive one of the above information, give feedback to mqtt
-            if result_parameter_PID == None :
-                comment = 400 
-            else:
-                comment = 200 
-                    
-            data_send = {
-                        "time_stamp" :current_time,
-                        "status":comment,
-                        "confirm Kp":Kp, 
-                        "confirm Ki":Ki, 
-                        "confirm Kd":Kd, 
-                        "confirm dt":dt, 
-                        }
-            push_data_to_mqtt(mqtt_host,
-                    mqtt_port,
-                    topicPudParaPID ,
-                    mqtt_username,
-                    mqtt_password,
-                    data_send)
-        else:
-            pass
-        
-    except Exception as err:
-        print(f"Error MQTT subscribe process_caculator_parameter_pid: '{err}'")
-def pid_controller(setpoint, feedback, Kp, Ki, Kd, dt):
-    """
-    Implements a basic PID controller.
-    
-    Args:
-        setpoint (float): The desired value or target.
-        feedback (float): The measured or current value.
-        Kp (float): The proportional gain.
-        Ki (float): The integral gain.
-        Kd (float): The derivative gain.
-        dt (float): The time step or sample time.
-    
-    Returns:
-        float: The control output.
-    """
-    output = 0
-    # Calculate the error
-    error = setpoint - feedback
-    # Proportional term
-    p_term = Kp * error
-    # Integral term
-    global integral
-    integral += error * dt
-    i_term = Ki * integral
-    # Derivative term
-    global previous_error
-    derivative = (error - previous_error) / dt
-    d_term = Kd * derivative
-    previous_error = error
-    # Calculate the total control output
-    output = p_term + i_term + d_term
-    # If setpoint = feedback, maintain output
-    if abs(error) < 0.001:
-        output = output
-    else:
-        output = max(0, output)
-        output = min(output, setpoint)
-        print("output1: ", output)
-    return output
+
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -1334,6 +1246,53 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
             
     except Exception as err:
         print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
+# Describe process_update_mode_detail 
+# 	 * @description process_update_mode_detail
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
+# 	 * @return MySQL_Update enable_zero_export ,enable_power_limit
+# 	 */ 
+async def process_update_alarm_setting(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+    # Global variables
+    global UnderPerformance , AcceptablePerformance ,MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
+    # Local variables
+    topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
+    current_time = get_utc()
+    comment = 0
+    confirm_mode_detail = 0
+    # Receve data from mqtt
+    try:
+        # Receive data from MQTT
+        if mqtt_result and 'alarm_type' in mqtt_result:
+            alarm_type = mqtt_result['alarm_type']
+            if alarm_type == 'performance':
+                performance_thresholds = mqtt_result['performance_thresholds']
+                UnderPerformance = performance_thresholds['underperformance']
+                AcceptablePerformance = performance_thresholds['acceptable_performance']
+            # write mode detail in database
+            # confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
+            confirm_mode_detail = 1
+            # When you receive one of the above information, give feedback to mqtt
+            if confirm_mode_detail == None :
+                comment = 400 
+            else:
+                comment = 200 
+            data_send = {
+                        "time_stamp" :current_time,
+                        "status":comment, 
+                        }
+            push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPudModeDetail ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+        else:
+            pass
+            
+    except Exception as err:
+        print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
@@ -1403,13 +1362,16 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     global MQTT_TOPIC_SUD_PID
-                                                    
+    global MQTT_TOPIC_SUD_SETTING_ARLAM
+
     result_topic2 = ""
     result_topic3 = ""
     result_topic5 = ""
     result_topic6 = ""
     result_topic7 = ""
     result_topic8 = ""
+    result_topic9 = ""
+    
     global result_topic4
     global result_topic1
     global bitcheck1 
@@ -1421,7 +1383,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
-    topic8 = serial_number_project + MQTT_TOPIC_SUD_PID
+    # topic8 = serial_number_project + MQTT_TOPIC_SUD_PID
+    topic9 = serial_number_project + MQTT_TOPIC_SUD_SETTING_ARLAM
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1450,10 +1413,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        elif topic == topic8:
-            result_topic8 = message
-            await process_caculator_parameter_pid(result_topic8,serial_number_project, host, port, username, password)
-            print("result_topic8",result_topic8)
+        # elif topic == topic8:
+        #     result_topic8 = message
+        #     print("result_topic8",result_topic8)
+        elif topic == topic9:
+            result_topic9 = message
+            await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
+            print("result_topic9",result_topic9)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1463,8 +1429,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8, username, password):
-    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7,topic8]
+async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8,topic9, username, password):
+    topics = [topic1, topic2, topic3, topic4, topic5, topic6 ,topic7,topic8,topic9]
     
     while True:
         try:
@@ -1534,6 +1500,7 @@ async def main():
                                                         MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                         MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                         MQTT_TOPIC_SUD_PID,
+                                                        MQTT_TOPIC_SUD_SETTING_ARLAM,
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
