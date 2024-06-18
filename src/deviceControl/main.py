@@ -590,7 +590,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     wmax = 0.0
     realpower = 0.0
     current_time = get_utc()
-    Note = ''
+    message = ''
+    status = 0
     # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
@@ -646,19 +647,22 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'timestamp': current_time,
                     })
     if system_performance < low_performance:
-        Note = "System performance is below expectations."
+        message = "System performance is below expectations."
+        status = 0
     elif low_performance <= system_performance < high_performance:
-        Note = "System performance is meeting"
+        message = "System performance is meeting"
+        status = 1
     else:
-        Note = "System performance is exceeding established thresholds."
-        
-    print("low_performance",low_performance)
-    print("high_performance",high_performance)
+        message = "System performance is exceeding established thresholds."
+        status = 2
     result = {
-        "devices": device_list,
-        "total_max_power": total_power,
-        "system_performance" :system_performance,
-        "Note":Note
+    "devices": device_list,
+    "total_max_power": total_power,
+    "system_performance": {
+        "performance": system_performance,
+        "message": message,
+        "status": status
+    }
     }
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
@@ -1214,53 +1218,6 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
             
     except Exception as err:
         print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
-# Describe process_update_mode_detail 
-# 	 * @description process_update_mode_detail
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
-# 	 * @return MySQL_Update enable_zero_export ,enable_power_limit
-# 	 */ 
-# async def process_update_alarm_setting(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
-#     # Global variables
-#     global low_performance , high_performance ,MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
-#     # Local variables
-#     topicPudModeDetail = serial_number_project + MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK
-#     current_time = get_utc()
-#     comment = 0
-#     confirm_mode_detail = 0
-#     # Receve data from mqtt
-#     try:
-#         # Receive data from MQTT
-#         if mqtt_result and 'alarm_type' in mqtt_result:
-#             alarm_type = mqtt_result['alarm_type']
-#             if alarm_type == 'performance':
-#                 performance_thresholds = mqtt_result['performance_thresholds']
-#                 low_performance = performance_thresholds['underperformance']
-#                 high_performance = performance_thresholds['acceptable_performance']
-#             # write mode detail in database
-#             # confirm_mode_detail = MySQL_Update_V1("update project_setup set control_mode = %s", (control_mode_detail,))
-#             confirm_mode_detail = 1
-#             # When you receive one of the above information, give feedback to mqtt
-#             if confirm_mode_detail == None :
-#                 comment = 400 
-#             else:
-#                 comment = 200 
-#             data_send = {
-#                         "time_stamp" :current_time,
-#                         "status":comment, 
-#                         }
-#             push_data_to_mqtt(mqtt_host,
-#                     mqtt_port,
-#                     topicPudModeDetail ,
-#                     mqtt_username,
-#                     mqtt_password,
-#                     data_send)
-#         else:
-#             pass
-            
-#     except Exception as err:
-#         print(f"Error MQTT subscribe process_update_mode_detail: '{err}'")
 # Describe process_getfirst_zeroexport_powerlimit 
 # 	 * @description process_getfirst_zeroexport_powerlimit
 # 	 * @author bnguyen
