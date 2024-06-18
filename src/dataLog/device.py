@@ -397,8 +397,6 @@ async def Insert_TableDevice(sql_id):
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
         val = value_insert
-        print("query", query)
-        print("val", val)
         # Check if the SQL query exists in the dictionary
         if sql_id in sql_queries:
             # Update the SQL query
@@ -408,6 +406,7 @@ async def Insert_TableDevice(sql_id):
             # Add a new entry to the dictionary
             sql_queries[sql_id] = [query, val]
         if query and val :
+            print("sql_queries",sql_queries)
             MySQL_Insert_v3(sql_queries)
             status = "Data inserted successfully"
         else :
