@@ -1018,10 +1018,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - (value_production - value_consumption))}
                     ]
                 }
-            if value_consumption :
-                system_performance = (value_production/value_consumption)*100
-            elif value_consumption == 0 and value_production < 0 :
+            if value_consumption and value_production:
+                system_performance = (value_production / value_consumption) * 100
+            elif value_production < 0 and not value_consumption:
                 system_performance = 101
+                print("System performance", system_performance)
                 
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
