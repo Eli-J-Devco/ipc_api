@@ -45,6 +45,7 @@
         driver_list.name AS connect_type, 
         device_type.name AS device_type,
         device_type.id AS id_device_type,
+        device_type.type AS type_device_type,
         device_group.name AS device_group,
         template_library.name AS template_name,
         device_list.rated_power,
