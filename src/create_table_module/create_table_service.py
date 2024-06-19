@@ -201,22 +201,6 @@ class CreateTableService:
 
     @staticmethod
     @async_db_request_handler
-    async def delete_table(table_name: str, session: AsyncSession):
-        try:
-            query = f"DROP TABLE IF EXISTS {table_name}"
-            await session.execute(text(query))
-            await session.commit()
-            logging.info(f"Table {table_name} deleted")
-        except Exception as e:
-            logging.error(f"Error when deleting table {table_name}: {e}")
-            await session.rollback()
-            raise e
-        finally:
-            logger.info("Closing session")
-            await session.close()
-
-    @staticmethod
-    @async_db_request_handler
     async def get_devices(session: AsyncSession) -> List[DeviceModel]:
         query = select(DevicesEntity)
         result = await session.execute(query)
@@ -244,6 +228,10 @@ class CreateTableService:
 
         mppt_points = [Point(**point.__dict__) for point in points
                        if point.id_config_information != PointType.POINT.value]
+        control_group_points = [Point(**point.__dict__) for point in points
+                                if point.id_config_information == PointType.POINT.value
+                                and point.id_control_group is not None]
         normal_points = [Point(**point.__dict__) for point in points
-                         if point.id_config_information == PointType.POINT.value]
-        return normal_points + mppt_points
+                         if point.id_config_information == PointType.POINT.value
+                         and point.id_control_group is None]
+        return normal_points + mppt_points + control_group_points

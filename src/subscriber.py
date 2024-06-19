@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import logging
 import os
 import pathlib
 import time
@@ -20,11 +21,10 @@ from .devices_entity import ProjectSetup, Devices
 from .devices_model import Action, DeviceModel, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
 from .pm2_service.pm2_service import PM2Service
-from .logger.logger import setup_logging
 from .update_table_module.update_table_service import UpdateTableService
 
-logger = setup_logging(file_name="subscriber",
-                       log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "log"))
+
+logger = logging.getLogger(__name__)
 
 
 class MQTTSubscriber(Subscriber):

@@ -33,6 +33,7 @@ class PointList(config.Base):
                                                                            ondelete="CASCADE",
                                                                            onupdate="CASCADE"),
                                                        nullable=True)
+    id_control_group: Mapped[int] = mapped_column(INTEGER, nullable=True)
     status: Mapped[int] = mapped_column(INTEGER, nullable=True)
 
 

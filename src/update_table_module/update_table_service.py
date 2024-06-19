@@ -1,19 +1,17 @@
 import logging
-from typing import List
 
-from sqlalchemy import MetaData, select, text, delete
+from sqlalchemy import MetaData, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .update_table_model import Point
+from .update_table_model import UpdatePoint
 from ..async_db.src.async_db.wrapper import async_db_request_handler
 from ..create_table_module.create_table_model import CreateTableModel
-from ..devices_entity import (Devices as DevicesEntity,
-                              PointList as PointListEntity,
+from ..devices_entity import (PointList as PointListEntity,
                               DeviceMppt as DeviceMpptEntity,
                               DeviceMpptString as DeviceMpptStringEntity, DevicePanel, )
 from ..devices_model import (DeviceModel,
                              PointType,
-                             DeviceMppt, PointMPPT, PointString)
+                             PointMPPT, PointString)
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +20,43 @@ class UpdateTableService:
     def __init__(self,
                  metadata: MetaData):
         self.metadata = metadata
+
+    @async_db_request_handler
+    async def get_adding_position(self,
+                                  device: DeviceModel,
+                                  new_points: list[UpdatePoint],
+                                  default_points: list[str],
+                                  points: list[str],
+                                  session: AsyncSession):
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.id_config_information == PointType.POINT.value)
+                 .where(PointListEntity.id_control_group.is_(None))
+                 .where(PointListEntity.id_pointkey.notin_([point.id_pointkey for point in new_points]))
+                 .order_by(PointListEntity.id.desc()))
+        result = await session.execute(query)
+        last_point = result.scalars().first()
+        last_point = last_point.id_pointkey if last_point else default_points[-1]
+
+        query = (select(PointListEntity)
+                 .where(PointListEntity.id_template == device.id_template)
+                 .where(PointListEntity.id_config_information == PointType.POINT.value)
+                 .where(PointListEntity.id_control_group.is_not(None))
+                 .where(PointListEntity.id_pointkey.notin_([point.id_pointkey for point in new_points]))
+                 .order_by(PointListEntity.id.asc()))
+
+        result = await session.execute(query)
+        first_group_point = result.scalars().first()
+        first_group_point = first_group_point.id_pointkey if first_group_point else None
+        logger.info(f"First group point: {first_group_point}")
+        try:
+            logger.info(f"Device points: {points}")
+            first_group_point = points.index(first_group_point) if first_group_point else -1
+        except ValueError:
+            first_group_point = -1
+        last_mppt_point = points[first_group_point - 1] if first_group_point - 1 >= 0 else None
+
+        return last_point, last_mppt_point
 
     @async_db_request_handler
     async def update_table(self, device: DeviceModel, session: AsyncSession):
@@ -37,16 +72,31 @@ class UpdateTableService:
         delete_points = [point for point in points if point not in device_points]
 
         if new_points:
+            last_point, last_mppt_point = await self.get_adding_position(device, new_points,
+                                                                         default_points, points, session)
+
             for point in new_points:
+                logger.info(f"Last point: {last_point}")
+                after_point = "AFTER " + last_point if last_point else ""
                 query = (f"ALTER TABLE {device.table_name} "
-                         f"ADD COLUMN {point.id_pointkey} FLOAT AFTER {default_points[-1]};"
-                         if point.id_config_information == PointType.POINT.value
-                         else f"ALTER TABLE {device.table_name} "
-                              f"ADD COLUMN {point.id_pointkey} FLOAT;")
+                         f"ADD COLUMN {point.id_pointkey} FLOAT {after_point};")
+                last_point = point.id_pointkey
+
+                if point.id_config_information == PointType.MPPT.value:
+                    logger.info(f"Last mppt point: {last_mppt_point}")
+                    after_mppt_point = "AFTER " + last_mppt_point if last_mppt_point else ""
+                    query = (f"ALTER TABLE {device.table_name} "
+                             f"ADD COLUMN {point.id_pointkey} FLOAT {after_mppt_point};")
+                    last_mppt_point = point.id_pointkey
+                elif point.id_control_group:
+                    query = (f"ALTER TABLE {device.table_name} "
+                             f"ADD COLUMN {point.id_pointkey} FLOAT;")
+
                 query = query + (f"INSERT INTO device_point_list_map (id_device_list, id_point_list, name) "
                                  f"VALUES ({device.id}, {point.id}, '{point.name}');")
 
                 await session.execute(text(query))
+                await session.flush()
                 logging.info(f"Added new point {point} to {device.table_name}")
 
         if delete_points:
@@ -68,7 +118,7 @@ class UpdateTableService:
                         new_string = PointString(**string.dict())
                         for panel in device.points:
                             if panel.id_config_information == PointType.PANEL.value and panel.parent == string.id:
-                                new_string.children.append(Point(**panel.dict()))
+                                new_string.children.append(UpdatePoint(**panel.dict()))
                         mppt.children.append(new_string)
                 mppt_points.append(mppt)
 

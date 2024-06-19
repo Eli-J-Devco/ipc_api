@@ -36,6 +36,7 @@ class Point(BaseModel):
     id_pointkey: str
     name: str
     id_config_information: int
+    id_control_group: Optional[int] = None
 
 
 class PointString(Point):
