@@ -1,7 +1,5 @@
-import enum
 import typing
 
-from pydantic import BaseModel
 from sqlalchemy import TIMESTAMP, INTEGER, String
 from sqlalchemy.sql.type_api import TypeEngine
 
