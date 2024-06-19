@@ -1020,6 +1020,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 }
             if value_consumption :
                 system_performance = (value_production/value_consumption)*100
+            elif value_consumption == 0 and value_production < 0 :
+                system_performance = 101
+                
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
