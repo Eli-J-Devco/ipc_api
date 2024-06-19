@@ -27,6 +27,7 @@ class TemplateBase(BaseModel):
 
 class GetTemplate(TemplateBase):
     device_group: Optional[str] = None
+    device_type: Optional[str] = None
 
 
 class TemplateOutput(BaseModel):

@@ -73,12 +73,7 @@ class TemplateService:
             query = select(TemplateEntity).where(TemplateEntity.type == body.type)
 
         result = await session.execute(query)
-        output = []
-        for template in result.scalars().all():
-            device_group = template.device_group.__dict__.get('name', None)
-            output.append(GetTemplate(**TemplateBase(**template.__dict__).dict(), device_group=device_group))
-
-        return output
+        return result.scalars().all()
 
     @async_db_request_handler
     async def get_template_by_id(self, id_template: int,
@@ -269,7 +264,10 @@ class TemplateService:
                                  detail="Error adding point mppt")
 
         await session.commit()
-        return {"id": new_template.id}
+        return {
+            "id": new_template.id,
+            "data": await self.get_template(GetTemplateFilter(type=1), session)
+        }
 
     @async_db_request_handler
     async def delete_template(self, id_template: int,
