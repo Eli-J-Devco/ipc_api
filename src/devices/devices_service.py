@@ -19,15 +19,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .components_service import ComponentsService
 from .devices_entity import (Devices as DevicesEntity,
-                             DeviceType as DeviceTypeEntity,
-                             DeviceGroup as DeviceGroupEntity, DeviceGroup, DeviceType,
                              )
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    AddDeviceGroupFilter, DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter
+    DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter
 from .devices_model import Devices, DeviceFull, Action
 from .devices_utils_service import UtilsService
+from ..point.point_entity import Point as PointEntity
 from ..config import env_config
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
+from ..point_config.point_config_filter import PointType
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..utils.pagination_model import Pagination
 from ..utils.utils import generate_pagination_response
@@ -451,6 +451,8 @@ class DevicesService:
         :param session:
         :return: bool
         """
+        await self.set_point_alias(template_id, session)
+
         serial_number = await ProjectSetupService().get_project_serial_number(session)
         query = (select(DevicesEntity)
                  .where(DevicesEntity.id_template == template_id))
@@ -471,3 +473,46 @@ class DevicesService:
                          base64.b64encode(json.dumps(update_msg.dict()).encode("ascii")))
         await self.sender.stop()
         return True
+
+    @async_db_request_handler
+    async def set_point_alias(self, id_template: int, session: AsyncSession):
+        """
+        Set point alias
+        :author: nhan.tran
+        :date: 19-06-2024
+        :param id_template:
+        :param session:
+        :return:
+        """
+        @async_db_request_handler
+        async def update_point_alias(point: PointEntity, count: int = 0):
+            query = (update(PointEntity)
+                     .where(PointEntity.id == point.id)
+                     .values(alias=f"{count}"))
+            await session.execute(query)
+            count += 1
+            return count
+
+        query = (select(PointEntity)
+                 .where(PointEntity.id_template == id_template))
+        result = await session.execute(query)
+        points = result.scalars().all()
+        count = 0
+
+        point_types = PointType()
+        normal_points = [point for point in points
+                         if point.id_config_information == point_types.POINT and point.id_control_group is None]
+        mppt_points = [point for point in points
+                       if point.id_config_information != point_types.POINT]
+        control_points = [point for point in points
+                          if point.id_control_group is not None]
+        for point in normal_points:
+            count = await update_point_alias(point, count)
+
+        for point in mppt_points:
+            count = await update_point_alias(point, count)
+
+        for point in control_points:
+            count = await update_point_alias(point, count)
+
+        await session.commit()

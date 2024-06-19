@@ -18,6 +18,7 @@ class Point(config.Base):
     id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
                                                                         onupdate="CASCADE"), nullable=True, default=1)
     id_pointkey: Mapped[int] = mapped_column(Integer, nullable=False)
+    alias: Mapped[str] = mapped_column(String, nullable=False)
     id_template: Mapped[int] = mapped_column(Integer,
                                              ForeignKey("template_library.id", ondelete="CASCADE", onupdate="CASCADE"),
                                              nullable=False)

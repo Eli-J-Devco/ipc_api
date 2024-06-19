@@ -13,6 +13,7 @@ from ..project_setup.project_setup_model import ConfigInformationShort
 
 class PointShort(BaseModel):
     id_pointkey: Optional[str] = None
+    alias: Optional[str] = None
 
 
 class PointBase(PointShort):

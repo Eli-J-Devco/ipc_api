@@ -222,7 +222,7 @@ class PointMpptService:
                                     .dict(exclude={"id", "children", "register_value"}))
         new_point.name = f"New {point_type}"
         new_point.id_pointkey = f"{point_type}{generate_id(env_config.DEFAULT_ID_LENGTH)}"
-        new_point.parent = parent if parent > 0 else None
+        new_point.parent = parent if parent and parent > 0 else None
         new_point.register = point.register_value if point.register_value else 0
         new_point.id_template = body.id_template
 
@@ -364,7 +364,7 @@ class PointMpptService:
 
         if not string:
             string = PointString(id_config_information=PointType().MPPT_STRING,
-                                 parent=last_mppt_id if last_mppt_id > 0 else None)
+                                 parent=last_mppt_id if last_mppt_id and last_mppt_id > 0 else None)
             is_last = False
 
         body.is_clone_from_last = is_last

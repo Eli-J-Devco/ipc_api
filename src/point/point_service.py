@@ -24,6 +24,9 @@ from ..utils.utils import generate_id
 
 @Injectable
 class PointService:
+    def __init__(self):
+        self.devices_service = DevicesService()
+
     @async_db_request_handler
     async def add_point(self,
                         session: AsyncSession,
@@ -36,7 +39,6 @@ class PointService:
         :param point:
         :return: PointOutput | list[PointOutput] | bool
         """
-        device_service = DevicesService()
         if isinstance(point, AddPointListFilter):
             session.add_all([PointEntity(**p.dict(exclude={"id",
                                                            "register_value",
@@ -45,7 +47,7 @@ class PointService:
                                          id_template=point.id_template,
                                          register=p.register_value)
                              for p in point.point])
-            await device_service.update_device_points(point.id_template, session)
+            await self.devices_service.update_device_points(point.id_template, session)
             return True
 
         id_template = point.id_template
@@ -64,7 +66,7 @@ class PointService:
                                      register=last_point.register_value, )
                          for _ in range(point.num_of_points)])
         await session.commit()
-        await device_service.update_device_points(id_template, session)
+        await self.devices_service.update_device_points(id_template, session)
         return await self.get_points(id_template, session)
 
     @async_db_request_handler
@@ -250,4 +252,3 @@ class PointService:
         result = await session.execute(query)
         point = result.scalars().first()
         return PointBase(**point.__dict__) if point else None
-

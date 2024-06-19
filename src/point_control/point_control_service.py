@@ -167,7 +167,7 @@ class PointControlService:
             session.add(new_point)
 
         await session.commit()
-        await DevicesService().update_device_points(body.id_template, session)
+        await self.point_service.devices_service.update_device_points(body.id_template, session)
         return await self.get_template_detail(body.id_template, session)
 
     @async_db_request_handler
@@ -249,12 +249,14 @@ class PointControlService:
                 for id_point in body.id_points:
                     point = await self.point_service.get_point_by_id(id_point, session)
                     point.id_control_group = new_group.id
-                    points.append(Point(**PointBase(**point.dict(exclude={"id"})).dict(exclude_unset=True),
-                                  id_template=body.id_template))
+                    points.append(Point(**PointBase(**point.dict(exclude={"id"}))
+                                        .dict(exclude_unset=True, exclude={"id_control_group"}),
+                                  id_template=body.id_template, id_control_group=new_group.id,))
 
                 session.add_all(points)
 
         await session.commit()
+        await self.point_service.devices_service.update_device_points(body.id_template, session)
         return await self.get_template_detail(new_group.id_template, session)
 
     @async_db_request_handler
@@ -338,6 +340,6 @@ class PointControlService:
             await session.execute(query)
 
         await session.commit()
-        await DevicesService().update_device_points(body.id_template, session)
+        await self.point_service.devices_service.update_device_points(body.id_template, session)
         return await self.get_template_detail(body.id_template, session)
     # endregion
