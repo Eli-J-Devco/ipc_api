@@ -922,13 +922,13 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
             
-            if value_power_limit :
-                system_performance = (value_production / (value_power_limit + total_wmax_man )) * 100
-            
         if len(devices) == len(device_list_control_power_limit) :
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
+    
+    if value_power_limit or total_wmax_man:
+                system_performance = (value_production / (value_power_limit + total_wmax_man )) * 100
 
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -1026,12 +1026,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - (value_production - value_consumption))}
                     ]
                 }
-            if value_consumption and value_production:
-                system_performance = (value_production / (value_consumption + total_wmax_man )) * 100
-            elif value_production > 0 and not value_consumption:
-                system_performance = 101
-            else:
-                system_performance = 0
                 
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
@@ -1043,8 +1037,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             p_for_each_device_zero_export = 0
         else:
             pass
+    if value_consumption and value_production:
+                system_performance = (value_production / (value_consumption + total_wmax_man )) * 100
+    elif value_production > 0 and not value_consumption:
+        system_performance = 101
     else:
-        pass
+        system_performance = 0
+        
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
 # 	 * @author bnguyen
