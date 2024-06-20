@@ -977,6 +977,7 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
+                                print("mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
@@ -1864,44 +1865,29 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, username, password):
     topics = [topic1, topic2, topic3]
+    
     while True:
         try:
             client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
             if not client:
                 return -1
+            
             await client.start()
             for topic in topics:
                 await client.subscribe(serial_number_project + topic)
             while True:
-                try:
-                    message = await asyncio.wait_for(client.messages.get(), timeout=10.0)
-                    if message:
-                        payload = json.loads(message.message.decode())
-                        topic = message.topic
-                        await process_message(topic, payload, serial_number_project, host, port, username, password)
-                except asyncio.TimeoutError:
-                    continue
-                except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON payload: {e}")
-                    print(f"Topic: {topic}, Payload: {message.message.decode()}")
-                except ValueError as e:
-                    print(f"Error processing message: {e}")
-                    print(f"Topic: {topic}, Payload: {message.message.decode()}")
-        except ConnectionError as e:
-            print(f"Connection error: {e}")
-            print('Trying to reconnect...')
-            await client.stop()
-            await asyncio.sleep(5)
-        except mqttools.MQTTError as e:
-            print(f"MQTT error: {e}")
-            print('Trying to reconnect...')
-            await client.stop()
-            await asyncio.sleep(5)
+                message = await asyncio.wait_for(client.messages.get(), timeout=10)
+                if message:
+                    payload = json.loads(message.message.decode())
+                    topic = message.topic
+                    await process_message(topic, payload, serial_number_project, host, port, username, password)
+        except asyncio.TimeoutError:
+            continue
         except Exception as e:
-            print(f"Unexpected error: {e}")
-            print('Trying to reconnect...')
+            print(f"Error while processing message: {e}")
+            print('Connection lost. Trying to reconnect...')
             await client.stop()
-            await asyncio.sleep(5)
+            await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
