@@ -623,8 +623,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     wmax = wmax_array[0] if wmax_array else 0
                     
-                    if mode == 0 :
-                        total_wmax_man_temp += wmax
+                    total_wmax_man_temp += wmax
                     total_wmax_man = total_wmax_man_temp 
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
@@ -651,6 +650,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
+    
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
@@ -660,7 +660,14 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     else:
         message = "System performance is exceeding established thresholds."
         status = 2
-
+        
+    if total_wmax_man and value_production:
+                system_performance = (value_production /total_wmax_man) * 100
+    elif value_production > 0 and not total_wmax_man:
+        system_performance = 101
+    else:
+        system_performance = 0
+        
     system_performance = round(system_performance, 1)
     
     result = {
@@ -926,9 +933,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
-    
-    if value_power_limit or total_wmax_man:
-                system_performance = (value_production / (value_power_limit + total_wmax_man )) * 100
 
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -1037,12 +1041,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             p_for_each_device_zero_export = 0
         else:
             pass
-    if value_consumption and value_production:
-                system_performance = (value_production / (value_consumption + total_wmax_man )) * 100
-    elif value_production > 0 and not value_consumption:
-        system_performance = 101
-    else:
-        system_performance = 0
         
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
@@ -1307,7 +1305,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic5 = ""
     result_topic6 = ""
     result_topic7 = ""
-    result_topic9 = ""
     
     global result_topic4
     global result_topic1
