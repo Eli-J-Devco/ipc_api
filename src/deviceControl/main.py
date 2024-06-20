@@ -69,6 +69,7 @@ total_power = 0
 p_for_each_device_zero_export = 0
 p_for_each_device_power_limit = 0
 total_wmax_man = 0
+total_wmax = 0
 result_topic1 = []
 result_topic4 = []
 result_topic5 = []
@@ -592,6 +593,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     current_time = get_utc()
     message = ''
     status = 0
+    total_wmax_temp = 0
     total_wmax_man_temp = 0
     # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
@@ -623,8 +625,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     wmax = wmax_array[0] if wmax_array else 0
                     
-                    total_wmax_man_temp += wmax
-                    total_wmax_man = total_wmax_man_temp 
+                    total_wmax_temp += wmax
+                    total_wmax = total_wmax_temp 
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
@@ -661,9 +663,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         message = "System performance is exceeding established thresholds."
         status = 2
         
-    if total_wmax_man and value_production:
-                system_performance = (value_production /total_wmax_man) * 100
-    elif value_production > 0 and not total_wmax_man:
+    if total_wmax and value_production:
+                system_performance = (value_production /total_wmax) * 100
+    elif value_production > 0 and not total_wmax:
         system_performance = 101
     else:
         system_performance = 0
@@ -1054,7 +1056,6 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_AUTO
     # Local variables
     power_max = 0
-    result_slope = []
     slope = 1.0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     p_for_each_device = 0
