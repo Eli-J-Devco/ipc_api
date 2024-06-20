@@ -623,11 +623,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     wmax = wmax_array[0] if wmax_array else 0
                     
-                    print("wmax",wmax)
-                    total_wmax_man_temp += wmax
-                    print("total_wmax_man_temp",total_wmax_man_temp)
-                    total_wmax_man = total_wmax_man_temp 
-                    print("total_wmax_man",total_wmax_man)
+                    if wmax != None :
+                        total_wmax_man_temp += wmax
+                        total_wmax_man = total_wmax_man_temp 
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
