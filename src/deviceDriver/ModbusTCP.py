@@ -1874,18 +1874,34 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
                 await client.subscribe(serial_number_project + topic)
             while True:
                 try:
-                    message = await asyncio.wait_for(client.messages.get(), timeout=10.0)  # Tăng thời gian chờ phản hồi lên 10 giây
+                    message = await asyncio.wait_for(client.messages.get(), timeout=10.0)
                     if message:
                         payload = json.loads(message.message.decode())
                         topic = message.topic
                         await process_message(topic, payload, serial_number_project, host, port, username, password)
                 except asyncio.TimeoutError:
                     continue
-        except Exception as e:
-            print(f"Error while processing message: {e}")
-            print('Connection lost. Trying to reconnect...')
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON payload: {e}")
+                    print(f"Topic: {topic}, Payload: {message.message.decode()}")
+                except ValueError as e:
+                    print(f"Error processing message: {e}")
+                    print(f"Topic: {topic}, Payload: {message.message.decode()}")
+        except ConnectionError as e:
+            print(f"Connection error: {e}")
+            print('Trying to reconnect...')
             await client.stop()
-            await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
+            await asyncio.sleep(5)
+        except mqttools.MQTTError as e:
+            print(f"MQTT error: {e}")
+            print('Trying to reconnect...')
+            await client.stop()
+            await asyncio.sleep(5)
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            print('Trying to reconnect...')
+            await client.stop()
+            await asyncio.sleep(5)
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
