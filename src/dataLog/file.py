@@ -194,6 +194,7 @@ async def get_mqtt(host, port, topic, username, password):
             current_time = get_utc()
             message = await client.messages.get()
             if message :
+                print("Message received", message)
                 # cut string get device id value from sud mqtt
                 device_id = message.topic.split("/Devices/")[-1] 
                 if device_id != "All":
