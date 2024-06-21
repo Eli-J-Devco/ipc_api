@@ -193,55 +193,52 @@ async def get_mqtt(host, port, topic, username, password):
         while True:
             current_time = get_utc()
             message = await client.messages.get()
-            if not message :
-                print("Not find message from MQTT")
-                return -1 
-            
-            # cut string get device id value from sud mqtt
-            device_id = message.topic.split("/Devices/")[-1] 
-            if device_id != "All":
+            if message :
+                # cut string get device id value from sud mqtt
+                device_id = message.topic.split("/Devices/")[-1] 
+                if device_id != "All":
 
-                if status_file == "Success" :
-                    result_value = []
-                    result_point_id = []
-                else :
-                    result_value == result_values_dict
-                    
-                mqtt_result = json.loads(message.message.decode())
-
-                if mqtt_result:
-                    if 'status_device' not in mqtt_result:
-                        return -1 
-                    if 'message' not in mqtt_result:
-                        return -1 
-                    if 'status_register' not in mqtt_result:
-                        return -1 
-                    if 'fields' not in mqtt_result:
-                        return -1        
-                    
-                    msg_device = mqtt_result['message']
-                    status_register = mqtt_result['status_register']
-                    
-                    for item in mqtt_result['fields']:
-                        if item['config'] != 'MPPT':
-                            value = str(item["value"])
-                            point_id = str(item["id"])
-                            if countMonitor :
-                                result_value.append(value)
-                                result_point_id.append(point_id)
-                            else :
-                                pass
-                                
-                    result_values_dict[device_id] = result_value, result_point_id
-                    result_list = [
-                        {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
-                        for device_id, (values, point_id) in result_values_dict.items()
-                    ]
-                    for item in result_list:
-                        item['data'] = [val if val != 'None' else '' for val in item['data']]
+                    if status_file == "Success" :
+                        result_value = []
+                        result_point_id = []
+                    else :
+                        result_value == result_values_dict
                         
-            else: 
-                pass
+                    mqtt_result = json.loads(message.message.decode())
+
+                    if mqtt_result:
+                        if 'status_device' not in mqtt_result:
+                            return -1 
+                        if 'message' not in mqtt_result:
+                            return -1 
+                        if 'status_register' not in mqtt_result:
+                            return -1 
+                        if 'fields' not in mqtt_result:
+                            return -1        
+                        
+                        msg_device = mqtt_result['message']
+                        status_register = mqtt_result['status_register']
+                        
+                        for item in mqtt_result['fields']:
+                            if item['config'] != 'MPPT':
+                                value = str(item["value"])
+                                point_id = str(item["id"])
+                                if countMonitor :
+                                    result_value.append(value)
+                                    result_point_id.append(point_id)
+                                else :
+                                    pass
+                                    
+                        result_values_dict[device_id] = result_value, result_point_id
+                        result_list = [
+                            {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
+                            for device_id, (values, point_id) in result_values_dict.items()
+                        ]
+                        for item in result_list:
+                            item['data'] = [val if val != 'None' else '' for val in item['data']]
+                            
+                else: 
+                    pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
