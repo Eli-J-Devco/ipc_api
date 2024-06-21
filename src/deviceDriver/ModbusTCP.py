@@ -1798,6 +1798,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
 
                     if custom_watt and watt and watt >= custom_watt:
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                        MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (custom_watt, id_systemp))
                         custom_watt = 0
                         watt = 0
 
