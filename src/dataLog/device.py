@@ -213,114 +213,112 @@ async def Get_MQTT(host, port, topic, username, password):
         while True:
             current_time = get_utc()
             message = await client.messages.get()
-            if not message :
-                print("Not find message from MQTT")
-                return -1 
-            # cut string get device id value from sud mqtt
-            device_id = message.topic.split("/Devices/")[-1]
-            
-            if device_id != "All":
-                if status_file == "Success" :
-                    result_value = []
-                    result_point_id = []
-                else :
-                    result_value == result_values_dict
-                    
-                mqtt_result = json.loads(message.message.decode())
-                type_device_type = mqtt_result["type_device_type"]
+            if message :
+                # cut string get device id value from sud mqtt
+                device_id = message.topic.split("/Devices/")[-1]
+                
+                if device_id != "All":
+                    if status_file == "Success" :
+                        result_value = []
+                        result_point_id = []
+                    else :
+                        result_value == result_values_dict
+                        
+                    mqtt_result = json.loads(message.message.decode())
+                    type_device_type = mqtt_result["type_device_type"]
 
-                if mqtt_result and type_device_type != 1:
-                    if 'status_device' not in mqtt_result:
-                        print(f"Error: 'status_device' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'message' not in mqtt_result:
-                        print(f"Error: 'message' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'status_register' not in mqtt_result:
-                        print(f"Error: 'status_register' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'fields' not in mqtt_result:
-                        print(f"Error: 'fields' not in mqtt_result: {mqtt_result}")
-                        return -1       
-                    
-                    for item in mqtt_result['fields']:
-                        if item['config'] != 'MPPT':
-                            value = str(item["value"])
-                            point_id = str(item["id"])
-                                        
-                            result_value.append(value)
-                            result_point_id.append(point_id)
-                            
-                            status_device = mqtt_result['status_device']        
-                            msg_device = mqtt_result['message']
-                            status_register = mqtt_result['status_register']
-                    
-                    result_values_dict[device_id] = (result_value, result_point_id, status_device, msg_device, status_register)
-                    result_list = []
-                    for device_id, result_values in result_values_dict.items():
-                        values, point_id, status_device, msg_device, status_register = result_values
-                        result_list.append({
-                            "id": int(device_id),
-                            "point_id": point_id,
-                            "data": values,
-                            "time": current_time,
-                            "status_device": status_device,
-                            "msg_device": msg_device,
-                            "status_register": status_register
-                        })
-                    for item in result_list:
-                        item['data'] = [val if val != 'None' else '' for val in item['data']]
-
-                    # Get data for table mppt 
-                    for item in mqtt_result['fields']:
-                        if item['config'] == 'MPPT':
-                            MPPTVolt = item['value']['mppt_volt']
-                            MPPTAmps = item['value']["mppt_amps"]
-                            MPPTKey = item["point_key"]
-                            for string_item in item['value']['mppt_string']:
-                                MPPTKey_string = string_item['name']
+                    if mqtt_result and type_device_type != 1:
+                        if 'status_device' not in mqtt_result:
+                            print(f"Error: 'status_device' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'message' not in mqtt_result:
+                            print(f"Error: 'message' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'status_register' not in mqtt_result:
+                            print(f"Error: 'status_register' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'fields' not in mqtt_result:
+                            print(f"Error: 'fields' not in mqtt_result: {mqtt_result}")
+                            return -1       
+                        
+                        for item in mqtt_result['fields']:
+                            if item['config'] != 'MPPT':
+                                value = str(item["value"])
+                                point_id = str(item["id"])
+                                            
+                                result_value.append(value)
+                                result_point_id.append(point_id)
                                 
-                            if MPPTVolt and MPPTAmps and MPPTKey and device_id:
-                                key_MPPT = (int(device_id), MPPTKey)  
-                                if key_MPPT in mppt_dict: # If the object already exists, the value will be updated
-                                    mppt_dict[key_MPPT]['MPPTVolt'] = MPPTVolt
-                                    mppt_dict[key_MPPT]['MPPTAmps'] = MPPTAmps
-                                    mppt_dict[key_MPPT]['MPPTKey_string'] = MPPTKey_string
-                                else:
-                                    # If it does not exist, add a new object to the dictionary
-                                    mppt_dict[key_MPPT] = {
-                                        "id": int(device_id),
-                                        "namekey": MPPTKey,
-                                        "MPPTVolt": MPPTVolt,
-                                        "MPPTAmps": MPPTAmps,
-                                        "MPPTKey_string" :MPPTKey_string
-                                    }
-                                
-                                # Pass the values ​​from the dictionary into result_list_MPPT
-                                result_list_MPPT = list(mppt_dict.values())
+                                status_device = mqtt_result['status_device']        
+                                msg_device = mqtt_result['message']
+                                status_register = mqtt_result['status_register']
+                        
+                        result_values_dict[device_id] = (result_value, result_point_id, status_device, msg_device, status_register)
+                        result_list = []
+                        for device_id, result_values in result_values_dict.items():
+                            values, point_id, status_device, msg_device, status_register = result_values
+                            result_list.append({
+                                "id": int(device_id),
+                                "point_id": point_id,
+                                "data": values,
+                                "time": current_time,
+                                "status_device": status_device,
+                                "msg_device": msg_device,
+                                "status_register": status_register
+                            })
+                        for item in result_list:
+                            item['data'] = [val if val != 'None' else '' for val in item['data']]
 
-                                if result_list_MPPT :
-                                    for item in result_list_MPPT:
-                                        id = item['id']
-                                        namekey = item['namekey']
-                                        MPPTAmps = item['MPPTAmps'] 
+                        # Get data for table mppt 
+                        for item in mqtt_result['fields']:
+                            if item['config'] == 'MPPT':
+                                MPPTVolt = item['value']['mppt_volt']
+                                MPPTAmps = item['value']["mppt_amps"]
+                                MPPTKey = item["point_key"]
+                                for string_item in item['value']['mppt_string']:
+                                    MPPTKey_string = string_item['name']
+                                    
+                                if MPPTVolt and MPPTAmps and MPPTKey and device_id:
+                                    key_MPPT = (int(device_id), MPPTKey)  
+                                    if key_MPPT in mppt_dict: # If the object already exists, the value will be updated
+                                        mppt_dict[key_MPPT]['MPPTVolt'] = MPPTVolt
+                                        mppt_dict[key_MPPT]['MPPTAmps'] = MPPTAmps
+                                        mppt_dict[key_MPPT]['MPPTKey_string'] = MPPTKey_string
+                                    else:
+                                        # If it does not exist, add a new object to the dictionary
+                                        mppt_dict[key_MPPT] = {
+                                            "id": int(device_id),
+                                            "namekey": MPPTKey,
+                                            "MPPTVolt": MPPTVolt,
+                                            "MPPTAmps": MPPTAmps,
+                                            "MPPTKey_string" :MPPTKey_string
+                                        }
+                                    
+                                    # Pass the values ​​from the dictionary into result_list_MPPT
+                                    result_list_MPPT = list(mppt_dict.values())
 
-                                        query = f"SELECT id FROM `device_mppt` WHERE `id_device_list` = {id} AND `namekey` = '{namekey}'"
-                                        result_id_mppt = await MySQL_Select_v1(query)
+                                    if result_list_MPPT :
+                                        for item in result_list_MPPT:
+                                            id = item['id']
+                                            namekey = item['namekey']
+                                            MPPTAmps = item['MPPTAmps'] 
 
-                                        if result_id_mppt:
-                                            result_id_device_mppt = result_id_mppt[0]['id']
-                                        else:
-                                            pass
-                                        
-                                        if result_id_device_mppt :
-                                            for item in result_list_MPPT:
-                                                if item['MPPTAmps'] == MPPTAmps:
-                                                    item['id_device_mppt'] = result_id_device_mppt
-                                        else:
-                                            pass
-                else: 
-                    pass
+                                            query = f"SELECT id FROM `device_mppt` WHERE `id_device_list` = {id} AND `namekey` = '{namekey}'"
+                                            result_id_mppt = await MySQL_Select_v1(query)
+
+                                            if result_id_mppt:
+                                                result_id_device_mppt = result_id_mppt[0]['id']
+                                            else:
+                                                pass
+                                            
+                                            if result_id_device_mppt :
+                                                for item in result_list_MPPT:
+                                                    if item['MPPTAmps'] == MPPTAmps:
+                                                        item['id_device_mppt'] = result_id_device_mppt
+                                            else:
+                                                pass
+                    else: 
+                        pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
