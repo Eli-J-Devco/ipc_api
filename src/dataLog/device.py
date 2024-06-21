@@ -183,7 +183,6 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-
 async def Get_MQTT(host, port, topic, username, password):
     global status_device    
     global msg_device 
@@ -197,6 +196,7 @@ async def Get_MQTT(host, port, topic, username, password):
     mppt_dict = {}
     result_id_device_mppt = 0
     device_id = 0 
+    type_device_type = 0
     id = ""
     MPPTVolt = 0 
     MPPTAmps = 0
@@ -213,108 +213,115 @@ async def Get_MQTT(host, port, topic, username, password):
         while True:
             current_time = get_utc()
             message = await client.messages.get()
-            if not message :
-                print("Not find message from MQTT")
-                return -1 
-            # cut string get device id value from sud mqtt
-            device_id = message.topic.split("/Devices/")[-1]
-            
-            if device_id != "All":
-                if status_file == "Success" :
-                    result_value = []
-                    result_point_id = []
-                else :
-                    result_value == result_values_dict
-                    
-                mqtt_result = json.loads(message.message.decode())
-                if mqtt_result:
-                    if 'status_device' not in mqtt_result:
-                        print(f"Error: 'status_device' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'message' not in mqtt_result:
-                        print(f"Error: 'message' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'status_register' not in mqtt_result:
-                        print(f"Error: 'status_register' not in mqtt_result: {mqtt_result}")
-                        return -1 
-                    if 'fields' not in mqtt_result:
-                        print(f"Error: 'fields' not in mqtt_result: {mqtt_result}")
-                        return -1       
-                    status_device = mqtt_result['status_device']        
-                    msg_device = mqtt_result['message']
-                    status_register = mqtt_result['status_register']
-                    
-                    for item in mqtt_result['fields']:
-                        if item['config'] != 'MPPT':
-                            value = str(item["value"])
-                            point_id = str(item["id"])
-                                        
-                            result_value.append(value)
-                            result_point_id.append(point_id)
+            if message :
+                # cut string get device id value from sud mqtt
+                device_id = message.topic.split("/Devices/")[-1]
+                
+                if device_id != "All":
+                    if status_file == "Success" :
+                        result_value = []
+                        result_point_id = []
+                    else :
+                        result_value == result_values_dict
+                        
+                    mqtt_result = json.loads(message.message.decode())
+                    type_device_type = mqtt_result["type_device_type"]
+
+                    if mqtt_result and type_device_type != 1:
+                        if 'status_device' not in mqtt_result:
+                            print(f"Error: 'status_device' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'message' not in mqtt_result:
+                            print(f"Error: 'message' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'status_register' not in mqtt_result:
+                            print(f"Error: 'status_register' not in mqtt_result: {mqtt_result}")
+                            return -1 
+                        if 'fields' not in mqtt_result:
+                            print(f"Error: 'fields' not in mqtt_result: {mqtt_result}")
+                            return -1       
+                        
+                        for item in mqtt_result['fields']:
+                            if item['config'] != 'MPPT':
+                                value = str(item["value"])
+                                point_id = str(item["id"])
+                                            
+                                result_value.append(value)
+                                result_point_id.append(point_id)
+                                
+                                status_device = mqtt_result['status_device']        
+                                msg_device = mqtt_result['message']
+                                status_register = mqtt_result['status_register']
+                        
+                        result_values_dict[device_id] = (result_value, result_point_id, status_device, msg_device, status_register)
+                        result_list = []
+                        for device_id, result_values in result_values_dict.items():
+                            values, point_id, status_device, msg_device, status_register = result_values
+                            result_list.append({
+                                "id": int(device_id),
+                                "point_id": point_id,
+                                "data": values,
+                                "time": current_time,
+                                "status_device": status_device,
+                                "msg_device": msg_device,
+                                "status_register": status_register
+                            })
+                        for item in result_list:
+                            item['data'] = [val if val != 'None' else '' for val in item['data']]
+
+                        # Get data for table mppt 
+                        for item in mqtt_result['fields']:
+                            if item['config'] == 'MPPT':
+                                MPPTVolt = item['value']['mppt_volt']
+                                MPPTAmps = item['value']["mppt_amps"]
+                                MPPTKey = item["point_key"]
+                                for string_item in item['value']['mppt_string']:
+                                    MPPTKey_string = string_item['name']
                                     
-                    result_values_dict[device_id] = result_value, result_point_id
-                    result_list = [
-                        {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
-                        for device_id, (values, point_id) in result_values_dict.items()
-                    ]
-                    for item in result_list:
-                        item['data'] = [val if val != 'None' else '' for val in item['data']]
-                    
-                    # Get data for table mppt 
-                    for item in mqtt_result['fields']:
-                        if item['config'] == 'MPPT':
-                            MPPTVolt = item['value']['mppt_volt']
-                            MPPTAmps = item['value']["mppt_amps"]
-                            MPPTKey = item["point_key"]
-                            for string_item in item['value']['mppt_string']:
-                                MPPTKey_string = string_item['name']
-                                
-                            if MPPTVolt and MPPTAmps and MPPTKey and device_id:
-                                key_MPPT = (int(device_id), MPPTKey)  
-                                if key_MPPT in mppt_dict: # If the object already exists, the value will be updated
-                                    mppt_dict[key_MPPT]['MPPTVolt'] = MPPTVolt
-                                    mppt_dict[key_MPPT]['MPPTAmps'] = MPPTAmps
-                                    mppt_dict[key_MPPT]['MPPTKey_string'] = MPPTKey_string
-                                else:
-                                    # If it does not exist, add a new object to the dictionary
-                                    mppt_dict[key_MPPT] = {
-                                        "id": int(device_id),
-                                        "namekey": MPPTKey,
-                                        "MPPTVolt": MPPTVolt,
-                                        "MPPTAmps": MPPTAmps,
-                                        "MPPTKey_string" :MPPTKey_string
-                                    }
-                                
-                                # Pass the values ​​from the dictionary into result_list_MPPT
-                                result_list_MPPT = list(mppt_dict.values())
+                                if MPPTVolt and MPPTAmps and MPPTKey and device_id:
+                                    key_MPPT = (int(device_id), MPPTKey)  
+                                    if key_MPPT in mppt_dict: # If the object already exists, the value will be updated
+                                        mppt_dict[key_MPPT]['MPPTVolt'] = MPPTVolt
+                                        mppt_dict[key_MPPT]['MPPTAmps'] = MPPTAmps
+                                        mppt_dict[key_MPPT]['MPPTKey_string'] = MPPTKey_string
+                                    else:
+                                        # If it does not exist, add a new object to the dictionary
+                                        mppt_dict[key_MPPT] = {
+                                            "id": int(device_id),
+                                            "namekey": MPPTKey,
+                                            "MPPTVolt": MPPTVolt,
+                                            "MPPTAmps": MPPTAmps,
+                                            "MPPTKey_string" :MPPTKey_string
+                                        }
+                                    
+                                    # Pass the values ​​from the dictionary into result_list_MPPT
+                                    result_list_MPPT = list(mppt_dict.values())
 
-                                if result_list_MPPT :
-                                    for item in result_list_MPPT:
-                                        id = item['id']
-                                        namekey = item['namekey']
-                                        MPPTAmps = item['MPPTAmps'] 
+                                    if result_list_MPPT :
+                                        for item in result_list_MPPT:
+                                            id = item['id']
+                                            namekey = item['namekey']
+                                            MPPTAmps = item['MPPTAmps'] 
 
-                                        query = f"SELECT id FROM `device_mppt` WHERE `id_device_list` = {id} AND `namekey` = '{namekey}'"
-                                        result_id_mppt = await MySQL_Select_v1(query)
+                                            query = f"SELECT id FROM `device_mppt` WHERE `id_device_list` = {id} AND `namekey` = '{namekey}'"
+                                            result_id_mppt = await MySQL_Select_v1(query)
 
-                                        if result_id_mppt:
-                                            result_id_device_mppt = result_id_mppt[0]['id']
-                                        else:
-                                            pass
-                                        
-                                        if result_id_device_mppt :
-                                            for item in result_list_MPPT:
-                                                if item['MPPTAmps'] == MPPTAmps:
-                                                    item['id_device_mppt'] = result_id_device_mppt
-                                        else:
-                                            pass
-                else: 
-                    print(f"Error: mqtt_result is {mqtt_result}")
-                    pass
+                                            if result_id_mppt:
+                                                result_id_device_mppt = result_id_mppt[0]['id']
+                                            else:
+                                                pass
+                                            
+                                            if result_id_device_mppt :
+                                                for item in result_list_MPPT:
+                                                    if item['MPPTAmps'] == MPPTAmps:
+                                                        item['id_device_mppt'] = result_id_device_mppt
+                                            else:
+                                                pass
+                    else: 
+                        pass
             
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
-
 # Describe Insert_TableDevice_AllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
@@ -333,7 +340,7 @@ async def Insert_TableDevice_AllDevice():
         tasks.append(task)
     
     await asyncio.gather(*tasks)
-#--------------------------------------------------------------------
+# --------------------------------------------------------------------
 # /**
 # 	 * @description 
 #       - create and write data in file  
@@ -365,6 +372,9 @@ async def Insert_TableDevice(sql_id):
     
     if DictID:
         data = DictID[0]["data"]
+        status_device = DictID[0]["status_device"]
+        status_register = DictID[0]["status_register"]
+        
     if not data:  # Check data if data empty 
         data = [None] * len(filedtable)
 
@@ -414,6 +424,91 @@ async def Insert_TableDevice(sql_id):
     except Exception as e:
         
         print(f"Error during file creation is : {e}")
+
+# async def Insert_TableDevice_AllDevice():
+#     global QUERY_ALL_DEVICES
+#     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+#     sql_queries = []
+#     for item in result_all:
+#         sql_id = item["id"]
+#         sql_querie = Insert_TableDevice(sql_id)
+#         sql_queries.append(sql_querie)
+#         print("sql_queries",sql_queries)
+#         print("len(sql_queries)",len(sql_queries))
+#         print("len(result_all)",len(result_all))
+#     if len(sql_queries) == len(result_all) :
+#         MySQL_Insert_v3(sql_queries)
+#         print("sql_queries",sql_queries)
+#         status = "Data inserted successfully"
+#     else :
+#         status = "Waiting for the record to finish"
+#     print("status",status)
+    
+# async def Insert_TableDevice(sql_id):
+#     global result_list
+#     global status
+#     global status_device 
+#     global status_register
+#     global code_error
+#     global QUERY_SELECT_NAME_DEVICE
+#     sql_queries = {}
+#     data = []
+#     result_all = []
+#     filedtable = []
+
+#     result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
+    
+#     for item in result_all:
+#             if item['namekey'] != 'MPPT':
+#                 filedtable.append(item['id_pointkey'])
+        
+#     DictID = [item for item in result_list if item["id"] == sql_id]
+    
+#     if DictID:
+#         data = DictID[0]["data"]
+#         status_device = DictID[0]["status_device"]
+#         status_register = DictID[0]["status_register"]
+        
+#     if not data:  # Check data if data empty 
+#         data = [None] * len(filedtable)
+
+#     if status_device == "offline" :
+#         code_error = 139
+#     elif status_device == "online" :
+#         if len(status_register) > 0 :
+#             code_error = status_register[0]["ERROR_CODE"]
+#         else :
+#             code_error = 0
+#     else :
+#         pass
+
+#     # Write data to corresponding devices in the database
+#     time_insert_dev = get_utc()
+#     value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
+    
+#     # Replace '0.0' with '' in the data tuple
+#     value_insert = tuple("0.0" if x == "" else x for x in value_insert)
+    
+#     # Create Query
+#     columns = ["time", "id_device", "error"]
+    
+#     for itemp in filedtable:
+#         columns.append(itemp)
+    
+#     table_name = f"dev_{sql_id}"
+
+#     # Create a query with REPLACE INTO syntax
+#     query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+#     val = value_insert
+#     # Check if the SQL query exists in the dictionary
+#     if sql_id in sql_queries:
+#         # Update the SQL query
+#         sql_queries[sql_id][0] = query
+#         sql_queries[sql_id][1] = val
+#     else:
+#         # Add a new entry to the dictionary
+#         sql_queries[sql_id] = [query, val]
+#     print("sql_queries",sql_queries)
 
 # /**
 # 	 * @description 

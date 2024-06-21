@@ -977,6 +977,7 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
+                                print("mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
@@ -1797,6 +1798,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
 
                     if custom_watt and watt and watt >= custom_watt:
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                        MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (custom_watt, id_systemp))
                         custom_watt = 0
                         watt = 0
 
@@ -1864,23 +1866,24 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, username, password):
     topics = [topic1, topic2, topic3]
+    
     while True:
         try:
             client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
             if not client:
                 return -1
+            
             await client.start()
             for topic in topics:
                 await client.subscribe(serial_number_project + topic)
             while True:
-                try:
-                    message = await asyncio.wait_for(client.messages.get(), timeout=10.0)  # Tăng thời gian chờ phản hồi lên 10 giây
-                    if message:
-                        payload = json.loads(message.message.decode())
-                        topic = message.topic
-                        await process_message(topic, payload, serial_number_project, host, port, username, password)
-                except asyncio.TimeoutError:
-                    continue
+                message = await asyncio.wait_for(client.messages.get(), timeout=10)
+                if message:
+                    payload = json.loads(message.message.decode())
+                    topic = message.topic
+                    await process_message(topic, payload, serial_number_project, host, port, username, password)
+        except asyncio.TimeoutError:
+            continue
         except Exception as e:
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
