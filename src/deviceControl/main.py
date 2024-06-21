@@ -421,7 +421,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send,qos=2,retain=True)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send,qos=0,retain=False)
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
