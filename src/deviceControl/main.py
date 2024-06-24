@@ -631,7 +631,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if mode == 0:
                             total_wmax_man_temp += wmax
                             total_wmax_man = total_wmax_man_temp 
-                        total_power += total_wmax_man_temp
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
@@ -657,7 +656,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-    
+        # Calculate the value that allows the user to enter production in power limit mode
+        total_power += total_wmax_man_temp
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
