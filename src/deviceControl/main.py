@@ -631,9 +631,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if mode == 0:
                             total_wmax_man_temp += wmax
                             total_wmax_man = total_wmax_man_temp 
-                        elif ModeSysTemp == 1:
-                            total_wmax_man = 0
-                    print("total wax man process",total_wmax_man)
+                    if ModeSysTemp == 1:
+                        total_wmax_man = 0
+                        
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
                     # device offline   
