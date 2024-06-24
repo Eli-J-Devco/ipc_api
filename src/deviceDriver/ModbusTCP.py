@@ -17,7 +17,7 @@ from datetime import datetime as DT
 
 import mqttools
 import mybatis_mapper2sql
-import paho.mqtt.publish as publish
+# import paho.mqtt.publish as publish
 import psutil
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
@@ -29,7 +29,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from deviceDriver.monitoring import monitoring_service
-from utils.libMQTT import *
+from utils.libMQTT import push_data_to_mqtt
 from utils.libMySQL import *
 from utils.libTime import *
 from utils.mqttManager import mqttService
@@ -778,35 +778,35 @@ def func_check_data_mybatis(data,item,object_name):
       print('Error not find object mybatis')
       return ""
 
-# ----- MQTT -----
-# Describe functions before writing code
-# /**
-# 	 * @description public data MQTT
-# 	 * @author vnguyen
-# 	 * @since 10-11-2023
-# 	 * @param {host, port,topic, username, password, data_send}
-# 	 * @return data ()
-# 	 */
-def func_mqtt_public(host, port,topic, username, password, data_send):
-    try:
-        payload = json.dumps(data_send)
-        # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
-        #                     "%Y%m%d_%H%M%S"
-        #                 )
-        publish.single(topic, payload, hostname=host,
-                    #    client_id=str(client_id),
-                       retain=False, port=port,
-                       auth = {'username':f'{username}', 
-                               'password':f'{password}'})
-        # publish.single(Topic, payload, hostname=Broker,
-        #             retain=False, port=Port)
-    # except Error as err:
-    #     print(f"Error MQTT public: '{err}'")
-    except Exception as err:
-    # except:
+# # ----- MQTT -----
+# # Describe functions before writing code
+# # /**
+# # 	 * @description public data MQTT
+# # 	 * @author vnguyen
+# # 	 * @since 10-11-2023
+# # 	 * @param {host, port,topic, username, password, data_send}
+# # 	 * @return data ()
+# # 	 */
+# def func_mqtt_public(host, port,topic, username, password, data_send):
+#     try:
+#         payload = json.dumps(data_send)
+#         # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+#         #                     "%Y%m%d_%H%M%S"
+#         #                 )
+#         publish.single(topic, payload, hostname=host,
+#                     #    client_id=str(client_id),
+#                        retain=False, port=port,
+#                        auth = {'username':f'{username}', 
+#                                'password':f'{password}'})
+#         # publish.single(Topic, payload, hostname=Broker,
+#         #             retain=False, port=Port)
+#     # except Error as err:
+#     #     print(f"Error MQTT public: '{err}'")
+#     except Exception as err:
+#     # except:
         
-        print(f"Error MQTT public: '{err}'")
-        pass
+#         print(f"Error MQTT public: '{err}'")
+#         pass
 def path_directory_relative(project_name):
     if project_name =="":
       return -1
@@ -1893,8 +1893,16 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
+# def test():
+#     while True:
+#         process = psutil.Process(os.getpid())
+#         print(process.memory_percent())
+#         time.sleep(1)
+
 async def main():
     tasks = []
+    # tasks.append(asyncio.create_task(test()))
+    # await asyncio.gather(*tasks, return_exceptions=False)
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     if results_project != None :
         results_point_list_type= MySQL_Select('select * from `point_list_type`', ())
