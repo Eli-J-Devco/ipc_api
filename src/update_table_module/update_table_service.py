@@ -1,12 +1,13 @@
 import logging
 
-from sqlalchemy import MetaData, select, text
+from sqlalchemy import MetaData, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .update_table_model import UpdatePoint
 from ..async_db.src.async_db.wrapper import async_db_request_handler
 from ..create_table_module.create_table_model import CreateTableModel
-from ..devices_entity import (PointList as PointListEntity,
+from ..devices_entity import (Devices,
+                              PointList as PointListEntity,
                               DeviceMppt as DeviceMpptEntity,
                               DeviceMpptString as DeviceMpptStringEntity, DevicePanel, )
 from ..devices_model import (DeviceModel,
@@ -179,3 +180,9 @@ class UpdateTableService:
                                                         name=panel.name)
                                 session.add(new_panel)
                                 await session.flush()
+
+    @async_db_request_handler
+    async def update_device_status(self, device_id: int, state: int, session: AsyncSession):
+        query = update(Devices).where(Devices.id == device_id).values(creation_state=state)
+        await session.execute(query)
+        await session.commit()

@@ -14,12 +14,18 @@ class CreateDeviceModel(BaseModel):
     devices: list[int]
 
 
+class DeviceStatus(enum.Enum):
+    CREATING = 0
+    CREATED = 1
+    DELETING = -1
+    DELETED = -2
+    DEAD_LETTER = -3
+
+
 class DeviceState(enum.Enum):
-    CREATING = 1
-    CREATED = 2
-    DELETING = 3
-    DELETED = 4
-    DEAD_LETTER = 5
+    InProgress = -1
+    Success = 0
+    Error = 1
 
 
 class Action(enum.Enum):
@@ -110,4 +116,3 @@ class DevicePointListMap(BaseModel):
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
     name: Optional[str] = None
-

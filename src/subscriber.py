@@ -18,11 +18,10 @@ from .config import orm_provider as db_config, config
 from .create_table_module.create_table_service import CreateTableService, TableColumn
 from .delete_table_module.delete_table_service import DeleteTableService
 from .devices_entity import ProjectSetup, Devices
-from .devices_model import Action, DeviceModel, DeviceState
+from .devices_model import Action, DeviceModel, DeviceStatus, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
 from .pm2_service.pm2_service import PM2Service
 from .update_table_module.update_table_service import UpdateTableService
-
 
 logger = logging.getLogger(__name__)
 
@@ -152,17 +151,20 @@ class MQTTSubscriber(Subscriber):
 
             logger.info("Processing devices")
             result = {}
+            send_device = []
             for device in devices_info:
                 result[device.id] = await self.action[action_type](device, retry, code, meta_code)
-
-            send_device = [PM2DeviceModel(id=device.id,
-                                          name=device.name,
-                                          id_communication=device.communication.id if device.communication else None,
-                                          connect_type=device.communication.name if device.communication else None,
-                                          mode=0,
-                                          device_type_value=device.device_type.type,)
-                           for device in devices_info if
-                           result[device.id] == 200]
+                if result == 200:
+                    send_device.append(PM2DeviceModel(id=device.id,
+                                                      name=device.name,
+                                                      id_communication=device.communication.id if device.communication else None,
+                                                      connect_type=device.communication.name if device.communication else None,
+                                                      mode=0,
+                                                      device_type_value=device.device_type.type, ))
+                    if action_type == Action.CREATE.value:
+                        await self.update_table_service.update_device_status(device.id,
+                                                                             DeviceState.Success.value,
+                                                                             self.session)
 
             await self.set_project_mode()
             if len(send_device) > 0:
@@ -184,6 +186,7 @@ class MQTTSubscriber(Subscriber):
 
     async def create_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
+            raise Exception("Error")
             logger.info(f"Creating table for device: {device.table_name}")
             result = await self.create_table_service.create_table(device.table_name,
                                                                   list(map(lambda x: TableColumn(x.id_pointkey,
@@ -217,6 +220,10 @@ class MQTTSubscriber(Subscriber):
                                                   "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher)
+            if retry == 0:
+                await self.update_table_service.update_device_status(device.id,
+                                                                     DeviceState.Error.value,
+                                                                     self.session)
 
     async def update_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
@@ -227,6 +234,8 @@ class MQTTSubscriber(Subscriber):
             if isinstance(result, Exception):
                 raise result
             logger.info(f"Updated device mppt for device: {device.table_name}")
+
+            return 200
         except Exception as e:
             logger.error(f"Error updating table: {e}")
             await self.handle_error(e,
@@ -326,7 +335,7 @@ async def reconector():
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
         subscriptions=[f"{serial_number}/{Action.CREATE.value}"],
-        client_id=f"publisher-{DeviceState.CREATING.name.lower()}-{uuid.uuid4()}",
+        client_id=f"publisher-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
         username=config.MQTT_USERNAME,
@@ -337,7 +346,7 @@ async def reconector():
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
         subscriptions=[f"{serial_number}/{Action.DEAD_LETTER.value}"],
-        client_id=f"publisher-{DeviceState.DEAD_LETTER.name.lower()}-{uuid.uuid4()}",
+        client_id=f"publisher-{DeviceStatus.DEAD_LETTER.name.lower()}-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
         username=config.MQTT_USERNAME,
@@ -347,7 +356,7 @@ async def reconector():
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
         topic=[f"{serial_number}/{topic.value}" for topic in Action if topic != Action.DEAD_LETTER],
-        client_id=f"sub-{DeviceState.CREATING.name.lower()}-{uuid.uuid4()}",
+        client_id=f"sub-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
         retry_publisher=re_publisher,
