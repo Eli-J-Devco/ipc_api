@@ -111,6 +111,7 @@ class mqttService:
     async def send(self,topic_parent: str,
                         message:str, 
                         resume_session: bool = True):
+
         try:
             await self.sender.start(resume_session=resume_session)
         except SessionResumeError:
