@@ -1894,13 +1894,14 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
                     payload = json.loads(message.message.decode())
                     topic = message.topic
                     await process_message(topic, payload, serial_number_project, host, port, username, password)
+                    await client.stop()
         except asyncio.TimeoutError:
             continue
         except Exception as e:
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
-            await client.stop()
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
+        
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
