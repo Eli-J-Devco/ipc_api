@@ -656,8 +656,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-        # Calculate the value that allows the user to enter production in power limit mode
-        total_power += total_wmax_man_temp
+
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
@@ -679,7 +678,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     
     result = {
     "devices": device_list,
-    "total_max_power": total_power,
+    "total_max_power": total_power + total_wmax_man_temp,
     "system_performance": {
         "performance": system_performance,
         "message": message,
