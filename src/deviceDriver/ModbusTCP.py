@@ -1771,7 +1771,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     comment = 200
     current_time = ""
     power_limit = 0
-    reactive_power_limit = 0
     control_inv = 1
 
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
@@ -1786,9 +1785,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
+                    device_mode = item["mode"]
                     rated_power = watt
                     rated_power_custom = custom_watt
-
                     for param in item.get("parameter", []):
                         if param["id_pointkey"] == "WMaxPercentEnable":
                             power_limit_percent_enable = param["value"]
