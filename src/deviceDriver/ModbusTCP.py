@@ -15,13 +15,14 @@ import sys
 import time
 from datetime import datetime as DT
 
-import asyncio_mqtt as aiomqtt
+# import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
 # absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
 import mybatis_mapper2sql
 # import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
+import psutil
 # from async_paho_mqtt_client import AsyncClient
 # from asyncio_paho import AsyncioPahoClient
 # from asyncio_paho.client import AsyncioMqttAuthError
@@ -1388,6 +1389,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         # 
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
+            process = psutil.Process(os.getpid())
+            print(f'memory: {process.memory_percent()}')
             global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
             global device_id
