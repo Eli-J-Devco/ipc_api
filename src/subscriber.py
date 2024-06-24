@@ -186,7 +186,6 @@ class MQTTSubscriber(Subscriber):
 
     async def create_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
-            raise Exception("Error")
             logger.info(f"Creating table for device: {device.table_name}")
             result = await self.create_table_service.create_table(device.table_name,
                                                                   list(map(lambda x: TableColumn(x.id_pointkey,
