@@ -908,7 +908,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man ,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
@@ -919,7 +919,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
@@ -931,7 +931,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
@@ -1396,12 +1396,12 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, to
                     payload = json.loads(message.message.decode())
                     topic = message.topic
                     await process_message(topic, payload, serial_number_project, host, port, username, password)
+                    await client.stop()
         except asyncio.TimeoutError:
             continue
         except Exception as e:
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
-            await client.stop()
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
 
 async def main():
