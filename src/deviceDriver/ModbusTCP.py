@@ -15,27 +15,16 @@ import sys
 import time
 from datetime import datetime as DT
 
-# import asyncio_mqtt as aiomqtt
-# absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
-# absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
 import mybatis_mapper2sql
-# import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 import psutil
-# from async_paho_mqtt_client import AsyncClient
-# from asyncio_paho import AsyncioPahoClient
-# from asyncio_paho.client import AsyncioMqttAuthError
-# 
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
 sys.stdout.reconfigure(encoding='utf-8')
-# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-# sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-#                 ("src"))
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
@@ -1879,7 +1868,6 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
-        
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
