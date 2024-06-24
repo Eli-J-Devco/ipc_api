@@ -1786,6 +1786,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     device_mode = item["mode"]
+                    print("device_mode", device_mode)
                     rated_power = watt
                     rated_power_custom = custom_watt
                     for param in item.get("parameter", []):
