@@ -319,7 +319,6 @@ async def Get_MQTT(host, port, topic, username, password):
                                                 pass
                     else: 
                         pass
-            
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
 # Describe Insert_TableDevice_AllDevice
