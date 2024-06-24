@@ -633,7 +633,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                             total_wmax_man = total_wmax_man_temp 
                         elif ModeSysTemp == 1:
                             total_wmax_man = 0
-                    
+                    print("total wax man process",total_wmax_man)
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
                     # device offline   
@@ -875,6 +875,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
+    print("total wax man power limit",total_wmax_man)
     if devices:
         device_list_control_power_limit = []
         for device in devices:
