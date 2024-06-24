@@ -10,8 +10,9 @@ import time
 # import asyncio
 # import threading
 import mysql.connector
+
 # import pandas as pd
-from mysql.connector import Error
+# from mysql.connector import Error
 
 # import mybatis_mapper2sql
 # sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
@@ -55,6 +56,7 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
             else:
                 print(f"Unable to connect to the database")
                 return None
+
 async def MySQL_Select_v1(query):
     db = create_server_connection(
         DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
