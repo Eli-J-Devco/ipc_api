@@ -290,7 +290,6 @@ class apiGateway:
                     print('Broker connection lost!')
                     break
                 result=json.loads(message.message.decode())
-                print("result",result)
                 for i,item in enumerate(self.DeviceList):
                     if message.topic==f'{Topic}/{item["id_device"]}':
                         if 'id_device_type' in result.keys():
