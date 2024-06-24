@@ -631,6 +631,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if mode == 0:
                             total_wmax_man_temp += wmax
                             total_wmax_man = total_wmax_man_temp 
+                        total_power += total_wmax_man_temp
                     
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
@@ -676,7 +677,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         
     system_performance = round(system_performance, 1)
     
-    total_power += total_wmax_man_temp
     result = {
     "devices": device_list,
     "total_max_power": total_power,
