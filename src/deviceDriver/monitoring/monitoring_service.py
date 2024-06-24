@@ -97,6 +97,12 @@ class MonitorService:
                         **item,
                         "timestamp":getUTC()
                         })
+                case "WMax":
+                    new_point_list_device.append({
+                        **item,
+                        "control_max": self.rated_power_custom,
+                        "timestamp":getUTC()
+                        })
                 case _:
                     new_point_list_device.append({
                         **item,

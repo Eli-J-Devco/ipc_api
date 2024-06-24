@@ -198,6 +198,8 @@ try_private true
 mosquitto_sub -h localhost -u nextwave -P 123654789 -t test/1 
 mosquitto_pub -h localhost -u nextwave -P 123654789 -t test/1 -m 'Hello from localhost'
 <!--  -->
+sudo nano /etc/nginx/nginx.conf
+sudo service nginx restart
 http {
 
     server {
