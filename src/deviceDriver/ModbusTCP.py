@@ -1,3 +1,5 @@
+
+
 # ********************************************************
 # * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
 # * All rights reserved.
@@ -13,33 +15,24 @@ import sys
 import time
 from datetime import datetime as DT
 
-import asyncio_mqtt as aiomqtt
-# absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
-# absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
 import mybatis_mapper2sql
-# import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
-# from async_paho_mqtt_client import AsyncClient
-# from asyncio_paho import AsyncioPahoClient
-# from asyncio_paho.client import AsyncioMqttAuthError
-# 
+# import paho.mqtt.publish as publish
+import psutil
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
 sys.stdout.reconfigure(encoding='utf-8')
-# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-# sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-#                 ("src"))
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
 from deviceDriver.monitoring import monitoring_service
-from utils.libMQTT import *
+from utils.libMQTT import push_data_to_mqtt
 from utils.libMySQL import *
 from utils.libTime import *
+from utils.mqttManager import mqttService
 
 arr = sys.argv
 print(f'arr: {arr}')
@@ -785,35 +778,35 @@ def func_check_data_mybatis(data,item,object_name):
       print('Error not find object mybatis')
       return ""
 
-# ----- MQTT -----
-# Describe functions before writing code
-# /**
-# 	 * @description public data MQTT
-# 	 * @author vnguyen
-# 	 * @since 10-11-2023
-# 	 * @param {host, port,topic, username, password, data_send}
-# 	 * @return data ()
-# 	 */
-def func_mqtt_public(host, port,topic, username, password, data_send):
-    try:
-        payload = json.dumps(data_send)
-        # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
-        #                     "%Y%m%d_%H%M%S"
-        #                 )
-        publish.single(topic, payload, hostname=host,
-                    #    client_id=str(client_id),
-                       retain=False, port=port,
-                       auth = {'username':f'{username}', 
-                               'password':f'{password}'})
-        # publish.single(Topic, payload, hostname=Broker,
-        #             retain=False, port=Port)
-    # except Error as err:
-    #     print(f"Error MQTT public: '{err}'")
-    except Exception as err:
-    # except:
+# # ----- MQTT -----
+# # Describe functions before writing code
+# # /**
+# # 	 * @description public data MQTT
+# # 	 * @author vnguyen
+# # 	 * @since 10-11-2023
+# # 	 * @param {host, port,topic, username, password, data_send}
+# # 	 * @return data ()
+# # 	 */
+# def func_mqtt_public(host, port,topic, username, password, data_send):
+#     try:
+#         payload = json.dumps(data_send)
+#         # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+#         #                     "%Y%m%d_%H%M%S"
+#         #                 )
+#         publish.single(topic, payload, hostname=host,
+#                     #    client_id=str(client_id),
+#                        retain=False, port=port,
+#                        auth = {'username':f'{username}', 
+#                                'password':f'{password}'})
+#         # publish.single(Topic, payload, hostname=Broker,
+#         #             retain=False, port=Port)
+#     # except Error as err:
+#     #     print(f"Error MQTT public: '{err}'")
+#     except Exception as err:
+#     # except:
         
-        print(f"Error MQTT public: '{err}'")
-        pass
+#         print(f"Error MQTT public: '{err}'")
+#         pass
 def path_directory_relative(project_name):
     if project_name =="":
       return -1
@@ -935,7 +928,6 @@ async def write_device(
     code_value = 0
     slope = 1.0
     slope_wmax = 1.0
-    value_convert_reactive_percent = 0
     # mqtt
     comment = 200
     current_time = get_utc()
@@ -975,7 +967,6 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
-                                print("mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
@@ -1006,22 +997,7 @@ async def write_device(
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, 'Power Limit Percent Enable'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom*(power_limit_percent/100), device_control, 'Power Limit'))
-                                            if reactive_limit_percent_enable == 1:
-                                                result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
-                                                if result_slope_wmax:
-                                                    slope_wmax = float(result_slope_wmax[0]['slope'])
-                                                    if rated_reactive_custom is not None and reactive_limit_percent is not None:
-                                                        value_convert_reactive_percent = rated_reactive_custom*(reactive_limit_percent/100)
-                                                        parameter_temp = [{'id_pointkey': 'VarMax', 'value': value_convert_reactive_percent/ slope_wmax}]
-                                                        inverter_info_temp = await find_inverter_information(device_control, parameter_temp) 
-                                                    if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
-                                                        write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
-                                                                        inverter_info_temp[0]["modbus_func"],
-                                                                        inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
-                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent_enable, device_control, 'Reactive Power Limit Percent Enable'))
-                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (reactive_limit_percent, device_control, 'Reactive Power Limit Percent'))
-                                                        MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value_convert_reactive_percent, device_control, 'Reactive Power Limit'))
-                                            if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
+                                            if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","PFSet","PFSetEnable"]:
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
                                                     value /= slope
@@ -1375,8 +1351,18 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         # 1: Number, 2: String, 3: Percent, 4: Bool
         # point_list_control_group
         # 0=Independent, 1=Depends one, 2=Depends two
+        
+        # 
+        mqtt_init=mqttService(host[0],
+                            port[0], 
+                            username[0],
+                            password[0],
+                            serial_number_project)
+        # 
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
+            process = psutil.Process(os.getpid())
+            print(f'memory: {process.memory_percent()}')
             global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
             global device_id
@@ -1663,18 +1649,21 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             
             if device_name !="" and serial_number_project!= None:
                 
-                func_mqtt_public(   host[0],
-                                    port[0],
-                                    serial_number_project+"/"+"Devices/"+""+device_id,
-                                    username[0],
-                                    password[0],
-                                    data_device)
+                # func_mqtt_public(   host[0],
+                #                     port[0],
+                #                     serial_number_project+"/"+"Devices/"+""+device_id,
+                #                     username[0],
+                #                     password[0],
+                #                     data_device)
                 # func_mqtt_public(   host[0],
                 #                     port[0],
                 #                     serial_number_project+"/"+"Shorts/"+""+device_id,
                 #                     username[0],
                 #                     password[0],
                 #                     data_device_short)
+                await mqtt_init.send("Devices/"+device_id,
+                               data_device)
+                
             await asyncio.sleep(1)
         
     except Exception as err:
@@ -1708,6 +1697,7 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
+                    print("device_mode",device_mode)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                         result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
@@ -1754,7 +1744,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     comment = 200
     current_time = ""
     power_limit = 0
-    reactive_power_limit = 0
     control_inv = 1
 
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
@@ -1771,7 +1760,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     watt = item.get("rated_power", 0)
                     rated_power = watt
                     rated_power_custom = custom_watt
-
                     for param in item.get("parameter", []):
                         if param["id_pointkey"] == "WMaxPercentEnable":
                             power_limit_percent_enable = param["value"]
@@ -1781,22 +1769,15 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom) * 100)
                         elif param["id_pointkey"] == "VarMaxPercentEnable":
                             reactive_limit_percent_enable = param["value"]
-                        elif param["id_pointkey"] == "VarMax":
-                            reactive_power_limit = param["value"]
-                        elif param["id_pointkey"] == "VarMaxPercent":
-                            if rated_reactive_custom is not None:
-                                reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
-                            else:
-                                reactive_limit_percent = 0
-                                rated_reactive_custom = 0
+                            
                     if power_limit_percent_enable:
                         item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
-                    if reactive_limit_percent_enable:
-                        item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+                    if reactive_limit_percent_enable == 0:
+                        item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMax"]]
 
                     if custom_watt and watt and watt >= custom_watt:
                         MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                        MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (custom_watt, id_systemp))
+            
                         custom_watt = 0
                         watt = 0
 
@@ -1880,15 +1861,23 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, us
                     payload = json.loads(message.message.decode())
                     topic = message.topic
                     await process_message(topic, payload, serial_number_project, host, port, username, password)
+                    await client.stop()
         except asyncio.TimeoutError:
             continue
         except Exception as e:
             print(f"Error while processing message: {e}")
             print('Connection lost. Trying to reconnect...')
-            await client.stop()
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
+# def test():
+#     while True:
+#         process = psutil.Process(os.getpid())
+#         print(process.memory_percent())
+#         time.sleep(1)
+
 async def main():
     tasks = []
+    # tasks.append(asyncio.create_task(test()))
+    # await asyncio.gather(*tasks, return_exceptions=False)
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
     if results_project != None :
         results_point_list_type= MySQL_Select('select * from `point_list_type`', ())

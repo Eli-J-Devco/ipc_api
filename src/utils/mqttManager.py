@@ -4,20 +4,22 @@
 # *
 # *********************************************************/
 import json
-import logging
+# import logging
 import os
-import subprocess
+# import subprocess
 import sys
-from pathlib import Path
 
-import mybatis_mapper2sql
+# import mybatis_mapper2sql
 import paho.mqtt.publish as publish
-from passlib.context import CryptContext
+
+# from pathlib import Path
+
+# from passlib.context import CryptContext
 # from database import get_db
 # from fastapi import (APIRouter, Body, Depends, FastAPI, HTTPException, Query,
 #                      Response, status)
-from sqlalchemy.orm import Session
-from sqlalchemy.sql import func, insert, join, literal_column, select, text
+# from sqlalchemy.orm import Session
+# from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
@@ -78,14 +80,7 @@ def mqtt_public(Topic,data_send):
 # 	 */
 def mqtt_public_common(host,port,topic,username,password,data_send):
     try:
-        # 
-        
-        # print(host)
-        # print(port)
-        # print(topic)
-        # print(username)
-        # print(password)
-        
+
         payload = json.dumps(data_send)
         publish.single(topic, payload, hostname=host,
                        retain=False, port=port,
