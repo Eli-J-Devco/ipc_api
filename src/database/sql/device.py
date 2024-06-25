@@ -58,7 +58,44 @@ class Query():
         WHERE 
         device_list.id={id_device};
         """
-    select_point_list=""""
+    select_only_device_use_driver="""
+        SELECT device_list.id, device_list.name,
+		device_list.mode,
+		device_list.id_template,
+        device_list.value_p, device_list.send_p,
+        device_list.rtu_bus_address AS rtu_bus_address,
+        device_list.tcp_gateway_ip AS tcp_gateway_ip,
+        device_list.tcp_gateway_port AS tcp_gateway_port,
+        device_list.point_p,device_list.value_p,device_list.send_p,
+        device_list.point_q,device_list.value_q,device_list.send_q,
+        device_list.point_pf,device_list.value_pf,device_list.send_pf,
+        device_list.enable_poweroff, device_list.inverter_shutdown,
+        driver_list.name AS connect_type, 
+        device_type.name AS device_type,
+        device_type.id AS id_device_type,
+        device_type.type AS type_device_type,
+        device_group.name AS device_group,
+        template_library.name AS template_name,
+        device_list.rated_power,
+	    device_list.rated_power_custom,
+	    device_list.min_watt_in_percent,
+        device_list.meter_type,
+        device_list.DC_voltage,
+        device_list.DC_current,
+        device_list.inverter_type,
+        device_list.parent as device_parent,
+        device_list.emergency_stop as emergency_stop
+        FROM device_list
+        INNER JOIN device_type ON device_list.id_device_type=device_type.id
+        INNER JOIN communication ON device_list.id_communication=communication.id
+        INNER JOIN driver_list ON communication.id_driver_list=driver_list.id      
+        
+        INNER JOIN template_library ON template_library.id=device_list.id_template
+        INNER JOIN device_group ON device_group.id=template_library.id_device_group
+        WHERE 
+        device_list.id={id_device};
+    """
+    select_point_list="""
         SELECT  
 
         device_point_list_map.id,
@@ -78,6 +115,7 @@ class Query():
         device_point_list_map.name,
         device_point_list_map.low_alarm,
         device_point_list_map.high_alarm,
+        device_point_list_map.output_values,
         driver_list.name AS connect_type,
         device_type.name AS device_type, 
         device_group.name AS device_group,
@@ -94,7 +132,8 @@ class Query():
         point_list.id_type_units,
         point_list.nameedit,
         point_list.unitsedit,
-
+        
+        table_type_function.value as func,
         point_list.register,
         point_list.id_type_datatype,
         point_list.id_type_byteorder,
@@ -146,6 +185,7 @@ class Query():
         LEFT JOIN config_information table_config_information ON point_list.id_config_information=table_config_information.id
         LEFT JOIN config_information table_pointtype ON point_list.id_pointtype=table_pointtype.id
         LEFT JOIN point_list_control_group  ON point_list.id_control_group=point_list_control_group.id
+        LEFT JOIN config_information table_type_function ON point_list.id_type_function=table_type_function.id
         
         Left JOIN device_panel  ON device_panel.id_point_list=device_point_list_map.id_point_list and device_panel.id_device_list=device_point_list_map.id_device_list
         
