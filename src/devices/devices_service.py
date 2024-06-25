@@ -6,6 +6,7 @@
 import base64
 import datetime
 import json
+import logging
 import uuid
 from typing import Sequence
 
@@ -199,17 +200,19 @@ class DevicesService:
                 if not await self.components_service.component_validation(body.id_device_type, sub_type, body.components, session):
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid component")
 
+            count = 0
             for _ in range(body.num_of_devices):
                 if body.num_of_devices > 1 and not is_symbolic_device:
                     if body.inc_mode == IncreaseMode.RTU:
-                        rtu_bus_address += _
+                        rtu_bus_address += count
                     else:
-                        tcp_gateway_port += _
+                        tcp_gateway_port += count
 
                 new_devices = DevicesEntity(
                     **DeviceFull(
                         **body.dict(exclude_unset=True,
-                                    exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
+                                    exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication", "name"}),
+                        name=f"{body.name} {count}",
                         rtu_bus_address=rtu_bus_address,
                         tcp_gateway_port=tcp_gateway_port,
                         rated_power_custom=body.rated_power,
@@ -220,6 +223,7 @@ class DevicesService:
                 await session.flush()
 
                 if not is_symbolic_device:
+                    count += 1
                     tg = datetime.datetime.now(datetime.timezone.utc).strftime(
                         "%Y%m%d"
                     )
