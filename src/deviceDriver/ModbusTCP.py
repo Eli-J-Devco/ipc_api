@@ -1864,22 +1864,16 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {client, serial_number_project, topic1, topic2, topic3, host, port, username, password}
 # 	 * @return all topic , all message
 # 	 */ 
-async def handle_messages_driver(client, serial_number_project, topic1, topic2, topic3, host, port, username, password):
-    topics = [topic1, topic2, topic3]
+async def handle_messages_driver(client,serial_number_project, host, port, username, password):
     try:
-        for topic in topics:
-            await client.subscribe(serial_number_project + topic)
-        
         while True:
-            for topic in topics:
-                try:
-                    message = await asyncio.wait_for(client.messages.get(), timeout=10)
-                    if message:
-                        payload = json.loads(message.message.decode())
-                        topic = message.topic
-                        await process_message(topic, payload, serial_number_project, host, port, username, password)
-                except asyncio.TimeoutError:
-                    pass
+            message = await client.messages.get()
+            if message is None:
+                print('Broker connection lost!')
+                break
+            payload = json.loads(message.message.decode())
+            topic = message.topic
+            await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
@@ -1890,20 +1884,23 @@ async def handle_messages_driver(client, serial_number_project, topic1, topic2, 
 # 	 * @return all topic , all message
 # 	 */ 
 async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3]
     try:
         client = mqttools.Client(
             host=host,
             port=port,
             username=username,
             password=bytes(password, 'utf-8'),
+            subscriptions=topics,
             connect_delays=[1, 2, 4, 8]
         )
+        
         while True:
             await client.start()
-            await handle_messages_driver(client, serial_number_project, topic1, topic2, topic3, host, port, username, password)
+            await handle_messages_driver(client, serial_number_project,host, port, username, password)
             await client.stop()
     except Exception as err:
-        print(f"Error MQTT deviceListSub: '{err}'")
+        print(f"Error MQTT sub_mqtt: '{err}'")
         
 async def main():
     tasks = []
