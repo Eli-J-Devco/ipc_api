@@ -13,7 +13,7 @@ import json
 import os
 import sys
 
-import asyncio_mqtt as aiomqtt
+# import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
 # absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
