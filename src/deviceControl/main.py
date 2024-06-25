@@ -1395,6 +1395,47 @@ async def sub_mqtt(serial_number_project, host, port, topic1, topic2, topic3, to
             await client.stop()
             await asyncio.sleep(5)  # Wait for 5 seconds before trying to reconnect
 
+# async def handle_messages_driver(client, serial_number_project, topic1, topic2, topic3,topic4,topic5,topic6,topic7, host, port, username, password):
+#     topics = [topic1, topic2, topic3,topic4,topic5,topic6,topic7]
+#     try:
+#         for topic in topics:
+#             await client.subscribe(serial_number_project + topic)
+        
+#         while True:
+#             for topic in topics:
+#                 try:
+#                     message = await asyncio.wait_for(client.messages.get(), timeout=10)
+#                     if message:
+#                         payload = json.loads(message.message.decode())
+#                         topic = message.topic
+#                         await process_message(topic, payload, serial_number_project, host, port, username, password)
+#                 except asyncio.TimeoutError:
+#                     pass
+#     except Exception as err:
+#         print(f"Error handle_messages_driver: '{err}'")
+# # Describe sub_mqtt 
+# # 	 * @description sub_mqtt
+# # 	 * @author bnguyen
+# # 	 * @since 2-05-2024
+# # 	 * @param {}
+# # 	 * @return all topic , all message
+# # 	 */ 
+# async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3,topic4,topic5,topic6,topic7):
+#     try:
+#         client = mqttools.Client(
+#             host=host,
+#             port=port,
+#             username=username,
+#             password=bytes(password, 'utf-8'),
+#             connect_delays=[1, 2, 4, 8]
+#         )
+#         while True:
+#             await client.start()
+#             await handle_messages_driver(client, serial_number_project, topic1, topic2, topic3,topic4,topic5,topic6,topic7, host, port, username, password)
+#             await client.stop()
+#     except Exception as err:
+#         print(f"Error MQTT deviceListSub: '{err}'")
+        
 async def main():
     serial_number_project = ""
     tasks = []
@@ -1429,6 +1470,20 @@ async def main():
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
+        # tasks.append(asyncio.create_task(sub_mqtt(
+        #                                         MQTT_BROKER,
+        #                                         MQTT_PORT,
+        #                                         MQTT_USERNAME,
+        #                                         MQTT_PASSWORD,
+        #                                         serial_number_project,
+        #                                         MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+        #                                         MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+        #                                         MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+        #                                         MQTT_TOPIC_SUD_DEVICES_ALL,
+        #                                         MQTT_TOPIC_SUD_MODEGET_CPU,
+        #                                         MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+        #                                         MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+        #                                         )))
         tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
                                                         MQTT_BROKER,
                                                         MQTT_PORT,
