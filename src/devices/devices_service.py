@@ -197,7 +197,8 @@ class DevicesService:
 
             if body.components:
                 sub_type = body.inverter_type if body.inverter_type else body.meter_type if body.meter_type else None
-                if not await self.components_service.component_validation(body.id_device_type, sub_type, body.components, session):
+                if not await self.components_service.component_validation(body.id_device_type, sub_type,
+                                                                          body.components, session):
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid component")
 
             count = 0
@@ -238,8 +239,17 @@ class DevicesService:
                     symbolic_devices.append(SymbolicDevice(id=new_devices.id, name=new_devices.name))
 
                 if body.components:
-                    symbolic_devices += await self.components_service.add_components_parent(new_devices.id, body.components, session)
+                    symbolic_devices += await self.components_service.add_components_parent(new_devices.id,
+                                                                                            body.components, session)
                 devices.append(new_devices.id)
+            await session.commit()
+        else:
+            devices = body.devices
+            query = (update(DevicesEntity)
+                     .where(DevicesEntity.id.in_(devices))
+                     .where(DevicesEntity.creation_state == 1)
+                     .values(creation_state=-1))
+            await session.execute(query)
             await session.commit()
 
         serial_number = await ProjectSetupService().get_project_serial_number(session)
@@ -440,14 +450,14 @@ class DevicesService:
         }
 
         update_project_mode = MessageModel(
-                metadata=MetaData(retry=3),
-                topic=Topic(target=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
-                            failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
-                message={"type": Action.SET_PROJECT_MODE.value,
-                         "code": None,
-                         "devices": [],
-                         "action": ActionEnum.Default.name}
-            )
+            metadata=MetaData(retry=3),
+            topic=Topic(target=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
+                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
+            message={"type": Action.SET_PROJECT_MODE.value,
+                     "code": None,
+                     "devices": [],
+                     "action": ActionEnum.Default.name}
+        )
         self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                          json.dumps(update_msg).encode("ascii"))
         self.sender.send(f"{serial_number}/{Action.DELETE.value}",
@@ -499,6 +509,7 @@ class DevicesService:
         :param session:
         :return:
         """
+
         @async_db_request_handler
         async def update_point_alias(point: PointEntity, count: int = 0):
             query = (update(PointEntity)
