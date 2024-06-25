@@ -213,7 +213,7 @@ class DevicesService:
         except Exception as e:
             print("Error create_dev_rs485: ", e)
         finally:
-            print('create_dev_rs485 end')
+            # print('create_dev_rs485 end')
             await session.close()
     @async_db_request_handler
     async def delete_dev(self, delete_devices,session: AsyncSession):

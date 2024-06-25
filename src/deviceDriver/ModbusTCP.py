@@ -1,5 +1,3 @@
-
-
 # ********************************************************
 # * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
 # * All rights reserved.
@@ -9,27 +7,25 @@
 import asyncio
 import datetime
 import json
-import math
+# import math
 import os
 import sys
-import time
-from datetime import datetime as DT
 
-import asyncio_mqtt as aiomqtt
+# import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
 # absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
-import mybatis_mapper2sql
-# import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
-# from async_paho_mqtt_client import AsyncClient
-# from asyncio_paho import AsyncioPahoClient
-# from asyncio_paho.client import AsyncioMqttAuthError
-# 
+# import mybatis_mapper2sql
+# import paho.mqtt.publish as publish
+import psutil
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
+
+# import time
+# from datetime import datetime as DT
+
 
 sys.stdout.reconfigure(encoding='utf-8')
 # sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
@@ -38,6 +34,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
+from database.sql.device import all_query as device_query
 from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
@@ -164,24 +161,7 @@ def point_object(Config,
                  output_values=None,
                  slope=None
                  ):
-    # 
-    # modify_value=None
-    # match point_key:
-    #     case "WMaxPercent":
-    #         modify_value=int(output_values)
-    #         power_limit_percent=modify_value
-    #     case "WMaxPercentEnable":
-    #         modify_value=int(output_values)
-    #         power_limit_percent_enable=modify_value
-    #     case "VarMaxPercent":
-    #         modify_value=int(output_values)
-    #         reactive_limit_percent=modify_value
-    #     case "VarMaxPercentEnable":
-    #         modify_value=int(output_values)
-    #         reactive_limit_percent_enable=modify_value
-    #     case _:
     modify_value=value
-    
     return {"config":Config,
             "id_point_list_type":id_point_type,
             "name_point_list_type":name_point_type,
@@ -828,14 +808,6 @@ def path_directory_relative(project_name):
     result=path_os[0:int(index_os)+len(string_find)]
     # print("Path directory relative:", result)
     return result
-# path=path_directory_relative("ipc_api") # name of project
-# sys.path.append(path)
-# path=""
-# from database import get_db
-# from libcom import func_mqtt_public_alarm
-# from models import Alarm, Device_list, Error, Project_setup, Screen
-
-# db=get_db()
 # Describe check_inverter_device 
 # 	 * @description check_inverter_device
 # 	 * @author bnguyen
@@ -1084,37 +1056,38 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
         device_id = id_device
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        xml=pathSource + '/mybatis/device_list.xml')
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True) 
+        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        # xml=pathSource + '/mybatis/device_list.xml')
+        # statement = mybatis_mapper2sql.get_statement(
+        # mapper, result_type='list', reindent=True, strip_comments=True) 
         # 
-        query_all= func_check_data_mybatis(statement,0,"select_all_device")
-        query_only_device=func_check_data_mybatis(statement,1,"select_only_device")
-        query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
-        query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
-        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
-        # 
+        # query_all= func_check_data_mybatis(statement,0,"select_all_device")
+        # query_only_device=func_check_data_mybatis(statement,1,"select_only_device")
+        # query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
+        # query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
         
-        results_device = MySQL_Select(query_only_device, (id_device,))
-        # print(results_device)
+        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
+        # if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
+        #     pass
+        # else:           
+        #     print("Error not found data in file mybatis")
+        #     return -1
+        # # 
+        query_only_device=device_query.select_only_device_use_driver.format(id_device=id_device)
+        results_device =await MySQL_Select_v1(query_only_device)
         # 
         if type(results_device) == list and len(results_device)>=1:
             pass
         else:           
             print("Error not found data device")
             return -1
-        # print(f'results_device: {results_device}')
         id_template=results_device[0]["id_template"]
-        
-        # print(f'query_register_block: {query_register_block}')
-        results_RBlock= MySQL_Select(query_register_block, (id_template,))
-        results_default_Plist= MySQL_Select(query_point_list, (id_device,))
+        # 
+        query_point_list=device_query.select_point_list.format(id_device=id_device)
+        query_register_block=device_query.select_register_block.format(id_template=id_template)
+        # 
+        results_RBlock=await MySQL_Select_v1(query_register_block)
+        results_default_Plist=await MySQL_Select_v1(query_point_list)
         # Check the register Modbus
         if type(results_RBlock) == list and len(results_RBlock)>=1:
             pass
@@ -1379,6 +1352,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         # 0=Independent, 1=Depends one, 2=Depends two
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
+            process = psutil.Process(os.getpid())
+            # print(f'memory: {process.memory_percent()}')
+            memory=round(process.memory_percent(),2)
             global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
             global device_id
@@ -1619,6 +1595,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             combiner_box=monitor_service_init.combiner_box(new_point)
             
             data_device={
+                "memory":memory,
                 "id_device":device_id,
                 "parent":device_parent,
                 "mode":device_mode,
@@ -1642,7 +1619,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power_custom":rated_power_custom,
                 "min_watt_in_percent":min_watt_in_percent,
                 "rated_reactive_custom":rated_reactive_custom,
-                "emergency_stop":emergency_stop
+                "emergency_stop":emergency_stop,
+                
             }
             # data_device_short={
             #     "id_device":device_id,

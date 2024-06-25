@@ -64,17 +64,6 @@ from apiGateway.template import template_service
 from apiGateway.upload_channel import upload_channel_service
 
 
-# ----------------- API
-# ----------------- APIGateway
-# ----------------- Dev
-# ----------------- LogDevice
-    # cron job device  According to time
-# ----------------- LogFile
-    # create file device According to channel
-# ----------------- MQTTControl
-    # 
-# ----------------- UpData
-    # upData According to channel
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -354,12 +343,15 @@ class apiGateway:
     async def deviceListPub(self):
         try:
             try:
-                
+                mqtt_init=mqttService(self.MQTT_BROKER,
+                    self.MQTT_PORT,
+                    self.MQTT_USERNAME,
+                    self.MQTT_PASSWORD,
+                    self.MQTT_TOPIC)
                 db_new=await db_config.get_db()
                 result= await db_new.execute(text("select * from `device_list` where `status`=1;"))
                 
                 result_device=[row._asdict() for row in result.all()]
-
                 for item in result_device:
                     self.DeviceList.append({
                         "id_device":item["id"],
@@ -375,7 +367,7 @@ class apiGateway:
                 print('An exception occurred',err)
             finally:
                 await db_new.close()
-            topic=f"{self.MQTT_TOPIC}/Devices/All"
+            # topic=f"{self.MQTT_TOPIC}/Devices/All"
             while True:
                 mqtt_data=[]
                 for item in self.DeviceList:
@@ -412,13 +404,8 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
-
-                mqtt_public_common(self.MQTT_BROKER,
-                                self.MQTT_PORT,
-                                topic,
-                                self.MQTT_USERNAME,
-                                self.MQTT_PASSWORD,
-                                mqtt_data)
+                await mqtt_init.send("Devices/All",
+                               mqtt_data)
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
@@ -444,7 +431,6 @@ class apiGateway:
                                 # use run with ubuntu/linux
                                 subprocess.Popen(
                                     f'sudo reboot', shell=True).communicate()
-                    
         except Exception as err:
             print('Error MQTT handle_ipc_system')        
     async def ipc_system(self):
@@ -464,8 +450,6 @@ class apiGateway:
         except Exception as err:
             print('Error MQTT system_inform: ',err)
     # 
-
-
 async def main():
     tasks = []
     db_new=await db_config.get_db()
@@ -479,10 +463,6 @@ async def main():
                             MQTT_USERNAME,
                             MQTT_PASSWORD,
                             )
-
-    
-    
-    
     tasks.append(asyncio.create_task(
         api_gateway.managerApplicationsWithPM2()))
     tasks.append(asyncio.create_task(
@@ -493,7 +473,6 @@ async def main():
         api_gateway.ipc_system()))
     # tasks.append(asyncio.create_task(
     #     api_gateway.single_line_diagram()))
-    
     await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     try:
@@ -501,8 +480,6 @@ if __name__ == '__main__':
             asyncio.set_event_loop_policy(
             asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
         asyncio.run(main())
-        # loop = asyncio.get_event_loop()
-        # loop.run_until_complete(main())
     except KeyboardInterrupt:
         print ('API GATEWAY stopped.')
         sys.exit(0)

@@ -7,16 +7,8 @@ import os
 import sys
 import time
 
-# import asyncio
-# import threading
 import mysql.connector
 
-# import pandas as pd
-# from mysql.connector import Error
-
-# import mybatis_mapper2sql
-# sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-#                 ("src"))
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")+"/"
 sys.path.append(path)
 from configs.config import Config
@@ -26,14 +18,6 @@ DATABASE_PORT = Config.DATABASE_PORT
 DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 DATABASE_USERNAME = Config.DATABASE_USERNAME
-
-# print(f'DATABASE_HOSTNAME: {DATABASE_HOSTNAME}')
-# print(f'DATABASE_PORT: {DATABASE_PORT}')
-# print(f'DATABASE_PASSWORD: {DATABASE_PASSWORD}')
-# print(f'DATABASE_NAME: {DATABASE_NAME}')
-# print(f'DATABASE_USERNAME: {DATABASE_USERNAME}')
-
-
 def create_server_connection(host_name, port_name, user_name, user_password, db_name):
     retry_count = 0
     max_retries = 3
