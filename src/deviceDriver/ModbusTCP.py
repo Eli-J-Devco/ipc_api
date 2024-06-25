@@ -155,24 +155,7 @@ def point_object(Config,
                  output_values=None,
                  slope=None
                  ):
-    # 
-    # modify_value=None
-    # match point_key:
-    #     case "WMaxPercent":
-    #         modify_value=int(output_values)
-    #         power_limit_percent=modify_value
-    #     case "WMaxPercentEnable":
-    #         modify_value=int(output_values)
-    #         power_limit_percent_enable=modify_value
-    #     case "VarMaxPercent":
-    #         modify_value=int(output_values)
-    #         reactive_limit_percent=modify_value
-    #     case "VarMaxPercentEnable":
-    #         modify_value=int(output_values)
-    #         reactive_limit_percent_enable=modify_value
-    #     case _:
     modify_value=value
-    
     return {"config":Config,
             "id_point_list_type":id_point_type,
             "name_point_list_type":name_point_type,
@@ -1887,7 +1870,7 @@ async def main():
                                                         MQTT_USERNAME,
                                                         MQTT_PASSWORD
                                                         )))
-        
+        #
         await asyncio.gather(*tasks, return_exceptions=False)
     else:
         pass
