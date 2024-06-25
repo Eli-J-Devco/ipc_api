@@ -4,6 +4,15 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+class UtilsActionEnum(enum.Enum):
+    RetryCreateDevice = 0
+
+
+class ActionEnum(enum.Enum):
+    Default = 0
+    Utils = 1
+
+
 class MetadataModel(BaseModel):
     retry: int
 
@@ -56,6 +65,7 @@ class PointMPPT(Point):
 class Communication(BaseModel):
     id: int
     name: str
+    id_driver_list: int
 
 
 class DeviceType(BaseModel):

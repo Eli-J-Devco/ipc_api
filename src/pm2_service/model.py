@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 class CreateCodeEnum(enum.Enum):
     CreateRS485Dev = 1
-    CreateTCPDev = 3
+    CreateTCPDev = 2
 
 
 class DeleteCodeEnum(enum.Enum):

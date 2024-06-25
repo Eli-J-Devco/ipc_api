@@ -48,6 +48,7 @@ class Communication(config.Base):
 
     id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
+    id_driver_list: Mapped[int] = mapped_column(INTEGER, nullable=False)
 
 
 class DeviceType(config.Base):
