@@ -314,7 +314,8 @@ class DevicesService:
                             failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
                 message={"type": Action.DELETE.value,
                          "code": CodeEnum.DeleteDev.name,
-                         "devices": deleted_devices}
+                         "devices": deleted_devices,
+                         "action": ActionEnum.Default.name}
             )
             await self.sender.start()
             self.sender.send(f"{serial_number}/{Action.DELETE.value}",
@@ -440,7 +441,8 @@ class DevicesService:
                             failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
                 message={"type": Action.SET_PROJECT_MODE.value,
                          "code": None,
-                         "devices": []}
+                         "devices": [],
+                         "action": ActionEnum.Default.name}
             )
         self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                          json.dumps(update_msg).encode("ascii"))
@@ -474,7 +476,8 @@ class DevicesService:
                         failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
             message={"type": Action.UPDATE.value,
                      "code": CodeEnum.UpdateTemplate.name,
-                     "devices": device_id}
+                     "devices": device_id,
+                     "action": ActionEnum.Default.name}
         )
         await self.sender.start()
         self.sender.send(f"{serial_number}/{Action.UPDATE.value}",
