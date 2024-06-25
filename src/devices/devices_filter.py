@@ -18,6 +18,11 @@ class CodeEnum(enum.Enum):
     UpdateTemplate = -2
 
 
+class ActionEnum(enum.Enum):
+    Default = 0
+    Utils = 1
+
+
 class IncreaseMode:
     TCP: int = 1
     RTU: int = 2
@@ -59,13 +64,23 @@ class DeviceSecret(BaseModel):
     secret: Optional[str] = None
 
 
-class AddDevicesFilter(AddDevicesModeFilter, AddInverterFilter, AddMeterFilter, AddComponentFilter, DeviceSecret):
-    name: str
-    id_device_type: int
-    id_device_group: int
+class RetryCreateDevice(BaseModel):
+    is_retry: Optional[bool] = False
+    devices: Optional[list[int]] = None
+
+
+class AddDevicesFilter(AddDevicesModeFilter,
+                       AddInverterFilter,
+                       AddMeterFilter,
+                       AddComponentFilter,
+                       DeviceSecret,
+                       RetryCreateDevice):
+    name: Optional[str] = None
+    id_device_type: Optional[int] = None
+    id_device_group: Optional[int] = None
     id_template: Optional[int] = None
-    id_communication: int
-    device_virtual: bool
+    id_communication: Optional[int] = None
+    device_virtual: Optional[bool] = None
     rtu_bus_address: Optional[int] = None
     tcp_gateway_ip: Optional[str] = None
     tcp_gateway_port: Optional[int] = None

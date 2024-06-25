@@ -76,6 +76,7 @@ class DeviceFull(BaseModel):
     inverter_shutdown: Optional[datetime.date] = None
     meter_type: Optional[int] = None
     inverter_type: Optional[int] = 2
+    creation_state: Optional[int] = -1
     status: Optional[bool] = True
     driver_type: Optional[str] = None
     device_type: Optional[DeviceType] = None

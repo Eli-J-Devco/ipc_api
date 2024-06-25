@@ -21,7 +21,7 @@ from .components_service import ComponentsService
 from .devices_entity import (Devices as DevicesEntity,
                              )
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
-    DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter
+    DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter, ActionEnum
 from .devices_model import Devices, DeviceFull, Action
 from .devices_utils_service import UtilsService
 from ..point.point_entity import Point as PointEntity
@@ -185,61 +185,68 @@ class DevicesService:
         :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
-        device_type = await self.utils_service.get_device_type_by_id(body.id_device_type, session)
-        is_symbolic_device = device_type.type == 1
+        is_symbolic_device = False
         devices = []
         symbolic_devices = []
-        rtu_bus_address = body.rtu_bus_address
-        tcp_gateway_port = body.tcp_gateway_port
-
-        if body.components:
-            sub_type = body.inverter_type if body.inverter_type else body.meter_type if body.meter_type else None
-            if not await self.components_service.component_validation(body.id_device_type, sub_type, body.components, session):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid component")
-
-        for _ in range(body.num_of_devices):
-            if body.num_of_devices > 1 and not is_symbolic_device:
-                if body.inc_mode == IncreaseMode.RTU:
-                    rtu_bus_address += _
-                else:
-                    tcp_gateway_port += _
-
-            new_devices = DevicesEntity(
-                **DeviceFull(
-                    **body.dict(exclude_unset=True,
-                                exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
-                    rtu_bus_address=rtu_bus_address,
-                    tcp_gateway_port=tcp_gateway_port,
-                    rated_power_custom=body.rated_power,
-                    id_communication=body.id_communication if not is_symbolic_device else None
-                ).dict(exclude_none=True, exclude={"children"})
-            )
-            session.add(new_devices)
-            await session.flush()
-
-            if not is_symbolic_device:
-                tg = datetime.datetime.now(datetime.timezone.utc).strftime(
-                    "%Y%m%d"
-                )
-
-                query = (update(DevicesEntity)
-                         .where(DevicesEntity.id == new_devices.id)
-                         .values(table_name=f"dev_{new_devices.id}",
-                                 view_table=f"dev_{new_devices.id}_{tg}"))
-
-                await session.execute(query)
-            else:
-                symbolic_devices.append(SymbolicDevice(id=new_devices.id, name=new_devices.name))
+        if not body.is_retry:
+            device_type = await self.utils_service.get_device_type_by_id(body.id_device_type, session)
+            is_symbolic_device = device_type.type == 1
+            rtu_bus_address = body.rtu_bus_address
+            tcp_gateway_port = body.tcp_gateway_port
 
             if body.components:
-                symbolic_devices += await self.components_service.add_components_parent(new_devices.id, body.components, session)
-            devices.append(new_devices.id)
-        await session.commit()
+                sub_type = body.inverter_type if body.inverter_type else body.meter_type if body.meter_type else None
+                if not await self.components_service.component_validation(body.id_device_type, sub_type, body.components, session):
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid component")
+
+            for _ in range(body.num_of_devices):
+                if body.num_of_devices > 1 and not is_symbolic_device:
+                    if body.inc_mode == IncreaseMode.RTU:
+                        rtu_bus_address += _
+                    else:
+                        tcp_gateway_port += _
+
+                new_devices = DevicesEntity(
+                    **DeviceFull(
+                        **body.dict(exclude_unset=True,
+                                    exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication"}),
+                        rtu_bus_address=rtu_bus_address,
+                        tcp_gateway_port=tcp_gateway_port,
+                        rated_power_custom=body.rated_power,
+                        id_communication=body.id_communication if not is_symbolic_device else None
+                    ).dict(exclude_none=True, exclude={"children"})
+                )
+                session.add(new_devices)
+                await session.flush()
+
+                if not is_symbolic_device:
+                    tg = datetime.datetime.now(datetime.timezone.utc).strftime(
+                        "%Y%m%d"
+                    )
+
+                    query = (update(DevicesEntity)
+                             .where(DevicesEntity.id == new_devices.id)
+                             .values(table_name=f"dev_{new_devices.id}",
+                                     view_table=f"dev_{new_devices.id}_{tg}"))
+
+                    await session.execute(query)
+                else:
+                    symbolic_devices.append(SymbolicDevice(id=new_devices.id, name=new_devices.name))
+
+                if body.components:
+                    symbolic_devices += await self.components_service.add_components_parent(new_devices.id, body.components, session)
+                devices.append(new_devices.id)
+            await session.commit()
 
         serial_number = await ProjectSetupService().get_project_serial_number(session)
         await self.sender.start()
         if not is_symbolic_device:
-            code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
+            code = None
+            action = ActionEnum.Utils.name
+            if not body.is_retry:
+                code = CodeEnum.CreateRS485Dev.name if body.id_communication < 3 else CodeEnum.CreateTCPDev.name
+                action = ActionEnum.Default.name
+
             creating_msg = MessageModel(
                 metadata=MetaData(retry=3,
                                   code=body.secret),
@@ -247,7 +254,8 @@ class DevicesService:
                             failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
                 message={"type": Action.CREATE.value,
                          "code": code,
-                         "devices": devices}
+                         "devices": devices if not body.is_retry else body.devices,
+                         "action": action}
             )
             self.sender.send(f"{serial_number}/{Action.CREATE.value}",
                              base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))

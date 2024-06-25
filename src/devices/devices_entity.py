@@ -93,6 +93,7 @@ class Devices(config.Base):
     inverter_shutdown: Mapped[datetime.date] = mapped_column(Date, nullable=True)
     meter_type: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
+    creation_state: Mapped[int] = mapped_column(Integer, nullable=True, default=-1)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
