@@ -1,27 +1,32 @@
 import logging
 
+from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic
 from sqlalchemy import Double
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from .create_table_module.create_table_service import TableColumn
+from .create_table_module.create_table_service import TableColumn, CreateTableService
+from .delete_table_module.delete_table_service import DeleteTableService
 from .devices_model import DeviceModel, Action, DeviceState
 from .pm2_service.model import MessageModel as PM2MessageModel, PayloadModel, DeviceModel as PM2DeviceModel
+from .pm2_service.pm2_service import PM2Service
+from .update_table_module.update_table_service import UpdateTableService
 
 logger = logging.getLogger(__name__)
 
 
 class DeviceService:
     def __init__(self,
-                 session,
-                 create_table_service,
-                 update_table_service,
-                 delete_table_service,
-                 retry_publisher,
-                 dead_letter_publisher,
-                 serial_number,
+                 session: AsyncSession,
+                 create_table_service: CreateTableService,
+                 update_table_service: UpdateTableService,
+                 delete_table_service: DeleteTableService,
+                 retry_publisher: Publisher,
+                 dead_letter_publisher: Publisher,
+                 serial_number: str,
                  handle_error,
                  set_project_mode,
-                 pm2_service):
+                 pm2_service: PM2Service):
         self.session = session
         self.create_table_service = create_table_service
         self.update_table_service = update_table_service
@@ -70,10 +75,6 @@ class DeviceService:
                                                       if device.communication else None,
                                                       mode=0,
                                                       device_type_value=device.device_type.type, ))
-                    if action_type == Action.CREATE.value:
-                        await self.update_table_service.update_device_status(device.id,
-                                                                             DeviceState.Success.value,
-                                                                             self.session)
 
             await self.set_project_mode()
             if len(send_device) > 0:

@@ -73,6 +73,11 @@ class DeviceType(BaseModel):
     type: int
 
 
+class SymbolicDevice(BaseModel):
+    id: int
+    name: str
+
+
 class DeviceModel(BaseModel):
     id: int
     name: str
