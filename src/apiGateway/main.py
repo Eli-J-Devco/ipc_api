@@ -351,15 +351,20 @@ class apiGateway:
         except Exception as err:
             print('Error MQTT deviceListSub')
     # 
+    
+
     async def deviceListPub(self):
         try:
             try:
-                
+                mqtt_init=mqttService(self.MQTT_BROKER,
+                    self.MQTT_PORT,
+                    self.MQTT_USERNAME,
+                    self.MQTT_PASSWORD,
+                    self.MQTT_TOPIC)
                 db_new=await db_config.get_db()
                 result= await db_new.execute(text("select * from `device_list` where `status`=1;"))
                 
                 result_device=[row._asdict() for row in result.all()]
-
                 for item in result_device:
                     self.DeviceList.append({
                         "id_device":item["id"],
@@ -375,7 +380,7 @@ class apiGateway:
                 print('An exception occurred',err)
             finally:
                 await db_new.close()
-            topic=f"{self.MQTT_TOPIC}/Devices/All"
+            # topic=f"{self.MQTT_TOPIC}/Devices/All"
             while True:
                 mqtt_data=[]
                 for item in self.DeviceList:
@@ -412,13 +417,8 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
-
-                mqtt_public_common(self.MQTT_BROKER,
-                                self.MQTT_PORT,
-                                topic,
-                                self.MQTT_USERNAME,
-                                self.MQTT_PASSWORD,
-                                mqtt_data)
+                await mqtt_init.send("Devices/All",
+                               mqtt_data)
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
