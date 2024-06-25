@@ -777,36 +777,6 @@ def func_check_data_mybatis(data,item,object_name):
     except Exception as err:
       print('Error not find object mybatis')
       return ""
-
-# # ----- MQTT -----
-# # Describe functions before writing code
-# # /**
-# # 	 * @description public data MQTT
-# # 	 * @author vnguyen
-# # 	 * @since 10-11-2023
-# # 	 * @param {host, port,topic, username, password, data_send}
-# # 	 * @return data ()
-# # 	 */
-# def func_mqtt_public(host, port,topic, username, password, data_send):
-#     try:
-#         payload = json.dumps(data_send)
-#         # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
-#         #                     "%Y%m%d_%H%M%S"
-#         #                 )
-#         publish.single(topic, payload, hostname=host,
-#                     #    client_id=str(client_id),
-#                        retain=False, port=port,
-#                        auth = {'username':f'{username}', 
-#                                'password':f'{password}'})
-#         # publish.single(Topic, payload, hostname=Broker,
-#         #             retain=False, port=Port)
-#     # except Error as err:
-#     #     print(f"Error MQTT public: '{err}'")
-#     except Exception as err:
-#     # except:
-        
-#         print(f"Error MQTT public: '{err}'")
-#         pass
 def path_directory_relative(project_name):
     if project_name =="":
       return -1
@@ -819,14 +789,6 @@ def path_directory_relative(project_name):
     result=path_os[0:int(index_os)+len(string_find)]
     # print("Path directory relative:", result)
     return result
-# path=path_directory_relative("ipc_api") # name of project
-# sys.path.append(path)
-# path=""
-# from database import get_db
-# from libcom import func_mqtt_public_alarm
-# from models import Alarm, Device_list, Error, Project_setup, Screen
-
-# db=get_db()
 # Describe check_inverter_device 
 # 	 * @description check_inverter_device
 # 	 * @author bnguyen
