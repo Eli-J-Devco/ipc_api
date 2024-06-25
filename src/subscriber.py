@@ -154,11 +154,13 @@ class MQTTSubscriber(Subscriber):
             send_device = []
             for device in devices_info:
                 result[device.id] = await self.action[action_type](device, retry, code, meta_code)
-                if result == 200:
+                if result[device.id] == 200:
                     send_device.append(PM2DeviceModel(id=device.id,
                                                       name=device.name,
-                                                      id_communication=device.communication.id if device.communication else None,
-                                                      connect_type=device.communication.name if device.communication else None,
+                                                      id_communication=device.communication.id
+                                                      if device.communication else None,
+                                                      connect_type=device.communication.name
+                                                      if device.communication else None,
                                                       mode=0,
                                                       device_type_value=device.device_type.type, ))
                     if action_type == Action.CREATE.value:
