@@ -688,6 +688,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         "status": status
     }
     }
+    print(f"total_power:{total_power},total_wmax_man_temp:{total_wmax_man_temp}")
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
 # Describe get_value_meter 
@@ -942,7 +943,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
             
         if len(devices) == len(device_list_control_power_limit) :
-            print("p_for_each_device_power_limit",p_for_each_device_power_limit)
+            # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 
