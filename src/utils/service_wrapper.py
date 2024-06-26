@@ -5,11 +5,11 @@
 # *********************************************************/
 import json
 import logging
-import types
-from typing import Callable, Tuple, Any, Dict, Coroutine
 
-from fastapi.responses import JSONResponse
 from fastapi import status, HTTPException
+from mqtt_service.model import MessageModel
+from mqtt_service.mqtt import Publisher
+from mqttools import SessionResumeError
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
@@ -105,3 +105,22 @@ class ServiceWrapper:
                 logging.error("====================================")
                 return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"message": str(e)})
         return wrapper
+
+    @staticmethod
+    async def publish_message(publisher: Publisher, topic: str,
+                              message: list[MessageModel | dict], resume_session: bool = True):
+        """
+        Publish message to MQTT broker
+        """
+        try:
+            await publisher.start(resume_session=resume_session)
+        except SessionResumeError:
+            await publisher.start()
+        finally:
+            for msg in message:
+                if isinstance(msg, MessageModel):
+                    publisher.send(topic, json.dumps(msg.dict()).encode("ascii"))
+
+                if isinstance(msg, dict):
+                    publisher.send(topic, json.dumps(msg).encode("ascii"))
+            await publisher.stop()

@@ -6,7 +6,6 @@
 import base64
 import datetime
 import json
-import logging
 import uuid
 from typing import Sequence
 
@@ -25,12 +24,13 @@ from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceF
     DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter, ActionEnum
 from .devices_model import Devices, DeviceFull, Action
 from .devices_utils_service import UtilsService
-from ..point.point_entity import Point as PointEntity
 from ..config import env_config
 from ..device_point.device_point_entity import DevicePointMap as DevicePointMapEntity, DevicePointMap
+from ..point.point_entity import Point as PointEntity
 from ..point_config.point_config_filter import PointType
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..utils.pagination_model import Pagination
+from ..utils.service_wrapper import ServiceWrapper
 from ..utils.utils import generate_pagination_response
 
 
@@ -253,7 +253,6 @@ class DevicesService:
             await session.commit()
 
         serial_number = await ProjectSetupService().get_project_serial_number(session)
-        await self.sender.start()
         if not is_symbolic_device:
             code = None
             action = ActionEnum.Utils.name
@@ -271,8 +270,9 @@ class DevicesService:
                          "devices": devices if not body.is_retry else body.devices,
                          "action": action}
             )
-            self.sender.send(f"{serial_number}/{Action.CREATE.value}",
-                             base64.b64encode(json.dumps(creating_msg.dict()).encode("ascii")))
+            await ServiceWrapper.publish_message(publisher=self.sender,
+                                                 topic=f"{serial_number}/{Action.CREATE.value}",
+                                                 message=[creating_msg])
 
         if len(symbolic_devices) > 0:
             msg = {
@@ -281,9 +281,10 @@ class DevicesService:
                     "device": [device.dict() for device in symbolic_devices]
                 }
             }
-            self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
-                             json.dumps(msg))
-        await self.sender.stop()
+            await ServiceWrapper.publish_message(publisher=self.sender,
+                                                 topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
+                                                 message=[msg])
+
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
         return await self.get_devices(ListDeviceFilter(), session, pagination)
@@ -331,10 +332,9 @@ class DevicesService:
                          "devices": deleted_devices,
                          "action": ActionEnum.Default.name}
             )
-            await self.sender.start()
-            self.sender.send(f"{serial_number}/{Action.DELETE.value}",
-                             base64.b64encode(json.dumps(del_msg.dict()).encode("ascii")))
-            await self.sender.stop()
+            await ServiceWrapper.publish_message(publisher=self.sender,
+                                                 topic=f"{serial_number}/{Action.DELETE.value}",
+                                                 message=[del_msg])
 
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
@@ -431,7 +431,7 @@ class DevicesService:
         await session.commit()
 
         serial_number = await ProjectSetupService().get_project_serial_number(session)
-        await self.sender.start()
+        init_msg = []
         if len(symbolic_devices) > 0:
             msg = {
                 "CODE": "CreateNoLogDev",
@@ -439,8 +439,7 @@ class DevicesService:
                     "device": [device.dict() for device in symbolic_devices]
                 }
             }
-            self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
-                             json.dumps(msg))
+            init_msg.append(msg)
 
         update_msg = {
             "CODE": CodeEnum.UpdateDev.name,
@@ -448,6 +447,7 @@ class DevicesService:
                 "id": body.id,
             }
         }
+        init_msg.append(update_msg)
 
         update_project_mode = MessageModel(
             metadata=MetaData(retry=3),
@@ -458,11 +458,12 @@ class DevicesService:
                      "devices": [],
                      "action": ActionEnum.Default.name}
         )
-        self.sender.send(f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
-                         json.dumps(update_msg).encode("ascii"))
-        self.sender.send(f"{serial_number}/{Action.DELETE.value}",
-                         base64.b64encode(json.dumps(update_project_mode.dict()).encode("ascii")))
-        await self.sender.stop()
+        await ServiceWrapper.publish_message(publisher=self.sender,
+                                             topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
+                                             message=init_msg)
+        await ServiceWrapper.publish_message(publisher=self.sender,
+                                             topic=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
+                                             message=[update_project_mode])
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
     @async_db_request_handler
@@ -493,10 +494,9 @@ class DevicesService:
                      "devices": device_id,
                      "action": ActionEnum.Default.name}
         )
-        await self.sender.start()
-        self.sender.send(f"{serial_number}/{Action.UPDATE.value}",
-                         base64.b64encode(json.dumps(update_msg.dict()).encode("ascii")))
-        await self.sender.stop()
+        await ServiceWrapper.publish_message(publisher=self.sender,
+                                             topic=f"{serial_number}/{Action.UPDATE.value}",
+                                             message=[update_msg])
         return True
 
     @async_db_request_handler
