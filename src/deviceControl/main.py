@@ -1449,20 +1449,20 @@ async def main():
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
-        tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
-                                                        MQTT_BROKER,
-                                                        MQTT_PORT,
-                                                        MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-                                                        MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-                                                        MQTT_TOPIC_SUD_DEVICES_ALL,
-                                                        MQTT_TOPIC_SUD_MODEGET_CPU,
-                                                        MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
-                                                        MQTT_TOPIC_SUD_SETTING_ARLAM,
-                                                        MQTT_USERNAME,
-                                                        MQTT_PASSWORD
-                                                        )))
+        tasks.append(asyncio.create_task(sub_mqtt(
+                                                MQTT_BROKER,
+                                                MQTT_PORT,
+                                                MQTT_USERNAME,
+                                                MQTT_PASSWORD,
+                                                serial_number_project,
+                                                MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+                                                MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+                                                MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                MQTT_TOPIC_SUD_MODEGET_CPU,
+                                                MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+                                                MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+                                                )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
     else:
