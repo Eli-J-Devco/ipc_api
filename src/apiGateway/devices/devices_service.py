@@ -95,6 +95,7 @@ class DevicesService:
             await restart_program_pm2_many(pm2_app_list)
             # 
             # device_id=[296,303]
+            print(f'device_id: {device_id}')
             if device_id:
                 query = (update(DevicesEntity)
                     .where(DevicesEntity.id.in_(device_id))
