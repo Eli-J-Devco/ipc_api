@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import base64
 import json
 import logging
 
@@ -24,6 +25,7 @@ class ServiceWrapper:
         :param func:
         :return: JSONResponse
         """
+
         async def wrapper(*args, **kwargs) -> JSONResponse:
             """
             Wrapper for async function
@@ -79,6 +81,7 @@ class ServiceWrapper:
         :param func:
         :return: JSONResponse
         """
+
         def wrapper(*args, **kwargs) -> JSONResponse:
             """
             Wrapper for sync function
@@ -104,23 +107,50 @@ class ServiceWrapper:
                 logging.error("Exception: " + str(e))
                 logging.error("====================================")
                 return JSONResponse(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, content={"message": str(e)})
+
         return wrapper
 
     @staticmethod
+    def init_publisher(host: str, port: int, username: str, password: str, client_id: str,
+                       subscriptions: list[str], will_retain: bool, will_qos: int):
+        """
+        Initialize publisher
+        """
+        return Publisher(host=host,
+                         port=port,
+                         subscriptions=subscriptions,
+                         username=username,
+                         password=password.encode("utf-8"),
+                         client_id=client_id,
+                         will_retain=will_retain,
+                         will_qos=will_qos)
+
+    @staticmethod
     async def publish_message(publisher: Publisher, topic: str,
-                              message: list[MessageModel | dict], resume_session: bool = True):
+                              message: list[MessageModel | dict], resume_session: bool = True,
+                              publisher_info: dict = None):
         """
         Publish message to MQTT broker
         """
+        if not publisher:
+            publisher = Publisher(**publisher_info)
+        await publisher.stop()
         try:
             await publisher.start(resume_session=resume_session)
         except SessionResumeError:
-            await publisher.start()
-        finally:
-            for msg in message:
-                if isinstance(msg, MessageModel):
-                    publisher.send(topic, json.dumps(msg.dict()).encode("ascii"))
+            try:
+                await publisher.start()
+                for msg in message:
+                    if isinstance(msg, MessageModel):
+                        msg = base64.b64encode(json.dumps(msg.dict()).encode("ascii"))
 
-                if isinstance(msg, dict):
-                    publisher.send(topic, json.dumps(msg).encode("ascii"))
-            await publisher.stop()
+                    if isinstance(msg, dict):
+                        msg = base64.b64encode(json.dumps(msg).encode("ascii"))
+
+                    publisher.send(topic, msg)
+            except Exception as e:
+                logging.error("====================================")
+                logging.error("Exception: " + str(e))
+                logging.error("====================================")
+            finally:
+                await publisher.stop()

@@ -3,9 +3,11 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import asyncio
 import base64
 import datetime
 import json
+import logging
 import uuid
 from typing import Sequence
 
@@ -37,18 +39,28 @@ from ..utils.utils import generate_pagination_response
 @Injectable
 class DevicesService:
     def __init__(self):
-        # Initialize MQTT publisher
-        self.sender = Publisher(
-            host=env_config.MQTT_BROKER,
-            port=env_config.MQTT_PORT,
-            subscriptions=["#"],
-            username=env_config.MQTT_USERNAME,
-            password=env_config.MQTT_PASSWORD.encode("utf-8"),
-            client_id=f"publisher-creating-{uuid.uuid4()}",
-            will_qos=2
-        )
+        self.publisher = None
+        self.publisher_info = {
+            "host": env_config.MQTT_BROKER,
+            "port": env_config.MQTT_PORT,
+            "username": env_config.MQTT_USERNAME,
+            "password": env_config.MQTT_PASSWORD.encode("utf-8"),
+            "client_id": f"publisher-creating-{uuid.uuid4()}",
+            "will_qos": 2
+        }
         self.utils_service = UtilsService()
         self.components_service = ComponentsService(utils_service=self.utils_service)
+
+    @async_db_request_handler
+    async def get_publisher_info(self, session: AsyncSession):
+        """
+        Set up publisher
+        """
+        if "subscriptions" not in self.publisher_info:
+            serial_number = await ProjectSetupService().get_project_serial_number(session)
+            self.publisher_info["subscriptions"] = [serial_number]
+
+        return self.publisher_info
 
     @async_db_request_handler
     async def get_devices(self,
@@ -205,15 +217,15 @@ class DevicesService:
             for _ in range(body.num_of_devices):
                 if body.num_of_devices > 1 and not is_symbolic_device:
                     if body.inc_mode == IncreaseMode.RTU:
-                        rtu_bus_address += count
+                        rtu_bus_address += 1
                     else:
-                        tcp_gateway_port += count
+                        tcp_gateway_port += 1
 
                 new_devices = DevicesEntity(
                     **DeviceFull(
                         **body.dict(exclude_unset=True,
                                     exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication", "name"}),
-                        name=f"{body.name} {count}",
+                        name=f"{body.name} {count + 1}",
                         rtu_bus_address=rtu_bus_address,
                         tcp_gateway_port=tcp_gateway_port,
                         rated_power_custom=body.rated_power,
@@ -270,9 +282,10 @@ class DevicesService:
                          "devices": devices if not body.is_retry else body.devices,
                          "action": action}
             )
-            await ServiceWrapper.publish_message(publisher=self.sender,
+            await ServiceWrapper.publish_message(publisher=self.publisher,
                                                  topic=f"{serial_number}/{Action.CREATE.value}",
-                                                 message=[creating_msg])
+                                                 message=[creating_msg],
+                                                 publisher_info=await self.get_publisher_info(session))
 
         if len(symbolic_devices) > 0:
             msg = {
@@ -281,9 +294,10 @@ class DevicesService:
                     "device": [device.dict() for device in symbolic_devices]
                 }
             }
-            await ServiceWrapper.publish_message(publisher=self.sender,
+            await ServiceWrapper.publish_message(publisher=self.publisher,
                                                  topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
-                                                 message=[msg])
+                                                 message=[msg],
+                                                 publisher_info=await self.get_publisher_info(session))
 
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
@@ -332,15 +346,17 @@ class DevicesService:
                          "devices": deleted_devices,
                          "action": ActionEnum.Default.name}
             )
-            await ServiceWrapper.publish_message(publisher=self.sender,
+            await ServiceWrapper.publish_message(publisher=self.publisher,
                                                  topic=f"{serial_number}/{Action.DELETE.value}",
-                                                 message=[del_msg])
-
+                                                 message=[del_msg],
+                                                 publisher_info=await self.get_publisher_info(session))
+        logging.info("Sent delete message to MQTT broker")
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
 
         await session.commit()
         session.expire_all()
+        logging.info("Delete device successfully")
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
     @async_db_request_handler
@@ -458,12 +474,14 @@ class DevicesService:
                      "devices": [],
                      "action": ActionEnum.Default.name}
         )
-        await ServiceWrapper.publish_message(publisher=self.sender,
+        await ServiceWrapper.publish_message(publisher=self.publisher,
                                              topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
-                                             message=init_msg)
-        await ServiceWrapper.publish_message(publisher=self.sender,
+                                             message=init_msg,
+                                             publisher_info=await self.get_publisher_info(session))
+        await ServiceWrapper.publish_message(publisher=self.publisher,
                                              topic=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
-                                             message=[update_project_mode])
+                                             message=[update_project_mode],
+                                             publisher_info=await self.get_publisher_info(session))
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
     @async_db_request_handler
@@ -494,9 +512,10 @@ class DevicesService:
                      "devices": device_id,
                      "action": ActionEnum.Default.name}
         )
-        await ServiceWrapper.publish_message(publisher=self.sender,
+        await ServiceWrapper.publish_message(publisher=self.publisher,
                                              topic=f"{serial_number}/{Action.UPDATE.value}",
-                                             message=[update_msg])
+                                             message=[update_msg],
+                                             publisher_info=await self.get_publisher_info(session))
         return True
 
     @async_db_request_handler

@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import asyncio
 
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,10 +23,12 @@ from ..utils.service_wrapper import ServiceWrapper
 @Controller("devices")
 class DevicesController:
     def __init__(self, devices_service: DevicesService,
-                 components_service: ComponentsService, utils_service: UtilsService):
+                 components_service: ComponentsService,
+                 utils_service: UtilsService):
         self.devices_service = devices_service
         self.components_service = components_service
         self.utils_service = utils_service
+        asyncio.run(self.devices_service.set_up_publisher())
 
     @Post("/get/all/")
     async def get_devices(self,
