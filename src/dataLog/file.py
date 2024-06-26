@@ -174,74 +174,79 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def get_mqtt(host, port, topic, username, password):   
+async def process_message_result_list(message):
+    global status_device    
     global msg_device 
     global status_register
     global result_list
     global status_file
-    result_values_dict = {}
-    device_id = 0
 
+    device_dict = {}
+    
     try:
-        client = mqttools.Client(host=host, port=port, username=username, password=bytes(password, 'utf-8'))
-        if not client :
-            print("Error connect with MQTT")
-            return -1 
-        await client.start()
-        await client.subscribe(topic)
-        
-        while True:
-            current_time = get_utc()
-            message = await client.messages.get()
-            if message :
-                # cut string get device id value from sud mqtt
-                device_id = message.topic.split("/Devices/")[-1] 
-                if device_id != "All":
-
-                    if status_file == "Success" :
-                        result_value = []
-                        result_point_id = []
-                    else :
-                        result_value == result_values_dict
-                        
-                    mqtt_result = json.loads(message.message.decode())
-
-                    if mqtt_result:
-                        if 'status_device' not in mqtt_result:
-                            return -1 
-                        if 'message' not in mqtt_result:
-                            return -1 
-                        if 'status_register' not in mqtt_result:
-                            return -1 
-                        if 'fields' not in mqtt_result:
-                            return -1        
-                        
-                        msg_device = mqtt_result['message']
-                        status_register = mqtt_result['status_register']
-                        
-                        for item in mqtt_result['fields']:
-                            if item['config'] != 'MPPT':
-                                value = str(item["value"])
-                                point_id = str(item["id"])
-                                if countMonitor :
-                                    result_value.append(value)
-                                    result_point_id.append(point_id)
-                                else :
-                                    pass
-                                    
-                        result_values_dict[device_id] = result_value, result_point_id
-                        result_list = [
-                            {"id": int(device_id), "point_id": point_id, "data": values, "time": current_time}
-                            for device_id, (values, point_id) in result_values_dict.items()
-                        ]
-                        for item in result_list:
-                            item['data'] = [val if val != 'None' else '' for val in item['data']]
-                            
-                else: 
-                    pass
+        current_time = get_utc()
+        # create list data device from topic ALL devices 
+        for items in message:
+            device_id = items["id_device"]
+            status_device = items["status_device"]
+            message = items["message"]
+            status_register = items["status_register"]
+            fields = items["fields"]
+            type_device_type = items["type_device_type"]
             
+            if device_id not in device_dict:
+                device_dict[device_id] = {
+                    "id": int(device_id),
+                    "point_id": [],
+                    "data": [],
+                    "time": current_time,
+                    "status_device": status_device,
+                    "msg_device": msg_device,
+                    "status_register": status_register
+                }
+            
+            # Condition log device 
+            if type_device_type != 1:      
+                for field in fields:
+                    if field['config'] != 'MPPT':
+                        device_dict[device_id]["point_id"].append(str(field["id"]))
+                        data_value = str(field["value"]) if field["value"] is not None else ""
+                        device_dict[device_id]["data"].append(data_value)
+        
+        # Convert dictionary to list
+        result_list = list(device_dict.values())
     except Exception as err:
-        print(f"Error MQTT subscribe: '{err}'")
+        print(f"process_message_result_list : '{err}'")
+        
+async def handle_messages_driver(client):
+    while True:
+        try:
+            message = await client.messages.get()
+            if message is None:
+                print('Broker connection lost!')
+                break
+            payload = json.loads(message.message.decode())
+            await process_message_result_list(payload)
+        except Exception as err:
+            print(f"Error handle_messages_driver: '{err}'")
+
+async def sub_mqtt(host, port, username, password, serial_number_project):
+    topics = [serial_number_project + "/Devices/All"]
+    try:
+        client = mqttools.Client(
+            host=host,
+            port=port,
+            username=username,
+            password=bytes(password, 'utf-8'),
+            subscriptions=topics,
+            connect_delays=[1, 2, 4, 8]
+        )
+        while True:
+            await client.start()
+            await handle_messages_driver(client)
+            await client.stop()
+    except Exception as err:
+        print(f"Error MQTT sub_mqtt: '{err}'")
 #--------------------------------------------------------------------
 # /**
 # 	 * @description 
@@ -253,7 +258,6 @@ async def get_mqtt(host, port, topic, username, password):
 # 	 * @return result_list 
 # 	 */ 
 async def create_filelog(base_path,id_device,head_file):
-    print("da tao file")
     # Query Global
     global QUERY_TIME_SYNC_DATA
     global QUERY_SELECT_COUNT_POINT_LIST
@@ -582,11 +586,12 @@ async def main():
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
-        tasks.append(asyncio.create_task(get_mqtt(MQTT_BROKER,
-                                                                MQTT_PORT,
-                                                                MQTT_TOPIC_SUB,
-                                                                MQTT_USERNAME,
-                                                                MQTT_PASSWORD)))
+        tasks.append(asyncio.create_task(sub_mqtt(MQTT_BROKER,
+                                                MQTT_PORT,
+                                                MQTT_USERNAME,
+                                                MQTT_PASSWORD,
+                                                topic
+                                                )))
         
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
