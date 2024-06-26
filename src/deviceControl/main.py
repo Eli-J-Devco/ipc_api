@@ -421,7 +421,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send,qos=2,retain=True)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send,qos=0,retain=False)
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -579,7 +579,7 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 */ 
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
-    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSysTemp
     
     # Local variable
     device_list = []
@@ -628,10 +628,13 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                     if wmax != None :
                         total_wmax_temp += wmax
                         total_wmax = total_wmax_temp
-                        if mode == 0:
-                            total_wmax_man_temp += wmax
-                            total_wmax_man = total_wmax_man_temp 
-                    
+                        if ModeSysTemp != 1:
+                            if mode == 0:
+                                total_wmax_man_temp += wmax
+                                total_wmax_man = total_wmax_man_temp 
+                        else:
+                            total_wmax_man = 0
+                        
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
                     # device offline   
@@ -656,7 +659,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-    
+
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
@@ -678,7 +681,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     
     result = {
     "devices": device_list,
-    "total_max_power": total_power,
+    "total_max_power": total_power + total_wmax_man_temp,
     "system_performance": {
         "performance": system_performance,
         "message": message,
@@ -865,7 +868,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man
+    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSysTemp
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -873,6 +876,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
+    if ModeSysTemp == 1:
+        total_wmax_man = 0
+        
     if devices:
         device_list_control_power_limit = []
         for device in devices:
@@ -886,7 +892,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 
             # Convert power real 
             if power_max_device and slope :
-                efficiency_total = (value_power_limit-total_wmax_man/total_power)
+                efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -902,7 +908,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man ,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "WMax", "value": p_for_each_device_power_limit}
@@ -913,7 +919,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
@@ -925,7 +931,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
-                        "setpoint": value_power_limit,
+                        "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
@@ -939,6 +945,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
+
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -948,7 +955,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man
+    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSysTemp
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -957,6 +964,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max_device = 0
     setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
+    if ModeSysTemp == 1:
+        total_wmax_man = 0
+        
     if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
         consumption_queue.append(value_consumption-total_wmax_man)
@@ -1046,6 +1056,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             p_for_each_device_zero_export = 0
         else:
             pass
+        
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1360,11 +1371,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
         #     print("result_topic9",result_topic9)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
-# Describe handle_messages_driver 
-# 	 * @description handle_messages_driver
+# Describe sub_mqtt 
+# 	 * @description sub_mqtt
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {client,serial_number_project, host, port, username, password}
+# 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
@@ -1438,20 +1449,20 @@ async def main():
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
-        tasks.append(asyncio.create_task(sub_mqtt(
-                                                MQTT_BROKER,
-                                                MQTT_PORT,
-                                                MQTT_USERNAME,
-                                                MQTT_PASSWORD,
-                                                serial_number_project,
-                                                MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-                                                MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-                                                MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-                                                MQTT_TOPIC_SUD_DEVICES_ALL,
-                                                MQTT_TOPIC_SUD_MODEGET_CPU,
-                                                MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-                                                MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
-                                                )))
+        tasks.append(asyncio.create_task(sub_mqtt(serial_number_project,
+                                                        MQTT_BROKER,
+                                                        MQTT_PORT,
+                                                        MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+                                                        MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+                                                        MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                        MQTT_TOPIC_SUD_MODEGET_CPU,
+                                                        MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+                                                        MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+                                                        MQTT_TOPIC_SUD_SETTING_ARLAM,
+                                                        MQTT_USERNAME,
+                                                        MQTT_PASSWORD
+                                                        )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
     else:
