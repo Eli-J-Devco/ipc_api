@@ -126,7 +126,7 @@ class DevicesService:
             #             ]
             #         }
             # }
-            
+            device_id=[]
             new_device=create_devices['device']
             id_communication=create_devices['id_communication']
             for item_device in new_device:
@@ -136,6 +136,7 @@ class DevicesService:
                     if item_device["id"]!=item["id_device"]:
                         have_device=True
                 if have_device:
+                    device_id.append(item_device["id"])
                     self.update_device_list.append({
                         "id_device":item_device["id"],
                         "device_name":item_device["name"],
@@ -189,6 +190,13 @@ class DevicesService:
                 await restart_program_pm2_many(pm2_app_list)
             else:
                 pass
+            if device_id:
+                query = (update(DevicesEntity)
+                    .where(DevicesEntity.id.in_(device_id))
+                    .where(DevicesEntity.creation_state == -1)
+                    .values(creation_state=0))
+                await session.execute(query)    
+                await session.commit()
         except Exception as e:
             print("Error create_dev_rs485: ", e)
         finally:
