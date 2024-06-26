@@ -139,7 +139,8 @@ class apiGateway:
                             #         }
                             # }
                             new_device=result['PAYLOAD']
-                            await device_init.create_dev_tcp(new_device)
+                            db_new=await db_config.get_db()
+                            await device_init.create_dev_tcp(new_device,db_new)
                         case "CreateRS485Dev":
                             #  data of device
                             # {
