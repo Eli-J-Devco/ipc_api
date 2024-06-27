@@ -570,6 +570,7 @@ async def get_list_device_in_automode(mqtt_result):
                         'slope': slope,
                     })
     total_power = sum(device['p_max'] for device in device_list)
+    total_power = round(total_power)
     return device_list
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
