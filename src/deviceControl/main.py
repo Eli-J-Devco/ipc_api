@@ -339,6 +339,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
+            print(f"pud_confirm_mode_control and ModeSysTemp :{ModeSysTemp}")
         # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
             try:
@@ -365,15 +366,13 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
     # Local variables
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
-    print("result_topic1",result_topic1)
     try:
         if result_topic1 and bitcheck1 == 1 :
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     bitcheck1 = 0
                     ModeSysTemp = result_topic1.get('mode')  
-                    print("result_topic1",result_topic1)
-                    print("ModeSysTemp",ModeSysTemp)
+                    print(f"process_update_mode_for_device_for_systemp and ModeSysTemp :{ModeSysTemp}")
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if ModeSysTemp in [0, 1, 2]:
@@ -1074,7 +1073,6 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_AUTO
     # Local variables
     power_max = 0
-    result_slope = []
     slope = 1.0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     p_for_each_device = 0
