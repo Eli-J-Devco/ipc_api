@@ -570,7 +570,7 @@ async def get_list_device_in_automode(mqtt_result):
                         'slope': slope,
                     })
     total_power = sum(device['p_max'] for device in device_list)
-    total_power = round(total_power)
+    total_power = round(total_power,1)
     return device_list
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
@@ -637,7 +637,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         else:
                             total_wmax_man = 0
                     # convert to integer
-                    total_wmax_man = round(total_wmax_man)
+                    total_wmax_man_temp = round(total_wmax_man_temp,1)
                         
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
