@@ -365,12 +365,15 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
     # Local variables
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
+    print("result_topic1",result_topic1)
     try:
         if result_topic1 and bitcheck1 == 1 :
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     bitcheck1 = 0
                     ModeSysTemp = result_topic1.get('mode')  
+                    print("result_topic1",result_topic1)
+                    print("ModeSysTemp",ModeSysTemp)
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if ModeSysTemp in [0, 1, 2]:
@@ -567,7 +570,6 @@ async def get_list_device_in_automode(mqtt_result):
                         'operator': operator,
                         'slope': slope,
                     })
-    print("device_list",device_list)
     total_power = sum(device['p_max'] for device in device_list)
     return device_list
 # Describe get_list_device_in_process 
@@ -634,6 +636,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                                 total_wmax_man = total_wmax_man_temp 
                         else:
                             total_wmax_man = 0
+                    # convert to integer
+                    total_wmax_man = round(total_wmax_man)
                         
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
@@ -1372,11 +1376,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
         #     print("result_topic9",result_topic9)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
-# Describe sub_mqtt 
-# 	 * @description sub_mqtt
+# Describe handle_messages_driver 
+# 	 * @description handle_messages_driver
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {}
+# 	 * @param {client,serial_number_project, host, port, username, password}
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):

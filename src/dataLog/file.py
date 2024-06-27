@@ -168,11 +168,12 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
         pass
 #--------------------------------------------------------------------
 # /**
-# 	 * @description subscribe data from MQTT
+# Describe process_message_result_list 
+# 	 * @description process_message_result_list
 # 	 * @author bnguyen
-# 	 * @since 05-12-2023
-# 	 * @param {host, port, topic, username, password}
-# 	 * @return result_list 
+# 	 * @since 2-05-2024
+# 	 * @param { message}
+# 	 * @return result_list
 # 	 */ 
 async def process_message_result_list(message):
     global status_device    
@@ -217,7 +218,12 @@ async def process_message_result_list(message):
         result_list = list(device_dict.values())
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
-        
+# 	 * @description handle_messages_driver
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {client}
+# 	 * @return all topic , all message
+# 	 */ 
 async def handle_messages_driver(client):
     while True:
         try:
@@ -229,7 +235,13 @@ async def handle_messages_driver(client):
             await process_message_result_list(payload)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
-
+# Describe sub_mqtt 
+# 	 * @description sub_mqtt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return all topic , all message
+# 	 */ 
 async def sub_mqtt(host, port, username, password, serial_number_project):
     topics = [serial_number_project + "/Devices/All"]
     try:

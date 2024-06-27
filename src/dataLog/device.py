@@ -177,12 +177,13 @@ def push_data_to_mqtt(host, port,topic, username, password, data_send):
         pass
 # ----- MQTT -----
 # /**
-# 	 * @description public data MQTT
+# Describe process_message_result_list 
+# 	 * @description process_message_result_list
 # 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {host, port,topic, username, password, data_send}
-# 	 * @return data ()
-# 	 */
+# 	 * @since 2-05-2024
+# 	 * @param { message}
+# 	 * @return result_list
+# 	 */ 
 async def process_message_result_list(message):
     global status_device    
     global msg_device 
@@ -219,13 +220,20 @@ async def process_message_result_list(message):
                 for field in fields:
                     if field['config'] != 'MPPT':
                         device_dict[device_id]["point_id"].append(str(field["id"]))
-                        device_dict[device_id]["data"].append(str(field["value"]))
+                        data_value = str(field["value"]) if field["value"] is not None else 0.0
+                        device_dict[device_id]["data"].append(data_value)
         
         # Convert dictionary to list
         result_list = list(device_dict.values())
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
-
+# Describe process_message_result_list_mptt 
+# 	 * @description process_message_result_list_mptt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param { message}
+# 	 * @return result_list_MPPT
+# 	 */ 
 async def process_message_result_list_mptt(message):
     global status_device    
     global msg_device 
@@ -277,11 +285,11 @@ async def process_message_result_list_mptt(message):
     except Exception as err:
         print(f"process_message_result_list_mptt_list: '{err}'")
         
-# Describe sub_mqtt 
-# 	 * @description sub_mqtt
+# Describe handle_messages_driver 
+# 	 * @description handle_messages_driver
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {}
+# 	 * @param {client}
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client):
@@ -296,7 +304,13 @@ async def handle_messages_driver(client):
             await process_message_result_list_mptt(payload)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
-
+# Describe sub_mqtt 
+# 	 * @description sub_mqtt
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return all topic , all message
+# 	 */ 
 async def sub_mqtt(host, port, username, password, serial_number_project):
     topics = [serial_number_project + "/Devices/All"]
     try:
