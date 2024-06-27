@@ -1692,7 +1692,6 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                         result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
                         mode_all = all(item['mode'] == device_mode for item in result_checkmode_control)
-                        print("mode_all",mode_all)
                         if mode_all:
                             data_send = {"id_device": "Systemp", "mode": device_mode}
                             push_data_to_mqtt(host, port, topicpud, username, password, data_send)
