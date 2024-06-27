@@ -430,60 +430,6 @@ async def Insert_TableDevice(sql_id,result_all):
         
         print(f"Error during file creation is : {e}")
 
-# async def Insert_TableDevice_AllDevice():
-#     global QUERY_ALL_DEVICES
-#     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-#     sql_queries = {}
-#     values = []
-#     for item in result_all:
-#         sql_id = item["id"]
-#         print("sql_id", sql_id)
-#         query, value = await Insert_TableDevice(sql_id, result_all)
-#         if query and value:
-#             if sql_id in sql_queries:
-#                 sql_queries[sql_id][0].append(query)
-#                 sql_queries[sql_id][1].append(value)
-#             else:
-#                 sql_queries[sql_id] = [[query], [value]]
-#     for key, value in sql_queries.items():
-#         try:
-#             await MySQL_Insert_v3(value[0], value[1])
-#             status = "Data inserted successfully"
-#         except Exception as e:
-#             print(f"Error inserting data for device {key}: {e}")
-#             status = "Error inserting data"
-
-# async def Insert_TableDevice(sql_id, result_all):
-#     global QUERY_SELECT_NAME_DEVICE
-#     result_device = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
-#     filedtable = []
-#     for item in result_device:
-#         if item['namekey'] != 'MPPT':
-#             filedtable.append(item['id_pointkey'])
-    
-#     data = [None] * len(filedtable)
-#     status_device = "offline"
-#     status_register = []
-#     code_error = 139
-
-#     try:
-#         time_insert_dev = get_utc()
-#         value_insert = (time_insert_dev, sql_id, code_error) + tuple(data)
-#         value_insert = tuple("0.0" if x == "" else x for x in value_insert)
-#         columns = ["time", "id_device", "error"] + filedtable
-#         table_name = f"dev_{sql_id}"
-#         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-#         return query, value_insert
-#     except Exception as e:
-#         print(f"Error during file creation is : {e}")
-#         return None, None
-
-# async def MySQL_Insert_v3(queries, values):
-#     for query, value in zip(queries, values):
-#         try:
-#             await MySQL_Execute_v1(query, value)
-#         except Exception as e:
-#             print(f"Error inserting data: {e}")
 # /**
 # 	 * @description 
 #       - create and write data in file  

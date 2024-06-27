@@ -338,6 +338,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
     if result_ModeSysTemp is not None and result_ModeDevice is not None:
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
+            print("pud_confirm_mode_control and ModeSysTemp",ModeSysTemp )
             ModeSysTemp = result[0]['mode']
         # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
@@ -374,6 +375,8 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if ModeSysTemp in [0, 1, 2]:
+                        print("process_update_mode_for_device_for_systemp and ModeSysTemp",ModeSysTemp )
+                        print("result_topic1",result_topic1)
                         result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
                     else :
                         print("Failed to insert data")
