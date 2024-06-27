@@ -375,7 +375,7 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if ModeSysTemp in [0, 1, 2]:
-                        result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
+                        # result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
                         print("result_topic1",result_topic1)
                         print(f"process_update_mode_for_device_for_systemp and ModeSysTemp :{ModeSysTemp}")
                     else :
