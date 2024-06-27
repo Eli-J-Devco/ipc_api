@@ -465,22 +465,9 @@ class DevicesService:
         }
         init_msg.append(update_msg)
 
-        update_project_mode = MessageModel(
-            metadata=MetaData(retry=3),
-            topic=Topic(target=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
-                        failed=f"{serial_number}/{Action.DEAD_LETTER.value}"),
-            message={"type": Action.SET_PROJECT_MODE.value,
-                     "code": None,
-                     "devices": [],
-                     "action": ActionEnum.Default.name}
-        )
         await ServiceWrapper.publish_message(publisher=self.publisher,
                                              topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                                              message=init_msg,
-                                             publisher_info=await self.get_publisher_info(session))
-        await ServiceWrapper.publish_message(publisher=self.publisher,
-                                             topic=f"{serial_number}/{Action.SET_PROJECT_MODE.value}",
-                                             message=[update_project_mode],
                                              publisher_info=await self.get_publisher_info(session))
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
