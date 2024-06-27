@@ -342,7 +342,7 @@ async def Insert_TableDevice_AllDevice():
     tasks = []
     for item in result_all:
         sql_id = item["id"]
-        task = Insert_TableDevice(sql_id)
+        task = Insert_TableDevice(sql_id,result_all)
         tasks.append(task)
     
     await asyncio.gather(*tasks)
@@ -356,7 +356,7 @@ async def Insert_TableDevice_AllDevice():
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def Insert_TableDevice(sql_id):
+async def Insert_TableDevice(sql_id,result_all):
     global result_list
     global status
     global status_device 
@@ -367,7 +367,6 @@ async def Insert_TableDevice(sql_id):
     data = []
     result_all = []
     filedtable = []
-    print("result_list",result_list)
     result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
     
     for item in result_all:
@@ -430,6 +429,99 @@ async def Insert_TableDevice(sql_id):
     except Exception as e:
         
         print(f"Error during file creation is : {e}")
+
+# async def Insert_TableDevice_AllDevice():
+#     global QUERY_ALL_DEVICES
+#     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+#     for item in result_all:
+#         sql_id = item["id"]
+#         print("sql_id",sql_id)
+#         await Insert_TableDevice(sql_id, result_all)
+
+# # --------------------------------------------------------------------
+# # /**
+# #    * @description 
+# #       - create and write data in file  
+# #       - sync data file with database 
+# #    * @author bnguyen
+# #    * @since 13-12-2023
+# #    * @param {host, port, topic, username, password}
+# #    * @return result_list 
+# #    */ 
+# async def Insert_TableDevice(sql_id, result_all):
+#     global result_list
+#     global status
+#     global status_device 
+#     global status_register
+#     global code_error
+#     global QUERY_SELECT_NAME_DEVICE
+#     sql_queries = {}
+#     data = []
+#     filedtable = []
+#     result_device = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
+    
+#     for item in result_device:
+#             if item['namekey'] != 'MPPT':
+#                 filedtable.append(item['id_pointkey'])
+        
+#     DictID = [item for item in result_list if item["id"] == sql_id]
+
+#     if DictID:
+#         data = DictID[0]["data"]
+#         status_device = DictID[0]["status_device"]
+#         status_register = DictID[0]["status_register"]
+        
+#     if not data:  # Check data if data empty 
+#         data = [None] * len(filedtable)
+
+#     if status_device == "offline" :
+#         code_error = 139
+#     elif status_device == "online" :
+#         if len(status_register) > 0 :
+#             code_error = status_register[0]["ERROR_CODE"]
+#         else :
+#             code_error = 0
+#     else :
+#         pass
+
+#     try:
+#         # Write data to corresponding devices in the database
+#         time_insert_dev = get_utc()
+#         value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
+        
+#         # Replace '0.0' with '' in the data tuple
+#         value_insert = tuple("0.0" if x == "" else x for x in value_insert)
+        
+#         # Create Query
+#         columns = ["time", "id_device", "error"]
+        
+#         for itemp in filedtable:
+#             columns.append(itemp)
+        
+#         table_name = f"dev_{sql_id}"
+
+#         # Create a query with REPLACE INTO syntax
+#         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+#         val = value_insert
+#         print("query",query)
+#         print("val",val)
+#         # Check if the SQL query exists in the dictionary
+#         if sql_id in sql_queries:
+#             # Update the SQL query
+#             sql_queries[sql_id][0] = query
+#             sql_queries[sql_id][1] = val
+#         else:
+#             # Add a new entry to the dictionary
+#             sql_queries[sql_id] = [query, val]
+#         if len(sql_queries) == len(result_all) :
+#             print("sql_queries",sql_queries)
+#             MySQL_Insert_v3(sql_queries)
+#             status = "Data inserted successfully"
+#         else :
+#             status = "Waiting for the record to finish"
+#     except Exception as e:
+#         print(f"Error during file creation is : {e}")
+        
 # /**
 # 	 * @description 
 #       - create and write data in file  

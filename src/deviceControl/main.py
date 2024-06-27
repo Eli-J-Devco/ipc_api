@@ -339,7 +339,6 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
-            print(f"pud_confirm_mode_control and ModeSysTemp :{ModeSysTemp}")
         # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
             try:
@@ -375,8 +374,6 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if ModeSysTemp in [0, 1, 2]:
-                        print("result_topic1",result_topic1)
-                        print(f"process_update_mode_for_device_for_systemp and ModeSysTemp :{ModeSysTemp}")
                         result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
                     else :
                         print("Failed to insert data")
@@ -571,7 +568,6 @@ async def get_list_device_in_automode(mqtt_result):
                         'slope': slope,
                     })
     total_power = sum(device['p_max'] for device in device_list)
-    total_power = round(total_power,1)
     return device_list
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
@@ -637,8 +633,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                                 total_wmax_man = total_wmax_man_temp 
                         else:
                             total_wmax_man = 0
-                    # convert to integer
-                    total_wmax_man_temp = round(total_wmax_man_temp,1)
                         
                     realpower_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
                     realpower = realpower_array[0] if realpower_array else 0
@@ -683,6 +677,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         system_performance = 0
         
     system_performance = round(system_performance, 1)
+    
+    total_power = round(total_power, 1)
+    total_wmax_man_temp = round(total_wmax_man_temp,1)
     
     result = {
     "devices": device_list,
@@ -1075,6 +1072,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
     global result_topic4 , devices ,MQTT_TOPIC_PUD_CONTROL_AUTO
     # Local variables
     power_max = 0
+    result_slope = []
     slope = 1.0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     p_for_each_device = 0
@@ -1376,11 +1374,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
         #     print("result_topic9",result_topic9)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
-# Describe handle_messages_driver 
-# 	 * @description handle_messages_driver
+# Describe sub_mqtt 
+# 	 * @description sub_mqtt
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {client,serial_number_project, host, port, username, password}
+# 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
