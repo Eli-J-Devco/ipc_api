@@ -25,7 +25,6 @@ class DeviceService:
                  dead_letter_publisher: Publisher,
                  serial_number: str,
                  handle_error,
-                 set_project_mode,
                  pm2_service: PM2Service):
         self.session = session
         self.create_table_service = create_table_service
@@ -35,7 +34,6 @@ class DeviceService:
         self.dead_letter_publisher = dead_letter_publisher
         self.serial_number = serial_number
         self.handle_error = handle_error
-        self.set_project_mode = set_project_mode
         self.pm2_service = pm2_service
         self.action = {
             Action.CREATE.value: self.create_table,
@@ -49,11 +47,6 @@ class DeviceService:
         code = data.message.get("code")
         retry = data.metadata.retry
         meta_code = data.metadata.code
-
-        if action_type == Action.SET_PROJECT_MODE.value:
-            await self.set_project_mode()
-            await self.session.commit()
-            return
 
         try:
             devices_info = await self.get_valid_devices(devices, action_type)
@@ -76,7 +69,6 @@ class DeviceService:
                                                       mode=0,
                                                       device_type_value=device.device_type.type, ))
 
-            await self.set_project_mode()
             if len(send_device) > 0:
                 if action_type != Action.UPDATE.value:
                     pm2_msg = PM2MessageModel(CODE=code,

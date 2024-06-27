@@ -69,7 +69,6 @@ class MQTTSubscriber(Subscriber):
                                             dead_letter_publisher=self.dead_letter_publisher,
                                             serial_number=self.serial_number,
                                             handle_error=self.handle_error,
-                                            set_project_mode=self.set_project_mode,
                                             pm2_service=self.pm2_service)
         self.utils_service = UtilsService(device_service=self.device_service,
                                           session=session)
@@ -127,45 +126,6 @@ class MQTTSubscriber(Subscriber):
             logger.error(f"Error processing message: {e}")
             data = MessageModel(**decoded_message)
             await self.handle_error(e, data, self.retry_publisher, self.dead_letter_publisher)
-
-    async def set_project_mode(self):
-        logger.info("Setting project mode")
-        query = select(Devices).where(Devices.inverter_type.is_not(None))
-        devices = await self.session.execute(query)
-        devices = devices.scalars().all()
-
-        query = select(ProjectSetup)
-        project = await self.session.execute(query)
-        project = project.scalars().first()
-        logger.info(f"Current project mode: {project.mode}")
-
-        is_auto = False
-        is_manual = False
-        for device in devices:
-            if is_manual and is_auto:
-                break
-
-            if not is_manual and device.mode == 0:
-                is_manual = True
-                continue
-
-            if not is_auto and device.mode == 1:
-                is_auto = True
-                continue
-
-        mode = 2
-        if is_manual and is_auto:
-            mode = 2
-        elif is_manual:
-            mode = 0
-        elif is_auto:
-            mode = 1
-        logger.info(f"Setting project mode to {mode}")
-
-        if mode != project.mode:
-            query = update(ProjectSetup).where(ProjectSetup.id == project.id).values(mode=mode)
-            await self.session.execute(query)
-        logger.info("Project mode set")
 
 
 async def reconector():
