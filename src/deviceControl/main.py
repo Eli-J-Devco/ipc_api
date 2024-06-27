@@ -377,7 +377,7 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
                     if ModeSysTemp in [0, 1, 2]:
                         print("process_update_mode_for_device_for_systemp and ModeSysTemp",ModeSysTemp )
                         print("result_topic1",result_topic1)
-                        result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
+                        # result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
                     else :
                         print("Failed to insert data")
                     if ModeSysTemp in [0, 1]:
