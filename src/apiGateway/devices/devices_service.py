@@ -73,7 +73,6 @@ class DevicesService:
             # }
             new_device=create_devices['device']
             # Insert Device to MQTT
-            device_id=[]
             device_list=[]
             for item_device in new_device:
                 have_device=False
@@ -91,7 +90,6 @@ class DevicesService:
                         "rated_power_custom":item_device["rated_power_custom"]  if 'rated_power_custom' in item_device.keys() else 0,
                         "min_watt_in_percent" :  item_device["min_watt_in_percent"]  if 'min_watt_in_percent' in item_device.keys() else 0,
                     })
-                    device_id.append(int(item_device["id"]))
                     device_list.append({
                         "id_device": item_device["id"],
                         "mode":item_device["mode"]
@@ -108,10 +106,11 @@ class DevicesService:
             await restart_program_pm2_many(pm2_app_list)
             # 
             # device_id=[296,303]
-            print(f'device_id: {device_id}')
-            if device_id:
+            # print(f'device_id: {device_id}')
+            if device_list:
+                id_device = [item["id_device"] for item in device_list]
                 query = (update(DevicesEntity)
-                    .where(DevicesEntity.id.in_(device_id))
+                    .where(DevicesEntity.id.in_(id_device))
                     .where(DevicesEntity.creation_state == -1)
                     .values(creation_state=0))
                 await session.execute(query)    
@@ -142,7 +141,6 @@ class DevicesService:
             #             ]
             #         }
             # }
-            device_id=[]
             new_device=create_devices['device']
             device_list=[]
             id_communication=create_devices['id_communication']
@@ -153,7 +151,6 @@ class DevicesService:
                     if item_device["id"]!=item["id_device"]:
                         have_device=True
                 if have_device:
-                    device_id.append(item_device["id"])
                     device_list.append({
                         "id_device": item_device["id"],
                         "mode":item_device["mode"]
@@ -211,9 +208,10 @@ class DevicesService:
                 await restart_program_pm2_many(pm2_app_list)
             else:
                 pass
-            if device_id:
+            if device_list:
+                id_device = [item["id_device"] for item in device_list]
                 query = (update(DevicesEntity)
-                    .where(DevicesEntity.id.in_(device_id))
+                    .where(DevicesEntity.id.in_(id_device))
                     .where(DevicesEntity.creation_state == -1)
                     .values(creation_state=0))
                 await session.execute(query)    
