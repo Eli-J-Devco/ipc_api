@@ -896,6 +896,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     efficiency_total = ((value_power_limit)/total_power)
                 else:
                     efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
+                print("ModeSysTemp",ModeSysTemp)
+                print("efficiency_total",efficiency_total)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -977,6 +979,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         else:
             consumption_queue.append(value_consumption-total_wmax_man)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
+        
+        print("ModeSysTemp",ModeSysTemp)
+        print("avg_consumption",avg_consumption)
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
