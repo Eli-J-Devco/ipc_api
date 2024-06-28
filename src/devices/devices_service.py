@@ -297,7 +297,8 @@ class DevicesService:
             await ServiceWrapper.publish_message(publisher=self.publisher,
                                                  topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                                                  message=[msg],
-                                                 publisher_info=await self.get_publisher_info(session))
+                                                 publisher_info=await self.get_publisher_info(session),
+                                                 is_decode=False)
 
         if not pagination:
             pagination = Pagination(page=env_config.PAGINATION_PAGE, limit=env_config.PAGINATION_LIMIT)
@@ -468,7 +469,8 @@ class DevicesService:
         await ServiceWrapper.publish_message(publisher=self.publisher,
                                              topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
                                              message=init_msg,
-                                             publisher_info=await self.get_publisher_info(session))
+                                             publisher_info=await self.get_publisher_info(session),
+                                             is_decode=False)
         return await self.get_devices(ListDeviceFilter(), session, pagination)
 
     @async_db_request_handler

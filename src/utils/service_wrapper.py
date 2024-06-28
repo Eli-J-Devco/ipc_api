@@ -128,7 +128,8 @@ class ServiceWrapper:
     @staticmethod
     async def publish_message(publisher: Publisher, topic: str,
                               message: list[MessageModel | dict], resume_session: bool = True,
-                              publisher_info: dict = None):
+                              publisher_info: dict = None,
+                              is_decode: bool = True):
         """
         Publish message to MQTT broker
         """
@@ -142,10 +143,13 @@ class ServiceWrapper:
                 await publisher.start()
                 for msg in message:
                     if isinstance(msg, MessageModel):
-                        msg = base64.b64encode(json.dumps(msg.dict()).encode("ascii"))
+                        msg = json.dumps(msg.dict()).encode("ascii")
 
                     if isinstance(msg, dict):
-                        msg = base64.b64encode(json.dumps(msg).encode("ascii"))
+                        msg = json.dumps(msg).encode("ascii")
+
+                    if is_decode:
+                        msg = base64.b64decode(msg).decode("ascii")
 
                     publisher.send(topic, msg)
             except Exception as e:
