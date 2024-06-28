@@ -336,11 +336,12 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
     topic = serial_number_project + topicPublic
     # Get ModeSysTemp from database when start program
     if result_ModeSysTemp is not None and result_ModeDevice is not None:
-        if not ModeSysTemp and flag == 0:
+        if not ModeSysTemp :
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
+            flag == 1
         # Have ModeSysTemp push to mqtt 
-        if ModeSysTemp in (0, 1, 2):
+        if ModeSysTemp in (0, 1, 2) and flag == 1:
             try:
                 current_time = get_utc()
                 data_send = {
@@ -349,8 +350,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
                     "time_stamp": current_time,
                 }
                 push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
-                ModeSysTemp = None
-                flag = 1
+                flag = 0
             except Exception as err:
                 print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
 # Describe process_update_mode_for_device_for_systemp 
@@ -369,6 +369,7 @@ async def process_update_mode_for_device_for_systemp(serial_number_project, host
         if result_topic1 and bitcheck1 == 1 :
             try:
                 if result_topic1.get('id_device') == 'Systemp':
+                    flag == 1
                     bitcheck1 = 0
                     ModeSysTemp = result_topic1.get('mode')  
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
