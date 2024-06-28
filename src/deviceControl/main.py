@@ -421,7 +421,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send,qos=0,retain=False)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -567,7 +567,6 @@ async def get_list_device_in_automode(mqtt_result):
                         'operator': operator,
                         'slope': slope,
                     })
-    print("device_list",device_list)
     total_power = sum(device['p_max'] for device in device_list)
     return device_list
 # Describe get_list_device_in_process 
@@ -679,6 +678,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         
     system_performance = round(system_performance, 1)
     
+    total_power = round(total_power, 1)
+    total_wmax_man_temp = round(total_wmax_man_temp,1)
+    
     result = {
     "devices": device_list,
     "total_max_power": total_power + total_wmax_man_temp,
@@ -688,6 +690,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         "status": status
     }
     }
+    print(f"total_power:{total_power},total_wmax_man_temp:{total_wmax_man_temp}")
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
 # Describe get_value_meter 
@@ -942,7 +945,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
             
         if len(devices) == len(device_list_control_power_limit) :
-            print("p_for_each_device_power_limit",p_for_each_device_power_limit)
+            # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 
