@@ -27,6 +27,7 @@ from utils.libTime import *
 
 arr = sys.argv
 ModeSysTemp = ""
+ModeSystempCurrent = ""
 flag = 0 
 sent_information = ""
 devices = []
@@ -331,7 +332,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
 # 	 * @return ModeSysTemp
 # 	 */ 
 async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice
+    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice,ModeSystempCurrent
     result = []
     topic = serial_number_project + topicPublic
     # Get ModeSysTemp from database when start program
@@ -341,6 +342,7 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
             ModeSysTemp = result[0]['mode']
         # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
+            ModeSystempCurrent = ModeSysTemp
             try:
                 current_time = get_utc()
                 data_send = {
@@ -873,7 +875,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSysTemp
+    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSystempCurrent
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -894,11 +896,11 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 
             # Convert power real 
             if power_max_device and slope :
-                if ModeSysTemp == 1:
+                if ModeSystempCurrent == 1:
                     efficiency_total = ((value_power_limit)/total_power)
                 else:
                     efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
-                print("ModeSysTemp",ModeSysTemp)
+                print("ModeSystempCurrent",ModeSystempCurrent)
                 print("efficiency_total",efficiency_total)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
@@ -962,7 +964,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSysTemp
+    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -971,18 +973,16 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max_device = 0
     setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
-    if ModeSysTemp == 1:
-        total_wmax_man = 0
-        
+
     if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
-        if ModeSysTemp == 1:
+        if ModeSystempCurrent == 1:
             consumption_queue.append(value_consumption)
         else:
             consumption_queue.append(value_consumption-total_wmax_man)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         
-        print("ModeSysTemp",ModeSysTemp)
+        print("ModeSystempCurrent",ModeSystempCurrent)
         print("avg_consumption",avg_consumption)
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
