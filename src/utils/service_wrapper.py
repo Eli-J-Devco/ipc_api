@@ -149,7 +149,7 @@ class ServiceWrapper:
                         msg = json.dumps(msg).encode("ascii")
 
                     if is_decode:
-                        msg = base64.b64decode(msg).decode("ascii")
+                        msg = base64.b64decode(msg)
 
                     publisher.send(topic, msg)
             except Exception as e:
