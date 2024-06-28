@@ -91,7 +91,7 @@ class DevicesService:
                         "rated_power_custom":item_device["rated_power_custom"]  if 'rated_power_custom' in item_device.keys() else 0,
                         "min_watt_in_percent" :  item_device["min_watt_in_percent"]  if 'min_watt_in_percent' in item_device.keys() else 0,
                     })
-                    device_id.append(int(item["id"]))
+                    device_id.append(int(item_device["id"]))
                     device_list.append({
                         "id_device": item_device["id"],
                         "mode":item_device["mode"]
