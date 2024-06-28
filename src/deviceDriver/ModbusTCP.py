@@ -39,6 +39,7 @@ from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
+from utils.mqttManager import mqttService
 
 arr = sys.argv
 print(f'arr: {arr}')
@@ -1350,6 +1351,12 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         # 1: Number, 2: String, 3: Percent, 4: Bool
         # point_list_control_group
         # 0=Independent, 1=Depends one, 2=Depends two
+        mqtt_init=mqttService(host[0],
+                    port[0],
+                    username[0],
+                    password[0],
+                    serial_number_project)
+        
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             process = psutil.Process(os.getpid())
@@ -1643,18 +1650,20 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             
             if device_name !="" and serial_number_project!= None:
                 
-                func_mqtt_public(   host[0],
-                                    port[0],
-                                    serial_number_project+"/"+"Devices/"+""+device_id,
-                                    username[0],
-                                    password[0],
-                                    data_device)
+                # func_mqtt_public(   host[0],
+                #                     port[0],
+                #                     serial_number_project+"/"+"Devices/"+""+device_id,
+                #                     username[0],
+                #                     password[0],
+                #                     data_device)
                 # func_mqtt_public(   host[0],
                 #                     port[0],
                 #                     serial_number_project+"/"+"Shorts/"+""+device_id,
                 #                     username[0],
                 #                     password[0],
                 #                     data_device_short)
+                await mqtt_init.send("Devices/"+""+device_id,
+                                        data_device)
             await asyncio.sleep(1)
         
     except Exception as err:
