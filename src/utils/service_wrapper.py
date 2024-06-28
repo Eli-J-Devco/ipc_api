@@ -143,13 +143,13 @@ class ServiceWrapper:
                 await publisher.start()
                 for msg in message:
                     if isinstance(msg, MessageModel):
-                        msg = json.dumps(msg.dict()).encode("ascii")
+                        msg = json.dumps(msg.dict())
 
                     if isinstance(msg, dict):
-                        msg = json.dumps(msg).encode("ascii")
+                        msg = json.dumps(msg)
 
                     if is_decode:
-                        msg = base64.b64decode(msg)
+                        msg = base64.b64encode(msg.encode("ascii"))
 
                     publisher.send(topic, msg)
             except Exception as e:
