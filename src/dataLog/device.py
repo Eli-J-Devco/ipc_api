@@ -338,25 +338,23 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
 # 	 */
 async def Insert_TableDevice_AllDevice():
     global QUERY_ALL_DEVICES
+    manysql_queries = {}
     result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    tasks = []
     for item in result_all:
         sql_id = item["id"]
-        task = Insert_TableDevice(sql_id,result_all)
-        tasks.append(task)
-    
-    await asyncio.gather(*tasks)
-# --------------------------------------------------------------------
+        result_sql_queries = await Insert_TableDevice(sql_id, result_all)
+        if result_sql_queries:
+            manysql_queries[sql_id] = result_sql_queries
+    MySQL_Insert_v3(manysql_queries)
+# Describe Insert_TableDevice
 # /**
-# 	 * @description 
-#       - create and write data in file  
-#       - sync data file with database 
+# 	 * @description create query from result_list
 # 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {host, port, topic, username, password}
-# 	 * @return result_list 
-# 	 */ 
-async def Insert_TableDevice(sql_id,result_all):
+# 	 * @since 12/3/2024
+# 	 * @param {sql_id, result_all}
+# 	 * @return queries 
+# 	 */
+async def Insert_TableDevice(sql_id, result_all):
     global result_list
     global status
     global status_device 
@@ -370,8 +368,8 @@ async def Insert_TableDevice(sql_id,result_all):
     result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
     
     for item in result_all:
-            if item['namekey'] != 'MPPT':
-                filedtable.append(item['id_pointkey'])
+        if item['namekey'] != 'MPPT':
+            filedtable.append(item['id_pointkey'])
         
     DictID = [item for item in result_list if item["id"] == sql_id]
 
@@ -411,25 +409,11 @@ async def Insert_TableDevice(sql_id,result_all):
 
         # Create a query with REPLACE INTO syntax
         query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-        val = value_insert
-        # Check if the SQL query exists in the dictionary
-        if sql_id in sql_queries:
-            # Update the SQL query
-            sql_queries[sql_id][0] = query
-            sql_queries[sql_id][1] = val
-        else:
-            # Add a new entry to the dictionary
-            sql_queries[sql_id] = [query, val]
-        if query and val :
-            # print("sql_queries",sql_queries)
-            MySQL_Insert_v3(sql_queries)
-            status = "Data inserted successfully"
-        else :
-            status = "Waiting for the record to finish"
+        sql_queries[sql_id] = [query, value_insert]
     except Exception as e:
-        
         print(f"Error during file creation is : {e}")
-
+    return sql_queries
+        
 # /**
 # 	 * @description 
 #       - create and write data in file  
