@@ -92,6 +92,7 @@ class apiGateway:
                             port=self.MQTT_PORT,
                             username= self.MQTT_USERNAME, 
                             password=self.MQTT_PASSWORD,
+                            serial_number=self.MQTT_TOPIC ,
                             update_device_list=self.DeviceList)
             # 
             project_init=project_service.ProjectService()

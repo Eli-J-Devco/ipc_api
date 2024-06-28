@@ -19,7 +19,7 @@ from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
 # from database.db import get_db
 from database.sql.device import all_query
-from utils.mqttManager import mqtt_public, mqtt_public_common
+from utils.mqttManager import mqtt_public, mqtt_public_common, mqttService
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2, path,
@@ -37,6 +37,7 @@ class DevicesService:
                     topic="",
                     username="",
                     password="",
+                    serial_number="",
                     update_device_list=[]):
         
         self.mqtt_host = host
@@ -45,6 +46,12 @@ class DevicesService:
         self.mqtt_username = username
         self.mqtt_password = password
         self.update_device_list=update_device_list
+        self.serial_number=serial_number
+        self.mqtt_init=mqttService(self.mqtt_host,
+                    self.mqtt_port,
+                    self.mqtt_username,
+                    self.mqtt_password,
+                    self.serial_number)
     @async_db_request_handler    
     async def create_dev_tcp(self, create_devices,session: AsyncSession):
         try: 
@@ -67,6 +74,7 @@ class DevicesService:
             new_device=create_devices['device']
             # Insert Device to MQTT
             device_id=[]
+            device_list=[]
             for item_device in new_device:
                 have_device=False
                 print(f'item_device: {item_device}')
@@ -83,13 +91,18 @@ class DevicesService:
                         "rated_power_custom":item_device["rated_power_custom"]  if 'rated_power_custom' in item_device.keys() else 0,
                         "min_watt_in_percent" :  item_device["min_watt_in_percent"]  if 'min_watt_in_percent' in item_device.keys() else 0,
                     })
+                    device_id.append(int(item["id"]))
+                    device_list.append({
+                        "id_device": item_device["id"],
+                        "mode":item_device["mode"]
+                    })
                 #   x >5 ? 4,4 
             #  init start pm2 new app
             for item in new_device:
                 
                 pid = f'Dev|{item["id_communication"]}|{item["connect_type"]}|{item["id"]}|{item["name"]}'
                 await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,item["id"])
-                device_id.append(int(item["id"]))
+                
             # restart pm2 app log
             pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
             await restart_program_pm2_many(pm2_app_list)
@@ -103,7 +116,9 @@ class DevicesService:
                     .values(creation_state=0))
                 await session.execute(query)    
                 await session.commit()
-            
+            if device_list:
+                await self.mqtt_init.send("Control/Write",
+                               device_list)
         except Exception as e:
             print("Error create_dev_tcp: ", e)
     @async_db_request_handler
@@ -129,6 +144,7 @@ class DevicesService:
             # }
             device_id=[]
             new_device=create_devices['device']
+            device_list=[]
             id_communication=create_devices['id_communication']
             for item_device in new_device:
                 have_device=False
@@ -138,6 +154,10 @@ class DevicesService:
                         have_device=True
                 if have_device:
                     device_id.append(item_device["id"])
+                    device_list.append({
+                        "id_device": item_device["id"],
+                        "mode":item_device["mode"]
+                    })
                     self.update_device_list.append({
                         "id_device":item_device["id"],
                         "device_name":item_device["name"],
@@ -198,6 +218,9 @@ class DevicesService:
                     .values(creation_state=0))
                 await session.execute(query)    
                 await session.commit()
+            if device_list:
+                await self.mqtt_init.send("Control/Write",
+                               device_list)
         except Exception as e:
             print("Error create_dev_rs485: ", e)
         finally:
