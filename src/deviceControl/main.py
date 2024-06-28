@@ -882,9 +882,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
-    if ModeSysTemp == 1:
-        total_wmax_man = 0
-        
     if devices:
         device_list_control_power_limit = []
         for device in devices:
@@ -898,7 +895,10 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 
             # Convert power real 
             if power_max_device and slope :
-                efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
+                if ModeSysTemp == 1:
+                    efficiency_total = ((value_power_limit)/total_power)
+                else:
+                    efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -975,7 +975,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         
     if value_consumption :
         # Calculate the moving average, the number of times declared at the beginning of the program
-        consumption_queue.append(value_consumption-total_wmax_man)
+        if ModeSysTemp == 1:
+            consumption_queue.append(value_consumption)
+        else:
+            consumption_queue.append(value_consumption-total_wmax_man)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
