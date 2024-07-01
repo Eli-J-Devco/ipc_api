@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 import random
 import string
 from typing import Any
@@ -57,11 +58,10 @@ class AuthenticationService:
 
         query = select(User).where(User.email == decrypted_user_credential.username)
         result = await session.execute(query)
-
-        if result is None:
-            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
         user = result.scalars().first()
+        if user is None:
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email is not registered in the system")
+
         if not (self.authentication
                 .verify_password(decrypted_user_credential.password, user.password)):
             return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password")

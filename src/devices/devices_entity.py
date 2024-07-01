@@ -91,8 +91,8 @@ class Devices(config.Base):
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[datetime.date] = mapped_column(Date, nullable=True)
-    meter_type: Mapped[int] = mapped_column(Integer, nullable=True)
-    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
+    meter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     creation_state: Mapped[int] = mapped_column(Integer, nullable=True, default=-1)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 

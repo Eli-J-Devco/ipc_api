@@ -225,7 +225,7 @@ class DevicesService:
                     **DeviceFull(
                         **body.dict(exclude_unset=True,
                                     exclude={"rtu_bus_address", "tcp_gateway_port", "id_communication", "name"}),
-                        name=f"{body.name} {count + 1}",
+                        name=f"{body.name}{f' {count + 1}' if body.num_of_devices > 1 else ''}",
                         rtu_bus_address=rtu_bus_address,
                         tcp_gateway_port=tcp_gateway_port,
                         rated_power_custom=body.rated_power,

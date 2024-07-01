@@ -41,11 +41,11 @@ class AddDevicesModeFilter(BaseModel):
 class AddInverterFilter(BaseModel):
     rated_power: Optional[float] = 0.0
     mode: Optional[int] = 0
-    inverter_type: Optional[int] = 2
+    inverter_type: Optional[int] = None
 
 
 class AddMeterFilter(BaseModel):
-    meter_type: Optional[int] = 0
+    meter_type: Optional[int] = None
 
 
 class DeviceComponentFilter(BaseModel):
