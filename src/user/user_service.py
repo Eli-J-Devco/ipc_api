@@ -302,7 +302,7 @@ class UserService:
         decrypted_user_credential = authentication.decrypt_user_credential(user_provider)
 
         if not (authentication.verify_password(decrypted_user_credential.password, user.password)):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect old password")
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password")
 
         validate_password(update_user.new_password)
 

@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import datetime
 import logging
 import random
 import string
@@ -68,7 +69,6 @@ class AuthenticationService:
 
         if not user.status == 1:
             return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User is inactive")
-
         roles = await UserService(RoleService()).get_user_roles(user.id, session)
         permissions = []
         for role in roles:
@@ -78,6 +78,11 @@ class AuthenticationService:
         access_token = self.authentication.create_access_token(data={"user_id": user.id})
         refresh_token = self.authentication.create_refresh_token(data={"user_id": user.id})
         project_id = await ProjectSetupService().get_project_setup_id(session)
+        query = (update(User)
+                 .where(User.email == decrypted_user_credential.username)
+                 .values(last_login=datetime.datetime.utcnow()))
+        await session.execute(query)
+        await session.commit()
 
         response = AuthenticationResponse(
             first_name=user.first_name,
