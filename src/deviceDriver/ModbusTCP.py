@@ -1682,17 +1682,13 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 async def process_update_mode_for_device(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
     global device_mode
-    global status_device
     global arr
-    global MQTT_TOPIC_PUD_MODE_DEVICE
     # Local variables
-    topicpud = serial_number_project + MQTT_TOPIC_PUD_MODE_DEVICE
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
     # Switch to user mode that is both man and auto
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
         for item in mqtt_result:
-            print("mqtt_result",mqtt_result)
             id_device = int(item["id_device"])
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
