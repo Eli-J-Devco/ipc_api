@@ -972,6 +972,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max_device = 0
     setpoint = 0
     value_sub = 0
+    p_for_each_device_zero_export_sub = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
     if value_consumption :
         value_sub = value_production - value_consumption
