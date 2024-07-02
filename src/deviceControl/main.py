@@ -1048,6 +1048,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         ]
                     }
             else:
+                p_for_each_device_zero_export_sub = p_for_each_device_zero_export - value_sub
                 new_device = {
                     "id_device": id_device,
                     "Mode": "Sub",
@@ -1056,7 +1057,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - value_sub)}
+                        {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export_sub)}
                     ]
                 }
                 
@@ -1067,6 +1068,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             print("Value setpoint", setpoint)
             print("value_sub",value_sub)
             print("total_power",total_power)
+            print("p_for_each_device_zero_export_sub",p_for_each_device_zero_export_sub)
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_zero_export = 0
