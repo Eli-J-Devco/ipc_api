@@ -989,12 +989,12 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
         )
         process_caculator_zero_export.last_setpoint = setpoint
-        setpoint = round(setpoint - setpoint * value_offset_zero_export / 100, 4) if setpoint else 0
-
-        # Adjust setpoint based on production and consumption
+        setpoint = round(setpoint, 4)
+        if setpoint:
+            setpoint -= setpoint * value_offset_zero_export / 100
+            setpoint = round(setpoint, 4)
         if value_production < value_consumption:
-            setpoint -= value_consumption - value_production
-            
+            setpoint -= (value_production - value_consumption)
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -1047,7 +1047,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         ]
                     }
                 
-            device_list_control_power_limit.append(new_device)
+                device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
