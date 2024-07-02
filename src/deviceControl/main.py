@@ -971,9 +971,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_min_device = 0
     power_max_device = 0
     setpoint = 0
+    value_sub = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
-
     if value_consumption :
+        value_sub = value_production - value_consumption
         # Calculate the moving average, the number of times declared at the beginning of the program
         if ModeSystempCurrent == 1:
             consumption_queue.append(value_consumption)
@@ -1026,6 +1027,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 if device['controlinv'] == 1:
                     new_device = {
                         "id_device": id_device,
+                        "Mode": "Add",
                         "mode": mode,
                         "status": "zero export",
                         "setpoint": setpoint,
@@ -1036,6 +1038,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 elif device['controlinv'] == 0:
                     new_device = {
                         "id_device": id_device,
+                        "Mode": "Add",
                         "mode": mode,
                         "status": "zero export",
                         "setpoint": setpoint,
@@ -1047,12 +1050,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             else:
                 new_device = {
                     "id_device": id_device,
+                    "Mode": "Sub",
                     "mode": mode,
                     "status": "zero export",
                     "setpoint": setpoint,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - (value_production - value_consumption))}
+                        {"id_pointkey": "WMax", "value": max(0, p_for_each_device_zero_export - value_sub)}
                     ]
                 }
                 
@@ -1061,6 +1065,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         if len(devices) == len(device_list_control_power_limit) :
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint", setpoint)
+            print("value_sub",value_sub)
+            print("total_power",total_power)
             print("P Feedback production", value_production)
             print("P Feedback consumption", value_consumption)
             p_for_each_device_zero_export = 0
