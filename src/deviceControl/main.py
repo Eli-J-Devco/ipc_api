@@ -961,44 +961,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
 # 	 * @return p_for_each_device_zero_export
 # 	 */ 
-# async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-#     # Global variables
-#     global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
-#     # Local variables
-#     efficiency_total = 0
-#     id_device = 0
-#     slope = 1.0
-#     power_min_device = 0
-#     power_max_device = 0
-#     setpoint = 0
-#     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
-#     if value_consumption :
-#         # Calculate the moving average, the number of times declared at the beginning of the program
-#         if ModeSystempCurrent == 1:
-#             consumption_queue.append(value_consumption)
-#         else:
-#             consumption_queue.append(value_consumption-total_wmax_man)
-#         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        
-#         # Limit the change in setpoint
-#         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
-#             process_caculator_zero_export.last_setpoint = avg_consumption
-#         new_setpoint = avg_consumption
-#         setpoint = max(
-#             process_caculator_zero_export.last_setpoint - max_rate_of_change,
-#             min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
-#         )
-#         process_caculator_zero_export.last_setpoint = setpoint
-#         setpoint = round(setpoint, 4)
-#         if setpoint:
-#             setpoint -= setpoint * value_offset_zero_export / 100
-#             setpoint = round(setpoint, 4)
-#         if value_production < value_consumption:
-#             setpoint -= (value_production - value_consumption)
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_threshold_zero_export, value_offset_zero_export, value_consumption, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_zero_export, value_consumption_zero_export, value_production_zero_export, consumption_queue, Kp, Ki, Kd, dt, maxpower_production_instant, system_performance, total_wmax_man, ModeSystempCurrent
-
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1007,20 +972,29 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     power_max_device = 0
     setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
-
-    if value_consumption:
-        # Calculate moving average
-        consumption_queue.append(value_consumption - total_wmax_man if ModeSystempCurrent != 1 else value_consumption)
+    if value_consumption :
+        # Calculate the moving average, the number of times declared at the beginning of the program
+        if ModeSystempCurrent == 1:
+            consumption_queue.append(value_consumption)
+        else:
+            consumption_queue.append(value_consumption-total_wmax_man)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
-
-        # Limit setpoint change
-        setpoint = max(min(avg_consumption, process_caculator_zero_export.last_setpoint + max_rate_of_change), process_caculator_zero_export.last_setpoint - max_rate_of_change)
+        
+        # Limit the change in setpoint
+        if not hasattr(process_caculator_zero_export, 'last_setpoint'):
+            process_caculator_zero_export.last_setpoint = avg_consumption
+        new_setpoint = avg_consumption
+        setpoint = max(
+            process_caculator_zero_export.last_setpoint - max_rate_of_change,
+            min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
+        )
         process_caculator_zero_export.last_setpoint = setpoint
         setpoint = round(setpoint - setpoint * value_offset_zero_export / 100, 4) if setpoint else 0
 
         # Adjust setpoint based on production and consumption
         if value_production < value_consumption:
             setpoint -= value_consumption - value_production
+            
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
