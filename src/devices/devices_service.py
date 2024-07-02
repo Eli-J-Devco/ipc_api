@@ -3,17 +3,13 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import asyncio
-import base64
 import datetime
-import json
 import logging
 import uuid
 from typing import Sequence
 
 from fastapi import HTTPException, status
 from mqtt_service.model import MessageModel, Topic, MetaData
-from mqtt_service.mqtt import Publisher
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, update, text
@@ -107,7 +103,7 @@ class DevicesService:
             driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
             device_type = device.device_type
             device_type_name = device.device_type.__dict__.get("name") if device.device_type is not None else None
-
+            template = device.template_library.__dict__
             query = (select(DevicesEntity)
                      .where(DevicesEntity.parent == device.id))
             result = await session.execute(query)
@@ -119,6 +115,7 @@ class DevicesService:
             device["driver_type"] = driver_type if device_type and device_type.__dict__.get("type") != 1 \
                 else device_type_name
             device["device_type"] = device_type.__dict__ if device_type else None
+            device["template"] = template
 
             output.append(DeviceFull(**device))
 
@@ -441,7 +438,8 @@ class DevicesService:
                          inverter_shutdown=inverter_shutdown))
         await session.execute(query)
 
-        symbolic_devices = await self.components_service.add_components_parent(body.id, body.components, session)
+        symbolic_devices = await self.components_service.add_components_parent(body.id, body.components,
+                                                                               session, is_add=False)
         if isinstance(symbolic_devices, HTTPException):
             return symbolic_devices
 

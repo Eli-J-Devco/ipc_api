@@ -29,7 +29,8 @@ class ComponentsService:
     async def add_components_parent(self,
                                     parent: int,
                                     components: list[DeviceComponentFilter],
-                                    session: AsyncSession) -> Sequence[SymbolicDevice]:
+                                    session: AsyncSession,
+                                    is_add: bool = True) -> Sequence[SymbolicDevice]:
         """
         Add parent to components
         :author: nhan.tran
@@ -37,6 +38,7 @@ class ComponentsService:
         :param parent:
         :param components:
         :param session:
+        :param is_add:
         :return: Sequence[SymbolicDevice]
         """
         symbolic_devices = []
@@ -46,6 +48,8 @@ class ComponentsService:
 
         for component in components:
             if component.id:
+                if is_add and component.type == 0:
+                    continue
                 query = (update(DevicesEntity)
                          .where(DevicesEntity.id == component.id)
                          .values(parent=parent))

@@ -80,6 +80,7 @@ class DeviceFull(BaseModel):
     status: Optional[bool] = True
     driver_type: Optional[str] = None
     device_type: Optional[DeviceType] = None
+    template: Optional[TemplateBase] = None
     children: Optional[bool] = False
 
 
