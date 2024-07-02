@@ -118,6 +118,7 @@ class DevicesService:
             if device_list:
                 await self.mqtt_init.send("Control/Write",
                                device_list)
+                
         except Exception as e:
             print("Error create_dev_tcp: ", e)
     @async_db_request_handler
@@ -298,7 +299,17 @@ class DevicesService:
                     # restart pm2 app log
                     pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                     await restart_program_pm2_many(pm2_app_list)
-        # 
+            if device_list:
+                delete_device_list=[]
+                for item in device_list:
+                    delete_device_list.append(
+                        {
+                            "id_device": item,
+                            "code":"delete"
+                        }
+                    )
+                await self.mqtt_init.send("Control/Write",
+                                delete_device_list)
         except Exception as e:
             print("Error delete_dev: ", e)
         finally:

@@ -15,7 +15,7 @@ import time
 from datetime import datetime as DT
 from pprint import pprint
 
-import asyncio_mqtt as aiomqtt
+# import asyncio_mqtt as aiomqtt
 import paho.mqtt.publish as publish
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -31,6 +31,8 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
+from database.sql.device import all_query as device_query
+from deviceDriver.monitoring import monitoring_service
 from utils.libMySQL import *
 
 arr = sys.argv
@@ -90,6 +92,8 @@ def point_object(Config,
                  control_enabled=1,# show/hide = 1/0, get from Device
                  panel_height=None,
                  panel_width=None,
+                 output_values=None,
+                 slope=None
                  ):
     
     return {"config":Config,
@@ -115,6 +119,8 @@ def point_object(Config,
             "control_enabled":control_enabled,
             "panel_height":panel_height,
             "panel_width":panel_width,
+            "output_values":output_values,
+            "slope":output_values
             }
 def func_slope(slopeenabled,slope,Value): #multiply by constant
     result= None
@@ -580,7 +586,6 @@ def path_directory_relative(project_name):
 # 	 */ 
 async def device(ConfigPara):
     try:
-        # print(f'path: {path}')
         if len(ConfigPara)>=2 and type(ConfigPara) == list :
             pass
         else:
@@ -589,24 +594,17 @@ async def device(ConfigPara):
         global rated_power
         global rated_power_custom
         global min_watt_in_percent
-        
-        pathSource=path#ConfigPara[2]
         id_communication=ConfigPara[1]
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        xml=pathSource + '/mybatis/device_list.xml')
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True) 
-        query_device_rs485= func_check_data_mybatis(statement,6,"select_all_device_rs485")
-        query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
-        query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
-        
-        if query_device_rs485 != -1 and query_point_list  != -1  and query_register_block  != -1:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
+        query_device_rs485=device_query.select_all_device_rs485.format(id_communication=id_communication)
+        query_point_list=device_query.select_point_list
+        query_register_block=device_query.select_register_block
+        # if query_device_rs485 != -1 and query_point_list  != -1  and query_register_block  != -1:
+        #     pass
+        # else:           
+        #     print("Error not found data in file mybatis")
+        #     return -1
         # print(f'id_communication: {id_communication}')
-        results_device = MySQL_Select(query_device_rs485, (id_communication,))
+        results_device = await MySQL_Select_v1(query_device_rs485)
         # 
         # print(f'results_device: {results_device}')
         if type(results_device) == list and len(results_device)>=1:
@@ -621,18 +619,6 @@ async def device(ConfigPara):
         serialport_stopbits=int(results_device[0]["serialport_stopbits"])
         serialport_parity=results_device[0]["serialport_parity"][0]
         serialport_timeout=int(results_device[0]["serialport_timeout"])
-        # print(f'serialport_group: {serialport_group}')
-        # print(f'serialport_name: {serialport_name}')
-        # print(f'serialport_baud: {serialport_baud}')
-        # print(f'serialport_stopbits: {serialport_stopbits}')
-        # print(f'serialport_parity: {serialport_parity}')
-        # print(f'serialport_timeout: {serialport_timeout}')
-        # 
-        
-        # print(f'----- results_device -----')
-        # for item in results_device:
-        #     print(item)
-        # print(f'----- +++++++++++++++++++++++++++++++++ -----')
         
         # all_device_data_request=[
         #     {
@@ -650,7 +636,7 @@ async def device(ConfigPara):
         # ]
         all_device_data_request=[]
         for item in results_device:
-            
+            # 
             data_of_one_device={}
             data_of_one_device["id_device"]=item['id']
             data_of_one_device["device_name"]=item['name']
@@ -659,7 +645,8 @@ async def device(ConfigPara):
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
             data_of_one_device["id_template"]=item['id_template']
-            
+            data_of_one_device["meter_type"]=item['meter_type']
+            # 
             rated_power.append({
                 "id_device":item['id'],
                 "rated_power":item['rated_power']
@@ -675,7 +662,7 @@ async def device(ConfigPara):
                 "min_watt_in_percent":item['min_watt_in_percent']
                 
             })
-            
+            # 
             control_group=[]
             # 
             results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={item["id_template"]} and status=1', ())
@@ -692,7 +679,7 @@ async def device(ConfigPara):
             data_of_one_device["control_group"]=control_group
             # 
             # Register block
-            item_rb= MySQL_Select(query_register_block, (item['id_template'],))
+            item_rb= await MySQL_Select_v1(query_register_block.format(id_template=item['id_template']))
             new_item_rb=[]
             if type(item_rb) == list and len(item_rb)>=1:
                 for new_item in item_rb:
@@ -700,10 +687,8 @@ async def device(ConfigPara):
                     new_item_rb.append(new_item)
             if type(new_item_rb) == list and len(new_item_rb)>=1:
                 data_of_one_device["RB"]=new_item_rb
-
-            
             # Point list
-            item_point= MySQL_Select(query_point_list, (item['id'],))
+            item_point= await MySQL_Select_v1(query_point_list.format(id_device=item['id']))
             # print(f'item_point: {item_point}')
             if type(item_point) == list and len(item_point)>=1:
                 data_of_one_device["POINT"]=item_point
@@ -762,9 +747,7 @@ async def device(ConfigPara):
 
                 if connection:    
                     print(f'----- Get register -----')
-
                     for item_device in all_device_data_request:
-                        
                         data_one_device={}
                         data_one_device["id_device"]=item_device["id_device"]
                         data_one_device["id_device_type"]=item_device["id_device_type"]
@@ -775,52 +758,19 @@ async def device(ConfigPara):
                         data_one_device["fields"]=[]
                         data_one_device["status_device"]=""
                         data_one_device["id_template"]=item_device['id_template']
+                        data_one_device["meter_type"]=item_device['meter_type']
                         data_rg_one_device = []
                         status_rb=[]
                         status_device=""
                         # Read register block 1 device
                         device_name_rs485=item_device["device_name"]
                         for itemRB in item_device["RB"]:
-                            
                             slave_ip=itemRB["rtu_bus_address"]
                             await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
-                            # print('----------- itemRB ---------------------')
-                            # pprint(f'{itemRB}', sort_dicts=False)
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ip)
-                            
-                            # try:                                  
-                            #     if result_rb==[]:
-                            #             print("The device does not return results")
-                            #     else:
-                            #         if not result_rb.isError():
-                            #             status_device="online"
-                            #             INC = ADDR-1
-                            #             for itemR in result_rb.registers:
-                            #                 INC = INC+1
-                            #                 data_rg_one_device.append({"MRA": INC, "Value": itemR, })
-                            #         else:
-                            #             print("Error ------------------------------------")
-                            #             # print(f"Error reading from {slave_ip} : {result_rb}")
-                            #             status_device="online"
-                            #             print(f'Name: {device_name_rs485 } ADDR: {ADDR} COUNT: {COUNT} ')
-                            #             if hasattr(result_rb, 'function_code'):
-                            #                 print(f'ERROR CODE: {result_rb.function_code}')
-                            #                 status_rb.append({"ADDR":ADDR,
-                            #                                   "ERROR_CODE":result_rb.function_code,
-                            #                                    "Timestamp": getUTC(),
-                            #                                   })
-                            #             else:
-                            #                 print(f'This Slave {device_name_rs485} - [{slave_ip}] was not found')
-                            #                 status_device="offline"
-                            #                 status_rb.append({"ADDR":ADDR,
-                            #                                   "ERROR_CODE":139,
-                            #                                    "Timestamp": getUTC(),
-                            #                                   })                                 
-                            # except AttributeError as ae:
-                            #     print('An exception occurred',ae)
                             match result_rb["code"]:
                                 case None:
                                     status_device="offline"
@@ -899,10 +849,11 @@ async def device(ConfigPara):
                                                 control_max=item['control_max'],
                                                 control_enabled=item['control_enabled'],
                                                 panel_height=item['panel_height'],
-                                                panel_width=item['panel_width']
+                                                panel_width=item['panel_width'],
+                                                output_values=item['output_values'],
+                                                slope=item['slope'],
                                                 )
                                 )
-                            # print("2 +++++++++++++++++++++++++++++++++++")
                             data_one_device["id_device"]=item_device["id_device"]
                             data_one_device["device_name"]=item_device["device_name"]
                             data_one_device["name_device_type"]=item_device['name_device_type']
@@ -914,6 +865,7 @@ async def device(ConfigPara):
                             data_one_device["timestamp"]=getUTC()
                             data_one_device["id_template"]=item_device['id_template']
                             data_one_device["control_group"]=item_device['control_group']
+                            data_one_device["meter_type"]=item_device['meter_type']
                             new_error_data_device.append(data_one_device)
                     
                     else:
@@ -945,10 +897,11 @@ async def device(ConfigPara):
                                                 control_max=item['control_max'],
                                                 control_enabled=1,
                                                 panel_height=item['panel_height'],
-                                                panel_width=item['panel_width']
+                                                panel_width=item['panel_width'],
+                                                output_values=item['output_values'],
+                                                slope=item['slope'],
                                                 )
                                 )
-                            print("-----------------------------------------")
                             data_one_device["id_device"]=item_device["id_device"]
                             data_one_device["device_name"]=item_device["device_name"]
                             data_one_device["name_device_type"]=item_device['name_device_type']
@@ -960,9 +913,9 @@ async def device(ConfigPara):
                             data_one_device["timestamp"]=getUTC()
                             data_one_device["id_template"]=item_device['id_template']
                             data_one_device["control_group"]=item_device['control_group']
+                            data_one_device["meter_type"]=item_device['meter_type']
+                            
                             new_error_data_device.append(data_one_device)
-                        
-                    
                     all_device_data=new_error_data_device
                 client.close()
                 await asyncio.sleep(5)
@@ -1012,6 +965,7 @@ async def monitoring_device(point_type,serial_number_project,
                     status_register=item_data['status_register']
                     fields=item_data['fields']
                     id_template=item_data['id_template']
+                    meter_type=item_data['meter_type']
                     # 
                     mode=[item for item in device_mode if item['id_device'] == item_data["id_device"]][0]["mode"]
                     # 
@@ -1229,6 +1183,7 @@ async def monitoring_device(point_type,serial_number_project,
                                 "id_device_type":id_device_type,
                                 "id_template":id_template,
                                 "name_device_type":name_device_type,
+                                "meter_type":meter_type,
                                 "status_device":status_device,
                                 "timestamp":getUTC(),
                                 "message":message,
@@ -1242,25 +1197,25 @@ async def monitoring_device(point_type,serial_number_project,
                                 "rated_power_custom":(lambda x:  x[0]["rated_power_custom"] if x else None) ([item for item in rated_power_custom if item['id_device'] == id_device]),
                                 "min_watt_in_percent":(lambda x:  x[0]["min_watt_in_percent"] if x else None) ([item for item in min_watt_in_percent if item['id_device'] == id_device]),
                                 }
-                    data_device_short={
-                                "id_device":id_device,
-                                "mode":mode,
-                                "device_name":device_name,
-                                "id_device_type":id_device_type,
-                                "id_template":id_template,
-                                "name_device_type":name_device_type,
-                                "status_device":status_device,
-                                "timestamp":getUTC(),
-                                "message":message,
-                                "status_register":status_register,
-                                "point_count":len(new_point),
-                                "parameters":parameters,
-                                "fields":fields,
-                                "mppt":[],
-                                # "rated_power":rated_power,
-                                # "rated_power_custom":rated_power_custom,
-                                # "min_watt_in_percent":min_watt_in_percent,
-                            }
+                    # data_device_short={
+                    #             "id_device":id_device,
+                    #             "mode":mode,
+                    #             "device_name":device_name,
+                    #             "id_device_type":id_device_type,
+                    #             "id_template":id_template,
+                    #             "name_device_type":name_device_type,
+                    #             "status_device":status_device,
+                    #             "timestamp":getUTC(),
+                    #             "message":message,
+                    #             "status_register":status_register,
+                    #             "point_count":len(new_point),
+                    #             "parameters":parameters,
+                    #             "fields":fields,
+                    #             "mppt":[],
+                    #             # "rated_power":rated_power,
+                    #             # "rated_power_custom":rated_power_custom,
+                    #             # "min_watt_in_percent":min_watt_in_percent,
+                    #         }
                     if device_name !="" and serial_number_project!= None:
                         
                         func_mqtt_public(   host[0],
@@ -1269,12 +1224,12 @@ async def monitoring_device(point_type,serial_number_project,
                                             username[0],
                                             password[0],
                                             data_device)
-                        func_mqtt_public(   host[0],
-                                            port[0],
-                                            serial_number_project+"/"+"Shorts/"+""+id_device,
-                                            username[0],
-                                            password[0],
-                                            data_device_short)
+                        # func_mqtt_public(   host[0],
+                        #                     port[0],
+                        #                     serial_number_project+"/"+"Shorts/"+""+id_device,
+                        #                     username[0],
+                        #                     password[0],
+                        #                     data_device_short)
                         # 
                         # if host[1] != None and port[1]:
                         #     func_mqtt_public(   host[1],

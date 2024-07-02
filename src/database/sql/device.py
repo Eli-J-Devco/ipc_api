@@ -239,9 +239,11 @@ class Query():
         driver_list.name AS connect_type, 
         device_type.name AS device_type,
         device_type.id AS id_device_type,
+        device_type.type AS type_device_type,
         device_list.id_communication AS id_communication,
         device_list.rtu_bus_address AS rtu_bus_address,
         device_list.id_template,
+        device_list.enable_poweroff, device_list.inverter_shutdown,
         communication.name AS serialport_name,
         communication.namekey AS serialport_group,
         table_baud.name AS serialport_baud,
@@ -253,7 +255,13 @@ class Query():
         template_library.name AS template_name,
         device_list.rated_power,
         device_list.rated_power_custom,
-        device_list.min_watt_in_percent
+        device_list.min_watt_in_percent,
+        device_list.meter_type,
+        device_list.DC_voltage,
+        device_list.DC_current,
+        device_list.inverter_type,
+        device_list.parent as device_parent,
+        device_list.emergency_stop as emergency_stop
         
         FROM device_list
         INNER JOIN device_type ON device_list.id_device_type=device_type.id
