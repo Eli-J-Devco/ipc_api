@@ -992,9 +992,11 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         if setpoint:
             setpoint -= setpoint * value_offset_zero_export / 100
             print("setpoint truoc", setpoint)
-        if value_production < value_consumption:
+            
+        if value_production > value_consumption:
             setpoint -= (value_production - value_consumption)
             print("setpoint sau", setpoint)
+            
         setpoint = round(setpoint, 4)
     # Check device equipment qualified for control
     if result_topic4:
