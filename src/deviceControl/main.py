@@ -673,7 +673,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     else:
         message = "System performance is exceeding established thresholds."
         status = 2
-        
+    # Caculator system_performance
     if total_wmax and value_production:
         system_performance = (value_production /total_wmax) * 100
     elif value_production > 0 and not total_wmax:
@@ -963,7 +963,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 , value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1009,7 +1009,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             slope = device["slope"]
             # Calculate the total performance of the system
             if setpoint and power_max_device and slope:
-                efficiency_total = (setpoint / total_power)
+                efficiency_total = (min(setpoint,value_consumption) / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
@@ -1307,24 +1307,14 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
     else :
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-# Describe process_message 
-# 	 * @description processmessage from mqtt
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {topic, message,serial_number_project, host, port, username, password}
-# 	 * @return each topic , each message
-# 	 */ 
-# Describe process_update_mode_for_device
+# Describe process_update_modesystemp_from_modedevice_indatabase
 # /**
-# 	 * @description process_update_mode_for_device
+# 	 * @description process_update_modesystemp_from_modedevice_indatabase
 # 	 * @author bnguyen
 # 	 * @since 02-05-2024
 # 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
-# 	 * @return MySQL_Insert (device_mode, id_device)
+# 	 * @return push message systemp when user changes mode each device
 # 	 */
-
-import asyncio
-
 async def process_update_modesystemp_from_modedevice_indatabase(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
@@ -1349,7 +1339,13 @@ async def process_update_modesystemp_from_modedevice_indatabase(mqtt_result, ser
             print("Timeout waiting for data from MySQL")
     else:
         pass
-
+# Describe process_message 
+# 	 * @description process_update_modesystemp_from_modedevice_indatabase
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {topic, message,serial_number_project, host, port, username, password}
+# 	 * @return each topic , each message
+# 	 */ 
 async def process_message(topic, message,serial_number_project, host, port, username, password):
 
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
