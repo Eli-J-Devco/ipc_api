@@ -105,9 +105,7 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                # print(f'Topic:   {message.topic}')
                 result=json.loads(message.message.decode())
-                print(f'Message: {result}')
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":

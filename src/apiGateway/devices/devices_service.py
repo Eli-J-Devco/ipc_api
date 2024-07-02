@@ -246,12 +246,13 @@ class DevicesService:
             #     }
                 
             # }
-            # db=get_db()
+            
             device=delete_devices['device']
             device_tcp=[]
             device_rs485=[]
             communication_list=[]
             id_device=[]
+            print(device)
             for item in device:
                 id_device.append(item['id'])
                 if 'device_type_value' in item.keys():
@@ -267,8 +268,7 @@ class DevicesService:
                     for item_delete in id_device:
                         for index, msg in enumerate(self.update_device_list):
                             if msg['id_device'] == item_delete:
-                                del self.update_device_list[index]    
-                    
+                                del self.update_device_list[index]
             if device_tcp:
                 await delete_program_pm2_many(device_tcp)
                 # restart pm2 app log
@@ -287,20 +287,10 @@ class DevicesService:
                     for item in device_rs485:
                         id_communication=item
                         sql_query_select_device=all_query.select_all_device_communication.format(id_communication=id_communication)
-                        # sql_query_select_device= cov_xml_sql("deviceConfig.xml","select_all_device",
-                        #                                                 {"id_communication":id_communication})
-                        # result_device_group_rs485 = db.execute(
-                        #                                             text(sql_query_select_device), 
-                        #                                                 ).all()
-                        # results_device_group_dict = [row._asdict() for row in result_device_group_rs485]  
-                        # db.close()
-                        
                         result= await session.execute(text(sql_query_select_device))
                         result_device_group_rs485 = result.all()
                         results_device_group_dict = [row._asdict() for row in result_device_group_rs485]
                         
-                        
-                        # print(f'results_device_group_dict: {results_device_group_dict}')                                       
                         # init restart pm2 app same rs485
                         if results_device_group_dict:
                             await create_device_group_rs485_run_pm2(path,results_device_group_dict)
