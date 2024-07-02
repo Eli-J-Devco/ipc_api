@@ -109,6 +109,7 @@ MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK = "/Control/Setup/Mode/Write/De
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
+MQTT_TOPIC_SUD_CONTROL_MAN = "/Control/Write"
 MQTT_TOPIC_PUD_CONTROL_AUTO = "/Control/WriteAuto"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
@@ -694,7 +695,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         "status": status
     }
     }
-    print(f"total_power:{total_power},total_wmax_man_temp:{total_wmax_man_temp}")
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     return device_list
 # Describe get_value_meter 
@@ -882,6 +882,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
+        print("devices",devices)
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
@@ -900,8 +901,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     efficiency_total = ((value_power_limit)/total_power)
                 else:
                     efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
-                print("ModeSystempCurrent",ModeSystempCurrent)
-                print("efficiency_total",efficiency_total)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
@@ -982,8 +981,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             consumption_queue.append(value_consumption-total_wmax_man)
         avg_consumption = sum(consumption_queue) / len(consumption_queue)
         
-        print("ModeSystempCurrent",ModeSystempCurrent)
-        print("avg_consumption",avg_consumption)
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
@@ -1317,6 +1314,42 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
 # 	 * @param {topic, message,serial_number_project, host, port, username, password}
 # 	 * @return each topic , each message
 # 	 */ 
+# Describe process_update_mode_for_device
+# /**
+# 	 * @description process_update_mode_for_device
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
+# 	 * @return MySQL_Insert (device_mode, id_device)
+# 	 */
+
+import asyncio
+
+async def process_update_modesystemp_from_modedevice_indatabase(mqtt_result, serial_number_project, host, port, username, password):
+    # Global variables
+    global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    # Local variables
+    topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    # Switch to user mode that is both man and auto
+    if mqtt_result:
+        try:
+            # Wait for up to 2 seconds for the data to be available
+            await asyncio.sleep(2)
+            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
+            modes = set([item['mode'] for item in result_checkmode_control])
+            if len(modes) == 1:
+                if 0 in modes:
+                    data_send = {"id_device": "Systemp", "mode": 0}
+                elif 1 in modes:
+                    data_send = {"id_device": "Systemp", "mode": 1}
+            else:
+                data_send = {"id_device": "Systemp", "mode": 2}
+            push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+        except asyncio.TimeoutError:
+            print("Timeout waiting for data from MySQL")
+    else:
+        pass
+
 async def process_message(topic, message,serial_number_project, host, port, username, password):
 
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
@@ -1345,7 +1378,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic5 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
-    # topic8 = serial_number_project + MQTT_TOPIC_SUD_PID
+    topic8 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     # topic9 = serial_number_project + MQTT_TOPIC_SUD_SETTING_ARLAM
     try:
         if topic == topic1:
@@ -1375,9 +1408,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        # elif topic == topic8:
-        #     result_topic8 = message
-        #     print("result_topic8",result_topic8)
+        elif topic == topic8:
+            result_topic8 = message
+            await process_update_modesystemp_from_modedevice_indatabase(result_topic8,serial_number_project, host, port, username, password)
+            # print("result_topic8",result_topic8)
         # elif topic == topic9:
         #     result_topic9 = message
         #     await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
@@ -1410,8 +1444,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8]
     try:
         client = mqttools.Client(
             host=host,
@@ -1475,6 +1509,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_MODEGET_CPU,
                                                 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+                                                MQTT_TOPIC_SUD_CONTROL_MAN ,
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
