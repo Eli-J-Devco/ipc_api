@@ -1021,7 +1021,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     p_for_each_device_zero_export = power_max_device / slope
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            if (value_consumption >= value_threshold_zero_export) and (value_production < value_consumption):
+            if (value_consumption >= value_threshold_zero_export):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
                     new_device = {
