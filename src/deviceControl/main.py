@@ -546,19 +546,25 @@ async def get_list_device_in_automode(mqtt_result):
                 p_min_percent = item['min_watt_in_percent']
                 results_device_type = item['name_device_type']
                 if p_max and p_min_percent:
-                        p_min = (p_max*p_min_percent)/100
+                    p_min = (p_max*p_min_percent)/100
                 # Check device On/Off
                 value_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
                 if value_array:
                     value = value_array[0]
+                else:
+                    continue
                 # Check device Fault
                 operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
                 if operator_array:
                     operator = operator_array[0]
+                else:
+                    continue
                 # Get Slope Power Limit 
                 slope_array = [field["slope"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                 if slope_array:
                     slope = slope_array[0]
+                else:
+                    continue
                 # device is inv , online , auto , not fault => control 
                 if results_device_type == "PV System Inverter" and status_device == 'online' and mode == 1 and operator not in [7, 8]:
                     # create list sent mqtt 
