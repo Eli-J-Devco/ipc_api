@@ -299,9 +299,9 @@ class DevicesService:
                     # restart pm2 app log
                     pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                     await restart_program_pm2_many(pm2_app_list)
-            if device_list:
+            if id_device:
                 delete_device_list=[]
-                for item in device_list:
+                for item in id_device:
                     delete_device_list.append(
                         {
                             "id_device": item,
