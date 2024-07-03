@@ -37,4 +37,4 @@ class TemplatePoint(BaseModel):
 
 class DevicePointOutput(BaseModel):
     points: list[DevicePoint]
-    template: TemplatePoint
+    # template: TemplatePoint

@@ -41,10 +41,6 @@ class DevicePointService:
         if not id_template:
             return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Device not found")
 
-        query = select(Template.type).where(Template.id == id_template)
-        result = await session.execute(query)
-        template_type = result.scalars().first()
-
         query = select(DevicePointEntity).where(DevicePointEntity.id_device_list == device_id)
         result = await session.execute(query)
         points = result.scalars().all()
@@ -62,8 +58,7 @@ class DevicePointService:
                 unit = await ProjectSetupService().get_config_information(session, id_config_information)
             output.append(DevicePoint(**point.__dict__, unit=PointUnit(**unit.__dict__), enable_edit=enable_edit))
 
-        return DevicePointOutput(points=output,
-                                 template=TemplatePoint(id=id_template, type=template_type), )
+        return DevicePointOutput(points=output)
 
     @async_db_request_handler
     async def points_action(self, body: PointActionFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
