@@ -308,7 +308,7 @@ class DevicesService:
                             "code":"delete"
                         }
                     )
-                print(f'delete_device_list: {delete_device_list}')
+                print(f'delete_device_list{delete_device_list}')
                 await self.mqtt_init.send("Control/Write",
                                 delete_device_list)
                 await self.mqtt_init.send("Control/Writes",
