@@ -309,8 +309,8 @@ class DevicesService:
                         }
                     )
                 print(f'delete_device_list{delete_device_list}')
-                await self.mqtt_init.send("Control/Writes",
-                                delete_device_list)
+                # await self.mqtt_init.send("Control/Writes",
+                #                 delete_device_list)
                 await self.mqtt_init.send("Control/Write",
                                 delete_device_list)
         except Exception as e:
@@ -363,6 +363,16 @@ class DevicesService:
                         await delete_program_pm2_many(pm2_app_list)
                         pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
                         await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
+        
+            if id_device:
+                device_list=[]
+                device_list.append(
+                        {
+                            "id_device": id_device,
+                            "code":"edit"
+                        }
+                )
+                print(f'Edit_device_list{device_list}')
         except Exception as e:
             print("Error update_dev: ", e)
         finally:
