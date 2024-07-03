@@ -20,7 +20,7 @@ import paho.mqtt.publish as publish
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-def push_data_to_mqtt(host, port,topic,username, password, data_send):
+def push_data_to_mqtt(host,port,topic,username, password, data_send):
     try:
         payload = json.dumps(data_send)
         publish.single(topic, payload, hostname=host,
