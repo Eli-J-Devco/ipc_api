@@ -52,7 +52,7 @@ rated_power=[]
 rated_power_custom=[]
 min_watt_in_percent=[]
 
-
+device_mode=[]
 def getUTC():
     now = datetime.datetime.now(
         datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -639,13 +639,21 @@ async def device(ConfigPara):
             # 
             data_of_one_device={}
             data_of_one_device["id_device"]=item['id']
+            data_of_one_device["parent"]=item['device_parent']
+            data_of_one_device["mode"]=item['mode']
             data_of_one_device["device_name"]=item['name']
-            data_of_one_device["name_device_type"]=item['device_type']
             data_of_one_device["id_device_type"]=item['id_device_type']
-            data_of_one_device["RB"]=[]
-            data_of_one_device["POINT"]=[]
+            data_of_one_device["name_device_type"]=item['device_type']
+            data_of_one_device["type_device_type"]=item['type_device_type']
+            
+            
             data_of_one_device["id_template"]=item['id_template']
             data_of_one_device["meter_type"]=item['meter_type']
+            data_of_one_device["inverter_type"]=item['inverter_type']
+            data_of_one_device["emergency_stop"]=item['emergency_stop']
+            
+            data_of_one_device["RB"]=[]
+            data_of_one_device["POINT"]=[]
             # 
             rated_power.append({
                 "id_device":item['id'],

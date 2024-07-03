@@ -1622,11 +1622,11 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "mppt":mppt,
                 "combiner_box":combiner_box,
                 "control_group":new_control_group,
-                "rated_power":rated_power,
-                "rated_power_custom":rated_power_custom,
-                "min_watt_in_percent":min_watt_in_percent,
-                "rated_reactive_custom":rated_reactive_custom,
-                "emergency_stop":emergency_stop,
+                "rated_power":rated_power,# realtime
+                "rated_power_custom":rated_power_custom,# realtime
+                "min_watt_in_percent":min_watt_in_percent,# realtime
+                "rated_reactive_custom":rated_reactive_custom, # realtime
+                "emergency_stop":emergency_stop,# realtime
                 
             }
             # data_device_short={
