@@ -542,7 +542,10 @@ async def get_list_device_in_automode(mqtt_result):
                 mode = item['mode']
                 status_device = item['status_device']
                 p_max = item['rated_power']
-                p_max_custom = item['rated_power_custom']
+                if item['rated_power_custom'] != None :
+                    p_max_custom = item['rated_power_custom']
+                else:
+                    p_max_custom = item['rated_power']
                 p_min_percent = item['min_watt_in_percent']
                 results_device_type = item['name_device_type']
                 if p_max and p_min_percent:
@@ -613,7 +616,10 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                 id_device = item['id_device']
                 mode = item['mode']
                 status_device = item['status_device']
-                p_max_custom = item['rated_power_custom']
+                if item['rated_power_custom'] != None :
+                    p_max_custom = item['rated_power_custom']
+                else:
+                    p_max_custom = item['rated_power']
                 p_min_percent = item['min_watt_in_percent']
                 device_name = item['device_name']
                 results_device_type = item['name_device_type']
