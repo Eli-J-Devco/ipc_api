@@ -318,182 +318,112 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
     except Exception as err:
         print(f"Error MQTT subscribe get_cpu_information: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
-# # Describe sub_systemp_mode_when_user_change_mode_systemp 
-# # 	 * @description sub_systemp_mode_when_user_change_mode_systemp
-# # 	 * @author bnguyen
-# # 	 * @since 2-05-2024
-# # 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
-# # 	 * @return ModeSysTemp
-# # 	 */ 
-# async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, host, port, username, password):
-#     # Global variables
-#     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
-#     # Local variables
-#     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
-#     try:
-#         if result_topic1 and bitcheck1 == 1 :
-#             try:
-#                 if result_topic1.get('id_device') == 'Systemp':
-#                     flag == 1 
-#                     bitcheck1 = 0
-#                     ModeSysTemp = result_topic1.get('mode')  
-#                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-#                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
-#                     if ModeSysTemp in [0, 1, 2]:
-#                         result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
-#                     else :
-#                         print("Failed to insert data")
-#                     if ModeSysTemp in [0, 1]:
-#                         result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
-#                     else:
-#                         pass
-                    
-#                     if result_ModeSysTemp is None or result_ModeDevice is None:
-#                         current_time = get_utc()
-#                         data_send = {
-#                                 "status" : 400,
-#                                 "time_stamp" :current_time,
-#                                 }
-#                         push_data_to_mqtt(host,
-#                                 port,
-#                                 topic ,
-#                                 username,
-#                                 password,
-#                                 data_send)
-#                     else:
-#                         pass
-#             except Exception as json_err:
-#                 print(f"Error processing JSON data: {json_err}")
-#         else:
-#             pass
-#     except Exception as err:
-#         print(f"Error MQTT subscribe sub_systemp_mode_when_user_change_mode_systemp: '{err}'")
-# # Describe pud_feedback_project_setup 
-# # 	 * @description pud_feedback_project_setup
-# # 	 * @author bnguyen
-# # 	 * @since 2-05-2024
-# # 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# # 	 * @return data_send
-# # 	 */ 
-# # Describe pud_systemp_mode_trigger_each_device_change
-# # /**
-# # 	 * @description pud_systemp_mode_trigger_each_device_change
-# # 	 * @author bnguyen
-# # 	 * @since 02-05-2024
-# # 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
-# # 	 * @return push message systemp when user changes mode each device
-# # 	 */
-# async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number_project, host, port, username, password):
-#     # Global variables
-#     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-#     # Local variables
-#     topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-#     # Switch to user mode that is both man and auto
-#     if mqtt_result:
-#         try:
-#             # Wait for up to 2 seconds for the data to be available
-#             await asyncio.sleep(2)
-#             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
-#             modes = set([item['mode'] for item in result_checkmode_control])
-#             if len(modes) == 1:
-#                 if 0 in modes:
-#                     data_send = {"id_device": "Systemp", "mode": 0}
-#                 elif 1 in modes:
-#                     data_send = {"id_device": "Systemp", "mode": 1}
-#             else:
-#                 data_send = {"id_device": "Systemp", "mode": 2}
-#             push_data_to_mqtt(host, port, topicpud, username, password, data_send)
-#         except asyncio.TimeoutError:
-#             print("Timeout waiting for data from MySQL")
-#     else:
-#         pass
-# # Describe confirm_system_mode_after_device_change_or_user_change_mode_systemp 
-# # 	 * @description confirm_system_mode_after_device_change_or_user_change_mode_systemp
-# # 	 * @author bnguyen
-# # 	 * @since 2-05-2024
-# # 	 * @param {serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# # 	 * @return ModeSysTemp
-# # 	 */ 
-# async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-#     global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice,ModeSystempCurrent
-#     result = []
-#     topic = serial_number_project + topicPublic
-#     # Get ModeSysTemp from database when start program
-#     if result_ModeSysTemp is not None and result_ModeDevice is not None:
-#         if not ModeSysTemp and flag == 0:
-#             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
-#             ModeSysTemp = result[0]['mode']
-#         # Have ModeSysTemp push to mqtt 
-#         if ModeSysTemp in (0, 1, 2):
-#             ModeSystempCurrent = ModeSysTemp
-#             try:
-#                 current_time = get_utc()
-#                 data_send = {
-#                     "status": 200,
-#                     "confirm_mode": ModeSysTemp,
-#                     "time_stamp": current_time,
-#                 }
-#                 push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
-#                 ModeSysTemp = None
-#                 flag = 1
-#             except Exception as err:
-#                 print(f"Error MQTT subscribe confirm_system_mode_after_device_change_or_user_change_mode_systemp: '{err}'")
+# Describe sub_systemp_mode_when_user_change_mode_systemp 
+# 	 * @description sub_systemp_mode_when_user_change_mode_systemp
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
+# 	 * @return ModeSysTemp
+# 	 */ 
 async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, host, port, username, password):
+    # Global variables
     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
+    # Local variables
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
-    if result_topic1 and bitcheck1 == 1:
-        try:
-            if result_topic1.get('id_device') == 'Systemp':
-                flag = 1
-                bitcheck1 = 0
-                ModeSysTemp = result_topic1.get('mode')
-                queries = [
-                    ("UPDATE `project_setup` SET `project_setup`.`mode` = %s;", (ModeSysTemp,)),
-                    ("UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';", (ModeSysTemp,))
-                ]
-                results = await asyncio.gather(*[MySQL_Insert_v5(query, params) for query, params in queries])
-                if all(results):
-                    pass
-                else:
-                    current_time = get_utc()
-                    data_send = {
-                        "status": 400,
-                        "time_stamp": current_time,
-                    }
-                    await push_data_to_mqtt(host, port, topic, username, password, data_send)
-        except Exception as json_err:
-            print(f"Error processing JSON data: {json_err}")
-    else:
-        pass
-
+    try:
+        if result_topic1 and bitcheck1 == 1 :
+            try:
+                if result_topic1.get('id_device') == 'Systemp':
+                    flag == 1 
+                    bitcheck1 = 0
+                    ModeSysTemp = result_topic1.get('mode')  
+                    querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
+                    if ModeSysTemp in [0, 1, 2]:
+                        result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
+                    else :
+                        print("Failed to insert data")
+                    if ModeSysTemp in [0, 1]:
+                        result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
+                    else:
+                        pass
+                    
+                    if result_ModeSysTemp is None or result_ModeDevice is None:
+                        current_time = get_utc()
+                        data_send = {
+                                "status" : 400,
+                                "time_stamp" :current_time,
+                                }
+                        push_data_to_mqtt(host,
+                                port,
+                                topic ,
+                                username,
+                                password,
+                                data_send)
+                    else:
+                        pass
+            except Exception as json_err:
+                print(f"Error processing JSON data: {json_err}")
+        else:
+            pass
+    except Exception as err:
+        print(f"Error MQTT subscribe sub_systemp_mode_when_user_change_mode_systemp: '{err}'")
+# Describe pud_feedback_project_setup 
+# 	 * @description pud_feedback_project_setup
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return data_send
+# 	 */ 
+# Describe pud_systemp_mode_trigger_each_device_change
+# /**
+# 	 * @description pud_systemp_mode_trigger_each_device_change
+# 	 * @author bnguyen
+# 	 * @since 02-05-2024
+# 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
+# 	 * @return push message systemp when user changes mode each device
+# 	 */
 async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number_project, host, port, username, password):
+    # Global variables
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-
+    # Local variables
     topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-
+    # Switch to user mode that is both man and auto
     if mqtt_result:
         try:
-            await asyncio.sleep(0.5)
+            # Wait for up to 2 seconds for the data to be available
+            await asyncio.sleep(2)
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
-            modes = set(item['mode'] for item in result_checkmode_control)
+            modes = set([item['mode'] for item in result_checkmode_control])
             if len(modes) == 1:
-                mode = 0 if 0 in modes else 1
+                if 0 in modes:
+                    data_send = {"id_device": "Systemp", "mode": 0}
+                elif 1 in modes:
+                    data_send = {"id_device": "Systemp", "mode": 1}
             else:
-                mode = 2
-            data_send = {"id_device": "Systemp", "mode": mode}
-            await push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+                data_send = {"id_device": "Systemp", "mode": 2}
+            push_data_to_mqtt(host, port, topicpud, username, password, data_send)
         except asyncio.TimeoutError:
             print("Timeout waiting for data from MySQL")
     else:
         pass
-
+# Describe confirm_system_mode_after_device_change_or_user_change_mode_systemp 
+# 	 * @description confirm_system_mode_after_device_change_or_user_change_mode_systemp
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return ModeSysTemp
+# 	 */ 
 async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice, ModeSystempCurrent
+    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice,ModeSystempCurrent
+    result = []
     topic = serial_number_project + topicPublic
+    # Get ModeSysTemp from database when start program
     if result_ModeSysTemp is not None and result_ModeDevice is not None:
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
+        # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
             ModeSystempCurrent = ModeSysTemp
             try:
@@ -503,7 +433,7 @@ async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(se
                     "confirm_mode": ModeSysTemp,
                     "time_stamp": current_time,
                 }
-                await push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+                push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
                 ModeSysTemp = None
                 flag = 1
             except Exception as err:
