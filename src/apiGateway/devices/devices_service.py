@@ -309,9 +309,9 @@ class DevicesService:
                         }
                     )
                 print(f'delete_device_list{delete_device_list}')
-                await self.mqtt_init.send("Control/Write",
-                                delete_device_list)
                 await self.mqtt_init.send("Control/Writes",
+                                delete_device_list)
+                await self.mqtt_init.send("Control/Write",
                                 delete_device_list)
         except Exception as e:
             print("Error delete_dev: ", e)
