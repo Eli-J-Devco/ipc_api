@@ -109,6 +109,7 @@ class mqttService:
                         resume_session: bool = True):
 
         try:
+            await self.sender.stop()
             await self.sender.start()
             payload = json.dumps(message)
             self.sender.publish(mqttools.Message(
