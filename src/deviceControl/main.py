@@ -132,15 +132,7 @@ path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 from utils.logger_manager import LoggerSetup
 arr = sys.argv
-# setup root logger
-# logger_setup = LoggerSetup(path,"ControlDevice")
-# LOGGER = logging.getLogger(__name__)
-"""
-project_setup ->    mode_control 0=Man 1=Zero Export 2= Limit P,Q
-Mode = Man -> value direct to function read device
-Mode = Zero Export ->   
-Mode = Limit -> 
-"""
+############################################################################ CPU ############################################################################
 # Describe get_size cpu 
 # 	 * @description get size
 # 	 * @author bnguyen
@@ -325,23 +317,183 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             system_info)
     except Exception as err:
         print(f"Error MQTT subscribe get_cpu_information: '{err}'")
-# Describe pud_confirm_mode_control 
-# 	 * @description pud_confirm_mode_control
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# 	 * @return ModeSysTemp
-# 	 */ 
-async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
-    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice,ModeSystempCurrent
-    result = []
+############################################################################ Mode Systemp ############################################################################
+# # Describe sub_systemp_mode_when_user_change_mode_systemp 
+# # 	 * @description sub_systemp_mode_when_user_change_mode_systemp
+# # 	 * @author bnguyen
+# # 	 * @since 2-05-2024
+# # 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
+# # 	 * @return ModeSysTemp
+# # 	 */ 
+# async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, host, port, username, password):
+#     # Global variables
+#     global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
+#     # Local variables
+#     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
+#     try:
+#         if result_topic1 and bitcheck1 == 1 :
+#             try:
+#                 if result_topic1.get('id_device') == 'Systemp':
+#                     flag == 1 
+#                     bitcheck1 = 0
+#                     ModeSysTemp = result_topic1.get('mode')  
+#                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+#                     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
+#                     if ModeSysTemp in [0, 1, 2]:
+#                         result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
+#                     else :
+#                         print("Failed to insert data")
+#                     if ModeSysTemp in [0, 1]:
+#                         result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
+#                     else:
+#                         pass
+                    
+#                     if result_ModeSysTemp is None or result_ModeDevice is None:
+#                         current_time = get_utc()
+#                         data_send = {
+#                                 "status" : 400,
+#                                 "time_stamp" :current_time,
+#                                 }
+#                         push_data_to_mqtt(host,
+#                                 port,
+#                                 topic ,
+#                                 username,
+#                                 password,
+#                                 data_send)
+#                     else:
+#                         pass
+#             except Exception as json_err:
+#                 print(f"Error processing JSON data: {json_err}")
+#         else:
+#             pass
+#     except Exception as err:
+#         print(f"Error MQTT subscribe sub_systemp_mode_when_user_change_mode_systemp: '{err}'")
+# # Describe pud_feedback_project_setup 
+# # 	 * @description pud_feedback_project_setup
+# # 	 * @author bnguyen
+# # 	 * @since 2-05-2024
+# # 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# # 	 * @return data_send
+# # 	 */ 
+# # Describe pud_systemp_mode_trigger_each_device_change
+# # /**
+# # 	 * @description pud_systemp_mode_trigger_each_device_change
+# # 	 * @author bnguyen
+# # 	 * @since 02-05-2024
+# # 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
+# # 	 * @return push message systemp when user changes mode each device
+# # 	 */
+# async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number_project, host, port, username, password):
+#     # Global variables
+#     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+#     # Local variables
+#     topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+#     # Switch to user mode that is both man and auto
+#     if mqtt_result:
+#         try:
+#             # Wait for up to 2 seconds for the data to be available
+#             await asyncio.sleep(2)
+#             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
+#             modes = set([item['mode'] for item in result_checkmode_control])
+#             if len(modes) == 1:
+#                 if 0 in modes:
+#                     data_send = {"id_device": "Systemp", "mode": 0}
+#                 elif 1 in modes:
+#                     data_send = {"id_device": "Systemp", "mode": 1}
+#             else:
+#                 data_send = {"id_device": "Systemp", "mode": 2}
+#             push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+#         except asyncio.TimeoutError:
+#             print("Timeout waiting for data from MySQL")
+#     else:
+#         pass
+# # Describe confirm_system_mode_after_device_change_or_user_change_mode_systemp 
+# # 	 * @description confirm_system_mode_after_device_change_or_user_change_mode_systemp
+# # 	 * @author bnguyen
+# # 	 * @since 2-05-2024
+# # 	 * @param {serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# # 	 * @return ModeSysTemp
+# # 	 */ 
+# async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+#     global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice,ModeSystempCurrent
+#     result = []
+#     topic = serial_number_project + topicPublic
+#     # Get ModeSysTemp from database when start program
+#     if result_ModeSysTemp is not None and result_ModeDevice is not None:
+#         if not ModeSysTemp and flag == 0:
+#             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
+#             ModeSysTemp = result[0]['mode']
+#         # Have ModeSysTemp push to mqtt 
+#         if ModeSysTemp in (0, 1, 2):
+#             ModeSystempCurrent = ModeSysTemp
+#             try:
+#                 current_time = get_utc()
+#                 data_send = {
+#                     "status": 200,
+#                     "confirm_mode": ModeSysTemp,
+#                     "time_stamp": current_time,
+#                 }
+#                 push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+#                 ModeSysTemp = None
+#                 flag = 1
+#             except Exception as err:
+#                 print(f"Error MQTT subscribe confirm_system_mode_after_device_change_or_user_change_mode_systemp: '{err}'")
+async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, host, port, username, password):
+    global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
+    topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
+    if result_topic1 and bitcheck1 == 1:
+        try:
+            if result_topic1.get('id_device') == 'Systemp':
+                flag = 1
+                bitcheck1 = 0
+                ModeSysTemp = result_topic1.get('mode')
+                queries = [
+                    ("UPDATE `project_setup` SET `project_setup`.`mode` = %s;", (ModeSysTemp,)),
+                    ("UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';", (ModeSysTemp,))
+                ]
+                results = await asyncio.gather(*[MySQL_Insert_v5(query, params) for query, params in queries])
+                if all(results):
+                    pass
+                else:
+                    current_time = get_utc()
+                    data_send = {
+                        "status": 400,
+                        "time_stamp": current_time,
+                    }
+                    await push_data_to_mqtt(host, port, topic, username, password, data_send)
+        except Exception as json_err:
+            print(f"Error processing JSON data: {json_err}")
+    else:
+        pass
+
+async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number_project, host, port, username, password):
+    global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+
+    topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+
+    if mqtt_result:
+        try:
+            await asyncio.sleep(0.5)
+            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
+            modes = set(item['mode'] for item in result_checkmode_control)
+            if len(modes) == 1:
+                mode = 0 if 0 in modes else 1
+            else:
+                mode = 2
+            data_send = {"id_device": "Systemp", "mode": mode}
+            await push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+        except asyncio.TimeoutError:
+            print("Timeout waiting for data from MySQL")
+    else:
+        pass
+
+async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(serial_number_project, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+    global ModeSysTemp, flag, result_ModeSysTemp, result_ModeDevice, ModeSystempCurrent
     topic = serial_number_project + topicPublic
-    # Get ModeSysTemp from database when start program
     if result_ModeSysTemp is not None and result_ModeDevice is not None:
         if not ModeSysTemp and flag == 0:
             result = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
             ModeSysTemp = result[0]['mode']
-        # Have ModeSysTemp push to mqtt 
         if ModeSysTemp in (0, 1, 2):
             ModeSystempCurrent = ModeSysTemp
             try:
@@ -351,69 +503,12 @@ async def pud_confirm_mode_control(serial_number_project, mqtt_host, mqtt_port, 
                     "confirm_mode": ModeSysTemp,
                     "time_stamp": current_time,
                 }
-                push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+                await push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
                 ModeSysTemp = None
                 flag = 1
             except Exception as err:
-                print(f"Error MQTT subscribe pud_confirm_mode_control: '{err}'")
-# Describe process_update_mode_for_device_for_systemp 
-# 	 * @description process_update_mode_for_device_for_systemp
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {result_topic1,bitcheck1,ModeSysTemp}
-# 	 * @return ModeSysTemp
-# 	 */ 
-async def process_update_mode_for_device_for_systemp(serial_number_project, host, port, username, password):
-    # Global variables
-    global result_topic1, bitcheck1, ModeSysTemp, flag, MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL, result_ModeSysTemp, result_ModeDevice
-    # Local variables
-    topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
-    try:
-        if result_topic1 and bitcheck1 == 1 :
-            try:
-                if result_topic1.get('id_device') == 'Systemp':
-                    flag == 1 
-                    print("flag",flag)
-                    bitcheck1 = 0
-                    ModeSysTemp = result_topic1.get('mode')  
-                    querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
-                    if ModeSysTemp in [0, 1, 2]:
-                        result_ModeSysTemp = MySQL_Insert_v5(querysystemp, (ModeSysTemp,))
-                    else :
-                        print("Failed to insert data")
-                    if ModeSysTemp in [0, 1]:
-                        result_ModeDevice = MySQL_Insert_v5(querydevice, (ModeSysTemp,))
-                    else:
-                        pass
-                    
-                    if result_ModeSysTemp is None or result_ModeDevice is None:
-                        current_time = get_utc()
-                        data_send = {
-                                "status" : 400,
-                                "time_stamp" :current_time,
-                                }
-                        push_data_to_mqtt(host,
-                                port,
-                                topic ,
-                                username,
-                                password,
-                                data_send)
-                    else:
-                        pass
-            except Exception as json_err:
-                print(f"Error processing JSON data: {json_err}")
-        else:
-            pass
-    except Exception as err:
-        print(f"Error MQTT subscribe process_update_mode_for_device_for_systemp: '{err}'")
-# Describe pud_feedback_project_setup 
-# 	 * @description pud_feedback_project_setup
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# 	 * @return data_send
-# 	 */ 
+                print(f"Error MQTT subscribe confirm_system_mode_after_device_change_or_user_change_mode_systemp: '{err}'")
+############################################################################ Config SiteInfo ############################################################################
 async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     query = "SELECT * FROM `project_setup`"
     # Get information from database
@@ -529,6 +624,7 @@ async def insert_information_project_setup_when_request(mqtt_result ,serial_numb
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
+############################################################################ List Device Auto ############################################################################
 async def get_list_device_in_automode(mqtt_result):
     # Global variables
     global total_power
@@ -590,6 +686,7 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
+############################################################################ List Device Systemp ############################################################################
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSysTemp
@@ -716,6 +813,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
 # 	 * @param {}
 # 	 * @return value_production ,value_consumption
 # 	 */ 
+############################################################################ Get Value Metter ############################################################################
 async def get_value_meter():
     # Global variables
     global result_topic4, value_production, value_consumption ,value_production_1m,value_consumption_1m,value_production_1h, value_consumption_1h,value_production_daily,value_consumption_daily, start_time_hourly , start_time_daily ,start_time_minutely,value_consumption_zero_export,value_consumption_power_limit,value_production_power_limit,value_production_zero_export,cycle_time1s,control_mode_detail
@@ -885,6 +983,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
+############################################################################ Power Limit Control  ############################################################################
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
     global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSystempCurrent
@@ -965,7 +1064,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
-
+############################################################################ Zero Export Control ############################################################################
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
 # 	 * @author bnguyen
@@ -1145,6 +1244,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
 # 	 * @return MySQL_Update value_offset_zero_export,value_power_limit,value_offset_power_limit
 # 	 */ 
+############################################################################ Setup Parameter Control ############################################################################
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
     global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power
@@ -1314,40 +1414,9 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
     else :
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-# Describe process_update_modesystemp_from_modedevice_indatabase
-# /**
-# 	 * @description process_update_modesystemp_from_modedevice_indatabase
-# 	 * @author bnguyen
-# 	 * @since 02-05-2024
-# 	 * @param {mqtt_result,serial_number_project,host, port, username, password}
-# 	 * @return push message systemp when user changes mode each device
-# 	 */
-async def process_update_modesystemp_from_modedevice_indatabase(mqtt_result, serial_number_project, host, port, username, password):
-    # Global variables
-    global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-    # Local variables
-    topicpud = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
-    # Switch to user mode that is both man and auto
-    if mqtt_result:
-        try:
-            # Wait for up to 2 seconds for the data to be available
-            await asyncio.sleep(2)
-            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
-            modes = set([item['mode'] for item in result_checkmode_control])
-            if len(modes) == 1:
-                if 0 in modes:
-                    data_send = {"id_device": "Systemp", "mode": 0}
-                elif 1 in modes:
-                    data_send = {"id_device": "Systemp", "mode": 1}
-            else:
-                data_send = {"id_device": "Systemp", "mode": 2}
-            push_data_to_mqtt(host, port, topicpud, username, password, data_send)
-        except asyncio.TimeoutError:
-            print("Timeout waiting for data from MySQL")
-    else:
-        pass
+############################################################################ Sud MQTT ############################################################################
 # Describe process_message 
-# 	 * @description process_update_modesystemp_from_modedevice_indatabase
+# 	 * @description pud_systemp_mode_trigger_each_device_change
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {topic, message,serial_number_project, host, port, username, password}
@@ -1387,7 +1456,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
         if topic == topic1:
             result_topic1 = message
             bitcheck1 = 1
-            await process_update_mode_for_device_for_systemp (serial_number_project, host, port, username, password)
+            await sub_systemp_mode_when_user_change_mode_systemp (serial_number_project, host, port, username, password)
             print("result_topic1",result_topic1)
         elif topic == topic2:
             result_topic2 = message
@@ -1413,7 +1482,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic7",result_topic7)
         elif topic == topic8:
             result_topic8 = message
-            await process_update_modesystemp_from_modedevice_indatabase(result_topic8,serial_number_project, host, port, username, password)
+            await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             # print("result_topic8",result_topic8)
         # elif topic == topic9:
         #     result_topic9 = message
@@ -1474,7 +1543,7 @@ async def main():
         serial_number_project=results_project[0]["serial_number"]
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(pud_confirm_mode_control, 'cron',  second = f'*/1' , args=[serial_number_project,
+        scheduler.add_job(confirm_system_mode_after_device_change_or_user_change_mode_systemp, 'cron',  second = f'*/1' , args=[serial_number_project,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,
                                                                             MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
