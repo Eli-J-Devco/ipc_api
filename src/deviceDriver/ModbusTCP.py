@@ -1753,12 +1753,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     emergency_stop = item.get("emc", 0)
                     rated_power = watt
                     rated_power_custom = custom_watt
-                    
+                    print("rated_power_custom",rated_power_custom)
                     if custom_watt is None:
                         rated_power_custom_caculator = watt
                     else:
                         rated_power_custom_caculator = custom_watt
-                            
+                    print("rated_power_custom_caculator",rated_power_custom_caculator)
                     if emergency_stop != 1 :
                         for param in item.get("parameter", []):
                             if param["id_pointkey"] == "WMaxPercentEnable":
