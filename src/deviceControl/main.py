@@ -452,7 +452,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"status": 200}
             ]
             print("data_send",data_send)
-            # push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -907,6 +907,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
     except Exception as err:
         print(f"Error MQTT subscribe monit_value_meter: '{err}'")
+############################################################################ Power Limit Control  ############################################################################
 # Describe process_caculator_p_power_limit 
 # 	 * @description process_caculator_p_power_limit
 # 	 * @author bnguyen
@@ -914,7 +915,6 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 * @param {serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
 # 	 * @return p_for_each_device_power_limit
 # 	 */ 
-############################################################################ Power Limit Control  ############################################################################
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
     global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSystempCurrent
@@ -1033,11 +1033,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         process_caculator_zero_export.last_setpoint = setpoint
         if setpoint:
             setpoint -= setpoint * value_offset_zero_export / 100
-            print("setpoint truoc", setpoint)
             
         if value_production > value_consumption:
             setpoint -= (value_production - value_consumption)
-            print("setpoint sau", setpoint)
             
         setpoint = round(setpoint, 4)
     # Check device equipment qualified for control
@@ -1103,7 +1101,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             p_for_each_device_zero_export = 0
         else:
             pass
-        
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1168,6 +1165,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 pass
     else:
         pass 
+############################################################################ Setup Parameter Control ############################################################################
 # Describe process_update_parameter_mode_detail 
 # 	 * @description process_update_parameter_mode_detail
 # 	 * @author bnguyen
@@ -1175,7 +1173,6 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 * @param {mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
 # 	 * @return MySQL_Update value_offset_zero_export,value_power_limit,value_offset_power_limit
 # 	 */ 
-############################################################################ Setup Parameter Control ############################################################################
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
     global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power
