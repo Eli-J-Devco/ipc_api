@@ -368,13 +368,6 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
             pass
     except Exception as err:
         print(f"Error MQTT subscribe sub_systemp_mode_when_user_change_mode_systemp: '{err}'")
-# Describe pud_feedback_project_setup 
-# 	 * @description pud_feedback_project_setup
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# 	 * @return data_send
-# 	 */ 
 # Describe pud_systemp_mode_trigger_each_device_change
 # /**
 # 	 * @description pud_systemp_mode_trigger_each_device_change
@@ -439,6 +432,13 @@ async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(se
             except Exception as err:
                 print(f"Error MQTT subscribe confirm_system_mode_after_device_change_or_user_change_mode_systemp: '{err}'")
 ############################################################################ Config SiteInfo ############################################################################
+# Describe pud_feedback_project_setup 
+# 	 * @description pud_feedback_project_setup
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @return data_send
+# 	 */ 
 async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
     query = "SELECT * FROM `project_setup`"
     # Get information from database
@@ -451,6 +451,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
+            print("data_send",data_send)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
