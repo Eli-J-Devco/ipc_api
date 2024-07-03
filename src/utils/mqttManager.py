@@ -109,12 +109,12 @@ class mqttService:
                         resume_session: bool = True):
 
         try:
-            await self.sender.start(resume_session=resume_session)
-        except SessionResumeError:
             await self.sender.start()
-        finally:
             payload = json.dumps(message)
             self.sender.publish(mqttools.Message(
                 f"{self.serial_number}/{topic_parent}", payload.encode("ascii")))
+        except Exception as err:
+            print(f"Error MQTT public: '{err}'")
+        finally:
             await self.sender.stop()
         
