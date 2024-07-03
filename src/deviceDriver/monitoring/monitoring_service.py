@@ -87,7 +87,7 @@ class MonitorService:
                         })
                 case "ACPowerFactor":
                     cosPhi=item["value"]
-                    if cosPhi!=None and cosPhi!="null" and cosPhi!=0:
+                    if cosPhi!=None and cosPhi!="null" and cosPhi!=0 and self.rated_power_custom!=None and self.rated_power_custom!="null":
                         sinPhi=math.sqrt(1-cosPhi**2)
                         tanPhi=sinPhi/cosPhi
                         self.rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
