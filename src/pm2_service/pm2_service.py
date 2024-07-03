@@ -17,10 +17,11 @@ class PM2Service:
                                 password=config.MQTT_PASSWORD.encode("utf-8"),
                                 client_id=f"publisher-{config.MQTT_CLIENT_ID}-{uuid.uuid4()}",
                                 will_qos=config.MQTT_QOS,
-                                will_retain=config.MQTT_RETAIN)
+                                will_retain=config.MQTT_RETAIN,
+                                connect_delays=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
         self.serial_number = serial_number
 
-    async def send(self, message: MessageModel, resume_session: bool = True):
+    async def send(self, message: MessageModel):
         if not self.sender:
             self.sender = Publisher(host=config.MQTT_HOST,
                                     port=config.MQTT_PORT,
@@ -29,14 +30,15 @@ class PM2Service:
                                     password=config.MQTT_PASSWORD.encode("utf-8"),
                                     client_id=f"publisher-{config.MQTT_CLIENT_ID}-{uuid.uuid4()}",
                                     will_qos=config.MQTT_QOS,
-                                    will_retain=config.MQTT_RETAIN)
+                                    will_retain=config.MQTT_RETAIN,
+                                    connect_delays=[1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024])
         await self.sender.stop()
         try:
-            await self.sender.start(resume_session=resume_session)
-        except SessionResumeError:
             await self.sender.start()
             self.sender.send(f"{self.serial_number}/{config.MQTT_INITIALIZE_TOPIC}",
                              json.dumps(message.dict()).encode("ascii"))
+        except Exception as e:
+            raise e
         finally:
             await self.sender.stop()
 
