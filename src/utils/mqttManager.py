@@ -120,4 +120,13 @@ class mqttService:
             raise err
         finally:
             await self.sender.stop()
-        
+def mqtt_public_paho(host: str,port:int,topic: str,username: str,password: str,message):
+    try:
+
+        payload = json.dumps(message)
+        publish.single(topic, payload, hostname=host,
+                       retain=False, port=port,
+                       auth = {'username':f'{username}', 
+                               'password':f'{password}'})
+    except Exception as err:
+        print(f"Error MQTT public: '{err}'")        

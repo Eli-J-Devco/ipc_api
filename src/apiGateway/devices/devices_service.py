@@ -19,7 +19,8 @@ from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
 # from database.db import get_db
 from database.sql.device import all_query
-from utils.mqttManager import mqtt_public, mqtt_public_common, mqttService
+from utils.mqttManager import (mqtt_public, mqtt_public_common,
+                               mqtt_public_paho, mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2, path,
@@ -321,13 +322,13 @@ class DevicesService:
     @async_db_request_handler
     async def update_dev(self, update_devices,session: AsyncSession):
         try:
-            {
-                "CODE": "UpdateDev", 
-                "PAYLOAD":
-                    { 
-                       "id":296
-                    }
-            }
+            # {
+            #     "CODE": "UpdateDev", 
+            #     "PAYLOAD":
+            #         { 
+            #            "id":296
+            #         }
+            # }
             
             id_device=update_devices['id']
             sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
@@ -374,7 +375,11 @@ class DevicesService:
                 )
                 print(f'Edit_device_list{device_list}')
                 if device_list:
-                    await self.mqtt_init.send("Control/Write",device_list)
+                    # await self.mqtt_init.send("Control/Write",device_list)
+                    topic=self.serial_number+"/Control/Write"
+                    mqtt_public_paho(host=self.mqtt_host,port=self.mqtt_port,
+                                     topic=topic,username=self.mqtt_username,password=self.mqtt_password,
+                                     message=device_list)
         except Exception as e:
             print("Error update_dev: ", e)
         finally:
