@@ -270,6 +270,20 @@ class DevicesService:
                         for index, msg in enumerate(self.update_device_list):
                             if msg['id_device'] == item_delete:
                                 del self.update_device_list[index]
+            if id_device:
+                delete_device_list=[]
+                for item in id_device:
+                    delete_device_list.append(
+                        {
+                            "id_device": item,
+                            "code":"delete"
+                        }
+                    )
+                print(f'delete_device_list{delete_device_list}')
+                # await self.mqtt_init.send("Control/Writes",
+                #                 delete_device_list)
+                if delete_device_list:
+                    await self.mqtt_init.send("Control/Modify",delete_device_list)
             if device_tcp:
                 await delete_program_pm2_many(device_tcp)
                 # restart pm2 app log
@@ -299,20 +313,7 @@ class DevicesService:
                     # restart pm2 app log
                     pm2_app_list=[f'LogFile|',f'UpData|',f'LogDevice']
                     await restart_program_pm2_many(pm2_app_list)
-            if id_device:
-                delete_device_list=[]
-                for item in id_device:
-                    delete_device_list.append(
-                        {
-                            "id_device": item,
-                            "code":"delete"
-                        }
-                    )
-                print(f'delete_device_list{delete_device_list}')
-                # await self.mqtt_init.send("Control/Writes",
-                #                 delete_device_list)
-                if delete_device_list:
-                    await self.mqtt_init.send("Control/Modify",delete_device_list)
+            
         except Exception as e:
             print("Error delete_dev: ", e)
         finally:
