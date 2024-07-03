@@ -347,7 +347,15 @@ class DevicesService:
                 device_type_value=results_device_dict["device_type_value"]
                 device_type_name=results_device_dict["device_type"]
                 device_name=results_device_dict["name"]
-            
+            if id_device:
+                device_list=[]
+                device_list.append(
+                        {
+                            "id_device": id_device,
+                            "code":"edit"
+                        }
+                )
+                print(f'Edit_device_list{device_list}')
             if device_type_value:
                 for i,item in enumerate(self.update_device_list):
                     if item["id_device"] ==id_device:
@@ -364,15 +372,7 @@ class DevicesService:
                         pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
                         await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
         
-            if id_device:
-                device_list=[]
-                device_list.append(
-                        {
-                            "id_device": id_device,
-                            "code":"edit"
-                        }
-                )
-                print(f'Edit_device_list{device_list}')
+            
         except Exception as e:
             print("Error update_dev: ", e)
         finally:
