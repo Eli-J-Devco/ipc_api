@@ -101,7 +101,8 @@ class mqttService:
                             username= self.username, 
                             password=self.password,
                             client_id='mqttools-{}'.format(uuid1().node),
-                            session_expiry_interval=15
+                            session_expiry_interval=15,
+                             connect_delays=[1, 2, 4, 8]
                             )
     async def send(self,topic_parent: str,
                         message:str, 
