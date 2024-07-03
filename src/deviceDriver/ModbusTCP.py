@@ -1750,7 +1750,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
                     rated_power = watt
-                    rated_power_custom = custom_watt
                     
                     if custom_watt is None:
                         rated_power_custom = watt
@@ -1780,12 +1779,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         if reactive_limit_percent_enable:
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
 
-                        if custom_watt and watt and watt >= custom_watt:
-                            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                            MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (custom_watt, id_systemp))
-                            custom_watt = 0
-                            watt = 0
-
+                        # if custom_watt and watt and watt >= custom_watt:
+                        MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                        MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (custom_watt, id_systemp))
+                        custom_watt = 0
+                        watt = 0
+                            
                         for param in item["parameter"]:
                             if param["value"] is None:
                                 data_send = {
