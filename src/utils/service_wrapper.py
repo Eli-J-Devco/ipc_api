@@ -10,7 +10,6 @@ import logging
 from fastapi import status, HTTPException
 from mqtt_service.model import MessageModel
 from mqtt_service.mqtt import Publisher
-from mqttools import SessionResumeError
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
@@ -137,24 +136,22 @@ class ServiceWrapper:
             publisher = Publisher(**publisher_info)
         await publisher.stop()
         try:
-            await publisher.start(resume_session=resume_session)
-        except SessionResumeError:
-            try:
-                await publisher.start()
-                for msg in message:
-                    if isinstance(msg, MessageModel):
-                        msg = json.dumps(msg.dict())
+            await publisher.start()
+            for msg in message:
+                if isinstance(msg, MessageModel):
+                    msg = json.dumps(msg.dict())
 
-                    if isinstance(msg, dict):
-                        msg = json.dumps(msg)
+                if isinstance(msg, dict):
+                    msg = json.dumps(msg)
 
-                    if is_decode:
-                        msg = base64.b64encode(msg.encode("ascii"))
+                if is_decode:
+                    msg = base64.b64encode(msg.encode("ascii"))
 
-                    publisher.send(topic, msg)
-            except Exception as e:
-                logging.error("====================================")
-                logging.error("Exception: " + str(e))
-                logging.error("====================================")
-            finally:
-                await publisher.stop()
+                publisher.send(topic, msg)
+        except Exception as e:
+            logging.error("====================================")
+            logging.error("Exception: " + str(e))
+            logging.error("====================================")
+            raise e
+        finally:
+            await publisher.stop()

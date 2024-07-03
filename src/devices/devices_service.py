@@ -117,7 +117,10 @@ class DevicesService:
             device["device_type"] = device_type.__dict__ if device_type else None
             device["template"] = template
 
-            output.append(DeviceFull(**device))
+            device = DeviceFull(**device)
+            device.inverter_shutdown = device.inverter_shutdown.strftime("%Y-%m-%d") \
+                if device.inverter_shutdown else None
+            output.append(device.dict())
 
         return generate_pagination_response(output,
                                             total,
@@ -410,7 +413,7 @@ class DevicesService:
         inverter_shutdown = None
         if body.enable_poweroff:
             try:
-                inverter_shutdown = body.inverter_shutdown.strftime("%Y-%m-%d %H:%M:%S")
+                inverter_shutdown = body.inverter_shutdown.strftime("%Y-%m-%d")
             except AttributeError:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid time of inverter shutdown")
 
