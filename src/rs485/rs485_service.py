@@ -32,7 +32,7 @@ class Rs485Service:
         :return: list[Rs485Short] | Rs485
         """
         if not rs485_id:
-            query = select(Rs485Entity)
+            query = select(Rs485Entity).where(Rs485Entity.status == 1)
             result = await session.execute(query)
             return [Rs485Short(**jsonable_encoder(output)) for output in result.scalars().all()]
 
