@@ -562,6 +562,7 @@ async def get_list_device_in_automode(mqtt_result):
     global total_power
     # Local variables
     device_list = []
+    p_min = 0
     # Get results mqtt
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
