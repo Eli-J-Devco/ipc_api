@@ -1888,7 +1888,7 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
             await client.stop()
     except Exception as err:
         print(f"Error MQTT sub_mqtt: '{err}'")
-        
+
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())

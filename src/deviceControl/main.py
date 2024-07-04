@@ -117,6 +117,7 @@ MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
 MQTT_TOPIC_SUD_SETTING_ARLAM = "/Control/Alarm/Setting"
 MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK = "/Control/Alarm/Feedback"
+MQTT_TOPIC_SUD_MODIFY_DEVICE = "/Control/Modify"
 
 def path_directory_relative(project_name):
     if project_name =="":
@@ -177,7 +178,7 @@ def convert_bytes_to_readable(bytes_value, unit="KB"):
 #     "DiskInformation": {},
 #     "NetworkInformation": {}
 #      }
-# 	 */  
+# 	 */ 
 async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global MQTT_TOPIC_PUD_CPU_SETUP
     topicPublic = serial_number_project + MQTT_TOPIC_PUD_CPU_SETUP
@@ -1360,6 +1361,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     global MQTT_TOPIC_SUD_SETTING_ARLAM
+    global MQTT_TOPIC_SUD_MODIFY_DEVICE
 
     result_topic2 = ""
     result_topic3 = ""
@@ -1379,7 +1381,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic6 = serial_number_project + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     topic8 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
-    # topic9 = serial_number_project + MQTT_TOPIC_SUD_SETTING_ARLAM
+    topic9 = serial_number_project + MQTT_TOPIC_SUD_MODIFY_DEVICE
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1408,7 +1410,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        elif topic == topic8:
+        elif topic in [topic8,topic9]:
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             # print("result_topic8",result_topic8)
