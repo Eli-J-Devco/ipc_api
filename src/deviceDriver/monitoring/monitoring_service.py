@@ -55,11 +55,15 @@ class MonitorService:
             self.rated_reactive_custom=None
             # 
     def device_type(self):
-        match self.name_device_type:
-            case "PV System Inverter":
-                return self.device_mode
-            case _:
-                return None
+        # match self.name_device_type:
+        #     case "PV System Inverter":
+        #         return self.device_mode
+        #     case _:
+        #         return None
+        if self.name_device_type in ["PV System Inverter"]:
+            return self.device_mode
+        else:
+            return None
     def point_list_change_para_control(self):
         new_point_list_device=[]
         for item in self.point_list_device:
@@ -87,20 +91,37 @@ class MonitorService:
                         })
                 case "ACPowerFactor":
                     cosPhi=item["value"]
-                    if cosPhi!=None and cosPhi!="null" and cosPhi!=0 and self.rated_power_custom!=None and self.rated_power_custom!="null":
+                    
+                    if cosPhi not in [None, "null",0] and self.rated_power_custom not in [None, "null"] :
                         sinPhi=math.sqrt(1-cosPhi**2)
                         tanPhi=sinPhi/cosPhi
                         self.rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
                         if self.rated_reactive_custom==-0.0:
                             self.rated_reactive_custom=0.0
+                    else:
+                        if  self.rated_power_custom  in [None, "null"] and cosPhi not in [None, "null",0]:
+                            sinPhi=math.sqrt(1-cosPhi**2)
+                            tanPhi=sinPhi/cosPhi
+                            self.rated_reactive_custom=round(self.rated_power*tanPhi,2)
+                            if self.rated_reactive_custom==-0.0:
+                                self.rated_reactive_custom=0.0
+                        elif  self.rated_power_custom not in [None, "null"] and cosPhi in [None, "null",0]:
+                            self.rated_reactive_custom=0
+                        else:
+                            self.rated_reactive_custom=0            
                     new_point_list_device.append({
                         **item,
                         "timestamp":getUTC()
                         })
                 case "WMax":
+                    control_max=None
+                    if self.rated_power_custom not in [None, "null"]:
+                        control_max=self.rated_power_custom
+                    else:
+                        control_max=self.rated_power
                     new_point_list_device.append({
                         **item,
-                        "control_max": self.rated_power_custom,
+                        "control_max": control_max,
                         "timestamp":getUTC()
                         })
                 case _:
