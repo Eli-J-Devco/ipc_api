@@ -115,7 +115,6 @@ class mqttService:
             self.sender.publish(mqttools.Message(
                 f"{self.serial_number}/{topic_parent}", payload.encode("ascii")))
         except Exception as err:
-            
             print(f"Error MQTT public: '{err}'")
             raise err
         finally:
