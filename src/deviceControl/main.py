@@ -1412,7 +1412,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        elif topic in [topic8,topic9]:
+        # elif topic in [topic8,topic9]:
+        elif topic == topic8:
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             # print("result_topic8",result_topic8)
