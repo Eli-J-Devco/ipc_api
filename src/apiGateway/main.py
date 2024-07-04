@@ -271,7 +271,7 @@ class apiGateway:
         except Exception as err:
             print(f"Error managerApplicationsWithPM2: '{err}'")   
     # 
-    async def handle_messages_driver(self,client,Topic):
+    async def handle_messages_drivers(self,client,Topic):
         try:
             while True:
                 message = await client.messages.get()
@@ -337,7 +337,7 @@ class apiGateway:
                                 )
             while True:
                 await client.start()
-                await self.handle_messages_driver(client,Topic)
+                await self.handle_messages_drivers(client,Topic)
                 await client.stop()
         except Exception as err:
             print('Error MQTT deviceListSub')
