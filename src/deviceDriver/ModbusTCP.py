@@ -1387,7 +1387,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 id_device_type=ID_DEVICE_TYPE,
                 device_mode=device_mode,
                 rated_power=rated_power,
-                rated_power_custom=rated_power_custom_calculator,
+                rated_power_custom=rated_power_custom,
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
@@ -1631,43 +1631,16 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "emergency_stop":emergency_stop,# realtime
                 
             }
-            # data_device_short={
-            #     "id_device":device_id,
-            #     "parent":device_parent,
-            #     "mode":device_mode,
-            #     "device_name":device_name,
-            #     "id_device_type":ID_DEVICE_TYPE,
-            #     "name_device_type":NAME_DEVICE_TYPE,
-            #     "status_device":status_device,
-            #     "timestamp":getUTC(),
-            #     "message":msg_device,
-            #     "status_register":status_register_block,
-            #     "fields":new_point,
-            #     "rated_power":rated_power,
-            #     "rated_power_custom":rated_power_custom,
-            #     "min_watt_in_percent":min_watt_in_percent,
-            #     "rated_reactive_custom":rated_reactive_custom,
-            #     "emergency_stop":emergency_stop
-            # }
-            
             if device_name !="" and serial_number_project!= None:
-                
                 # func_mqtt_public(   host[0],
                 #                     port[0],
                 #                     serial_number_project+"/"+"Devices/"+""+device_id,
                 #                     username[0],
                 #                     password[0],
                 #                     data_device)
-                # func_mqtt_public(   host[0],
-                #                     port[0],
-                #                     serial_number_project+"/"+"Shorts/"+""+device_id,
-                #                     username[0],
-                #                     password[0],
-                #                     data_device_short)
                 await mqtt_init.send("Devices/"+""+device_id,
                                         data_device)
             await asyncio.sleep(1)
-        
     except Exception as err:
         print('Error monitoring_device : ',err)
         
