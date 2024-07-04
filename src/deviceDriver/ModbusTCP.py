@@ -1766,6 +1766,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             comment = 400 
                         else:
                             comment = 200 
+                        print("power_limit",power_limit)
+                        print("rated_power_custom_calculator",rated_power_custom_calculator)
                         
                         for param in item["parameter"]:
                             if param["value"] is None:
