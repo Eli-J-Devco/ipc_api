@@ -406,6 +406,7 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
+                
                 await mqtt_init.send("Devices/All",
                                mqtt_data)
                 
