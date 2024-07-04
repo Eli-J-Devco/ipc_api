@@ -92,20 +92,20 @@ class MonitorService:
                 case "ACPowerFactor":
                     cosPhi=item["value"]
                     
-                    if cosPhi not in [None, "null","0"] and self.rated_power_custom not in [None, "null"] :
+                    if cosPhi not in [None, "null",0] and self.rated_power_custom not in [None, "null"] :
                         sinPhi=math.sqrt(1-cosPhi**2)
                         tanPhi=sinPhi/cosPhi
                         self.rated_reactive_custom=round(self.rated_power_custom*tanPhi,2)
                         if self.rated_reactive_custom==-0.0:
                             self.rated_reactive_custom=0.0
                     else:
-                        if  self.rated_power_custom  in [None, "null"] and cosPhi not in [None, "null","0"]:
+                        if  self.rated_power_custom  in [None, "null"] and cosPhi not in [None, "null",0]:
                             sinPhi=math.sqrt(1-cosPhi**2)
                             tanPhi=sinPhi/cosPhi
                             self.rated_reactive_custom=round(self.rated_power*tanPhi,2)
                             if self.rated_reactive_custom==-0.0:
                                 self.rated_reactive_custom=0.0
-                        elif  self.rated_power_custom not in [None, "null"] and cosPhi in [None, "null","0"]:
+                        elif  self.rated_power_custom not in [None, "null"] and cosPhi in [None, "null",0]:
                             self.rated_reactive_custom=0
                         else:
                             self.rated_reactive_custom=0            
