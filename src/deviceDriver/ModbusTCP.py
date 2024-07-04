@@ -1765,11 +1765,14 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         if power_limit > rated_power_custom_calculator:
                             comment = 400 
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+                            comment = 400 
+                            data_send = {
+                                    "time_stamp": current_time,
+                                    "status": comment,
+                                }
+                            push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
                         else:
                             comment = 200 
-                        print("power_limit",power_limit)
-                        print("rated_power_custom_calculator",rated_power_custom_calculator)
-                        print("comment",comment)
                         for param in item["parameter"]:
                             if param["value"] is None:
                                 data_send = {
