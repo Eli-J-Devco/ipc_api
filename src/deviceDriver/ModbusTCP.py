@@ -1122,6 +1122,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         device_mode=results_device[0]['mode']
         global rated_power
         global rated_power_custom
+        global rated_power_custom_calculator
         global min_watt_in_percent
         global meter_type
         global rated_DC_input_voltage
@@ -1131,6 +1132,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global emergency_stop
         if results_device[0]['rated_power']!=None:
             rated_power=results_device[0]['rated_power']
+            rated_power_custom_calculator=results_device[0]['rated_power']
             
         if results_device[0]['rated_power_custom']!=None:
             rated_power_custom=results_device[0]['rated_power_custom']
@@ -1861,7 +1863,7 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
             await client.stop()
     except Exception as err:
         print(f"Error MQTT sub_mqtt: '{err}'")
-        
+
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
