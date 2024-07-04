@@ -446,11 +446,12 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
     if result:
         try:
     # Sent information to Mqtt
-            data_send = result[0]
-            data_send['mqtt'] = [
-                {"time_stamp": get_utc()},
-                {"status": 200}
-            ]
+            # data_send = result[0]
+            # data_send['mqtt'] = [
+            #     {"time_stamp": get_utc()},
+            #     {"status": 200}
+            # ]
+            data_send = {}
             print("data_send",data_send)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
