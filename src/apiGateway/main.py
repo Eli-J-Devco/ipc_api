@@ -408,6 +408,7 @@ class apiGateway:
                     })
                 await mqtt_init.send("Devices/All",
                                mqtt_data)
+                
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
