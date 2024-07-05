@@ -99,7 +99,7 @@ class Devices(config.Base):
     communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
     device_type = relationship("DeviceType", foreign_keys=[id_device_type], lazy="immediate")
     project_setup = relationship("ProjectSetup", foreign_keys=[id_project_setup])
-    template_library = relationship("Template", foreign_keys=[id_template], lazy="immediate")
+    template = relationship("Template", foreign_keys=[id_template], lazy="immediate")
     point_list_p = relationship("Point", foreign_keys=[point_p])
     point_list_q = relationship("Point", foreign_keys=[point_q])
     point_list_pf = relationship("Point", foreign_keys=[point_pf])

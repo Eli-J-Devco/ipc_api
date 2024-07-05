@@ -102,8 +102,6 @@ class DevicesService:
         for device in devices:
             driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
             device_type = device.device_type
-            device_type_name = device.device_type.__dict__.get("name") if device.device_type is not None else None
-            template = device.template_library.__dict__
             query = (select(DevicesEntity)
                      .where(DevicesEntity.parent == device.id))
             result = await session.execute(query)
@@ -112,10 +110,8 @@ class DevicesService:
 
             if components:
                 device["children"] = True
-            device["driver_type"] = driver_type if device_type and device_type.__dict__.get("type") != 1 \
-                else device_type_name
+            device["driver_type"] = driver_type
             device["device_type"] = device_type.__dict__ if device_type else None
-            device["template"] = template
 
             device = DeviceFull(**device)
             device.inverter_shutdown = device.inverter_shutdown.strftime("%Y-%m-%d") \
@@ -152,13 +148,15 @@ class DevicesService:
         return [Devices(**device.__dict__) for device in devices]
 
     @async_db_request_handler
-    async def get_device_by_id(self, device_id: int, session: AsyncSession) -> Devices | HTTPException:
+    async def get_device_by_id(self, device_id: int,
+                               session: AsyncSession, is_full: bool = False) -> Devices | HTTPException:
         """
         Get device by id
         :author: nhan.tran
         :date: 20-05-2024
         :param device_id:
         :param session:
+        :param is_full:
         :return: Devices | HTTPException
         """
         query = select(DevicesEntity).filter(DevicesEntity.id == device_id)
@@ -168,7 +166,9 @@ class DevicesService:
         if not device:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Devices not found")
 
-        return Devices(**device.__dict__)
+        driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
+        return Devices(**device.__dict__) if not is_full else DeviceFull(**device.__dict__,
+                                                                         driver_type=driver_type)
 
     @async_db_request_handler
     async def get_device_by_template(self, id_template: int, session: AsyncSession) -> list[Devices] | HTTPException:

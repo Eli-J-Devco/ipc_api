@@ -38,7 +38,7 @@ class DevicesController:
                           auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.devices_service.get_devices)(body, session, pagination)
 
-    @Post("/get/")
+    @Post("/get/others/")
     async def get_devices_by_template(self,
                                       body: GetDeviceFilter,
                                       session: AsyncSession = Depends(config.get_db),
@@ -47,6 +47,17 @@ class DevicesController:
                       .async_wrapper(self.devices_service
                                      .get_device_by_condition)(body,
                                                                session))
+
+    @Post("/get/")
+    async def get_device_by_id(self,
+                               id: int,
+                               session: AsyncSession = Depends(config.get_db),
+                               auth: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper
+                      .async_wrapper(self.devices_service
+                                     .get_device_by_id)(id,
+                                                        session,
+                                                        is_full=True))
 
     @Post("/add/")
     async def add_devices(self,
