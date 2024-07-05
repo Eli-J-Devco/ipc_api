@@ -423,8 +423,8 @@ class apiGateway:
                     })
                 await mqtt_init.send("Devices/All",
                                mqtt_data_scada)
-                await mqtt_init.send("Devices/Full",
-                               mqtt_data)
+                # await mqtt_init.send("Devices/Full",
+                #                mqtt_data)
                 # topic=f"{self.MQTT_TOPIC}/Devices/All"
                 # mqtt_public_paho(
                 #     self.MQTT_BROKER,
