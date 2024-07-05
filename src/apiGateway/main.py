@@ -441,9 +441,9 @@ class apiGateway:
                 #     mqtt_data)
                 await asyncio.sleep(1)
         except Exception as err:
-            print('Error MQTT deviceListPub')
+            print('Error MQTT deviceListPub',err)
         finally:
-            print('MQTT deviceListPub end')
+            print('MQTT deviceListPub end',err)
     # 
     async def handle_ipc_system(self,client):
         try:
