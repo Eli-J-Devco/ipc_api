@@ -1023,9 +1023,14 @@ async def write_device(
                             }
                             push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
-
                     except Exception as err:
                         print(f"write_device: '{err}'")
+                else:
+                    data_send = {
+                                "time_stamp": current_time,
+                                "status": 200,
+                            }
+                    push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
