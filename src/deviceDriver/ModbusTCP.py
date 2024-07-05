@@ -916,6 +916,7 @@ async def write_device(
     comment = 200
     current_time = get_utc()
     data_send = ""
+    addtopic = ""
     
     # database
     is_inverter = []
@@ -951,10 +952,10 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
-                                print("mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
+                                    addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
                                         if value == True :
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype, modbus_func, register, value=1)
@@ -1006,7 +1007,7 @@ async def write_device(
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
-                                    
+                                    addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
                                         value = int(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
@@ -1021,7 +1022,7 @@ async def write_device(
                                 "time_stamp": current_time,
                                 "status": comment,
                             }
-                            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + "Feedback", mqtt_username, mqtt_password, data_send)
+                            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
 
                     except Exception as err:
