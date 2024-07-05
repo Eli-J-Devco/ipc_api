@@ -387,7 +387,7 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
         try:
             # Wait for up to 2 seconds for the data to be available
             await asyncio.sleep(2)
-            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
+            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
             if len(modes) == 1:
                 if 0 in modes:
@@ -622,7 +622,7 @@ async def get_list_device_in_automode(mqtt_result):
 ############################################################################ List Device Systemp ############################################################################
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
-    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSysTemp
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSystempCurrent
     
     # Local variable
     device_list = []
@@ -735,6 +735,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     total_wmax_man_temp = round(total_wmax_man_temp,1)
     
     result = {
+    "ModeSystempCurrent":ModeSystempCurrent,
     "devices": device_list,
     "total_max_power": total_power + total_wmax_man_temp,
     "system_performance": {
