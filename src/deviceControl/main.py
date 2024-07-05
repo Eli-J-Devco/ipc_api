@@ -1420,15 +1420,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        # elif topic in [topic8,topic9]:
-        elif topic == topic8:
+        elif topic in [topic8,topic9]:
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
-            # print("result_topic8",result_topic8)
-        # elif topic == topic9:
-        #     result_topic9 = message
-        #     await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
-        #     print("result_topic9",result_topic9)
+            print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1457,8 +1452,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8,topic9):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8, serial_number_project +topic9]
     try:
         client = mqttools.Client(
             host=host,
@@ -1523,6 +1518,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                 MQTT_TOPIC_SUD_CONTROL_MAN ,
+                                                MQTT_TOPIC_SUD_MODIFY_DEVICE,
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
