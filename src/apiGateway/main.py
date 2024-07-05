@@ -346,11 +346,11 @@ class apiGateway:
     async def deviceListPub(self):
         try:
             try:
-                # mqtt_init=mqttService(self.MQTT_BROKER,
-                #     self.MQTT_PORT,
-                #     self.MQTT_USERNAME,
-                #     self.MQTT_PASSWORD,
-                #     self.MQTT_TOPIC)
+                mqtt_init=mqttService(self.MQTT_BROKER,
+                    self.MQTT_PORT,
+                    self.MQTT_USERNAME,
+                    self.MQTT_PASSWORD,
+                    self.MQTT_TOPIC)
                 db_new=await db_config.get_db()
                 result= await db_new.execute(text("select * from `device_list` where `status`=1;"))
                 
@@ -408,16 +408,16 @@ class apiGateway:
                         "mppt":mppt
                     })
                 
-                # await mqtt_init.send("Devices/All",
-                #                mqtt_data)
+                await mqtt_init.send("Devices/All",
+                               mqtt_data)
                 topic=f"{self.MQTT_TOPIC}/Devices/All"
-                mqtt_public_paho(
-                    self.MQTT_BROKER,
-                    self.MQTT_PORT,
-                    topic,
-                    self.MQTT_USERNAME,
-                    self.MQTT_PASSWORD,
-                    mqtt_data)
+                # mqtt_public_paho(
+                #     self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     topic,
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #     mqtt_data)
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
