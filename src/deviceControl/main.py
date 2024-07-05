@@ -387,7 +387,7 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
         try:
             # Wait for up to 2 seconds for the data to be available
             await asyncio.sleep(2)
-            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter';")
+            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
             if len(modes) == 1:
                 if 0 in modes:
