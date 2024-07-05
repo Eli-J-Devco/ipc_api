@@ -117,7 +117,7 @@ class DevicesService:
                 await session.execute(query)    
                 await session.commit()
             if device_list:
-                await self.mqtt_init.send("Control/Write",
+                await self.mqtt_init.send("Control/Modify",
                                device_list)
                 
         except Exception as e:
@@ -219,7 +219,7 @@ class DevicesService:
                 await session.execute(query)    
                 await session.commit()
             if device_list:
-                await self.mqtt_init.send("Control/Write",
+                await self.mqtt_init.send("Control/Modify",
                                device_list)
         except Exception as e:
             print("Error create_dev_rs485: ", e)
@@ -276,7 +276,7 @@ class DevicesService:
                     )
                 print(f'delete_device_list{delete_device_list}')
                 if delete_device_list:
-                    await self.mqtt_init.send("Control/Write",delete_device_list)
+                    await self.mqtt_init.send("Control/Modify",delete_device_list)
             if self.update_device_list:
                 if id_device:
                     for item_delete in id_device:
@@ -378,7 +378,7 @@ class DevicesService:
                 print(f'Edit_device_list{device_list}')
                 if device_list:
                     # await self.mqtt_init.send("Control/Write",device_list)
-                    topic=self.serial_number+"/Control/Write"
+                    topic=self.serial_number+"/Control/Modify"
                     mqtt_public_paho(host=self.mqtt_host,port=self.mqtt_port,
                                      topic=topic,username=self.mqtt_username,password=self.mqtt_password,
                                      message=device_list)

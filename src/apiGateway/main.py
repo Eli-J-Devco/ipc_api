@@ -431,15 +431,15 @@ class apiGateway:
                     f"{self.MQTT_TOPIC}/Devices/All",
                     self.MQTT_USERNAME,
                     self.MQTT_PASSWORD,
-                    mqtt_data_scada)
-                mqtt_public_paho(
-                    self.MQTT_BROKER,
-                    self.MQTT_PORT,
-                    f"{self.MQTT_TOPIC}/Devices/Full",
-                    self.MQTT_USERNAME,
-                    self.MQTT_PASSWORD,
                     mqtt_data)
-                await asyncio.sleep(1)
+                # mqtt_public_paho(
+                #     self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     f"{self.MQTT_TOPIC}/Devices/Full",
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #     mqtt_data)
+                await asyncio.sleep(10)
         except Exception as err:
             print('Error MQTT deviceListPub')
         finally:
