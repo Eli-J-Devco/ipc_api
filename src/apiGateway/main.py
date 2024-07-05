@@ -439,7 +439,7 @@ class apiGateway:
                 #     self.MQTT_USERNAME,
                 #     self.MQTT_PASSWORD,
                 #     mqtt_data)
-                await asyncio.sleep(10)
+                await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub')
         finally:
