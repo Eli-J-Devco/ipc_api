@@ -916,7 +916,6 @@ async def write_device(
     comment = 200
     current_time = get_utc()
     data_send = ""
-    addtopic = ""
     
     # database
     is_inverter = []
