@@ -279,5 +279,19 @@ class Query():
         
         WHERE device_list.status=1 AND device_list.id_communication ={id_communication};
     """
-    
+    select_all_device_mqtt_gateway:str="""
+        select 
+        device_list.id, 
+        device_list.name,
+        device_list.mode,
+        device_list.efficiency,
+        device_list.parent, 
+        device_list.inverter_type,
+        device_list.meter_type,
+        device_type.name as name_device_type,
+        device_type.type AS type_device_type
+        from `device_list` 
+        LEFT JOIN device_type ON device_list.id_device_type=device_type.id
+        where device_list.status=1;
+    """
 all_query=Query()

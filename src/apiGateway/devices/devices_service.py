@@ -329,42 +329,44 @@ class DevicesService:
             #            "id":296
             #         }
             # }
-            
+            update_code=(lambda x: x['code'] if 'code' in x.keys()  else 0) (update_devices)
             id_device=update_devices['id']
-            sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
-            
-            result= await session.execute(text(sql_query_select_device))
-            result_device= result.all()
-            
-            connect_type=None
-            device_type_value=None
-            device_type_name=None
-            device_name=None
-            if result_device:
-                results_device_dict = [row._asdict() for row in result_device][0]
-                id_communication=results_device_dict["id_communication"]
-                connect_type=results_device_dict["connect_type"]
-                name_device=results_device_dict["name"]
-                device_type_value=results_device_dict["device_type_value"]
-                device_type_name=results_device_dict["device_type"]
-                device_name=results_device_dict["name"]
-            
-            if device_type_value:
-                for i,item in enumerate(self.update_device_list):
-                    if item["id_device"] ==id_device:
-                        self.update_device_list[i]["device_name"]=device_name
+            if update_code==0:
+                sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
+                
+                result= await session.execute(text(sql_query_select_device))
+                result_device= result.all()
+                
+                connect_type=None
+                device_type_value=None
+                device_type_name=None
+                device_name=None
+                if result_device:
+                    results_device_dict = [row._asdict() for row in result_device][0]
+                    id_communication=results_device_dict["id_communication"]
+                    connect_type=results_device_dict["connect_type"]
+                    name_device=results_device_dict["name"]
+                    device_type_value=results_device_dict["device_type_value"]
+                    device_type_name=results_device_dict["device_type"]
+                    device_name=results_device_dict["name"]
+                
+                if device_type_value:
+                    for i,item in enumerate(self.update_device_list):
+                        if item["id_device"] ==id_device:
+                            self.update_device_list[i]["device_name"]=device_name
+                else:
+                    match connect_type:
+                        case "RS485":
+                            serialport_group=results_device_dict["serialport_group"]
+                            pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{serialport_group}']
+                            await restart_program_pm2_many(pm2_app_list)
+                        case "Modbus/TCP":
+                            pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
+                            await delete_program_pm2_many(pm2_app_list)
+                            pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
+                            await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
             else:
-                match connect_type:
-                    case "RS485":
-                        serialport_group=results_device_dict["serialport_group"]
-                        pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{serialport_group}']
-                        await restart_program_pm2_many(pm2_app_list)
-                    case "Modbus/TCP":
-                        pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
-                        await delete_program_pm2_many(pm2_app_list)
-                        pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
-                        await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
-        
+                print("update status device online")
             if id_device:
                 device_list=[]
                 device_list.append(
@@ -415,3 +417,8 @@ class DevicesService:
         finally:
             print('create_dev_no_log end')
             await session.close() 
+def device_mode(device_type: str,device_mode:str):
+    if device_type in ["PV System Inverter"]:
+        return device_mode
+    else:
+        return None

@@ -26,6 +26,7 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 # 
 from configs.config import Config
 from configs.config import orm_provider as db_config
+from database.sql.device import all_query
 # 
 # from database.db import get_db
 from utils.libCom import cov_xml_sql, get_mybatis
@@ -191,7 +192,8 @@ class apiGateway:
                             #     "CODE": "UpdateDev", 
                             #     "PAYLOAD":
                             #         { 
-                            #            "id":296
+                            #            "id":296,
+                            #            "code":0/1 =0 init =1 update online
                             #         }
                             # }
                             db_new=await db_config.get_db()
@@ -352,19 +354,22 @@ class apiGateway:
                     self.MQTT_PASSWORD,
                     self.MQTT_TOPIC)
                 db_new=await db_config.get_db()
-                result= await db_new.execute(text("select * from `device_list` where `status`=1;"))
+                query=all_query.select_all_device_mqtt_gateway
+                result= await db_new.execute(text(query))
                 
                 result_device=[row._asdict() for row in result.all()]
                 for item in result_device:
+                    device_mode=devices_service.device_mode(item["name_device_type"],item["mode"])
                     self.DeviceList.append({
                         "id_device":item["id"],
                         "device_name":item["name"],
-                        "mode":item["mode"],
+                        "mode":device_mode,
                         "parameters":[],
                         "efficiency":item["efficiency"],
                         "parent":item["parent"],
                         "inverter_type":item["inverter_type"],
                         "meter_type":item["meter_type"],
+                        "type_device_type":item["type_device_type"]
                     })
             except Exception as err:
                 print('An exception occurred',err)
@@ -373,6 +378,7 @@ class apiGateway:
             # topic=f"{self.MQTT_TOPIC}/Devices/All"
             while True:
                 mqtt_data=[]
+                mqtt_data_scada=[]
                 for item in self.DeviceList:
                     parameters=[]
                     fields=[]
@@ -400,6 +406,14 @@ class apiGateway:
                         mppt=[ {**item_mppt,
                                   "timestamp":getUTC()
                                   } for item_mppt in item["mppt"]]
+                    if item["type_device_type"]==0:
+                        mqtt_data_scada.append({
+                            **item,
+                            "timestamp":getUTC(),
+                            "parameters":parameters,
+                            "fields":fields,
+                            "mppt":mppt
+                        })
                     mqtt_data.append({
                         **item,
                         "timestamp":getUTC(),
@@ -407,10 +421,11 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
-                
                 await mqtt_init.send("Devices/All",
+                               mqtt_data_scada)
+                await mqtt_init.send("Devices/Full",
                                mqtt_data)
-                topic=f"{self.MQTT_TOPIC}/Devices/All"
+                # topic=f"{self.MQTT_TOPIC}/Devices/All"
                 # mqtt_public_paho(
                 #     self.MQTT_BROKER,
                 #     self.MQTT_PORT,
