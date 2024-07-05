@@ -406,14 +406,14 @@ class apiGateway:
                         mppt=[ {**item_mppt,
                                   "timestamp":getUTC()
                                   } for item_mppt in item["mppt"]]
-                    if item["type_device_type"]==0:
-                        mqtt_data_scada.append({
-                            **item,
-                            "timestamp":getUTC(),
-                            "parameters":parameters,
-                            "fields":fields,
-                            "mppt":mppt
-                        })
+                    # if item["type_device_type"]==0:
+                    #     mqtt_data_scada.append({
+                    #         **item,
+                    #         "timestamp":getUTC(),
+                    #         "parameters":parameters,
+                    #         "fields":fields,
+                    #         "mppt":mppt
+                    #     })
                     mqtt_data.append({
                         **item,
                         "timestamp":getUTC(),
