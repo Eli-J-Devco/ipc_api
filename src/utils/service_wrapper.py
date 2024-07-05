@@ -126,7 +126,7 @@ class ServiceWrapper:
 
     @staticmethod
     async def publish_message(publisher: Publisher, topic: str,
-                              message: list[MessageModel | dict], resume_session: bool = True,
+                              message: list[MessageModel | dict],
                               publisher_info: dict = None,
                               is_decode: bool = True):
         """

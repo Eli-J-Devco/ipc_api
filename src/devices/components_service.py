@@ -12,6 +12,7 @@ from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, text, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import func
 
 from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice
@@ -46,6 +47,16 @@ class ComponentsService:
         await session.execute(query)
         await session.flush()
 
+        validate_quantity = await self.validate_quantity(parent, components, session)
+        for v in validate_quantity.values():
+            if not v["limit"]:
+                continue
+
+            if v["actual"] > v["limit"]:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Quantity limit exceeded")
+
+        count = 1
         for component in components:
             if component.id:
                 if is_add and component.type == 0:
@@ -63,13 +74,14 @@ class ComponentsService:
             if not template:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-            new_component = DevicesEntity(name=component.name,
+            new_component = DevicesEntity(name=f"{component.name} {count}",
                                           parent=parent,
                                           id_device_type=component.id_device_type,
                                           id_template=template.id, )
             session.add(new_component)
             await session.flush()
             symbolic_devices.append(SymbolicDevice(id=new_component.id, name=new_component.name))
+            count += 1
         return symbolic_devices
 
     @async_db_request_handler
@@ -85,10 +97,10 @@ class ComponentsService:
         :return: Sequence[DeviceComponent]
         """
         query = (select(DeviceComponentEntity)
-                 .where(DeviceComponentEntity.main_type == device_type.main_type)
-                 .where(
-                    DeviceComponentEntity.sub_type == device_type.sub_type
-                    if device_type.sub_type else text("1=1")))
+        .where(DeviceComponentEntity.main_type == device_type.main_type)
+        .where(
+            DeviceComponentEntity.sub_type == device_type.sub_type
+            if device_type.sub_type else text("1=1")))
 
         result = await session.execute(query)
         components = result.scalars().all()
@@ -209,3 +221,67 @@ class ComponentsService:
             component.device_group = device_group
             output.append(component)
         return output
+
+    @async_db_request_handler
+    async def validate_quantity(self, parent: int, new_components: list[DeviceComponentFilter], session: AsyncSession):
+        """
+        Validate quantity
+        :author: nhan.tran
+        :date: 04-07-2024
+        :param parent:
+        :param new_components:
+        :param session:
+        :return: dict
+        """
+        query = (select(DevicesEntity.id_device_type, DeviceComponentEntity.quantity, func.count())
+                 .join(DeviceComponentEntity, DevicesEntity.id_device_type == DeviceComponentEntity.component)
+                 .where(DevicesEntity.parent == parent)
+                 .group_by(DevicesEntity.id_device_type))
+        result = await session.execute(query)
+        components = result.all()
+
+        output = {}
+        if components:
+            for component in components:
+                output[component[0]] = {"limit": component[1],
+                                        "actual": component[2]}
+
+        for component in new_components:
+            if component.id_device_type not in output:
+                output[component.id_device_type] = {"limit": await self.get_quantity(parent,
+                                                                                     component.id_device_type,
+                                                                                     session),
+                                                    "actual": 0}
+            output[component.id_device_type]["actual"] += 1
+
+        return output
+
+    @async_db_request_handler
+    async def get_quantity(self, device_id: int, component: int, session: AsyncSession) -> int:
+        """
+        Get quantity
+        :author: nhan.tran
+        :date: 04-07-2024
+        :param device_id:
+        :param component:
+        :param session:
+        :return: int
+        """
+        query = (select(DevicesEntity.id_device_type,
+                        DevicesEntity.inverter_type,
+                        DevicesEntity.meter_type)
+                 .where(DevicesEntity.id == device_id))
+        result = await session.execute(query)
+        device = result.first()
+
+        main_type = device[0]
+        sub_type = device[1] if device[1] else device[2] if device[2] else None
+
+        query = (select(DeviceComponentEntity.quantity)
+                 .where(DeviceComponentEntity.main_type == main_type)
+                 .where(DeviceComponentEntity.component == component)
+                 .where(or_(DeviceComponentEntity.sub_type == sub_type if sub_type else text("1=1"),
+                            DeviceComponentEntity.sub_type.is_(None))))
+        result = await session.execute(query)
+        quantity = result.scalar()
+        return quantity

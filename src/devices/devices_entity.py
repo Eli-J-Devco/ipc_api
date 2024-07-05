@@ -144,6 +144,7 @@ class DeviceComponent(config.Base):
                                                                onupdate="RESTRICT"),
                                            primary_key=True,
                                            nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=True)
 
     main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
     component_type = relationship("DeviceType", foreign_keys=[component], lazy="immediate")

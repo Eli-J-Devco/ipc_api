@@ -121,6 +121,7 @@ class DeviceConfigOutput(BaseModel):
 class DeviceComponentBase(BaseModel):
     sub_type: Optional[int] = None
     component: Optional[int] = None
+    quantity: Optional[int] = None
 
 
 class DeviceComponent(DeviceComponentBase):
