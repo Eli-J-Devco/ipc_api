@@ -4,6 +4,7 @@
 # *
 # *********************************************************/
 import asyncio
+import base64
 import datetime
 import ipaddress
 import json
@@ -32,8 +33,9 @@ from database.sql.device import all_query
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
 from utils.logger_manager import setup_logger
-from utils.mqttManager import (mqtt_public, mqtt_public_common,
-                               mqtt_public_paho, mqttService)
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2,
@@ -281,9 +283,13 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                result=json.loads(message.message.decode())
+                # print(message.topic)
+                
                 for i,item in enumerate(self.DeviceList):
+                    
                     if message.topic==f'{Topic}/{item["id_device"]}':
+                        # result=json.loads(message.message.decode())
+                        result=gzip_decompress(message.message)
                         if 'id_device_type' in result.keys():
                             self.DeviceList[i]["id_device_type"]=result["id_device_type"]
                         if 'name_device_type' in result.keys():
@@ -425,13 +431,13 @@ class apiGateway:
                 #                mqtt_data_scada)
                 # await mqtt_init.send("Devices/Full",
                 #                mqtt_data)
-                mqtt_public_paho(
-                    self.MQTT_BROKER,
-                    self.MQTT_PORT,
-                    f"{self.MQTT_TOPIC}/Devices/All",
-                    self.MQTT_USERNAME,
-                    self.MQTT_PASSWORD,
-                    mqtt_data)
+                # mqtt_public_paho(
+                #     self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     f"{self.MQTT_TOPIC}/Devices/All",
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #     mqtt_data)
                 # mqtt_public_paho(
                 #     self.MQTT_BROKER,
                 #     self.MQTT_PORT,
@@ -439,6 +445,16 @@ class apiGateway:
                 #     self.MQTT_USERNAME,
                 #     self.MQTT_PASSWORD,
                 #     mqtt_data)
+                
+                await mqtt_init.sendZIP("Devices/All",mqtt_data)
+                
+                # mqtt_public_paho_byte(
+                #     self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     f"{self.MQTT_TOPIC}/Devices/All",
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #    gzip_f)
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub',err)
