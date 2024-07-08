@@ -1768,12 +1768,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if result_topic1:
             # Check Wmax with Value Maximum Power
             result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
-            print("result_value_power_limit",result_value_power_limit)
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
             value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
-            value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
-            print("value_power_limit",value_power_limit)
-            print("total_wmax_man",total_wmax_man)
+            if value_offset_power_limit :
+                value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
+            else:
+                value_power_limit = value_power_limit_temp
             
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
