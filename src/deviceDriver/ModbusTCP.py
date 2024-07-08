@@ -1732,8 +1732,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
-                    rated_power = watt
-                    rated_power_custom = custom_watt
+                    
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
                     else:
@@ -1744,6 +1743,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 power_limit_percent_enable = param["value"]
                             elif param["id_pointkey"] == "WMax":
                                 power_limit = param["value"]
+                                if power_limit < custom_watt and power_limit < watt:
+                                    rated_power = watt
+                                    rated_power_custom = custom_watt
                             elif param["id_pointkey"] == "WMaxPercent":
                                 power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
                             elif param["id_pointkey"] == "VarMaxPercentEnable":
