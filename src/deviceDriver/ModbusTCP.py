@@ -1699,9 +1699,10 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
 # 	 */ 
 async def get_list_device_in_process(mqtt_result):
     # Global variables
-    global total_wmax_man,total_wmax
+    global total_wmax_man,total_wmax,device_list
     
     # Local variable
+    device_list = []
     wmax_array = []
     wmax = 0.0
     total_wmax_man_temp = 0
@@ -1711,6 +1712,7 @@ async def get_list_device_in_process(mqtt_result):
         for item in mqtt_result:
             # get info about device
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
+                id_device = item['id_device']
                 mode = item['mode']
                 results_device_type = item['name_device_type']
                 # check device is inv
@@ -1728,6 +1730,11 @@ async def get_list_device_in_process(mqtt_result):
                                 total_wmax_man = total_wmax_man_temp 
                         else:
                             total_wmax_man = 0
+                    device_list.append({
+                            'id_device': id_device,
+                            'mode': mode,
+                            'total_wmax_man': total_wmax_man
+                        })
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -1752,6 +1759,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global emergency_stop
     global total_wmax_man 
     global value_power_limit
+    global device_list
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1798,8 +1806,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 power_limit_percent_enable = param["value"]
                             elif param["id_pointkey"] == "WMax":
                                 power_limit = param["value"]
-                                total_wmax_man += power_limit
+                                
+                                print("device_list",device_list)
                                 print("total_wmax_man",total_wmax_man)
+                                
                                 if power_limit < custom_watt and power_limit < watt:
                                     rated_power = watt
                                     rated_power_custom = custom_watt
