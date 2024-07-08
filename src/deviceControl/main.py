@@ -613,6 +613,7 @@ async def get_list_device_in_automode(mqtt_result):
                     })
     total_power = sum(device['p_max'] for device in device_list)
     return device_list
+############################################################################ List Device Systemp ############################################################################
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
 # 	 * @author bnguyen
@@ -620,7 +621,6 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
-############################################################################ List Device Systemp ############################################################################
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSystempCurrent

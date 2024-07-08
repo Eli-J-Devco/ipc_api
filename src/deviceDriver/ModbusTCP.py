@@ -56,6 +56,7 @@ MQTT_TOPIC_PUD_MODE_DEVICE = "/Control/Setup/Mode/Write"
 MQTT_TOPIC_SUD_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONTROL_MAN = "/Control/Write"
 MQTT_TOPIC_SUD_CONTROL_AUTO = "/Control/WriteAuto"
+MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
 # 
 ModeSysTemp = "" 
 device_name=""
@@ -82,6 +83,9 @@ enable_zero_export = 0
 value_zero_export = 0
 enable_power_limit = 0
 value_power_limit = 0
+
+total_wmax = 0
+total_wmax_man = 0
 
 # Set time shutdown of inverter
 inv_shutdown_enable=False
@@ -1686,6 +1690,44 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
                 pass
     else:
         pass
+# Describe get_list_device_in_process 
+# 	 * @description get_list_device_in_process
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {mqtt_result }
+# 	 * @return device_list 
+# 	 */ 
+async def get_list_device_in_process(mqtt_result):
+    # Global variables
+    global total_wmax_man,total_wmax
+    
+    # Local variable
+    wmax_array = []
+    wmax = 0.0
+    total_wmax_man_temp = 0
+    total_wmax_temp = 0
+    # Get result mqtt 
+    if mqtt_result and isinstance(mqtt_result, list):
+        for item in mqtt_result:
+            # get info about device
+            if 'id_device' in item and 'mode' in item and 'status_device' in item:
+                mode = item['mode']
+                results_device_type = item['name_device_type']
+                # check device is inv
+                if results_device_type == "PV System Inverter":
+                    # get info list device
+                    wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
+                    wmax = wmax_array[0] if wmax_array else 0
+                    
+                    if wmax != None :
+                        total_wmax_temp += wmax
+                        total_wmax = total_wmax_temp
+                        if ModeSysTemp != 1:
+                            if mode == 0:
+                                total_wmax_man_temp += wmax
+                                total_wmax_man = total_wmax_man_temp 
+                        else:
+                            total_wmax_man = 0
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -1708,6 +1750,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global reactive_limit_percent
     global reactive_limit_percent_enable
     global emergency_stop
+    global total_wmax_man 
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1718,10 +1761,17 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     power_limit = 0
     reactive_power_limit = 0
     control_inv = 1
-
+    result_value_power_limit = []
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if result_topic1:
+            # Check Wmax with Value Maximum Power
+            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
+            value_power_limit = result_value_power_limit[0]
+            value_offset_power_limit = result_value_power_limit[1]
+            print("value_power_limit",value_power_limit)
+            print("value_offset_power_limit",value_offset_power_limit)
+            print("total_wmax_man",total_wmax_man)
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             else:
@@ -1809,15 +1859,18 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_CONTROL_MAN
     global MQTT_TOPIC_SUD_MODE_SYSTEMP
     global MQTT_TOPIC_SUD_CONTROL_AUTO
+    global MQTT_TOPIC_SUD_DEVICES_ALL
     global device_mode 
     global result_topic2
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
     topic3 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_AUTO
+    topic4 = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
     
     result_topic1_Temp = []
-
+    result_topic2 = ""
+    result_topic4 = ""
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
@@ -1832,6 +1885,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     pass
             else:
                 pass
+        elif topic == topic4:
+            result_topic4 = message
+            await get_list_device_in_process(result_topic4)
     except Exception as err:
         print(f"Error process_message: '{err}'")
 # Describe handle_messages_driver 
@@ -1860,8 +1916,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3,topic4):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3,serial_number_project +topic4]
     try:
         client = mqttools.Client(
             host=host,
@@ -1928,6 +1984,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_CONTROL_MAN,
                                                 MQTT_TOPIC_SUD_MODE_SYSTEMP,
                                                 MQTT_TOPIC_SUD_CONTROL_AUTO,
+                                                MQTT_TOPIC_SUD_DEVICES_ALL,
                                                 )))
         
         await asyncio.gather(*tasks, return_exceptions=False)
