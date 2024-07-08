@@ -1930,7 +1930,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
         elif topic == topic5:
             result_topic5 = message
             value_zero_export_temp = result_topic5["instant"]["consumption"]
-            print("value_zero_export_temp",value_zero_export_temp)
     except Exception as err:
         print(f"Error process_message: '{err}'")
 # Describe handle_messages_driver 
