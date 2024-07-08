@@ -1849,8 +1849,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         if reactive_limit_percent_enable:
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
 
-                        # Check wwmax with rated power  
-                        if (power_limit > rated_power_custom_calculator) and ((ModeSysTemp_Control == 2 and (total_wmax_man > value_power_limit)) or ((ModeSysTemp_Control == 1 and (total_wmax_man > value_zero_export)))):
+                        # Check wmax with rated power  
+                        if (power_limit > rated_power_custom_calculator) or \
+                        (ModeSysTemp_Control == 2 and total_wmax_man > value_power_limit) or \
+                        (ModeSysTemp_Control == 1 and total_wmax_man > value_zero_export):
+                            
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             data_send = {
