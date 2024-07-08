@@ -1751,6 +1751,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global reactive_limit_percent_enable
     global emergency_stop
     global total_wmax_man 
+    global value_power_limit
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1767,11 +1768,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if result_topic1:
             # Check Wmax with Value Maximum Power
             result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
-            value_power_limit = result_value_power_limit[0]
-            value_offset_power_limit = result_value_power_limit[1]
-            print("value_power_limit",value_power_limit)
-            print("value_offset_power_limit",value_offset_power_limit)
-            print("total_wmax_man",total_wmax_man)
+            value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
+            value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
+            value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
+            
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             else:
@@ -1814,7 +1814,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
 
                         # Check wwmax with rated power  
-                        if power_limit > rated_power_custom_calculator:
+                        if (power_limit > rated_power_custom_calculator) or (total_wmax_man > value_power_limit):
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             data_send = {
