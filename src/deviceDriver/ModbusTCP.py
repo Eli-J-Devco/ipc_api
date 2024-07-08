@@ -1802,8 +1802,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                         device["wmax"] = power_limit
                                         break
                                 for device in device_list:
-                                    if device["mode"] == 0:
-                                        total_wmax_man_temp += device["wmax"]
+                                    if device["wmax"] != None:
+                                        if device["mode"] == 0 :
+                                            total_wmax_man_temp += device["wmax"]
                                 if ModeSysTemp != 1:
                                     total_wmax_man = total_wmax_man_temp
                                 else:
