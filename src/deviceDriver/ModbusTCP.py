@@ -1763,7 +1763,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
 
                         # Check wwmax with rated power  
                         if power_limit > rated_power_custom_calculator:
-                            comment = 400 
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             data_send = {
