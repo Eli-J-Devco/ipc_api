@@ -1768,6 +1768,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if result_topic1:
             # Check Wmax with Value Maximum Power
             result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
+            print("result_value_power_limit",result_value_power_limit)
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
             value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
             value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
