@@ -732,7 +732,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         
     system_performance = round(system_performance, 1)
     
-    total_power = round(total_power, 1)
+    total_power = round(total_power, 3)
     total_wmax_man_temp = round(total_wmax_man_temp,1)
     
     result = {
