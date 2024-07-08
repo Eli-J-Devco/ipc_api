@@ -1733,6 +1733,7 @@ async def get_list_device_in_process(mqtt_result):
                     device_list.append({
                             'id_device': id_device,
                             'mode': mode,
+                            'wmax': wmax,
                             'total_wmax_man': total_wmax_man
                         })
 # Describe process_sud_control_auto_man
@@ -1806,7 +1807,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 power_limit_percent_enable = param["value"]
                             elif param["id_pointkey"] == "WMax":
                                 power_limit = param["value"]
-                                
+                                print("id_systemp",id_systemp)
                                 print("device_list",device_list)
                                 print("total_wmax_man",total_wmax_man)
                                 
