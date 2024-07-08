@@ -1032,8 +1032,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             consumption_queue.append(value_consumption)
         else:
             consumption_queue.append(value_consumption-total_wmax_man)
-        avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        
+        if value_consumption > total_wmax_man:
+            avg_consumption = sum(consumption_queue) / len(consumption_queue)
+        else:
+            avg_consumption = 0
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
