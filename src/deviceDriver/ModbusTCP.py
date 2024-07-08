@@ -1705,8 +1705,6 @@ async def get_list_device_in_process(mqtt_result):
     device_list = []
     wmax_array = []
     wmax = 0.0
-    total_wmax_man_temp = 0
-    total_wmax_temp = 0
     # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
@@ -1721,20 +1719,10 @@ async def get_list_device_in_process(mqtt_result):
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     wmax = wmax_array[0] if wmax_array else 0
                     
-                    if wmax != None :
-                        total_wmax_temp += wmax
-                        total_wmax = total_wmax_temp
-                        if ModeSysTemp != 1:
-                            if mode == 0:
-                                total_wmax_man_temp += wmax
-                                total_wmax_man = total_wmax_man_temp 
-                        else:
-                            total_wmax_man = 0
                     device_list.append({
                             'id_device': id_device,
                             'mode': mode,
                             'wmax': wmax,
-                            'total_wmax_man': total_wmax_man
                         })
 # Describe process_sud_control_auto_man
 # /**
@@ -1761,6 +1749,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global total_wmax_man 
     global value_power_limit
     global device_list
+    global ModeSysTemp
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1770,21 +1759,21 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     current_time = ""
     power_limit = 0
     reactive_power_limit = 0
+    total_wmax_man_temp = 0
     control_inv = 1
     result_value_power_limit = []
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if result_topic1:
             # Check Wmax with Value Maximum Power
-            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
+            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode FROM `project_setup`', ())
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
             value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
+            ModeSysTemp = result_value_power_limit[0]['mode']
             if value_offset_power_limit :
                 value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
             else:
                 value_power_limit = value_power_limit_temp
-                
-            print("value_power_limit",value_power_limit)
             
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
@@ -1807,9 +1796,23 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 power_limit_percent_enable = param["value"]
                             elif param["id_pointkey"] == "WMax":
                                 power_limit = param["value"]
-                                print("id_systemp",id_systemp)
+                                # update power_limit Latest in device_list
+                                for device in device_list:
+                                    if device["id_device"] == id_systemp:
+                                        device["wmax"] = power_limit
+                                        break
+                                for device in device_list:
+                                    if device["mode"] == 0:
+                                        total_wmax_man_temp += device["wmax"]
+                                if ModeSysTemp != 1:
+                                    total_wmax_man = total_wmax_man_temp
+                                else:
+                                    total_wmax_man = 0
+                                    
                                 print("device_list",device_list)
                                 print("total_wmax_man",total_wmax_man)
+                                print("value_power_limit",value_power_limit)
+                                print("ModeSysTemp",ModeSysTemp)
                                 
                                 if power_limit < custom_watt and power_limit < watt:
                                     rated_power = watt
