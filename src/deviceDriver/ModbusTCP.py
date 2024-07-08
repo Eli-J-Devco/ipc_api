@@ -1826,6 +1826,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 print("device_list",device_list)
                                 print("total_wmax_man",total_wmax_man)
                                 print("value_power_limit",value_power_limit)
+                                print("value_zero_export",value_zero_export)
                                 print("ModeSysTemp",ModeSysTemp)
                                 
                                 if power_limit < custom_watt and power_limit < watt:
