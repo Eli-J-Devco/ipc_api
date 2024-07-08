@@ -149,8 +149,9 @@ def mqtt_public_paho(host: str,port:int,topic: str,username: str,password: str,m
 def mqtt_public_paho_zip(host: str,port:int,topic: str,username: str,password: str,message):
     try:
 
-        # payload = json.dumps(message)
-        publish.single(topic, payload=message, hostname=host,
+        gzip_compress = gzip.compress(json.dumps(message).encode("ascii"), 9)
+        payload=base64.b64encode(gzip_compress)
+        publish.single(topic, payload=payload, hostname=host,
                        retain=False, port=port,
                        auth = {'username':f'{username}', 
                                'password':f'{password}'})
