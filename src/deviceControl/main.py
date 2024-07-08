@@ -938,6 +938,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
+        
+        
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
@@ -957,7 +959,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
                 elif efficiency_total < 0:
-                    p_for_each_device_power_limit = power_min_device / slope
+                    p_for_each_device_power_limit = 0
                 else:
                     p_for_each_device_power_limit = power_max_device / slope
 
