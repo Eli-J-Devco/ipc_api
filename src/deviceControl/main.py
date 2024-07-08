@@ -222,7 +222,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         system_info["MemoryInformation"]["Total"] = get_readable_size(svmem.total)
         system_info["MemoryInformation"]["Available"] = get_readable_size(svmem.available)
         system_info["MemoryInformation"]["Used"] = get_readable_size(svmem.used)
-        system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent:.1f}%"
+        system_info["MemoryInformation"]["Percentage"] = f"{(svmem.used / svmem.total) * 100:.1f}%"
         swap = psutil.swap_memory()
         system_info["MemoryInformation"]["SWAP"] = {
             "Total": get_readable_size(swap.total),
