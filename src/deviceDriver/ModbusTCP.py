@@ -1798,7 +1798,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
-                    
+                    mode_each_device = item.get("mode", 0)
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
                     else:
@@ -1813,6 +1813,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 for device in device_list:
                                     if device["id_device"] == id_systemp:
                                         device["wmax"] = power_limit
+                                        device["mode"] = mode_each_device
                                         break
                                 for device in device_list:
                                     if device["wmax"] != None:
