@@ -947,18 +947,18 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             slope = device["slope"]
 
             # Convert power real 
-            if power_max_device :
+            if power_max_device and slope :
                 if ModeSystempCurrent == 1:
                     efficiency_total = ((value_power_limit)/total_power)
                 else:
                     efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
-                    p_for_each_device_power_limit = (efficiency_total * power_max_device)
+                    p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
                 elif efficiency_total < 0:
                     p_for_each_device_power_limit = 0
                 else:
-                    p_for_each_device_power_limit = power_max_device
+                    p_for_each_device_power_limit = power_max_device / slope
 
             # If the total capacity produced has not reached the set value, proceed
             if value_production < value_power_limit:
@@ -999,7 +999,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
-            print("device_list_control_power_limit",device_list_control_power_limit)
+            
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
@@ -1062,18 +1062,18 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             power_max_device = float(device["p_max"])
             slope = device["slope"]
             # Calculate the total performance of the system
-            if setpoint and power_max_device :
+            if setpoint and power_max_device and slope:
                 efficiency_total = (min(setpoint,value_consumption) / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = ((efficiency_total * power_max_device))
+                    p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
-                    p_for_each_device_zero_export = (efficiency_total * power_max_device) 
+                    p_for_each_device_zero_export = (efficiency_total * power_max_device) / slope
                 elif efficiency_total < 0:
-                    p_for_each_device_zero_export = 0
+                    p_for_each_device_zero_export = power_min_device / slope
                 else:
-                    p_for_each_device_zero_export = power_max_device 
+                    p_for_each_device_zero_export = power_max_device / slope
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
             if (value_consumption >= value_threshold_zero_export):
                 # Check device is off, on device
@@ -1143,8 +1143,8 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 power_min = float(power_min)
                 slope = device["slope"]
                 # Convert power max real 
-                if power_max :
-                    p_for_each_device = power_min
+                if power_max and slope :
+                    p_for_each_device = power_min/slope
                 # Check device is off , on device 
                 if device['controlinv'] == 1:
                     new_device = {
