@@ -221,8 +221,9 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         svmem = psutil.virtual_memory()
         system_info["MemoryInformation"]["Total"] = get_readable_size(svmem.total)
         system_info["MemoryInformation"]["Available"] = get_readable_size(svmem.available)
-        system_info["MemoryInformation"]["Used"] = get_readable_size(svmem.used)
-        system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent}%"
+        system_info["MemoryInformation"]["Used"] = get_readable_size(svmem.total - svmem.available)
+        system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent:.1f}%"
+
         swap = psutil.swap_memory()
         system_info["MemoryInformation"]["SWAP"] = {
             "Total": get_readable_size(swap.total),
@@ -612,6 +613,7 @@ async def get_list_device_in_automode(mqtt_result):
                     })
     total_power = sum(device['p_max'] for device in device_list)
     return device_list
+############################################################################ List Device Systemp ############################################################################
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
 # 	 * @author bnguyen
@@ -619,7 +621,6 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
-############################################################################ List Device Systemp ############################################################################
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
     global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSystempCurrent
@@ -731,7 +732,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         
     system_performance = round(system_performance, 1)
     
-    total_power = round(total_power, 1)
+    total_power = round(total_power, 3)
     total_wmax_man_temp = round(total_wmax_man_temp,1)
     
     result = {
@@ -933,7 +934,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-        print("devices",devices)
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
@@ -956,7 +956,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                 if 0 <= efficiency_total <= 1:
                     p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
                 elif efficiency_total < 0:
-                    p_for_each_device_power_limit = power_min_device / slope
+                    p_for_each_device_power_limit = 0
                 else:
                     p_for_each_device_power_limit = power_max_device / slope
 
@@ -1029,8 +1029,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             consumption_queue.append(value_consumption)
         else:
             consumption_queue.append(value_consumption-total_wmax_man)
-        avg_consumption = sum(consumption_queue) / len(consumption_queue)
-        
+        if value_consumption > total_wmax_man:
+            avg_consumption = sum(consumption_queue) / len(consumption_queue)
+        else:
+            avg_consumption = 0
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
@@ -1420,15 +1422,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             result_topic7 = message
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
-        # elif topic in [topic8,topic9]:
-        elif topic == topic8:
+        elif topic in [topic8,topic9]:
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
-            # print("result_topic8",result_topic8)
-        # elif topic == topic9:
-        #     result_topic9 = message
-        #     await process_update_alarm_setting(result_topic9,serial_number_project, host, port, username, password)
-        #     print("result_topic9",result_topic9)
+            print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe sub_mqtt 
@@ -1457,8 +1454,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8,topic9):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8, serial_number_project +topic9]
     try:
         client = mqttools.Client(
             host=host,
@@ -1523,6 +1520,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                 MQTT_TOPIC_SUD_CONTROL_MAN ,
+                                                MQTT_TOPIC_SUD_MODIFY_DEVICE,
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
