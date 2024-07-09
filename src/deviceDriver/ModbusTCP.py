@@ -61,7 +61,6 @@ MQTT_TOPIC_SUD_COMSUMTION_METER = "/Meter/Monitor"
 # 
 ModeSysTemp = "" 
 ModeSysTemp_Control = "" 
-mode_each_device = 0
 device_name=""
 status_register_block=[]
 status_device=""
@@ -888,7 +887,6 @@ async def write_device(
     #     mqtt_password (str): MQTT password.
     # Global Variables
     global device_mode # mode of device
-    global mode_each_device
     global status_device # status of device
     global rated_power # rated_power
     global rated_power_custom # rated_power_custom
@@ -960,7 +958,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if mode_each_device == 0 and value != None: 
+                                if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1012,7 +1010,7 @@ async def write_device(
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                 # Auto Mode
-                                if mode_each_device == 1 and any('status' in item for item in result_topic1):
+                                if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
                                     addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
@@ -1023,9 +1021,7 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                    # If write suscessful update mode device 
-                                    await process_update_mode_for_device(result_topic1, serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
-                                elif (mode_each_device == 0 and len(inverter_info) >= 1):
+                                elif (device_mode == 0 and len(inverter_info) >= 1):
                                     comment = 400
                             data_send = {
                                 "time_stamp": current_time,
@@ -1033,9 +1029,6 @@ async def write_device(
                             }
                             push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
-                            
-                            #After successful implementation, update the temporary mode with the main mode
-                            mode_each_device = device_mode
                     except Exception as err:
                         print(f"write_device: '{err}'")
                 else:
@@ -1795,6 +1788,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             else:
                 value_power_limit = value_power_limit_temp
             
+            if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
+                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+            else:
+                pass
+
             for item in result_topic1:
                 if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                     custom_watt = item.get("rated_power_custom", 0)
