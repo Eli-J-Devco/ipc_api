@@ -949,7 +949,7 @@ async def write_device(
                             inverter_info = await find_inverter_information(device_control, parameter)
                             print("inverter_info",inverter_info)
                             # Man Mode
-                            if device_mode == 0 and value != None: 
+                            if device_mode == 0: 
                                 print("---------- Manual control mode ----------")
                                 for item in inverter_info: 
                                     value = item["value"]
