@@ -948,17 +948,17 @@ async def write_device(
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
                             print("inverter_info",inverter_info)
+                            for item in inverter_info: 
+                                value = item["value"]
+                                register = item["register"]
+                                id_pointkey = item['id_pointkey']
+                                datatype = item["datatype"]
+                                modbus_func= item["modbus_func"]
+                                result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                name_device_points_list_map = result_query_findname [0]["name"]
                             # Man Mode
                             if device_mode == 0: 
                                 print("---------- Manual control mode ----------")
-                                for item in inverter_info: 
-                                    value = item["value"]
-                                    register = item["register"]
-                                    id_pointkey = item['id_pointkey']
-                                    datatype = item["datatype"]
-                                    modbus_func= item["modbus_func"]
-                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
-                                    name_device_points_list_map = result_query_findname [0]["name"]
                                 addtopic = "Feedback"
                                 if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
                                     if value == True :
@@ -1006,21 +1006,11 @@ async def write_device(
                                             MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                             if slope is not None and slope != 0:
                                                 value /= slope
-                                                print("value",value)
-                                                print("slope",slope)
-                                                # Write down the inv value after conversion
-                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                        # Write down the inv value after conversion
+                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # Auto Mode
                             if device_mode == 1 and any('status' in item for item in result_topic1):
-                                print("---------- Auto control mode ----------")
-                                for item in inverter_info: 
-                                    value = item["value"]
-                                    register = item["register"]
-                                    id_pointkey = item['id_pointkey']
-                                    datatype = item["datatype"]
-                                    modbus_func= item["modbus_func"]
-                                    result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
-                                    name_device_points_list_map = result_query_findname [0]["name"]
+                                print("---------- Auto control moe ----------")
                                 addtopic = "FeedbackAuto"
                                 if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
                                     value = int(value)
