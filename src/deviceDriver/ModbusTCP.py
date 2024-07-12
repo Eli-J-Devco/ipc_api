@@ -57,8 +57,10 @@ MQTT_TOPIC_SUD_MODE_SYSTEMP = "/Control/Setup/Mode/Feedback"
 MQTT_TOPIC_SUD_CONTROL_MAN = "/Control/Write"
 MQTT_TOPIC_SUD_CONTROL_AUTO = "/Control/WriteAuto"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
+MQTT_TOPIC_SUD_COMSUMTION_METER = "/Meter/Monitor"
 # 
 ModeSysTemp = "" 
+ModeSysTemp_Control = "" 
 device_name=""
 status_register_block=[]
 status_device=""
@@ -80,7 +82,7 @@ result_topic1 = []
 result_topic2 = []
 
 enable_zero_export = 0
-value_zero_export = 0
+value_zero_export_temp = 0
 enable_power_limit = 0
 value_power_limit = 0
 
@@ -1699,18 +1701,18 @@ async def process_update_mode_for_device(mqtt_result, serial_number_project, hos
 # 	 */ 
 async def get_list_device_in_process(mqtt_result):
     # Global variables
-    global total_wmax_man,total_wmax
+    global total_wmax_man,total_wmax,device_list
     
     # Local variable
+    device_list = []
     wmax_array = []
     wmax = 0.0
-    total_wmax_man_temp = 0
-    total_wmax_temp = 0
     # Get result mqtt 
     if mqtt_result and isinstance(mqtt_result, list):
         for item in mqtt_result:
             # get info about device
             if 'id_device' in item and 'mode' in item and 'status_device' in item:
+                id_device = item['id_device']
                 mode = item['mode']
                 results_device_type = item['name_device_type']
                 # check device is inv
@@ -1719,15 +1721,11 @@ async def get_list_device_in_process(mqtt_result):
                     wmax_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
                     wmax = wmax_array[0] if wmax_array else 0
                     
-                    if wmax != None :
-                        total_wmax_temp += wmax
-                        total_wmax = total_wmax_temp
-                        if ModeSysTemp != 1:
-                            if mode == 0:
-                                total_wmax_man_temp += wmax
-                                total_wmax_man = total_wmax_man_temp 
-                        else:
-                            total_wmax_man = 0
+                    device_list.append({
+                            'id_device': id_device,
+                            'mode': mode,
+                            'wmax': wmax,
+                        })
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -1752,12 +1750,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global emergency_stop
     global total_wmax_man 
     global value_power_limit
-<<<<<<< HEAD
     global device_list
     global ModeSysTemp
     global ModeSysTemp_Control
-=======
->>>>>>> a707ba040db206d02c5b84670f295256e9c55471
+    global value_offset_zero_export
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1766,28 +1762,31 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     comment = 200
     current_time = ""
     power_limit = 0
+    value_zero_export = 0
     reactive_power_limit = 0
+    total_wmax_man_temp = 0
     control_inv = 1
     result_value_power_limit = []
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if result_topic1:
             # Check Wmax with Value Maximum Power
-            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit FROM `project_setup`', ())
+            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
             value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
-<<<<<<< HEAD
             ModeSysTemp = result_value_power_limit[0]['mode']
             ModeSysTemp_Control = result_value_power_limit[0]['control_mode']
             value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
-=======
->>>>>>> a707ba040db206d02c5b84670f295256e9c55471
+            
+            if value_offset_zero_export :
+                value_zero_export = value_zero_export_temp*(value_offset_zero_export/100)
+            else:
+                value_zero_export = value_zero_export_temp
+            
             if value_offset_power_limit :
                 value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
             else:
                 value_power_limit = value_power_limit_temp
-                
-            print("value_power_limit",value_power_limit)
             
             if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
                 await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
@@ -1799,7 +1798,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
-                    
+                    mode_each_device = item.get("mode", 0)
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
                     else:
@@ -1810,8 +1809,27 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 power_limit_percent_enable = param["value"]
                             elif param["id_pointkey"] == "WMax":
                                 power_limit = param["value"]
-                                total_wmax_man += power_limit
+                                # update power_limit Latest in device_list
+                                for device in device_list:
+                                    if device["id_device"] == id_systemp:
+                                        device["wmax"] = power_limit
+                                        device["mode"] = mode_each_device
+                                        break
+                                for device in device_list:
+                                    if device["wmax"] != None:
+                                        if device["mode"] == 0 :
+                                            total_wmax_man_temp += device["wmax"]
+                                if ModeSysTemp != 1:
+                                    total_wmax_man = total_wmax_man_temp
+                                else:
+                                    total_wmax_man = 0
+                                    
+                                print("device_list",device_list)
                                 print("total_wmax_man",total_wmax_man)
+                                print("value_power_limit",value_power_limit)
+                                print("value_zero_export",value_zero_export)
+                                print("ModeSysTemp",ModeSysTemp)
+                                
                                 if power_limit < custom_watt and power_limit < watt:
                                     rated_power = watt
                                     rated_power_custom = custom_watt
@@ -1832,12 +1850,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         if reactive_limit_percent_enable:
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
 
-                        # Check wwmax with rated power  
-<<<<<<< HEAD
-                        if (power_limit > rated_power_custom_calculator) and ((ModeSysTemp_Control == 2 and (total_wmax_man > value_power_limit)) or ((ModeSysTemp_Control == 1 and (total_wmax_man > value_power_limit)))):
-=======
-                        if (power_limit > rated_power_custom_calculator) or (total_wmax_man > value_power_limit):
->>>>>>> a707ba040db206d02c5b84670f295256e9c55471
+                        # Check wmax with rated power  
+                        if (power_limit > rated_power_custom_calculator) or \
+                        (ModeSysTemp_Control == 2 and total_wmax_man > value_power_limit) or \
+                        (ModeSysTemp_Control == 1 and total_wmax_man > value_zero_export):
+                            
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             data_send = {
@@ -1883,17 +1900,21 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_MODE_SYSTEMP
     global MQTT_TOPIC_SUD_CONTROL_AUTO
     global MQTT_TOPIC_SUD_DEVICES_ALL
+    global MQTT_TOPIC_SUD_COMSUMTION_METER
     global device_mode 
     global result_topic2
+    global value_zero_export_temp
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
     topic3 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_AUTO
     topic4 = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
+    topic5 = serial_number_project + MQTT_TOPIC_SUD_COMSUMTION_METER
     
     result_topic1_Temp = []
     result_topic2 = ""
     result_topic4 = ""
+    result_topic5 = ""
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
@@ -1911,6 +1932,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4)
+        elif topic == topic5:
+            result_topic5 = message
+            value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
 # Describe handle_messages_driver 
@@ -1939,8 +1963,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3,topic4):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3,serial_number_project +topic4]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3,topic4,topic5):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3,serial_number_project +topic4,serial_number_project +topic5]
     try:
         client = mqttools.Client(
             host=host,
@@ -2008,6 +2032,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_MODE_SYSTEMP,
                                                 MQTT_TOPIC_SUD_CONTROL_AUTO,
                                                 MQTT_TOPIC_SUD_DEVICES_ALL,
+                                                MQTT_TOPIC_SUD_COMSUMTION_METER,
                                                 )))
         
         await asyncio.gather(*tasks, return_exceptions=False)
