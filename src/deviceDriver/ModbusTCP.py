@@ -10,6 +10,8 @@ import json
 # import math
 import os
 import sys
+import base64
+import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -1014,11 +1016,7 @@ async def write_device(
                                     print("---------- Auto control mode ----------")
                                     addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
-                                        result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
-                                        # convert back to actual value
-                                        if result_slope and slope :
-                                            slope = float(result_slope[0]['slope'])
-                                            value = value/slope
+                                        value = int(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
@@ -1941,6 +1939,20 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -1949,14 +1961,20 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+    global MQTT_TOPIC_SUD_DEVICES_ALL
+    topic_all = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
+    
     try:
         while True:
             message = await client.messages.get()
+            topic = message.topic
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = json.loads(message.message.decode())
-            topic = message.topic
+            if topic == topic_all:
+                payload = gzip_decompress(message.message)
+            else:
+                payload = json.loads(message.message.decode())
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
