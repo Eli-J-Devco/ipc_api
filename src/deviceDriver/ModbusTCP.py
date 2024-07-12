@@ -1651,7 +1651,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 #                     username[0],
                 #                     password[0],
                 #                     data_device)
-                await mqtt_init.send("Devices/"+""+device_id,
+                await mqtt_init.sendZIP("Devices/"+""+device_id,
                                         data_device)
             await asyncio.sleep(1)
     except Exception as err:

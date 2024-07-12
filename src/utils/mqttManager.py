@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import base64
 import json
 # import logging
 import os
@@ -23,6 +24,7 @@ import paho.mqtt.publish as publish
 
 sys.path.append((lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
                 ("src"))
+import gzip
 from uuid import uuid1
 
 import mqttools
@@ -109,11 +111,26 @@ class mqttService:
                         resume_session: bool = True):
 
         try:
-            await self.sender.stop()
+            # await self.sender.stop()
             await self.sender.start()
             payload = json.dumps(message)
             self.sender.publish(mqttools.Message(
                 f"{self.serial_number}/{topic_parent}", payload.encode("ascii")))
+        except Exception as err:
+            print(f"Error MQTT public: '{err}'")
+            raise err
+        finally:
+            await self.sender.stop()
+    async def sendZIP(self,topic_parent: str,
+                        message, 
+                        resume_session: bool = True):
+
+        try:
+            gzip_compress = gzip.compress(json.dumps(message).encode("ascii"), 9)
+            payload=base64.b64encode(gzip_compress)
+            await self.sender.start()
+            self.sender.publish(mqttools.Message(
+                f"{self.serial_number}/{topic_parent}", payload))
         except Exception as err:
             print(f"Error MQTT public: '{err}'")
             raise err
@@ -129,3 +146,21 @@ def mqtt_public_paho(host: str,port:int,topic: str,username: str,password: str,m
                                'password':f'{password}'})
     except Exception as err:
         print(f"Error MQTT public: '{err}'")        
+def mqtt_public_paho_zip(host: str,port:int,topic: str,username: str,password: str,message):
+    try:
+
+        gzip_compress = gzip.compress(json.dumps(message).encode("ascii"), 9)
+        payload=base64.b64encode(gzip_compress)
+        publish.single(topic, payload=payload, hostname=host,
+                       retain=False, port=port,
+                       auth = {'username':f'{username}', 
+                               'password':f'{password}'})
+    except Exception as err:
+        print(f"Error MQTT public: '{err}'")         
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'") 
