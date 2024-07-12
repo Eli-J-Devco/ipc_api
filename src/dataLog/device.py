@@ -25,6 +25,9 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from utils.libMySQL import *
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 # Use passing parameters to file
 # arr = sys.argv
@@ -151,30 +154,6 @@ def get_utc():
             return now
     except Exception as err:
         return None
-# ----- MQTT -----
-# /**
-# 	 * @description public data MQTT
-# 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {host, port,topic, username, password, data_send}
-# 	 * @return data ()
-# 	 */
-def mqtt_public_paho_zip(host, port,topic, username, password, data_send):
-    try:
-        payload = json.dumps(data_send)
-        publish.single(topic, payload, hostname=host,
-                    retain=False, port=port,
-                    auth = {'username':f'{username}', 
-                            'password':f'{password}'})
-        # publish.single(Topic, payload, hostname=Broker,
-        #             retain=False, port=Port)
-    # except Error as err:
-    #     print(f"Error MQTT public: '{err}'")
-    except Exception as err:
-    # except:
-        
-        print(f"Error MQTT public: '{err}'")
-        pass
 # ----- MQTT -----
 # /**
 # Describe process_message_result_list 
