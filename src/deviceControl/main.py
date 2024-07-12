@@ -1452,14 +1452,19 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+    global MQTT_TOPIC_SUD_DEVICES_ALL
+    topic_all = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
     try:
         while True:
-            message = await client.messages.get()
+            message = await client.messages.get() 
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = json.loads(message.message.decode())
             topic = message.topic
+            if topic == topic_all :
+                payload = gzip_decompress(message.message)
+            else:
+                payload = json.loads(message.message.decode())
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
