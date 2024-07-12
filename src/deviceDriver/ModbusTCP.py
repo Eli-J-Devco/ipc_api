@@ -61,6 +61,7 @@ MQTT_TOPIC_SUD_COMSUMTION_METER = "/Meter/Monitor"
 # 
 ModeSysTemp = "" 
 ModeSysTemp_Control = "" 
+mode_each_device = 0
 device_name=""
 status_register_block=[]
 status_device=""
@@ -887,6 +888,7 @@ async def write_device(
     #     mqtt_password (str): MQTT password.
     # Global Variables
     global device_mode # mode of device
+    global mode_each_device 
     global status_device # status of device
     global rated_power # rated_power
     global rated_power_custom # rated_power_custom
@@ -958,7 +960,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if device_mode == 0 and value != None: 
+                                if mode_each_device == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1010,7 +1012,7 @@ async def write_device(
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                 # Auto Mode
-                                if device_mode == 1 and any('status' in item for item in result_topic1):
+                                if mode_each_device == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
                                     addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
@@ -1023,9 +1025,12 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
                                 code_value = results_write_modbus['code']
+                                code_value = 144
                                 if code_value == 16 :
                                     comment = 200
-                                elif (device_mode == 0 and len(inverter_info) >= 1):
+                                    #After successful implementation, update the temporary mode with the main mode
+                                    device_mode = mode_each_device
+                                elif (mode_each_device == 0 and len(inverter_info) >= 1):
                                     comment = 400
                             data_send = {
                                 "time_stamp": current_time,
