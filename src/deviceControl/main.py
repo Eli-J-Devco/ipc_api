@@ -3,7 +3,6 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import logging
 import os
 import sys
 import mqttools
@@ -14,6 +13,8 @@ import platform
 from datetime import datetime
 import datetime
 import collections
+import base64
+import gzip
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -1354,6 +1355,20 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 ############################################################################ Sud MQTT ############################################################################
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe process_message 
 # 	 * @description pud_systemp_mode_trigger_each_device_change
 # 	 * @author bnguyen
@@ -1410,7 +1425,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
-            await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
+            resultmessage = gzip_decompress(result_topic4)
+            await get_list_device_in_process(resultmessage,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
             print("result_topic5",result_topic5)

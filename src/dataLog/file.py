@@ -8,9 +8,9 @@ import asyncio
 import datetime
 import json
 import os
-import re
 import sys
-import time
+import base64
+import gzip
 
 import mqttools
 import mybatis_mapper2sql
@@ -218,6 +218,20 @@ async def process_message_result_list(message):
         result_list = list(device_dict.values())
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
@@ -232,7 +246,8 @@ async def handle_messages_driver(client):
                 print('Broker connection lost!')
                 break
             payload = json.loads(message.message.decode())
-            await process_message_result_list(payload)
+            resultmessage = gzip_decompress(payload)
+            await process_message_result_list(resultmessage)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 

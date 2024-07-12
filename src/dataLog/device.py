@@ -8,9 +8,9 @@ import asyncio
 import datetime
 import json
 import os
-import re
 import sys
-import time
+import base64
+import gzip
 from concurrent.futures import ThreadPoolExecutor
 
 import mqttools
@@ -284,7 +284,20 @@ async def process_message_result_list_mptt(message):
                         result_list_MPPT = list(mppt_dict.values())
     except Exception as err:
         print(f"process_message_result_list_mptt_list: '{err}'")
-        
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -300,8 +313,9 @@ async def handle_messages_driver(client):
                 print('Broker connection lost!')
                 break
             payload = json.loads(message.message.decode())
-            await process_message_result_list(payload)
-            await process_message_result_list_mptt(payload)
+            resultmessage = gzip_decompress(payload)
+            await process_message_result_list(resultmessage)
+            await process_message_result_list_mptt(resultmessage)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
