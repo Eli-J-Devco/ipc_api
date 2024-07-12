@@ -938,6 +938,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
     if devices:
+        print("devices",devices)
         device_list_control_power_limit = []
         for device in devices:
             id_device = device["id_device"]
@@ -1456,14 +1457,19 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+    global MQTT_TOPIC_SUD_DEVICES_ALL
+    topic_all = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
     try:
         while True:
-            message = await client.messages.get()
+            message = await client.messages.get() 
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = json.loads(message.message.decode())
             topic = message.topic
+            if topic == topic_all :
+                payload = gzip_decompress(message.message)
+            else:
+                payload = json.loads(message.message.decode())
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
