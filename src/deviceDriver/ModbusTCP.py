@@ -1984,10 +1984,11 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if topic == topic_all:
-                payload = gzip_decompress(message.message)
-            else:
-                payload = json.loads(message.message.decode())
+            payload = gzip_decompress(message.message)
+            # if topic == topic_all:
+            #     payload = gzip_decompress(message.message)
+            # else:
+            #     payload = json.loads(message.message.decode())
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
