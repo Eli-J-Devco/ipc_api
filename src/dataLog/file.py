@@ -150,7 +150,7 @@ def get_utc():
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-def push_data_to_mqtt(host, port,topic, username, password, data_send):
+def mqtt_public_paho_zip(host, port,topic, username, password, data_send):
     try:
         payload = json.dumps(data_send)
         publish.single(topic, payload, hostname=host,
@@ -485,7 +485,7 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
             # File creation time 
             sql_id_str = str(sql_id)
             device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
-            push_data_to_mqtt(host,
+            mqtt_public_paho_zip(host,
                     port,
                     topic + f"/Channel{id_device_fr_sys}|{type_file}/"+sql_id_str+"|"+device_name,
                     username,

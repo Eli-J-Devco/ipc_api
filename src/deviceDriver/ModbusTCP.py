@@ -39,7 +39,9 @@ from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import mqttService
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 arr = sys.argv
 print(f'arr: {arr}')
@@ -1038,7 +1040,7 @@ async def write_device(
                                 "time_stamp": current_time,
                                 "status": comment,
                             }
-                            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
+                            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
