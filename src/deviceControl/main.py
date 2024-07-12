@@ -927,7 +927,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSystempCurrent
+    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -1012,12 +1012,10 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent
     # Local variables
     efficiency_total = 0
     id_device = 0
-    slope = 1.0
-    power_min_device = 0
     power_max_device = 0
     setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
@@ -1056,22 +1054,20 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
-            power_min_device = float(device["p_min"])
             power_max_device = float(device["p_max"])
-            slope = device["slope"]
             # Calculate the total performance of the system
-            if setpoint and power_max_device and slope:
+            if setpoint and power_max_device :
                 efficiency_total = (min(setpoint,value_consumption) / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
+                    p_for_each_device_zero_export = efficiency_total * power_max_device
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
-                    p_for_each_device_zero_export = (efficiency_total * power_max_device) / slope
+                    p_for_each_device_zero_export = efficiency_total * power_max_device
                 elif efficiency_total < 0:
-                    p_for_each_device_zero_export = power_min_device / slope
+                    p_for_each_device_zero_export = 0 
                 else:
-                    p_for_each_device_zero_export = power_max_device / slope
+                    p_for_each_device_zero_export = power_max_device 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
             if (value_consumption >= value_threshold_zero_export):
                 # Check device is off, on device
