@@ -924,7 +924,7 @@ async def write_device(
     comment = 200
     current_time = get_utc()
     data_send = ""
-    
+    addtopic = ""
     # database
     is_inverter = []
     inverter_info = []
@@ -933,6 +933,8 @@ async def write_device(
     name_device_points_list_map = ""
     
     if result_topic1 :
+        print("devicemode",device_mode)
+        print("mode_each_device",mode_each_device)
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1025,13 +1027,13 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
                                 code_value = results_write_modbus['code']
-                                code_value = 144
                                 if code_value == 16 :
                                     comment = 200
                                     #After successful implementation, update the temporary mode with the main mode
-                                    device_mode = mode_each_device
+                                    await process_update_mode_for_device(result_topic1, serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
                                 elif (mode_each_device == 0 and len(inverter_info) >= 1):
                                     comment = 400
+                                    mode_each_device = device_mode
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1761,6 +1763,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global value_power_limit
     global device_list
     global ModeSysTemp
+    global mode_each_device
     global ModeSysTemp_Control
     global value_offset_zero_export
 
@@ -1796,12 +1799,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
             else:
                 value_power_limit = value_power_limit_temp
-            
-            if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
-                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-            else:
-                pass
-
+        
             for item in result_topic1:
                 if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                     custom_watt = item.get("rated_power_custom", 0)
@@ -1911,6 +1909,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_DEVICES_ALL
     global MQTT_TOPIC_SUD_COMSUMTION_METER
     global device_mode 
+    global mode_each_device
     global result_topic2
     global value_zero_export_temp
 
@@ -1934,6 +1933,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if result_topic2 and 'confirm_mode' in result_topic2:
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
+                    mode_each_device = device_mode
                 else:
                     pass
             else:
