@@ -245,9 +245,9 @@ async def handle_messages_driver(client):
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = json.loads(message.message.decode())
-            resultmessage = gzip_decompress(payload)
-            await process_message_result_list(resultmessage)
+            # payload = json.loads(message.message.decode())
+            payload = gzip_decompress(message.message)
+            await process_message_result_list(payload)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 

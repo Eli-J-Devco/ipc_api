@@ -945,21 +945,20 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             power_max_device = float(power_max_device)
             power_min_device = device["p_min"]
             power_min_device = float(power_min_device)
-            slope = device["slope"]
 
             # Convert power real 
-            if power_max_device and slope :
+            if power_max_device :
                 if ModeSystempCurrent == 1:
                     efficiency_total = ((value_power_limit)/total_power)
                 else:
                     efficiency_total = ((value_power_limit-total_wmax_man)/total_power)
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
-                    p_for_each_device_power_limit = (efficiency_total * power_max_device) / slope
+                    p_for_each_device_power_limit = (efficiency_total * power_max_device)
                 elif efficiency_total < 0:
                     p_for_each_device_power_limit = 0
                 else:
-                    p_for_each_device_power_limit = power_max_device / slope
+                    p_for_each_device_power_limit = power_max_device
 
             # If the total capacity produced has not reached the set value, proceed
             if value_production < value_power_limit:
@@ -1425,8 +1424,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic3",result_topic3)
         elif topic == topic4:
             result_topic4 = message
-            resultmessage = gzip_decompress(result_topic4)
-            await get_list_device_in_process(resultmessage,serial_number_project, host, port, username, password)
+            await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
+            # resultmessage = gzip_decompress(result_topic4)
+            # await get_list_device_in_process(resultmessage,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
             print("result_topic5",result_topic5)
