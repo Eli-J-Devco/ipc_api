@@ -932,7 +932,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Local variables
     power_max_device = 0
     power_min_device = 0
-    new_device = {}
+    device_results = {}
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
@@ -965,7 +965,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # If the total capacity produced has not reached the set value, proceed
             if value_production < value_power_limit:
                 if device['controlinv'] == 1: # Check device is off , on device 
-                    new_device[id_device] = {
+                    new_device = {
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
@@ -976,7 +976,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
                 elif device['controlinv'] == 0:
-                    new_device[id_device] = {
+                    new_device = {
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
@@ -988,7 +988,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
             else:
-                new_device[id_device] = {
+                new_device = {
                         "id_device": id_device,
                         "mode": mode,
                         "status": "power limit",
@@ -1000,7 +1000,10 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
+            device_results[id_device] = new_device
+            print("device_results",device_results)
             device_list_control_power_limit.append(new_device)
+            print("device_list_control_power_limit",device_list_control_power_limit)
             
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
