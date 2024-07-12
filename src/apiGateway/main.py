@@ -413,14 +413,15 @@ class apiGateway:
                         mppt=[ {**item_mppt,
                                   "timestamp":getUTC()
                                   } for item_mppt in item["mppt"]]
-                    # if item["type_device_type"]==0:
-                    #     mqtt_data_scada.append({
-                    #         **item,
-                    #         "timestamp":getUTC(),
-                    #         "parameters":parameters,
-                    #         "fields":fields,
-                    #         "mppt":mppt
-                    #     })
+                    if 'type_device_type' in item.keys():
+                        if item["type_device_type"]==0:
+                            mqtt_data_scada.append({
+                                **item,
+                                "timestamp":getUTC(),
+                                "parameters":parameters,
+                                "fields":fields,
+                                "mppt":mppt
+                            })
                     mqtt_data.append({
                         **item,
                         "timestamp":getUTC(),
@@ -428,34 +429,22 @@ class apiGateway:
                         "fields":fields,
                         "mppt":mppt
                     })
-                # await mqtt_init.send("Devices/All",
-                #                mqtt_data_scada)
-                # await mqtt_init.send("Devices/Full",
-                #                mqtt_data)
-                # mqtt_public_paho(
-                #     self.MQTT_BROKER,
-                #     self.MQTT_PORT,
-                #     f"{self.MQTT_TOPIC}/Devices/All",
-                #     self.MQTT_USERNAME,
-                #     self.MQTT_PASSWORD,
-                #     mqtt_data)
-                # mqtt_public_paho(
-                #     self.MQTT_BROKER,
-                #     self.MQTT_PORT,
-                #     f"{self.MQTT_TOPIC}/Devices/Full",
-                #     self.MQTT_USERNAME,
-                #     self.MQTT_PASSWORD,
-                #     mqtt_data)
+                # await mqtt_init.sendZIP("Devices/All",mqtt_data)
                 
-                await mqtt_init.sendZIP("Devices/All",mqtt_data)
-                
-                # mqtt_public_paho_byte(
-                #     self.MQTT_BROKER,
-                #     self.MQTT_PORT,
-                #     f"{self.MQTT_TOPIC}/Devices/All",
-                #     self.MQTT_USERNAME,
-                #     self.MQTT_PASSWORD,
-                #    gzip_f)
+                mqtt_public_paho_zip(
+                    self.MQTT_BROKER,
+                    self.MQTT_PORT,
+                    f"{self.MQTT_TOPIC}/Devices/All",
+                    self.MQTT_USERNAME,
+                    self.MQTT_PASSWORD,
+                   mqtt_data_scada)
+                mqtt_public_paho_zip(
+                    self.MQTT_BROKER,
+                    self.MQTT_PORT,
+                    f"{self.MQTT_TOPIC}/Devices/Full",
+                    self.MQTT_USERNAME,
+                    self.MQTT_PASSWORD,
+                    mqtt_data)
                 await asyncio.sleep(1)
         except Exception as err:
             print('Error MQTT deviceListPub',err)
