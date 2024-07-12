@@ -109,7 +109,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                result=json.loads(message.message.decode())
+                # result=json.loads(message.message.decode())
+                result=gzip_decompress(message.message)
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":
@@ -431,13 +432,13 @@ class apiGateway:
                 #                mqtt_data_scada)
                 # await mqtt_init.send("Devices/Full",
                 #                mqtt_data)
-                mqtt_public_paho(
-                    self.MQTT_BROKER,
-                    self.MQTT_PORT,
-                    f"{self.MQTT_TOPIC}/Devices/All",
-                    self.MQTT_USERNAME,
-                    self.MQTT_PASSWORD,
-                    mqtt_data)
+                # mqtt_public_paho(
+                #     self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     f"{self.MQTT_TOPIC}/Devices/All",
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #     mqtt_data)
                 # mqtt_public_paho(
                 #     self.MQTT_BROKER,
                 #     self.MQTT_PORT,
@@ -446,7 +447,7 @@ class apiGateway:
                 #     self.MQTT_PASSWORD,
                 #     mqtt_data)
                 
-                # await mqtt_init.sendZIP("Devices/All",mqtt_data)
+                await mqtt_init.sendZIP("Devices/All",mqtt_data)
                 
                 # mqtt_public_paho_byte(
                 #     self.MQTT_BROKER,
@@ -468,7 +469,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                result=json.loads(message.message.decode())
+                # result=json.loads(message.message.decode())
+                result=gzip_decompress(message.message)
                 if 'cmd' in result.keys():
                     cmd=result['cmd']
                     match cmd:
