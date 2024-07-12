@@ -16,9 +16,6 @@ import datetime
 import collections
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from utils.mqttManager import (gzip_decompress, mqtt_public,
-                               mqtt_public_common, mqtt_public_paho,
-                               mqtt_public_paho_zip, mqttService)
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -26,6 +23,9 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 arr = sys.argv
 ModeSysTemp = ""
