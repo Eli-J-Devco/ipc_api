@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 import os
 import sys
 import mqttools
@@ -13,8 +14,6 @@ import platform
 from datetime import datetime
 import datetime
 import collections
-import base64
-import gzip
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -932,13 +931,11 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Local variables
     power_max_device = 0
     power_min_device = 0
-    device_results = {}
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
     if devices:
-        print("devices",devices)
         device_list_control_power_limit = []
         for device in devices:
             id_device = device["id_device"]
@@ -947,7 +944,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             power_max_device = float(power_max_device)
             power_min_device = device["p_min"]
             power_min_device = float(power_min_device)
-
             # Convert power real 
             if power_max_device :
                 if ModeSystempCurrent == 1:
@@ -1000,10 +996,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
-            device_results[id_device] = new_device
-            print("device_results",device_results)
             device_list_control_power_limit.append(new_device)
-            print("device_list_control_power_limit",device_list_control_power_limit)
             
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
@@ -1359,20 +1352,6 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 ############################################################################ Sud MQTT ############################################################################
-# Describe gzip_decompress 
-# 	 * @description gzip_decompress
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {message}
-# 	 * @return result_list
-# 	 */ 
-def gzip_decompress(message):
-    try:
-        result_decode=base64.b64decode(message.decode('ascii'))
-        result_decompress=gzip.decompress(result_decode)
-        return json.loads(result_decompress)
-    except Exception as err:
-        print(f"decompress: '{err}'")
 # Describe process_message 
 # 	 * @description pud_systemp_mode_trigger_each_device_change
 # 	 * @author bnguyen
@@ -1430,8 +1409,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
-            # resultmessage = gzip_decompress(result_topic4)
-            # await get_list_device_in_process(resultmessage,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
             print("result_topic5",result_topic5)
@@ -1449,6 +1426,23 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+import base64
+import gzip
+
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
@@ -1459,14 +1453,15 @@ async def process_message(topic, message,serial_number_project, host, port, user
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
     global MQTT_TOPIC_SUD_DEVICES_ALL
     topic_all = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
+    
     try:
         while True:
-            message = await client.messages.get() 
+            message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if topic == topic_all :
+            if topic == topic_all:
                 payload = gzip_decompress(message.message)
             else:
                 payload = json.loads(message.message.decode())
