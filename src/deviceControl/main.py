@@ -748,6 +748,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     }
     }
     mqtt_public_paho_zip(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
+    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS + "Binh", username, password, result)
     return device_list
 # Describe get_value_meter 
 # 	 * @description get_value_meter
@@ -1003,6 +1004,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 ############################################################################ Zero Export Control ############################################################################
 # Describe process_caculator_zero_export 
@@ -1101,6 +1103,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint", setpoint)
             print("total_power",total_power)
             print("P Feedback production", value_production)
