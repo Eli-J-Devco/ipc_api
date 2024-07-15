@@ -1462,13 +1462,12 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            try:
-                payload = json.loads(message.message.decode())
-                print("payload_json",payload)
-            except json.JSONDecodeError:
-                payload = gzip_decompress(message.message)
-                print("payload_hex",payload)
+            payload = json.loads(message.message.decode())
             print("payload",payload)
+            if isinstance(payload, dict):
+                continue
+            else:
+                payload = gzip_decompress(message.message)
             # if topic == topic_all:
             #     payload = gzip_decompress(message.message)
             # else:
