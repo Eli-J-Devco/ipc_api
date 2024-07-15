@@ -430,7 +430,7 @@ async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(se
                     "confirm_mode": ModeSysTemp,
                     "time_stamp": current_time,
                 }
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+                push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
                 ModeSysTemp = None
                 flag = 1
             except Exception as err:
