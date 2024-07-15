@@ -1984,11 +1984,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            print("message.message",message.message)
             payload = gzip_decompress(message.message)
-            payload1 = json.loads(message.message.decode())
-            print("payload",payload)
-            print("payload1",payload1)
             # if topic == topic_all:
             #     payload = gzip_decompress(message.message)
             # else:
