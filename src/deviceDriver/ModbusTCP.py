@@ -83,6 +83,7 @@ len_result_topic1 = 0
 
 result_topic1 = []
 result_topic2 = []
+bitcheck_topic1 = 0
 
 enable_zero_export = 0
 value_zero_export_temp = 0
@@ -900,6 +901,7 @@ async def write_device(
     global reactive_limit_percent_enable
     global rated_reactive_custom
     global result_topic1 # result topic 
+    global bitcheck_topic1
     # Local Variables
     
     # Get Id_Systemp
@@ -934,7 +936,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 :
+    if result_topic1 and bitcheck_topic1:
         print("devicemode",device_mode)
         print("mode_each_device",mode_each_device)
         for item in result_topic1:
@@ -1033,9 +1035,9 @@ async def write_device(
                                     comment = 200
                                     #After successful implementation, update the temporary mode with the main mode
                                     await process_update_mode_for_device(result_topic1, serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
+                                    mode_each_device = device_mode
                                 elif (mode_each_device == 0 and len(inverter_info) >= 1):
                                     comment = 400
-                                    mode_each_device = device_mode
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1050,6 +1052,8 @@ async def write_device(
                                 "status": 200,
                             }
                     mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
+        # Check action first time 
+        bitcheck_topic1 = 0  
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1768,6 +1772,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global mode_each_device
     global ModeSysTemp_Control
     global value_offset_zero_export
+    global bitcheck_topic1
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1783,7 +1788,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     result_value_power_limit = []
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
-        if result_topic1:
+        if result_topic1 and bitcheck_topic1:
             # Check Wmax with Value Maximum Power
             result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
@@ -1897,6 +1902,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                         item["parameter"] = []
                                     item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                                     control_inv = True
+        bitcheck_topic1 = 0
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
@@ -1914,6 +1920,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global mode_each_device
     global result_topic2
     global value_zero_export_temp
+    global bitcheck_topic1
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -1928,6 +1935,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
+            print("result_topic1_Temp",result_topic1_Temp)
+            bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:
             result_topic2 = message
