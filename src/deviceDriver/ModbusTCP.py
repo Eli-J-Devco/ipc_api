@@ -1049,7 +1049,7 @@ async def write_device(
                                 "time_stamp": current_time,
                                 "status": 200,
                             }
-                    push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
+                    mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1870,7 +1870,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
-                            push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                            mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                         else:
                             comment = 200 
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
@@ -1884,7 +1884,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "status": comment,
                                 }
                                 print("data_send",data_send)
-                                push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                                mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                             else:
                                 pass
                 else:
