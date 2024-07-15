@@ -1839,7 +1839,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 print("value_zero_export",value_zero_export)
                                 print("ModeSysTemp",ModeSysTemp)
                                 
-                                if power_limit < custom_watt and power_limit < watt:
+                                if power_limit < watt:
                                     rated_power = watt
                                     rated_power_custom = custom_watt
                             elif param["id_pointkey"] == "WMaxPercent":
