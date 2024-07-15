@@ -1452,8 +1452,8 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
-    global MQTT_TOPIC_SUD_MODEGET_INFORMATION
-    topic_getinformation = serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION
+    global MQTT_TOPIC_SUD_MODEGET_INFORMATION ,MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    topic_all = [serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION, serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE ]
     
     try:
         while True:
@@ -1462,7 +1462,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if topic == topic_getinformation:
+            if topic in topic_all:
                 payload = json.loads(message.message.decode())
             else:
                 payload = gzip_decompress(message.message)
