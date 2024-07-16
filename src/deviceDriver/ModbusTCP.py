@@ -1072,7 +1072,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
         global device_mode
-        global mode_each_device
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type
@@ -1143,7 +1142,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 results_Plist.append({**itemP})
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
-        mode_each_device = results_device[0]['mode']
         global rated_power
         global rated_power_custom
         global rated_power_custom_calculator
@@ -1294,8 +1292,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['point_key'],
                                                 item['name'], 
                                                 item['unit'], 
-                                                # item['value'], 
-                                                None,
+                                                item['value'], 
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
@@ -1935,6 +1932,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
+            print("result_topic1_Temp",result_topic1_Temp)
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:
@@ -1943,6 +1941,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if result_topic2 and 'confirm_mode' in result_topic2:
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
+                    mode_each_device = device_mode
                 else:
                     pass
             else:
@@ -1965,7 +1964,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 import base64
 import gzip
-
 
 def gzip_decompress(message):
     try:
