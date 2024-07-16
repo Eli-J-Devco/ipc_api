@@ -1222,11 +1222,15 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 else :
                     value_offset_power_limit = value_offset_power_limit_temp
                 value_power_limit_temp = mqtt_result["value"]
+                
                 if value_power_limit_temp is not None :
                     if value_power_limit_temp <= total_power:
                         value_power_limit = value_power_limit_temp
                         # write information in database 
                         if value_power_limit <= total_power :
+                            print("value_power_limit_temp",value_power_limit_temp)
+                            print("total_power",total_power)
+                            
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
@@ -1243,6 +1247,12 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 mqtt_public_paho_zip(mqtt_host,
                         mqtt_port,
                         topicPudModeAuto ,
+                        mqtt_username,
+                        mqtt_password,
+                        data_send)
+                push_data_to_mqtt(mqtt_host,
+                        mqtt_port,
+                        topicPudModeAuto + "Binh" ,
                         mqtt_username,
                         mqtt_password,
                         data_send)
