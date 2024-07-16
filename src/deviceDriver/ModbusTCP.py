@@ -1813,6 +1813,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
                     mode_each_device = item.get("mode", 0)
+                    
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
                     else:
@@ -1829,10 +1830,14 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                         device["wmax"] = power_limit
                                         device["mode"] = mode_each_device
                                         break
+
                                 for device in device_list:
-                                    if device["wmax"] != None:
-                                        if device["mode"] == 0 :
+                                    if device["wmax"] is not None:
+                                        if device["mode"] == 0:
                                             total_wmax_man_temp += device["wmax"]
+                                    else:
+                                        device["wmax"] = 0
+                                        
                                 if ModeSysTemp != 1:
                                     total_wmax_man = total_wmax_man_temp
                                 else:
@@ -1937,7 +1942,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
-            print("result_topic1_Temp",result_topic1_Temp)
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:
