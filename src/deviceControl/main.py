@@ -69,6 +69,7 @@ start_time_daily = time.time()
 cycle_time1s = time.time()
 
 total_power = 0
+total_wmax_man_temp = 0
 p_for_each_device_zero_export = 0
 p_for_each_device_power_limit = 0
 total_wmax = 0
@@ -749,6 +750,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     }
     mqtt_public_paho_zip(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
     push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS + "Binh", username, password, result)
+    total_wmax_man_temp = 0
     return device_list
 # Describe get_value_meter 
 # 	 * @description get_value_meter
@@ -1185,7 +1187,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
 # 	 */ 
 async def process_update_parameter_mode_detail(mqtt_result,serial_number_project, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
     # Global variables
-    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power
+    global value_threshold_zero_export,value_offset_zero_export,value_power_limit,value_offset_power_limit,MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,total_power,total_wmax_man_temp
     # Local variables
     topicPudModeAuto = serial_number_project + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
     current_time = get_utc()
@@ -1225,10 +1227,10 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 print("value_power_limit_temp",value_power_limit_temp)
                 print("total_power",total_power)
                 if value_power_limit_temp is not None :
-                    if value_power_limit_temp <= total_power:
-                        print("da vao day")
+                    if value_power_limit_temp <= (total_power + value_power_limit_temp ):
+                        value_power_limit = value_power_limit_temp
                         # write information in database 
-                        if value_power_limit <= total_power :
+                        if value_power_limit <= (total_power + value_power_limit_temp ):
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
