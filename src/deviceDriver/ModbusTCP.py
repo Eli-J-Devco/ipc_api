@@ -1029,7 +1029,8 @@ async def write_device(
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
-                                code_value = results_write_modbus['code']
+                                # code_value = results_write_modbus['code']
+                                code_value = 144
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
