@@ -1981,8 +1981,6 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
-    global MQTT_TOPIC_PUD_MODE_DEVICE ,MQTT_TOPIC_SUD_CONTROL_MAN
-    topic_all = [serial_number_project + MQTT_TOPIC_PUD_MODE_DEVICE,serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN]
     try:
         while True:
             message = await client.messages.get()
