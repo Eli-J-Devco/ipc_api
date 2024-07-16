@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import os
 import sys
 
 import mqttools
@@ -9,7 +10,19 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
 
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
+sys.stdout.reconfigure(encoding='utf-8')
+from apiGateway.project_setup import project_service
+from configs.config import Config
+from configs.config import orm_provider as db_config
+from database.sql.device import all_query
 
+MQTT_BROKER = Config.MQTT_BROKER
+MQTT_PORT = Config.MQTT_PORT
+MQTT_TOPIC = Config.MQTT_TOPIC 
+MQTT_USERNAME = Config.MQTT_USERNAME
+MQTT_PASSWORD =Config.MQTT_PASSWORD
 class driverGateway:
     def __init__(self,
                 SERIAL_NUMBER,
@@ -26,6 +39,12 @@ class driverGateway:
         
         self.scheduler = AsyncIOScheduler()
         self.scheduler.start()
+        
+    async def add_driver(self,payload):
+        """
+        
+        """
+        pass
     async def handle_messages_drivers(self,client):
         try :
             # 
@@ -38,17 +57,17 @@ class driverGateway:
                 result=json.loads(message.message.decode())
                 if 'code' in result.keys() and 'payload' in result.keys():
                     if result["code"]=="add_job":
-                        job_id=result["payload"]
-                        print(job_id)
-                        self.scheduler.add_job(
-                        this_job,
-                        # "cron",
-                        'interval',
-                        id=f"{job_id}",
-                        # second = f'*/2',
-                        seconds = 3,
-                        args=[job_id,self.MQTT_TOPIC]
-                        )
+                        # job_id=result["payload"]
+                        # print(job_id)
+                        # self.scheduler.add_job(
+                        # this_job,
+                        # # "cron",
+                        # 'interval',
+                        # id=f"{job_id}",
+                        # # second = f'*/2',
+                        # seconds = 3,
+                        # args=[job_id,self.MQTT_TOPIC]
+                        # )
                         pass
                     if result["code"]=="remove_job":  
                         job_id=result["payload"] 
@@ -86,11 +105,15 @@ class driverGateway:
 async def main():
     tasks = []
     
-    SERIAL_NUMBER="G83VZT33"
-    MQTT_BROKER="127.0.0.1"
-    MQTT_PORT=1883
-    MQTT_USERNAME="nextwave"
-    MQTT_PASSWORD="123654789"
+    # SERIAL_NUMBER="G83VZT33"
+    # MQTT_BROKER="127.0.0.1"
+    # MQTT_PORT=1883
+    # MQTT_USERNAME="nextwave"
+    # MQTT_PASSWORD="123654789"
+    db_new=await db_config.get_db()
+    project_init=project_service.ProjectService()
+    result=await project_init.project_inform(db_new)
+    SERIAL_NUMBER=result["serial_number"]
     api_gateway=driverGateway(
                             SERIAL_NUMBER,
                             MQTT_BROKER,
