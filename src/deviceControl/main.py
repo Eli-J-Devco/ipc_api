@@ -1236,7 +1236,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
-            if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power):
+            if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power_systemp):
                 comment = 400 
             else:
                 comment = 200 
