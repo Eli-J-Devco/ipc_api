@@ -20,7 +20,8 @@ from configs.config import orm_provider as db_config
 # from database.db import get_db
 from database.sql.device import all_query
 from utils.mqttManager import (mqtt_public, mqtt_public_common,
-                               mqtt_public_paho, mqttService)
+                               mqtt_public_paho, mqtt_public_paho_zip,
+                               mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2, path,
@@ -117,7 +118,7 @@ class DevicesService:
                 await session.execute(query)    
                 await session.commit()
             if device_list:
-                await self.mqtt_init.send("Control/Modify",
+                await self.mqtt_init.sendZIP("Control/Modify",
                                device_list)
                 
         except Exception as e:
@@ -219,7 +220,7 @@ class DevicesService:
                 await session.execute(query)    
                 await session.commit()
             if device_list:
-                await self.mqtt_init.send("Control/Modify",
+                await self.mqtt_init.sendZIP("Control/Modify",
                                device_list)
         except Exception as e:
             print("Error create_dev_rs485: ", e)
@@ -276,7 +277,7 @@ class DevicesService:
                     )
                 print(f'delete_device_list{delete_device_list}')
                 if delete_device_list:
-                    await self.mqtt_init.send("Control/Modify",delete_device_list)
+                    await self.mqtt_init.sendZIP("Control/Modify",delete_device_list)
             if self.update_device_list:
                 if id_device:
                     for item_delete in id_device:
@@ -379,7 +380,7 @@ class DevicesService:
                 if device_list:
                     # await self.mqtt_init.send("Control/Write",device_list)
                     topic=self.serial_number+"/Control/Modify"
-                    mqtt_public_paho(host=self.mqtt_host,port=self.mqtt_port,
+                    mqtt_public_paho_zip(host=self.mqtt_host,port=self.mqtt_port,
                                      topic=topic,username=self.mqtt_username,password=self.mqtt_password,
                                      message=device_list)
         except Exception as e:
