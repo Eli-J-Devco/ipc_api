@@ -941,6 +941,8 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
+                print("result_topic1",result_topic1)
+                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1042,7 +1044,9 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
-                else:
+                # check data change mode device action
+                elif len(parameter) == 0 :
+                    print("da vao day")
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
@@ -1809,7 +1813,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
-                    mode_each_device = item.get("mode", 0)
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
                     else:
@@ -1833,12 +1836,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                             total_wmax_man_temp += device["wmax"]
                                     else:
                                         device["wmax"] = 0
-                                    
-                                print("device_list",device_list)
-                                print("total_wmax_man",total_wmax_man)
-                                print("value_power_limit",value_power_limit)
-                                print("value_zero_export",value_zero_export)
-                                print("ModeSysTemp",ModeSysTemp)
                                 
                                 if power_limit < custom_watt and power_limit < watt:
                                     rated_power = watt
@@ -1873,6 +1870,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                         else:
+                            print("power_limit",power_limit)
+                            print("rated_power_custom_calculator",rated_power_custom_calculator)
+                            print("total_wmax_man",total_wmax_man)
+                            print("value_power_limit",value_power_limit)
+                            print("value_zero_export",value_zero_export)
+                            
                             comment = 200 
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
@@ -1884,9 +1887,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
-                                #After successful implementation, update the temporary mode with the main mode
-                                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-                                mode_each_device = device_mode
                                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                             else:
                                 pass
@@ -1932,7 +1932,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
-            print("result_topic1_Temp",result_topic1_Temp)
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:

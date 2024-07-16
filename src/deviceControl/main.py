@@ -69,6 +69,7 @@ start_time_daily = time.time()
 cycle_time1s = time.time()
 
 total_power = 0
+total_power_systemp = 0
 p_for_each_device_zero_export = 0
 p_for_each_device_power_limit = 0
 total_wmax = 0
@@ -625,7 +626,7 @@ async def get_list_device_in_automode(mqtt_result):
 # 	 */ 
 async def get_list_device_in_process(mqtt_result, serial_number_project, host, port, username, password):
     # Global variables
-    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSystempCurrent
+    global total_power, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,value_consumption,value_production,value_power_limit,system_performance,low_performance , high_performance ,total_wmax_man,total_wmax,ModeSystempCurrent,total_power_systemp
     
     # Local variable
     device_list = []
@@ -737,6 +738,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     total_power = round(total_power, 3)
     total_wmax_man_temp = round(total_wmax_man_temp,1)
     
+    total_power_systemp = total_power + total_wmax_man_temp
     result = {
     "ModeSystempCurrent":ModeSystempCurrent,
     "devices": device_list,
@@ -1222,32 +1224,39 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                 else :
                     value_offset_power_limit = value_offset_power_limit_temp
                 value_power_limit_temp = mqtt_result["value"]
+                print("value_power_limit_temp",value_power_limit_temp)
+                print("total_power",total_power_systemp)
                 if value_power_limit_temp is not None :
-                    if value_power_limit_temp <= total_power:
+                    if value_power_limit_temp <= total_power_systemp:
                         value_power_limit = value_power_limit_temp
                         # write information in database 
-                        if value_power_limit <= total_power :
+                        if value_power_limit <= total_power_systemp:
+                            print("da vao day")
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
             # When you receive one of the above information, give feedback to mqtt
-            if ( value_offset_zero_export or value_offset_power_limit or value_power_limit ) :
-                if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power):
-                    comment = 400 
-                else:
-                    comment = 200 
-                data_send = {
-                            "time_stamp" :current_time,
-                            "status":comment, 
-                            }
-                mqtt_public_paho_zip(mqtt_host,
-                        mqtt_port,
-                        topicPudModeAuto ,
-                        mqtt_username,
-                        mqtt_password,
-                        data_send)
+            if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power):
+                comment = 400 
             else:
-                pass
+                comment = 200 
+            data_send = {
+                        "time_stamp" :current_time,
+                        "status":comment, 
+                        }
+            mqtt_public_paho_zip(mqtt_host,
+                    mqtt_port,
+                    topicPudModeAuto ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+            push_data_to_mqtt(mqtt_host,
+                    mqtt_port,
+                    topicPudModeAuto + "Binh" ,
+                    mqtt_username,
+                    mqtt_password,
+                    data_send)
+            
     except Exception as err:
         print(f"Error MQTT subscribe process_update_parameter_mode_detail: '{err}'")
 # Describe process_update_mode_detail 
