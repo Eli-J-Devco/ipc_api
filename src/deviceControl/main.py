@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
 import os
 import sys
 import mqttools
@@ -13,11 +14,8 @@ import platform
 from datetime import datetime
 import datetime
 import collections
-import base64
-import gzip
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -25,6 +23,9 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 arr = sys.argv
 ModeSysTemp = ""
@@ -312,7 +313,7 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
         disk_io_counters_prev["Timestamp"] = current_time
         # Push system_info to MQTT 
-        push_data_to_mqtt(mqtt_host,
+        mqtt_public_paho_zip(mqtt_host,
                             mqtt_port,
                             topicPublic,
                             mqtt_username,
@@ -357,7 +358,7 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
                                 "status" : 400,
                                 "time_stamp" :current_time,
                                 }
-                        push_data_to_mqtt(host,
+                        mqtt_public_paho_zip(host,
                                 port,
                                 topic ,
                                 username,
@@ -398,7 +399,7 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
                     data_send = {"id_device": "Systemp", "mode": 1}
             else:
                 data_send = {"id_device": "Systemp", "mode": 2}
-            push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+            mqtt_public_paho_zip(host, port, topicpud, username, password, data_send)
         except asyncio.TimeoutError:
             print("Timeout waiting for data from MySQL")
     else:
@@ -429,7 +430,7 @@ async def confirm_system_mode_after_device_change_or_user_change_mode_systemp(se
                     "confirm_mode": ModeSysTemp,
                     "time_stamp": current_time,
                 }
-                push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
                 ModeSysTemp = None
                 flag = 1
             except Exception as err:
@@ -455,7 +456,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"status": 200}
             ]
             print("data_send",data_send)
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -491,14 +492,14 @@ async def insert_information_project_setup(mqtt_result, mqtt_host, mqtt_port, to
                     "status": status,
                     "time_stamp": current_time
                 }
-                push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
         else:
             current_time = get_utc()
             data_send = {
                 "status": 200,
                 "time_stamp": current_time
             }
-            push_data_to_mqtt(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topic, mqtt_username, mqtt_password, data_send)
     except Exception as err:
         print(f"Error MQTT subscribe insert_information_project_setup: '{err}'")
 # Describe pud_information_project_setup_when_request 
@@ -527,7 +528,7 @@ async def pud_information_project_setup_when_request(mqtt_result ,serial_number_
                     {"time_stamp" : current_time},
                     {"status":400}]
                     }
-        push_data_to_mqtt(host, port, topicpud, username, password, data_send)
+        mqtt_public_paho_zip(host, port, topicpud, username, password, data_send)
 # Describe insert_information_project_setup_when_request 
 # 	 * @description insert_information_project_setup_when_request
 # 	 * @author bnguyen
@@ -746,7 +747,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         "status": status
     }
     }
-    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
+    mqtt_public_paho_zip(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS, username, password, result)
+    push_data_to_mqtt(host, port, serial_number_project + MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS + "Binh", username, password, result)
     return device_list
 # Describe get_value_meter 
 # 	 * @description get_value_meter
@@ -915,7 +917,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
         value_metter["power_limit"]["differential"] = round((value_production_power_limit - value_consumption_power_limit), 4)
         
         # Push system_info to MQTT
-        push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
+        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, value_metter)
     except Exception as err:
         print(f"Error MQTT subscribe monit_value_meter: '{err}'")
 ############################################################################ Power Limit Control  ############################################################################
@@ -928,17 +930,15 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_cumulative, value_subcumulative, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,value_consumption_power_limit,value_production_power_limit,system_performance,total_wmax_man,ModeSystempCurrent
+    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent
     # Local variables
     power_max_device = 0
     power_min_device = 0
-    device_results = {}
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # get information about power in database and varaable devices
     if devices:
-        print("devices",devices)
         device_list_control_power_limit = []
         for device in devices:
             id_device = device["id_device"]
@@ -947,7 +947,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             power_max_device = float(power_max_device)
             power_min_device = device["p_min"]
             power_min_device = float(power_min_device)
-
             # Convert power real 
             if power_max_device :
                 if ModeSystempCurrent == 1:
@@ -1000,14 +999,12 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                         ]
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
-            device_results[id_device] = new_device
-            print("device_results",device_results)
             device_list_control_power_limit.append(new_device)
-            print("device_list_control_power_limit",device_list_control_power_limit)
             
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
-            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
 ############################################################################ Zero Export Control ############################################################################
 # Describe process_caculator_zero_export 
@@ -1019,12 +1016,10 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_cumulative ,value_subcumulative , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,value_consumption_zero_export,value_production_zero_export,consumption_queue, Kp, Ki, Kd, dt,maxpower_production_instant,system_performance,total_wmax_man,ModeSystempCurrent
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent
     # Local variables
     efficiency_total = 0
     id_device = 0
-    slope = 1.0
-    power_min_device = 0
     power_max_device = 0
     setpoint = 0
     topicpud = serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO
@@ -1063,22 +1058,20 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
-            power_min_device = float(device["p_min"])
             power_max_device = float(device["p_max"])
-            slope = device["slope"]
             # Calculate the total performance of the system
-            if setpoint and power_max_device and slope:
+            if setpoint and power_max_device :
                 efficiency_total = (min(setpoint,value_consumption) / total_power)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
-                    p_for_each_device_zero_export = ((efficiency_total * power_max_device) / slope)
+                    p_for_each_device_zero_export = efficiency_total * power_max_device
                 # Calculate power value according to total system performance
                 if 0 <= efficiency_total <= 1:
-                    p_for_each_device_zero_export = (efficiency_total * power_max_device) / slope
+                    p_for_each_device_zero_export = efficiency_total * power_max_device
                 elif efficiency_total < 0:
-                    p_for_each_device_zero_export = power_min_device / slope
+                    p_for_each_device_zero_export = 0 
                 else:
-                    p_for_each_device_zero_export = power_max_device / slope
+                    p_for_each_device_zero_export = power_max_device 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
             if (value_consumption >= value_threshold_zero_export):
                 # Check device is off, on device
@@ -1109,7 +1102,8 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             print("Value setpoint", setpoint)
             print("total_power",total_power)
             print("P Feedback production", value_production)
@@ -1173,7 +1167,7 @@ async def process_not_choose_zero_export_power_limit(serial_number_project, mqtt
                 device_list_control_power_limit.append(new_device)
             # Push data to mqtt 
             if len(devices) == len(device_list_control_power_limit):
-                push_data_to_mqtt( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+                mqtt_public_paho_zip( mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
                 print("P Feedback production",value_production)
                 print("P Feedback consumption",value_consumption)
                 print("Value INV Out",p_for_each_device)
@@ -1246,7 +1240,7 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                             "time_stamp" :current_time,
                             "status":comment, 
                             }
-                push_data_to_mqtt(mqtt_host,
+                mqtt_public_paho_zip(mqtt_host,
                         mqtt_port,
                         topicPudModeAuto ,
                         mqtt_username,
@@ -1293,7 +1287,7 @@ async def process_update_mode_detail(mqtt_result,serial_number_project, mqtt_hos
                         "time_stamp" :current_time,
                         "status":comment, 
                         }
-            push_data_to_mqtt(mqtt_host,
+            mqtt_public_paho_zip(mqtt_host,
                     mqtt_port,
                     topicPudModeDetail ,
                     mqtt_username,
@@ -1359,20 +1353,6 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 ############################################################################ Sud MQTT ############################################################################
-# Describe gzip_decompress 
-# 	 * @description gzip_decompress
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {message}
-# 	 * @return result_list
-# 	 */ 
-def gzip_decompress(message):
-    try:
-        result_decode=base64.b64decode(message.decode('ascii'))
-        result_decompress=gzip.decompress(result_decode)
-        return json.loads(result_decompress)
-    except Exception as err:
-        print(f"decompress: '{err}'")
 # Describe process_message 
 # 	 * @description pud_systemp_mode_trigger_each_device_change
 # 	 * @author bnguyen
@@ -1430,8 +1410,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4,serial_number_project, host, port, username, password)
-            # resultmessage = gzip_decompress(result_topic4)
-            # await get_list_device_in_process(resultmessage,serial_number_project, host, port, username, password)
         elif topic == topic5:
             result_topic5 = message
             print("result_topic5",result_topic5)
@@ -1449,6 +1427,23 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic8",result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+import base64
+import gzip
+
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
@@ -1457,19 +1452,15 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
-    global MQTT_TOPIC_SUD_DEVICES_ALL
-    topic_all = serial_number_project + MQTT_TOPIC_SUD_DEVICES_ALL
+    
     try:
         while True:
-            message = await client.messages.get() 
+            message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if topic == topic_all :
-                payload = gzip_decompress(message.message)
-            else:
-                payload = json.loads(message.message.decode())
+            payload = gzip_decompress(message.message)
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")

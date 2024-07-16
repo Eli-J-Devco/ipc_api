@@ -22,7 +22,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from configs.config import Config
 from utils.libMySQL import *
-
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 # Information DB
 arr = sys.argv
 id_upload_chanel = arr
@@ -228,22 +230,6 @@ async def subMQTT(host, port, topic, username, password):
     except Exception as err:
         print(f"Error MQTT subscribe: '{err}'")
     return mqtt_result
-# 	 * @description Push data MQTT
-# 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {host, port,topic, username, password, data_send}
-# 	 * @return data()
-# 	 */      
-def pushMQTT(host, port,topic, username, password, data_send):
-    try:
-        payload = json.dumps(data_send)
-        publish.single(topic, payload, hostname=host,
-                    retain=False, port=port,
-                    auth = {'username':f'{username}', 
-                            'password':f'{password}'})
-    except Exception as err:
-        print(f"Error MQTT public: '{err}'")
-        pass
 # Describe sync_ServerFile_Database_AllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
@@ -380,7 +366,7 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
                         "remainder_file":number_file,
                         "number_of_retry":device.number_time_retry,
                     }
-                    pushMQTT(host,
+                    mqtt_public_paho_zip(host,
                             port,
                             topic + f"/Channel{id_device_fr_sys}|{type_file}/" + device.id_device_str + "|" + device.device_name ,
                             username,
@@ -447,7 +433,7 @@ async def colectDatatoPushMQTT(sql_id,host,port,topic,username,password):
 
                     data_mqtts.append(data_mqtt) 
                     
-                    pushMQTT(host,
+                    mqtt_public_paho_zip(host,
                             port,
                             topic + f"/Channel{id_device_fr_sys}|{type_file}/" + devices[i].id_device_str + "|" + devices[i].device_name ,
                             username,
@@ -1403,41 +1389,6 @@ async def sync_ServerFTP_Database(FTPSERVER_HOSTNAME,FTPSERVER_PORT,FTPSERVER_US
                     val = (count,devices[i].time_id ,id_device_fr_sys ,devices[i].id_device)
                     if count > 0 :
                         vals.append(val)
-                        
-                    # print("path " ,devices.source[i] )
-                    # path = (devices.source[i])
-                    # paths.append(path)
-                    # all_contents = [] 
-                    # for item in paths:
-                    #     with open(item, "r") as file:
-                    #         content = file.read().strip()
-                    #         all_contents.append(content)
-                    # count_FTP_Server += 1
-                    # new_file_path = f"D:/library/NEXTWWAVE/LogFile/merged_{count_FTP_Server}.txt"
-                    # with open(new_file_path, "w+") as new_file:
-                    #     new_file.write("\n".join(all_contents))
-                        
-                    # print("Nội dung đã được ghi vào file mới:", new_file_path)
-        #             try:
-        #                 if len(data_sent_server_list)==10 and by_pass == 0 :
-        #                     isUploadSuccess = uploadFileToFtp(new_file_path,FTPSERVER_HOSTNAME, FTPSERVER_PORT, FTPSERVER_USERNAME, FTPSERVER_PASSWORD)
-        #                     if isUploadSuccess == True :
-        #                         # Step 3 : Updata sync server with database
-        #                         MySQL_Update_v2(QUERY_UPDATE_DATABASE,data_insert_many)
-        #                         status_sync = 1
-        #                         count = 0 
-        #                     else:
-        #                         Executeup_NumberRetry_Database_Multies(time_retry)
-        #                         status_sync = 0
-        #             except Exception as e:
-        #                 Executeup_NumberRetry_Database_Multies(time_retry)
-        #                 status_sync = 0 
-        #                 print('An exception occurred',e)
-        # else : 
-        #     if len(devices[i].time_id)> 0 and len(str(devices[i].id_device))> 0 :
-        #         upErr_Database(devices[i].time_id,devices[i].id_device)
-        #     else :
-        #         pass
 
 def uploadFileToFtp(localFilePath,ftpHost, ftpPort, ftpUname, ftpPass):
     
