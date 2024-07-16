@@ -1036,7 +1036,6 @@ async def write_device(
                                 print("mode_each_device1",mode_each_device)
                                 print("device_mode1",device_mode)
                                 
-                                code_value = 144
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
