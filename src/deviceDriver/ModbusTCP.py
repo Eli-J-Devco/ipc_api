@@ -966,7 +966,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if mode_each_device == 0 and value != None: 
+                                if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1018,7 +1018,7 @@ async def write_device(
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                 # Auto Mode
-                                if mode_each_device == 1 and any('status' in item for item in result_topic1):
+                                if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
                                     addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
@@ -1036,8 +1036,9 @@ async def write_device(
                                     #After successful implementation, update the temporary mode with the main mode
                                     await process_update_mode_for_device(result_topic1, serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password)
                                     mode_each_device = device_mode
-                                elif (mode_each_device == 0 and len(inverter_info) >= 1):
+                                else:
                                     comment = 400
+                                    device_mode = mode_each_device
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1078,6 +1079,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
         global device_mode
+        global mode_each_device
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type
@@ -1148,6 +1150,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 results_Plist.append({**itemP})
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
+        mode_each_device = results_device[0]['mode']
         global rated_power
         global rated_power_custom
         global rated_power_custom_calculator
@@ -1807,13 +1810,14 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
             else:
                 value_power_limit = value_power_limit_temp
-        
+                
+            await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+            
             for item in result_topic1:
                 if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                     custom_watt = item.get("rated_power_custom", 0)
                     watt = item.get("rated_power", 0)
                     emergency_stop = item.get("emc", 0)
-                    mode_each_device = item.get("mode", 0)
                     
                     if custom_watt is None:
                         rated_power_custom_calculator = watt
@@ -1829,7 +1833,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 for device in device_list:
                                     if device["id_device"] == id_systemp:
                                         device["wmax"] = power_limit
-                                        device["mode"] = mode_each_device
+                                        device["mode"] = device_mode
                                         break
 
                                 for device in device_list:
@@ -1951,7 +1955,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if result_topic2 and 'confirm_mode' in result_topic2:
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
-                    mode_each_device = device_mode
                 else:
                     pass
             else:
