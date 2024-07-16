@@ -109,8 +109,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                result=json.loads(message.message.decode())
-                # result=gzip_decompress(message.message)
+                # result=json.loads(message.message.decode())
+                result=gzip_decompress(message.message)
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":
@@ -458,8 +458,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                result=json.loads(message.message.decode())
-                # result=gzip_decompress(message.message)
+                # result=json.loads(message.message.decode())
+                result=gzip_decompress(message.message)
                 if 'cmd' in result.keys():
                     cmd=result['cmd']
                     match cmd:
