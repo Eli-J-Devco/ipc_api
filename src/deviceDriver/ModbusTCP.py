@@ -1932,7 +1932,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
-            print("result_topic1_Temp",result_topic1_Temp)
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:
