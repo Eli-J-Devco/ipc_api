@@ -42,6 +42,7 @@ from utils.libTime import *
 from utils.mqttManager import (gzip_decompress, mqtt_public,
                                mqtt_public_common, mqtt_public_paho,
                                mqtt_public_paho_zip, mqttService)
+
 arr = sys.argv
 print(f'arr: {arr}')
 MQTT_BROKER = Config.MQTT_BROKER
@@ -62,6 +63,7 @@ MQTT_TOPIC_SUD_COMSUMTION_METER = "/Meter/Monitor"
 # 
 ModeSysTemp = "" 
 ModeSysTemp_Control = "" 
+mode_each_device = 0
 device_name=""
 status_register_block=[]
 status_device=""
@@ -81,6 +83,7 @@ len_result_topic1 = 0
 
 result_topic1 = []
 result_topic2 = []
+bitcheck_topic1 = 0
 
 enable_zero_export = 0
 value_zero_export_temp = 0
@@ -105,7 +108,6 @@ QUERY_DATATYPE = ""
 NAME_DEVICE_TYPE=None
 ID_DEVICE_TYPE=None
 device_mode=None
-mode_each_device=None
 # 0: Manual mode
 # 1: Auto mode
 id_template=None
@@ -1070,7 +1072,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global inv_shutdown_enable,inv_shutdown_datetime,inv_shutdown_point
         global device_id
         global device_mode
-        global mode_each_device
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type
@@ -1141,7 +1142,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 results_Plist.append({**itemP})
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
-        mode_each_device=results_device[0]['mode']
         global rated_power
         global rated_power_custom
         global rated_power_custom_calculator
@@ -1662,7 +1662,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 #                     username[0],
                 #                     password[0],
                 #                     data_device)
-                await mqtt_init.send("Devices/"+""+device_id,
+                await mqtt_init.sendZIP("Devices/"+""+device_id,
                                         data_device)
             await asyncio.sleep(1)
     except Exception as err:
@@ -1884,7 +1884,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
-                                print("data_send",data_send)
+                                #After successful implementation, update the temporary mode with the main mode
+                                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+                                mode_each_device = device_mode
                                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                             else:
                                 pass
@@ -1912,8 +1914,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_DEVICES_ALL
     global MQTT_TOPIC_SUD_COMSUMTION_METER
     global device_mode 
+    global mode_each_device
     global result_topic2
     global value_zero_export_temp
+    global bitcheck_topic1
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -1928,6 +1932,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
+            print("result_topic1_Temp",result_topic1_Temp)
+            bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
         elif topic == topic2:
             result_topic2 = message
@@ -1935,6 +1941,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if result_topic2 and 'confirm_mode' in result_topic2:
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
+                    mode_each_device = device_mode
                 else:
                     pass
             else:
@@ -1947,6 +1954,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
+        
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -1964,6 +1972,7 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
+        
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -1972,14 +1981,16 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+    global MQTT_TOPIC_PUD_MODE_DEVICE ,MQTT_TOPIC_SUD_CONTROL_MAN
+    topic_all = [serial_number_project + MQTT_TOPIC_PUD_MODE_DEVICE,serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN]
     try:
         while True:
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = gzip_decompress(message.message)
             topic = message.topic
+            payload = gzip_decompress(message.message)
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
