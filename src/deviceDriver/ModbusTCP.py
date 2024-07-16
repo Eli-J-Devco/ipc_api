@@ -1016,7 +1016,6 @@ async def write_device(
                                                     value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
-                                            code_value = 144 
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
@@ -1028,13 +1027,9 @@ async def write_device(
                                             slope = float(result_slope[0]['slope'])
                                             value = value/slope
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
-                                        code_value = 16
                             # check fault push the results to mqtt
-                            # if results_write_modbus: # Code that writes data to the inverter after execution 
-                                # code_value = results_write_modbus['code']
-                                
-                                print("mode_each_device1",mode_each_device)
-                                print("device_mode1",device_mode)
+                            if results_write_modbus: # Code that writes data to the inverter after execution 
+                                code_value = results_write_modbus['code']
                                 
                                 if code_value == 16 :
                                     comment = 200
@@ -1042,9 +1037,6 @@ async def write_device(
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
-                                
-                                print("mode_each_device2",mode_each_device)
-                                print("device_mode2",device_mode)
                                 
                             data_send = {
                                 "time_stamp": current_time,
@@ -1056,7 +1048,6 @@ async def write_device(
                         print(f"write_device: '{err}'")
                 # check data change mode device action
                 elif len(parameter) == 0 :
-                    print("da vao day")
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
