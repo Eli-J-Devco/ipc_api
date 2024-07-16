@@ -1042,7 +1042,8 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
-                else:
+                # check data change mode device action
+                elif len(parameter) == 0 :
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
