@@ -20,6 +20,7 @@ from .devices_model import Action, DeviceStatus, ActionEnum
 from .devices_service import DeviceService
 from .pm2_service.pm2_service import PM2Service
 from .update_table_module.update_table_service import UpdateTableService
+from .utils.utils import decompress_data
 from .utils_service import UtilsService
 
 logger = logging.getLogger(__name__)
@@ -109,7 +110,8 @@ class MQTTSubscriber(Subscriber):
     async def process_message(self, message):
         try:
             logger.info(f"Processing message: {message}")
-            decoded_message = json.loads(base64.b64decode(message).decode("ascii"))
+            decoded_message = decompress_data(message)
+            decoded_message = json.loads(decoded_message)
             logger.info(f"Decoded message: {decoded_message}")
         except Exception as e:
             logger.error(f"Error decoding message: {e}")

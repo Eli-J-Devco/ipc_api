@@ -2,10 +2,10 @@ import json
 import uuid
 
 from mqtt_service.mqtt import Publisher
-from mqttools import SessionResumeError
 
 from .model import MessageModel
 from ..config import config
+from ..utils.utils import gzip_data
 
 
 class PM2Service:
@@ -36,7 +36,7 @@ class PM2Service:
         try:
             await self.sender.start()
             self.sender.send(f"{self.serial_number}/{config.MQTT_INITIALIZE_TOPIC}",
-                             json.dumps(message.dict()).encode("ascii"))
+                             gzip_data(json.dumps(message.dict())))
         except Exception as e:
             raise e
         finally:
