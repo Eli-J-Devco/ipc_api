@@ -109,8 +109,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                # result=json.loads(message.message.decode())
-                result=gzip_decompress(message.message)
+                result=json.loads(message.message.decode())
+                # result=gzip_decompress(message.message)
                 if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
                     match result['CODE']:
                         case "UpdateSiteInformation":
@@ -355,11 +355,11 @@ class apiGateway:
     async def deviceListPub(self):
         try:
             try:
-                mqtt_init=mqttService(self.MQTT_BROKER,
-                    self.MQTT_PORT,
-                    self.MQTT_USERNAME,
-                    self.MQTT_PASSWORD,
-                    self.MQTT_TOPIC)
+                # mqtt_init=mqttService(self.MQTT_BROKER,
+                #     self.MQTT_PORT,
+                #     self.MQTT_USERNAME,
+                #     self.MQTT_PASSWORD,
+                #     self.MQTT_TOPIC)
                 db_new=await db_config.get_db()
                 query=all_query.select_all_device_mqtt_gateway
                 result= await db_new.execute(text(query))
@@ -458,8 +458,8 @@ class apiGateway:
                 if message is None:
                     print('Broker connection lost!')
                     break
-                # result=json.loads(message.message.decode())
-                result=gzip_decompress(message.message)
+                result=json.loads(message.message.decode())
+                # result=gzip_decompress(message.message)
                 if 'cmd' in result.keys():
                     cmd=result['cmd']
                     match cmd:
