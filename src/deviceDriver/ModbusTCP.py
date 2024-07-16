@@ -39,8 +39,9 @@ from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import mqttService
-
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 arr = sys.argv
 print(f'arr: {arr}')
 MQTT_BROKER = Config.MQTT_BROKER
@@ -1035,7 +1036,7 @@ async def write_device(
                                 "time_stamp": current_time,
                                 "status": comment,
                             }
-                            push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
+                            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
@@ -1044,7 +1045,7 @@ async def write_device(
                                 "time_stamp": current_time,
                                 "status": 200,
                             }
-                    push_data_to_mqtt(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
+                    mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1870,7 +1871,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
-                            push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                            mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                         else:
                             comment = 200 
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
@@ -1884,7 +1885,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "status": comment,
                                 }
                                 print("data_send",data_send)
-                                push_data_to_mqtt(host, port, topicPublic + "/Feedback", username, password, data_send)
+                                mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                             else:
                                 pass
                 else:
@@ -1946,6 +1947,23 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {message}
+# 	 * @return result_list
+# 	 */ 
+import base64
+import gzip
+
+def gzip_decompress(message):
+    try:
+        result_decode=base64.b64decode(message.decode('ascii'))
+        result_decompress=gzip.decompress(result_decode)
+        return json.loads(result_decompress)
+    except Exception as err:
+        print(f"decompress: '{err}'")
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -1960,7 +1978,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
             if message is None:
                 print('Broker connection lost!')
                 break
-            payload = json.loads(message.message.decode())
+            payload = gzip_decompress(message.message)
             topic = message.topic
             await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
