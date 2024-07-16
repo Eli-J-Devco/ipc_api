@@ -1294,7 +1294,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['point_key'],
                                                 item['name'], 
                                                 item['unit'], 
-                                                item['value'], 
+                                                # item['value'], 
+                                                None,
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
@@ -1886,7 +1887,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
-                                print("data_send",data_send)
+                                #After successful implementation, update the temporary mode with the main mode
+                                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+                                mode_each_device = device_mode
                                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                             else:
                                 pass
@@ -1962,6 +1965,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 import base64
 import gzip
+
 
 def gzip_decompress(message):
     try:
