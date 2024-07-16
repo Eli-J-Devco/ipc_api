@@ -1298,7 +1298,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['point_key'],
                                                 item['name'], 
                                                 item['unit'], 
-                                                item['value'], 
+                                                # item['value'], 
+                                                None,
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
@@ -1973,6 +1974,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 */ 
 import base64
 import gzip
+
 
 def gzip_decompress(message):
     try:
