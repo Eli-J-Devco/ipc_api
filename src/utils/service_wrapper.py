@@ -13,6 +13,8 @@ from mqtt_service.mqtt import Publisher
 from pydantic.main import BaseModel
 from starlette.responses import JSONResponse
 
+from src.utils.utils import gzip_data
+
 
 class ServiceWrapper:
     @staticmethod
@@ -145,7 +147,7 @@ class ServiceWrapper:
                     msg = json.dumps(msg)
 
                 if is_decode:
-                    msg = base64.b64encode(msg.encode("ascii"))
+                    msg = gzip_data(msg)
 
                 publisher.send(topic, msg)
         except Exception as e:

@@ -3,11 +3,13 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import base64
 import datetime
 import random
 import secrets
 import string
 from re import match
+from gzip import compress
 
 from .pagination_model import PaginationResponse
 
@@ -102,3 +104,16 @@ def generate_id(length: int = 8):
     id_part_1 = "".join([f"{b:02x}" for b in random_bytes])
     id_part_2 = ''.join(random.choice(string.ascii_letters) for x in range(length - len(id_part_1)))
     return id_part_1 + id_part_2
+
+
+def gzip_data(data: str) -> bytes:
+    """
+    Gzip data
+    :author: nhan.tran
+    :date: 16-07-2024
+    :param data:
+    :return: bytes
+    """
+    zipped_data = compress(data.encode("ascii"), compresslevel=9)
+    b64_encoded_data = base64.b64encode(zipped_data)
+    return b64_encoded_data
