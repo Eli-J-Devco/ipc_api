@@ -1016,6 +1016,7 @@ async def write_device(
                                                     value /= slope
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                            code_value = 144 
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
@@ -1027,8 +1028,9 @@ async def write_device(
                                             slope = float(result_slope[0]['slope'])
                                             value = value/slope
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                        code_value = 16
                             # check fault push the results to mqtt
-                            if results_write_modbus: # Code that writes data to the inverter after execution 
+                            # if results_write_modbus: # Code that writes data to the inverter after execution 
                                 # code_value = results_write_modbus['code']
                                 
                                 print("mode_each_device1",mode_each_device)
