@@ -941,6 +941,8 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
+                print("result_topic1",result_topic1)
+                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1044,6 +1046,7 @@ async def write_device(
                         print(f"write_device: '{err}'")
                 # check data change mode device action
                 elif len(parameter) == 0 :
+                    print("da vao day")
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
