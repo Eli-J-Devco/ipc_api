@@ -1025,8 +1025,8 @@ async def write_device(
                                         # convert back to actual value
                                         if result_slope and slope and id_pointkey == 'WMax' :
                                             slope = float(result_slope[0]['slope'])
-                                            value = round(value)
                                             value = value/slope
+                                            value = round(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution 
