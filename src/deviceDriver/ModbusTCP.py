@@ -1047,14 +1047,12 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
                 # check data change mode device action
-                elif len(parameter) == 0 and bitcheck_topic1 == 1:
+                elif len(parameter) == 0 :
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
                             }
                     mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
-                # reset bir check topic 1 
-                bitcheck_topic1 = 0
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1887,15 +1885,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
                             custom_watt = 0
                             watt = 0
-                        for param in item["parameter"]:
-                            if param["value"] is None:
-                                data_send = {
-                                    "time_stamp": current_time,
-                                    "status": comment,
-                                }
-                                mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
-                            else:
-                                pass
+                        
                 else:
                     if "parameter" in item and int(item["id_device"]) == id_systemp:
                         for param in item["parameter"]:
@@ -1906,6 +1896,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                         item["parameter"] = []
                                     item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                                     control_inv = True
+                
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
