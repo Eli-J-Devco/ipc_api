@@ -203,6 +203,7 @@ async def process_message_result_list(message):
                         device_dict[device_id]["data"].append(data_value)
         # Convert dictionary to list
         result_list = list(device_dict.values())
+        print("result_list",result_list)
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
 # Describe process_message_result_list_mptt 
