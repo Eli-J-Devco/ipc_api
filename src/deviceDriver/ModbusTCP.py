@@ -1053,6 +1053,7 @@ async def write_device(
                                 "status": 200,
                             }
                     mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
+                    result_topic1 = []
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
