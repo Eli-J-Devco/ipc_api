@@ -1885,8 +1885,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             mode_each_device = device_mode
                         # check wmax smaller rated power action . 
                         if (device_mode == 0 and power_limit < watt and comment == 200) or (device_mode == 1 and watt > 0 and comment == 200):
+                            print("rated_power1",rated_power)
+                            print("rated_power_custom1",rated_power_custom)
                             rated_power = watt
                             rated_power_custom = custom_watt
+                            print("rated_power2",rated_power)
+                            print("rated_power_custom2",rated_power_custom)
 
                 else:
                     if "parameter" in item and int(item["id_device"]) == id_systemp:
