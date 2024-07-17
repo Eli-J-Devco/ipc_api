@@ -415,6 +415,7 @@ class DevicesService:
                     })
             if device_list:
                 id_device = [item["id_device"] for item in device_list]
+                print(f'id_device: {id_device}')
                 query = (update(DevicesEntity)
                     .where(DevicesEntity.id.in_(id_device))
                     .where(DevicesEntity.creation_state == -1)
