@@ -1864,8 +1864,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
 
                         # Check wmax with rated power  
                         if (power_limit > rated_power_custom_calculator) or \
-                        (ModeSysTemp_Control == 2 and total_wmax_man > value_power_limit) or \
-                        (ModeSysTemp_Control == 1 and total_wmax_man > value_zero_export):
+                        (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                        (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             # If there is an error, there is no need to write it to inv anymore
