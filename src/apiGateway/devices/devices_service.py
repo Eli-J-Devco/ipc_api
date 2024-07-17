@@ -413,6 +413,14 @@ class DevicesService:
                         "mode":None,
                         "parameters":[],
                     })
+            if device_list:
+                id_device = [item["id_device"] for item in device_list]
+                query = (update(DevicesEntity)
+                    .where(DevicesEntity.id.in_(id_device))
+                    .where(DevicesEntity.creation_state == -1)
+                    .values(creation_state=0))
+                await session.execute(query)    
+                await session.commit()
         except Exception as e:
             print("Error create_dev_no_log: ", e)
         finally:
