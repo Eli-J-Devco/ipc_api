@@ -201,7 +201,6 @@ async def process_message_result_list(message):
                         device_dict[device_id]["point_id"].append(str(field["id"]))
                         data_value = str(field["value"]) if field["value"] is not None else 0.0
                         device_dict[device_id]["data"].append(data_value)
-        
         # Convert dictionary to list
         result_list = list(device_dict.values())
     except Exception as err:
