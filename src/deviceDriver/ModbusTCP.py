@@ -1878,23 +1878,15 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             device_mode = mode_each_device
                         else:
                             comment = 200 
+                            # check wmax smaller rated power action . 
+                            if (device_mode == 0 and power_limit < watt) or (device_mode == 1 and watt > 0):
+                                rated_power = watt
+                                rated_power_custom = custom_watt
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
                             custom_watt = 0
                             watt = 0
                             mode_each_device = device_mode
-                        print("device_mode",device_mode)
-                        print("power_limit",power_limit)
-                        print("watt",watt)
-                        print("comment",comment)
-                        # check wmax smaller rated power action . 
-                        if (device_mode == 0 and power_limit < watt and comment == 200) or (device_mode == 1 and watt > 0 and comment == 200):
-                            print("rated_power1",rated_power)
-                            print("rated_power_custom1",rated_power_custom)
-                            rated_power = watt
-                            rated_power_custom = custom_watt
-                            print("rated_power2",rated_power)
-                            print("rated_power_custom2",rated_power_custom)
 
                 else:
                     if "parameter" in item and int(item["id_device"]) == id_systemp:
