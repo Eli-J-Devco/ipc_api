@@ -1879,7 +1879,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         else:
                             comment = 200 
                             # check wmax smaller rated power action . 
-                            if (device_mode == 0 and power_limit < watt) or (device_mode == 1 and watt > 0):
+                            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
                                 rated_power = watt
                                 rated_power_custom = custom_watt
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
