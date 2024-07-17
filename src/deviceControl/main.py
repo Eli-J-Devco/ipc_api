@@ -1002,8 +1002,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
-        print("device_list_control_power_limit",device_list_control_power_limit)
-        print("devices",devices)
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
