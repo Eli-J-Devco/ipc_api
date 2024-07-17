@@ -1047,12 +1047,14 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
                 # check data change mode device action
-                elif len(parameter) == 0 :
+                elif len(parameter) == 0 and bitcheck_topic1 == 1:
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
                             }
                     mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
+                # reset bir check topic 1 
+                bitcheck_topic1 = 0
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1770,6 +1772,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global ModeSysTemp
     global ModeSysTemp_Control
     global value_offset_zero_export
+    global bitcheck_topic1
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1786,6 +1789,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if result_topic1:
+            bitcheck_topic1 = 1
             # Check Wmax with Value Maximum Power
             result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
             value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
