@@ -1875,11 +1875,13 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         (ModeSysTemp_Control == 1 and total_wmax_man > value_zero_export):
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
+                            # If there is an error, there is no need to write it to inv anymore
                             data_send = {
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
+                            result_topic1 = []
                         else:
                             comment = 200 
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
