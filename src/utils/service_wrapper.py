@@ -129,8 +129,7 @@ class ServiceWrapper:
     @staticmethod
     async def publish_message(publisher: Publisher, topic: str,
                               message: list[MessageModel | dict],
-                              publisher_info: dict = None,
-                              is_decode: bool = True):
+                              publisher_info: dict = None,):
         """
         Publish message to MQTT broker
         """
@@ -146,8 +145,7 @@ class ServiceWrapper:
                 if isinstance(msg, dict):
                     msg = json.dumps(msg)
 
-                if is_decode:
-                    msg = gzip_data(msg)
+                msg = gzip_data(msg)
 
                 publisher.send(topic, msg)
         except Exception as e:
