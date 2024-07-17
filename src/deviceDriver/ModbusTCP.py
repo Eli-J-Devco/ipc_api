@@ -1818,8 +1818,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         rated_power_custom_calculator = watt
                     else:
                         rated_power_custom_calculator = custom_watt
-                    
-                    print("")
+
                     if emergency_stop != 1 :
                         for param in item.get("parameter", []):
                             if param["id_pointkey"] == "WMaxPercentEnable":
@@ -1840,9 +1839,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     else:
                                         device["wmax"] = 0
                                 # check wmax smaller rated power action . 
-                                if power_limit < watt:
+                                if (device_mode == 0 and power_limit < watt) or (device_mode == 1 and watt):
                                     rated_power = watt
                                     rated_power_custom = custom_watt
+                                    
                             elif param["id_pointkey"] == "WMaxPercent":
                                 power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
                             elif param["id_pointkey"] == "VarMaxPercentEnable":
@@ -1855,6 +1855,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 else:
                                     reactive_limit_percent = 0
                                     rated_reactive_custom = 0
+                                    
+                        # check wmax smaller rated power action . 
+                        if (device_mode == 0 and power_limit < watt) or (device_mode == 1 and watt):
+                            rated_power = watt
+                            rated_power_custom = custom_watt
+                            
                         if power_limit_percent_enable:
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                         if reactive_limit_percent_enable:
@@ -1873,12 +1879,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                         else:
-                            print("power_limit",power_limit)
-                            print("rated_power_custom_calculator",rated_power_custom_calculator)
-                            print("total_wmax_man",total_wmax_man)
-                            print("value_power_limit",value_power_limit)
-                            print("value_zero_export",value_zero_export)
-                            
                             comment = 200 
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
