@@ -1829,7 +1829,7 @@ async def extract_device_control_params(serial_number_project,mqtt_host,mqtt_por
                     }
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send)
             result_topic1 = []
-    return power_limit ,result_topic1
+    return power_limit 
 # Describe updates_ratedpower_from_message
 # /**
 # 	 * @description updates_ratedpower_from_message
