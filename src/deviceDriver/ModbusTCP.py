@@ -10,8 +10,6 @@ import json
 # import math
 import os
 import sys
-import base64
-import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -945,8 +943,6 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
-                print("result_topic1",result_topic1)
-                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1033,7 +1029,7 @@ async def write_device(
                                             value = round(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
-                            if results_write_modbus: # Code that writes data to the inverter after execution 
+                            if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
                                 
                                 if code_value == 16 :
@@ -1042,7 +1038,6 @@ async def write_device(
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
-                                
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1051,14 +1046,7 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
-                # check data change mode device action
-                elif len(parameter) == 0 :
-                    data_send = {
-                                "time_stamp": current_time,
-                                "status": 200,
-                            }
-                    mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
-                    result_topic1 = []
+
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1303,7 +1291,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 item['point_key'],
                                                 item['name'], 
                                                 item['unit'], 
-                                                item['value'], 
+                                                # item['value'], 
+                                                None,
                                                 1,
                                                 item['timestamp'],
                                                 message="Error Device",
@@ -1748,7 +1737,14 @@ async def get_list_device_in_process(mqtt_result):
                             'mode': mode,
                             'wmax': wmax,
                         })
-                    
+# Describe Get_value_Power_Limit
+# /**
+# 	 * @description Get_value_Power_Limit
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {}
+# 	 * @return value_zero_export and value_power_limit
+# 	 */
 async def Get_value_Power_Limit():
     global ModeSysTemp , ModeSysTemp_Control ,value_zero_export,value_power_limit
     result_value_power_limit = []
@@ -1773,16 +1769,25 @@ async def Get_value_Power_Limit():
         value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
     else:
         value_power_limit = value_power_limit_temp
-
-async def extract_device_control_params(result_topic1):
+# Describe extract_device_control_params
+# /**
+# 	 * @description extract_device_control_params
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1}
+# 	 * @return power_limit
+# 	 */
+async def extract_device_control_params(serial_number_project,mqtt_host,mqtt_port,mqtt_username,mqtt_password):
     global arr ,total_wmax_man_temp , power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable 
     global device_list
-
+    global result_topic1
     id_systemp = int(arr[1])
     reactive_power_limit = 0
+    current_time = get_utc()
+    topicPublic = serial_number_project + "/Control/Feedbacksetup"
     
     for item in result_topic1:
-        if int(item["id_device"]) == id_systemp:
+        if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0:
             for param in item.get("parameter", []):
                 # extract parameters from message
                 if param["id_pointkey"] == "WMaxPercentEnable":
@@ -1806,8 +1811,7 @@ async def extract_device_control_params(result_topic1):
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
             if reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
-        # To turn off inv without inv turning itself back on, add this register to inv
-        else:
+            # To turn off inv without inv turning itself back on, add this register to inv
             if "parameter" in item and int(item["id_device"]) == id_systemp:
                 for param in item["parameter"]:
                     if param["id_pointkey"] == "ControlINV":
@@ -1817,30 +1821,48 @@ async def extract_device_control_params(result_topic1):
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-                            
+        # check data change mode device action
+        elif int(item["id_device"]) == id_systemp and len(item["parameter"]) == 0 and item["mode"] == 1:
+            data_send = {
+                        "time_stamp": current_time,
+                        "status": 200,
+                    }
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send)
+            result_topic1 = []
+    return power_limit ,result_topic1
+# Describe updates_ratedpower_from_message
+# /**
+# 	 * @description updates_ratedpower_from_message
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1,power_limit}
+# 	 * @return comment ,watt,custom_watt
+# 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
     global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
     comment = 200
-    for item in result_topic1:
-        if int(item["id_device"]) == id_systemp:
-            # Get rated_power , rated_power_custom from message
-            custom_watt = item.get("rated_power_custom", 0)
-            watt = item.get("rated_power", 0)
-            # caculator when rated_power_custom is null
-            if custom_watt is None:
-                rated_power_custom_calculator = watt
-            else:
-                rated_power_custom_calculator = custom_watt
-            
-            # Check status when saving device control parameters to the system 
-            if (power_limit > rated_power_custom_calculator) or \
-            (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-            (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
-                comment = 400 
-            else:
-                comment = 200 
-    return comment
+    custom_watt = 0 
+    watt = 0 
+    if result_topic1:
+        for item in result_topic1:
+            if int(item["id_device"]) == id_systemp:
+                # Get rated_power , rated_power_custom from message
+                custom_watt = item.get("rated_power_custom", 0)
+                watt = item.get("rated_power", 0)
+                # caculator when rated_power_custom is null
+                if custom_watt is None:
+                    rated_power_custom_calculator = watt
+                else:
+                    rated_power_custom_calculator = custom_watt
+                # Check status when saving device control parameters to the system 
+                if (power_limit > rated_power_custom_calculator) or \
+                (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                    comment = 400 
+                else:
+                    comment = 200 
+    return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -1878,17 +1900,19 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     comment = 200
     current_time = ""
     power_limit = 0
+    wmax = 0
+    watt = 0
+    custom_watt = 0
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
-        if result_topic1:
-            bitcheck_topic1 = 1
+        if result_topic1 and bitcheck_topic1 == 1:
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
-            await extract_device_control_params(result_topic1)
+            wmax = await extract_device_control_params(serial_number_project,host, port, username, password)
             
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
@@ -1904,29 +1928,30 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 else:
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
-            comment = updates_ratedpower_from_message(result_topic1,power_limit)
-            
-            if comment == 400 :
-                # If the update fails, return the mode value and print an error without doing anything else
-                data_send = {
-                        "time_stamp": current_time,
-                        "status": comment,
-                    }
-                mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
-                result_topic1 = []
-                device_mode = mode_each_device
-            else:
-                # if update successfully first save ratedpower in variable systemp and seve in DB
-                if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
-                    rated_power = watt
-                    rated_power_custom = custom_watt
-                MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
-            # reset global value to avoid accumulation
-            custom_watt = 0
-            watt = 0
-            total_wmax_man_temp = 0
-            mode_each_device = device_mode
+            comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+            if result_topic1:
+                if comment == 400 and bitcheck_topic1 == 1:
+                    # If the update fails, return the mode value and print an error without doing anything else
+                    result_topic1 = []
+                    device_mode = mode_each_device
+                    bitcheck_topic1 = 0
+                    # feedback data to mqtt 
+                    data_send = {
+                            "time_stamp": current_time,
+                            "status": comment,
+                        }
+                    mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
+                else:
+                    # if update successfully first save ratedpower in variable systemp and seve in DB
+                    if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
+                        rated_power = watt
+                        rated_power_custom = custom_watt
+                    MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                    MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
+                # reset global value to avoid accumulation
+                custom_watt = 0
+                watt = 0
+                total_wmax_man_temp = 0
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
@@ -1988,6 +2013,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
+import base64
+import gzip
+
+
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
@@ -1995,6 +2024,7 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
+        
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
