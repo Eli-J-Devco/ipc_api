@@ -1823,18 +1823,20 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     comment = 200
     custom_watt = 0 
     watt = 0 
-    
+    print("result_topic1",result_topic1)
     for item in result_topic1:
         if int(item["id_device"]) == id_systemp:
             # Get rated_power , rated_power_custom from message
             custom_watt = item.get("rated_power_custom", 0)
             watt = item.get("rated_power", 0)
+            print("da vao nay")
             # caculator when rated_power_custom is null
             if custom_watt is None:
                 rated_power_custom_calculator = watt
             else:
                 rated_power_custom_calculator = custom_watt
-            
+            print("rated_power_custom_calculator",rated_power_custom_calculator)
+            print("power_limit",power_limit)
             # Check status when saving device control parameters to the system 
             if (power_limit > rated_power_custom_calculator) or \
             (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
