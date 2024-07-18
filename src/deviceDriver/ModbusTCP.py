@@ -1049,14 +1049,14 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
                 # check data change mode device action
-                elif len(parameter) == 0 and device_mode == 1:
+                if not parameter and device_mode == 1:
                     mode_each_device = device_mode
                     data_send = {
                                 "time_stamp": current_time,
                                 "status": 200,
                             }
                     mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send)
-
+                    result_topic1 = []
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
