@@ -1862,6 +1862,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
+        print("comment",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1930,6 +1931,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
             if result_topic1:
+                print("comment",comment)
+                print("bitcheck_topic1",bitcheck_topic1)
+                print("power_limit",power_limit)
+                print("device_mode",device_mode)
+                print("watt",watt)
+                
                 if comment == 400 and bitcheck_topic1 == 1:
                     # If the update fails, return the mode value and print an error without doing anything else
                     result_topic1 = []
@@ -1943,7 +1950,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                 else:
                     # if update successfully first save ratedpower in variable systemp and seve in DB
-                    if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
+                    if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
                         rated_power = watt
                         rated_power_custom = custom_watt
                     MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
