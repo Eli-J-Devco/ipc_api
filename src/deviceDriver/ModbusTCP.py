@@ -1845,6 +1845,9 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     custom_watt = 0 
     watt = 0 
     
+    if power_limit is None:
+        power_limit = 0 
+        
     if result_topic1:
         for item in result_topic1:
             if int(item["id_device"]) == id_systemp:
