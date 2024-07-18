@@ -1851,12 +1851,12 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system 
-                # if (power_limit > rated_power_custom_calculator) or \
-                # (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-                # (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
-                #     comment = 400 
-                # else:
-                #     comment = 200 
+                if (power_limit > rated_power_custom_calculator) or \
+                (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                    comment = 400 
+                else:
+                    comment = 200 
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
