@@ -1911,10 +1911,13 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if result_topic1 and bitcheck_topic1 == 1:
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
+            print("da vao 1")
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+            print("da vao 2")
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params()
+            print("da vao 3")
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
                 if device["id_device"] == id_systemp:
@@ -1928,8 +1931,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         total_wmax_man_temp += device["wmax"]
                 else:
                     device["wmax"] = 0
+            print("da vao 4")
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+            print("da vao 5")
             if result_topic1 and bitcheck_topic1 == 1:
                 if comment == 400 :
                     # If the update fails, return the mode value and print an error without doing anything else
