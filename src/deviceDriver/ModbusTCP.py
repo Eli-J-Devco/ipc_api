@@ -1821,6 +1821,9 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
     comment = 200
+    custom_watt = 0 
+    watt = 0 
+    
     for item in result_topic1:
         if int(item["id_device"]) == id_systemp:
             # Get rated_power , rated_power_custom from message
@@ -1903,7 +1906,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 else:
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
-            comment = updates_ratedpower_from_message(result_topic1,power_limit)
+            comment = await updates_ratedpower_from_message(result_topic1,power_limit)
             
             if comment == 400 :
                 # If the update fails, return the mode value and print an error without doing anything else
