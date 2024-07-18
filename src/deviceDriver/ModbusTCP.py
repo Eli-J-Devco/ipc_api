@@ -1845,7 +1845,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     comment = 200
     custom_watt = 0 
     watt = 0 
-    
     if result_topic1:
         for item in result_topic1:
             if int(item["id_device"]) == id_systemp:
@@ -1857,21 +1856,13 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
-                print("custom_watt",custom_watt)
-                print("watt",watt)
-                print("power_limit",power_limit)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("ModeSysTemp_Control",ModeSysTemp_Control)
-                print("total_wmax_man_temp",total_wmax_man_temp)
-                print("value_power_limit",value_power_limit)
-                print("value_zero_export",value_zero_export)
                 # Check status when saving device control parameters to the system 
-                if (power_limit > rated_power_custom_calculator) or \
-                (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-                (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
-                    comment = 400 
-                else:
-                    comment = 200 
+                # if (power_limit > rated_power_custom_calculator) or \
+                # (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                # (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                #     comment = 400 
+                # else:
+                #     comment = 200 
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1919,13 +1910,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if result_topic1 and bitcheck_topic1 == 1:
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
-            print("da vao day 1 ")
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-            print("da vao day 2 ")
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params()
-            print("da vao day 3 ")
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
                 if device["id_device"] == id_systemp:
@@ -1939,11 +1927,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         total_wmax_man_temp += device["wmax"]
                 else:
                     device["wmax"] = 0
-            print("da vao day 4 ")
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
             if result_topic1:
-                print("da vao day 5 ")
                 if comment == 400 and bitcheck_topic1 == 1:
                     # If the update fails, return the mode value and print an error without doing anything else
                     result_topic1 = []
