@@ -1045,9 +1045,6 @@ async def write_device(
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
-                                "check":1,
-                                "results_write_modbus": results_write_modbus,
-                                "code_value": code_value,
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
@@ -1925,6 +1922,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 data_send = {
                         "time_stamp": current_time,
                         "status": comment,
+                        "comment": comment,
+                        "bitcheck_topic1": bitcheck_topic1,
                     }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
                 result_topic1 = []
