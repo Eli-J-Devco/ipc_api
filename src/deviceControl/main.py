@@ -939,6 +939,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
+    asyncio.sleep(2)
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
