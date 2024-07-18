@@ -2037,7 +2037,7 @@ def gzip_decompress(message):
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
     try:
         while True:
-            message = await client.messages.get()
+            message = await asyncio.wait_for(client.messages.get(), timeout=10.0)
             if message is None:
                 print('Broker connection lost!')
                 break
