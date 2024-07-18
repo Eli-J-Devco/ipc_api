@@ -1889,9 +1889,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
-        if result_topic1:
+        if result_topic1 and bitcheck_topic1 == 1:
             print("result_topic1",result_topic1)
-            bitcheck_topic1 = 1
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
             # Update mode temp for Device 
@@ -1915,10 +1914,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
             if comment == 400 and bitcheck_topic1 :
-                print("da vao day ")
-                print("comment",comment)
-                print("bitcheck_topic1",bitcheck_topic1)
                 # If the update fails, return the mode value and print an error without doing anything else
+                result_topic1 = []
+                device_mode = mode_each_device
+                bitcheck_topic1 = 0
+                
                 data_send = {
                         "time_stamp": current_time,
                         "status": comment,
@@ -1926,9 +1926,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         "bitcheck_topic1": bitcheck_topic1,
                     }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
-                result_topic1 = []
-                device_mode = mode_each_device
-                bitcheck_topic1 = 0
             else:
                 # if update successfully first save ratedpower in variable systemp and seve in DB
                 if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
