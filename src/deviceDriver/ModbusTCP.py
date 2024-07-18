@@ -1915,6 +1915,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
             if comment == 400 and bitcheck_topic1 :
+                print("da vao day ")
+                print("comment",comment)
+                print("bitcheck_topic1",bitcheck_topic1)
                 # If the update fails, return the mode value and print an error without doing anything else
                 data_send = {
                         "time_stamp": current_time,
