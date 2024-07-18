@@ -1842,6 +1842,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 comment = 400 
             else:
                 comment = 200 
+            print("comment trong ham 1",comment)
+    print("comment trong ham 2",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1910,7 +1912,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,power_limit)
-            print("comment",comment)
+            print("comment ngoai1 ",comment)
+            await asyncio.sleep(1)
+            print("comment ngoai2 ",comment)
             if comment == 400 and bitcheck_topic1 :
                 # If the update fails, return the mode value and print an error without doing anything else
                 data_send = {
