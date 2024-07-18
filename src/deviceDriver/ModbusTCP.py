@@ -1785,14 +1785,13 @@ async def Get_value_Power_Limit():
 # 	 * @param {result_topic1}
 # 	 * @return power_limit
 # 	 */
-async def extract_device_control_params(serial_number_project,mqtt_host,mqtt_port,mqtt_username,mqtt_password):
+async def extract_device_control_params():
     global arr ,total_wmax_man_temp , power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable 
     global device_list
     global result_topic1
     id_systemp = int(arr[1])
     reactive_power_limit = 0
-    current_time = get_utc()
-    topicPublic = serial_number_project + "/Control/Feedbacksetup"
+    power_limit = 0
     
     for item in result_topic1:
         if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0:
@@ -1916,7 +1915,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
-            wmax = await extract_device_control_params(serial_number_project,host, port, username, password)
+            wmax = await extract_device_control_params()
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
                 if device["id_device"] == id_systemp:
