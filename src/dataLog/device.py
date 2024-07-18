@@ -46,12 +46,11 @@ status_register = ""
 status_file = "Success"
 status = "Waiting for the record to finish"
 time_interval = ""
-
+result_topic = []
 # Information Query
 QUERY_TIME_CREATE_FILE = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
-QUERY_SELECT_NAME_DEVICE = ""
 QUERY_SELECT_TOPIC = ""
     
 # Information MQTT
@@ -169,7 +168,7 @@ async def process_message_result_list(message):
     global status_register
     global result_list
     global status_file
-
+    device_name = ""
     device_dict = {}
     
     try:
@@ -182,12 +181,14 @@ async def process_message_result_list(message):
             status_register = items["status_register"]
             fields = items["fields"]
             type_device_type = items["type_device_type"]
-            
+            device_name = items["device_name"]
             if device_id not in device_dict:
                 device_dict[device_id] = {
                     "id": int(device_id),
+                    "device_name":device_name,
                     "point_id": [],
                     "data": [],
+                    "namekey":[],
                     "time": current_time,
                     "status_device": status_device,
                     "msg_device": msg_device,
@@ -201,9 +202,10 @@ async def process_message_result_list(message):
                         device_dict[device_id]["point_id"].append(str(field["id"]))
                         data_value = str(field["value"]) if field["value"] is not None else 0.0
                         device_dict[device_id]["data"].append(data_value)
+                        device_dict[device_id]["namekey"].append(field["point_key"])
         # Convert dictionary to list
         result_list = list(device_dict.values())
-        print("result_list",result_list)
+        # print("result_list",result_list)
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
 # Describe process_message_result_list_mptt 
@@ -330,12 +332,11 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
 # 	 * @return 
 # 	 */
 async def Insert_TableDevice_AllDevice():
-    global QUERY_ALL_DEVICES
+    global result_list
     manysql_queries = {}
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    for item in result_all:
+    for item in result_list:
         sql_id = item["id"]
-        result_sql_queries = await Insert_TableDevice(sql_id, result_all)
+        result_sql_queries = await Insert_TableDevice(sql_id)
         if result_sql_queries:
             manysql_queries[sql_id] = result_sql_queries
     MySQL_Insert_v3(manysql_queries)
@@ -347,29 +348,23 @@ async def Insert_TableDevice_AllDevice():
 # 	 * @param {sql_id, result_all}
 # 	 * @return queries 
 # 	 */
-async def Insert_TableDevice(sql_id, result_all):
+async def Insert_TableDevice(sql_id):
     global result_list
     global status
     global status_device 
     global status_register
     global code_error
-    global QUERY_SELECT_NAME_DEVICE
     sql_queries = {}
     data = []
-    result_all = []
     filedtable = []
-    result_all = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (sql_id,))
-    
-    for item in result_all:
-        if item['namekey'] != 'MPPT':
-            filedtable.append(item['id_pointkey'])
-        
+
     DictID = [item for item in result_list if item["id"] == sql_id]
 
     if DictID:
         data = DictID[0]["data"]
         status_device = DictID[0]["status_device"]
         status_register = DictID[0]["status_register"]
+        filedtable = DictID[0]["namekey"]
         
     if not data:  # Check data if data empty 
         data = [None] * len(filedtable)
@@ -425,7 +420,7 @@ async def Insert_TableMPPT():
     MPPTKey_string = ""
     voltage = ""
     current = ""
-    print("result_list_MPPT",result_list_MPPT)
+    # print("result_list_MPPT",result_list_MPPT)
     try:
         if result_list_MPPT :
             for item in result_list_MPPT:
@@ -458,17 +453,15 @@ async def Insert_TableMPPT():
 # 	 * @return 
 # 	 */
 async def monitoring_device_AllDevice(host, port,topic, username, password):
-    global QUERY_ALL_DEVICES
     global QUERY_SELECT_TOPIC 
-    result_topic = "" 
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
+    global result_list
+    global result_topic
     
-    result_topic = await MySQL_Select_v1 (QUERY_SELECT_TOPIC)
     topic = result_topic[0]["serial_number"]
     topic = topic + "/LogDevice"  
-    
     tasks = []
-    for item in result_all:
+    
+    for item in result_list:
         sql_id = item["id"]
         task = monitoring_device(sql_id,host, port,topic, username, password)
         tasks.append(task)
@@ -484,23 +477,19 @@ async def monitoring_device_AllDevice(host, port,topic, username, password):
 # 	 */
 async def monitoring_device(sql_id,host, port,topic, username, password):
     
-    global QUERY_ALL_DEVICES
-    global QUERY_TIME_SYNC_DATA
-    
     global status_device 
     global status_file
     global result_list
     global status 
     global time_interval
+    global result_list
     
     current_time = ""
-    result_all = []
     data = []
     sql_id_str = ""
     device_name = ""
     
     current_time = get_utc()
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES) 
     DictID = [item for item in result_list if item["id"] == sql_id]
     if DictID:
         data = DictID[0]["data"]
@@ -516,7 +505,7 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
         
         # File creation time 
         sql_id_str = str(sql_id)
-        device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
+        device_name = [item['device_name'] for item in result_list if item['id'] == sql_id][0] 
         
         mqtt_public_paho_zip(host,
                 port,
@@ -530,9 +519,7 @@ async def monitoring_device(sql_id,host, port,topic, username, password):
 async def main():
     
     global QUERY_TIME_CREATE_FILE
-    global QUERY_ALL_DEVICES 
     global QUERY_TIME_SYNC_DATA
-    global QUERY_SELECT_NAME_DEVICE
     global QUERY_SELECT_TOPIC
     
     global MQTT_BROKER
@@ -542,22 +529,21 @@ async def main():
     global MQTT_PASSWORD
     
     global time_interval
+    global result_topic
     topic = ""
     result_all = []
-    result_topic = []
     
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_TIME_CREATE_FILE = result_mybatis["QUERY_TIME_CREATE_FILE"]
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
-        QUERY_SELECT_NAME_DEVICE = result_mybatis["QUERY_SELECT_NAME_DEVICE"]
         QUERY_SELECT_TOPIC = result_mybatis["QUERY_SELECT_TOPIC"]
         
     except Exception as e:
             print('An exception occurred',e)
     
-    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_NAME_DEVICE or not QUERY_SELECT_TOPIC:
+    if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_TOPIC:
         print("Error not found data in file mybatis") 
         return -1
     #------------------------------------------------------------------------
@@ -594,12 +580,6 @@ async def main():
         scheduler.start()
         
         tasks = []
-        # tasks.append(Get_MQTT(MQTT_BROKER,
-        #                                 MQTT_PORT,
-        #                                 MQTT_TOPIC_SUB,
-        #                                 MQTT_USERNAME,
-        #                                 MQTT_PASSWORD
-        #                                 ))
         tasks.append(sub_mqtt(MQTT_BROKER,
                             MQTT_PORT,
                             MQTT_USERNAME,

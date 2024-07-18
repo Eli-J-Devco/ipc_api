@@ -1865,8 +1865,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
 
                         # Check wmax with rated power  
                         if (power_limit > rated_power_custom_calculator) or \
-                        (ModeSysTemp_Control == 2 and total_wmax_man > value_power_limit) or \
-                        (ModeSysTemp_Control == 1 and total_wmax_man > value_zero_export):
+                        (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                        (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
                             item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
                             comment = 400 
                             # If there is an error, there is no need to write it to inv anymore
@@ -1879,15 +1879,15 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             device_mode = mode_each_device
                         else:
                             comment = 200 
+                            # check wmax smaller rated power action . 
+                            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
+                                rated_power = watt
+                                rated_power_custom = custom_watt
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
                             custom_watt = 0
                             watt = 0
                             mode_each_device = device_mode
-                        # check wmax smaller rated power action . 
-                        if (device_mode == 0 and power_limit < watt and comment == 200) or (device_mode == 1 and watt > 0 and comment == 200):
-                            rated_power = watt
-                            rated_power_custom = custom_watt
 
                 else:
                     if "parameter" in item and int(item["id_device"]) == id_systemp:
