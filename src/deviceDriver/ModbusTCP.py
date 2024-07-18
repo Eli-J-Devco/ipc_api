@@ -1046,6 +1046,14 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
+                # check data change mode device action
+                elif len(parameter) == 0 and device_mode == 1:
+                    mode_each_device = device_mode
+                    data_send = {
+                                "time_stamp": current_time,
+                                "status": 200,
+                            }
+                    mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send)
 
 # Describe functions before writing code
 # /**
@@ -1821,14 +1829,6 @@ async def extract_device_control_params(serial_number_project,mqtt_host,mqtt_por
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-        # check data change mode device action
-        elif int(item["id_device"]) == id_systemp and len(item["parameter"]) == 0 and item["mode"] == 1:
-            data_send = {
-                        "time_stamp": current_time,
-                        "status": 200,
-                    }
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send)
-            result_topic1 = []
     return power_limit 
 # Describe updates_ratedpower_from_message
 # /**
@@ -1844,7 +1844,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     comment = 200
     custom_watt = 0 
     watt = 0 
-    print("power_limit",power_limit)
     
     if result_topic1:
         for item in result_topic1:
@@ -1864,7 +1863,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-        print("comment",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1916,7 +1914,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params(serial_number_project,host, port, username, password)
-            print("wmax",wmax)
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
                 if device["id_device"] == id_systemp:
@@ -1932,20 +1929,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
-            print("comment",comment)
-            print("bitcheck_topic1",bitcheck_topic1)
-            print("power_limit",power_limit)
-            print("device_mode",device_mode)
-            print("watt",watt)
-            print("result_topic1",result_topic1)
+            
             if result_topic1:
-                print("comment2",comment)
-                print("bitcheck_topic2",bitcheck_topic1)
-                print("power_limit2",power_limit)
-                print("device_mode2",device_mode)
-                print("watt2",watt)
-                print("result_topic2",result_topic1)
-                
                 if comment == 400 and bitcheck_topic1 == 1:
                     # If the update fails, return the mode value and print an error without doing anything else
                     result_topic1 = []
