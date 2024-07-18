@@ -1052,6 +1052,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             
         setpoint = round(setpoint, 4)
     # Check device equipment qualified for control
+    asyncio.sleep(2)
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # Get information about power in database and variable devices

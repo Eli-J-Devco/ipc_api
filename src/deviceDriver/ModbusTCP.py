@@ -1931,35 +1931,36 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         total_wmax_man_temp += device["wmax"]
                 else:
                     device["wmax"] = 0
-            # Compare to avoid confusion with auto recording message
-            for item in result_topic1:
-                if "rated_power_custom" in item and "rated_power" in item:
-                    # Update rated power to the device and check status when saving the device's control parameters to the system
-                    comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+                    
             # Check have topic and man mode action because message auto a lot of
             if result_topic1 and bitcheck_topic1 == 1 :
-                if comment == 400 :
-                    # If the update fails, return the mode value and print an error without doing anything else
-                    result_topic1 = []
-                    device_mode = mode_each_device
-                    bitcheck_topic1 = 0
-                    # feedback data to mqtt 
-                    data_send = {
-                            "time_stamp": current_time,
-                            "status": comment,
-                        }
-                    mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
-                else:
-                    # if update successfully first save ratedpower in variable systemp and seve in DB
-                    if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
-                        rated_power = watt
-                        rated_power_custom = custom_watt
-                    MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-                    MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
-                # reset global value to avoid accumulation
-                custom_watt = 0
-                watt = 0
-                total_wmax_man_temp = 0
+                for item in result_topic1:
+                    # Check whether the message has rated power or not
+                    if "rated_power_custom" in item and "rated_power" in item:
+                        # Update rated power to the device and check status when saving the device's control parameters to the system
+                        comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+                        if comment == 400 :
+                            # If the update fails, return the mode value and print an error without doing anything else
+                            result_topic1 = []
+                            device_mode = mode_each_device
+                            bitcheck_topic1 = 0
+                            # feedback data to mqtt 
+                            data_send = {
+                                    "time_stamp": current_time,
+                                    "status": comment,
+                                }
+                            mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
+                        else:
+                            # if update successfully first save ratedpower in variable systemp and seve in DB
+                            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
+                                rated_power = watt
+                                rated_power_custom = custom_watt
+                            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                            MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
+                        # reset global value to avoid accumulation
+                        custom_watt = 0
+                        watt = 0
+                        total_wmax_man_temp = 0
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
