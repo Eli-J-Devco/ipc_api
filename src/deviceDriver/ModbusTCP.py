@@ -943,8 +943,6 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
-                print("result_topic1",result_topic1)
-                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1032,7 +1030,6 @@ async def write_device(
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
-                                print("results_write_modbus",results_write_modbus)
                                 code_value = results_write_modbus['code']
                                 
                                 if code_value == 16 :
@@ -1041,7 +1038,6 @@ async def write_device(
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
-                            print("da vao day ",comment )
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1748,14 +1744,20 @@ async def get_list_device_in_process(mqtt_result):
                             'mode': mode,
                             'wmax': wmax,
                         })
-                    
+# Describe Get_value_Power_Limit
+# /**
+# 	 * @description Get_value_Power_Limit
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {}
+# 	 * @return value_zero_export and value_power_limit
+# 	 */
 async def Get_value_Power_Limit():
     global ModeSysTemp , ModeSysTemp_Control ,value_zero_export,value_power_limit
     result_value_power_limit = []
     value_power_limit_temp = 0 
     value_offset_zero_export = 0
     value_offset_power_limit = 0
-    power_limit = 0
     
     # Check Wmax with Value Maximum Power
     result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
@@ -1774,7 +1776,14 @@ async def Get_value_Power_Limit():
         value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
     else:
         value_power_limit = value_power_limit_temp
-
+# Describe extract_device_control_params
+# /**
+# 	 * @description extract_device_control_params
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1}
+# 	 * @return power_limit
+# 	 */
 async def extract_device_control_params(result_topic1):
     global arr ,total_wmax_man_temp , power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable 
     global device_list
@@ -1783,7 +1792,7 @@ async def extract_device_control_params(result_topic1):
     reactive_power_limit = 0
     
     for item in result_topic1:
-        if int(item["id_device"]) == id_systemp:
+        if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0:
             for param in item.get("parameter", []):
                 # extract parameters from message
                 if param["id_pointkey"] == "WMaxPercentEnable":
@@ -1819,32 +1828,38 @@ async def extract_device_control_params(result_topic1):
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
     return power_limit
+# Describe updates_ratedpower_from_message
+# /**
+# 	 * @description updates_ratedpower_from_message
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1,power_limit}
+# 	 * @return comment ,watt,custom_watt
+# 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
     global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
     watt = 0 
-    for item in result_topic1:
-        if int(item["id_device"]) == id_systemp:
-            # Get rated_power , rated_power_custom from message
-            custom_watt = item.get("rated_power_custom", 0)
-            watt = item.get("rated_power", 0)
-            print("da vao nay")
-            # caculator when rated_power_custom is null
-            if custom_watt is None:
-                rated_power_custom_calculator = watt
-            else:
-                rated_power_custom_calculator = custom_watt
-            print("rated_power_custom_calculator",rated_power_custom_calculator)
-            print("power_limit",power_limit)
-            # Check status when saving device control parameters to the system 
-            if (power_limit > rated_power_custom_calculator) or \
-            (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-            (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
-                comment = 400 
-            else:
-                comment = 200 
+    if result_topic1:
+        for item in result_topic1:
+            if int(item["id_device"]) == id_systemp:
+                # Get rated_power , rated_power_custom from message
+                custom_watt = item.get("rated_power_custom", 0)
+                watt = item.get("rated_power", 0)
+                # caculator when rated_power_custom is null
+                if custom_watt is None:
+                    rated_power_custom_calculator = watt
+                else:
+                    rated_power_custom_calculator = custom_watt
+                # Check status when saving device control parameters to the system 
+                if (power_limit > rated_power_custom_calculator) or \
+                (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                    comment = 400 
+                else:
+                    comment = 200 
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
