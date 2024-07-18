@@ -1425,7 +1425,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
-
+            if rated_power_custom:
+                rated_power_custom_calculator = rated_power_custom
+            else:
+                rated_power_custom_calculator = rated_power
             device_mode=monitor_service_init.device_type()
             if results_control_group:
                 control_group=[
@@ -1796,7 +1799,7 @@ async def extract_device_control_params():
     power_limit = 0
     
     for item in result_topic1:
-        if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0:
+        if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0 and rated_power_custom_calculator != 0:
             for param in item.get("parameter", []):
                 # extract parameters from message
                 if param["id_pointkey"] == "WMaxPercentEnable":
