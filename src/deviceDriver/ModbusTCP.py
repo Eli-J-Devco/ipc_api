@@ -1844,6 +1844,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     comment = 200
     custom_watt = 0 
     watt = 0 
+    print("power_limit",power_limit)
+    
     if result_topic1:
         for item in result_topic1:
             if int(item["id_device"]) == id_systemp:
@@ -1914,7 +1916,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params(serial_number_project,host, port, username, password)
-            
+            print("wmax",wmax)
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
                 if device["id_device"] == id_systemp:
