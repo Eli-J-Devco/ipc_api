@@ -943,6 +943,8 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
+                print("len(parameter)",len(parameter))
+                print("device_mode",device_mode)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -1844,9 +1846,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     custom_watt = 0 
     watt = 0 
     
-    if power_limit is None:
-        power_limit = 0 
-        
     if result_topic1:
         for item in result_topic1:
             if int(item["id_device"]) == id_systemp:
@@ -1931,7 +1930,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
-            
+            print("result_topic1",result_topic1)
             if result_topic1:
                 if comment == 400 and bitcheck_topic1 == 1:
                     # If the update fails, return the mode value and print an error without doing anything else
