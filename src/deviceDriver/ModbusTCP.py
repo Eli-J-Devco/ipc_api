@@ -1754,6 +1754,7 @@ async def Get_value_Power_Limit():
     value_power_limit_temp = 0 
     value_offset_zero_export = 0
     value_offset_power_limit = 0
+    power_limit = 0
     
     # Check Wmax with Value Maximum Power
     result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
@@ -1816,7 +1817,7 @@ async def extract_device_control_params(result_topic1):
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-                            
+    return power_limit
 async def updates_ratedpower_from_message(result_topic1,power_limit):
     global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
@@ -1884,6 +1885,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     comment = 200
     current_time = ""
     power_limit = 0
+    wmax = 0
     watt = 0
     custom_watt = 0
     
@@ -1897,7 +1899,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
-            await extract_device_control_params(result_topic1)
+            wmax = await extract_device_control_params(result_topic1)
             
             # Calculate whether the latest p-value recorded exceeds the allowable limit or not
             for device in device_list:
@@ -1913,7 +1915,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 else:
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
-            comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,power_limit)
+            comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
             print("comment ngoai1 ",comment)
             await asyncio.sleep(1)
             print("comment ngoai2 ",comment)
