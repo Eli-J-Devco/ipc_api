@@ -10,6 +10,8 @@ import json
 # import math
 import os
 import sys
+import base64
+import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -1986,9 +1988,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-import base64
-import gzip
-
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
@@ -1996,7 +1995,6 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
-        
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
