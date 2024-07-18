@@ -1031,7 +1031,8 @@ async def write_device(
                                             value = round(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
-                            if results_write_modbus: # Code that writes data to the inverter after execution 
+                            if results_write_modbus: # Code that writes data to the inverter after execution
+                                print("results_write_modbus",results_write_modbus)
                                 code_value = results_write_modbus['code']
                                 
                                 if code_value == 16 :
@@ -1040,7 +1041,7 @@ async def write_device(
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
-                                
+                            print("da vao day ",comment )
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1824,7 +1825,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     comment = 200
     custom_watt = 0 
     watt = 0 
-    print("result_topic1",result_topic1)
     for item in result_topic1:
         if int(item["id_device"]) == id_systemp:
             # Get rated_power , rated_power_custom from message
@@ -1845,8 +1845,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 comment = 400 
             else:
                 comment = 200 
-            print("comment trong ham 1",comment)
-    print("comment trong ham 2",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1916,9 +1914,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                     device["wmax"] = 0
             # Update rated power to the device and check status when saving the device's control parameters to the system
             comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
-            print("comment ngoai1 ",comment)
-            await asyncio.sleep(1)
-            print("comment ngoai2 ",comment)
             if comment == 400 and bitcheck_topic1 :
                 # If the update fails, return the mode value and print an error without doing anything else
                 data_send = {
