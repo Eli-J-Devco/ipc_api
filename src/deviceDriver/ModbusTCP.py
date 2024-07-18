@@ -1857,6 +1857,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
+                print("custom_watt",custom_watt)
+                print("watt",watt)
                 print("power_limit",power_limit)
                 print("rated_power_custom_calculator",rated_power_custom_calculator)
                 print("ModeSysTemp_Control",ModeSysTemp_Control)
