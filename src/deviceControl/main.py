@@ -939,6 +939,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
+    # asyncio.sleep(2)
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
@@ -1051,6 +1052,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             
         setpoint = round(setpoint, 4)
     # Check device equipment qualified for control
+    # asyncio.sleep(2)
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
     # Get information about power in database and variable devices
@@ -1063,6 +1065,13 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             # Calculate the total performance of the system
             if setpoint and power_max_device :
                 efficiency_total = (min(setpoint,value_consumption) / total_power)
+                print("id_device",id_device)
+                print("efficiency_total",efficiency_total)
+                print("setpoint",setpoint)
+                print("value_consumption",value_consumption)
+                print("total_power",total_power)
+                print("power_max_device",power_max_device)
+                print("p_for_each_device_zero_export",p_for_each_device_zero_export)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = efficiency_total * power_max_device
@@ -1074,19 +1083,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     p_for_each_device_zero_export = power_max_device 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            if not value_consumption:
-                new_device = {
-                        "id_device": id_device,
-                        "Mode": "Add",
-                        "mode": mode,
-                        "status": "zero export",
-                        "setpoint": setpoint,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": 0}
-                        ]
-                    }
-                device_list_control_power_limit.append(new_device)
             if (value_consumption >= value_threshold_zero_export):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
