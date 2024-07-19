@@ -2004,13 +2004,17 @@ async def process_message(topic, message,serial_number_project, host, port, user
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
+                print("vao topic 1")
                 if not is_waiting:
                     result_topic1_Temp = message
                     is_waiting = True
+                    print("is_waiting truoc ham",is_waiting)
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     asyncio.sleep(5)
                     is_waiting = False  
             elif topic == topic3:
+                print("is_waiting trong toipc 3 ",is_waiting)
+                print("vao topic 3")
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
