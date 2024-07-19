@@ -1917,7 +1917,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         # Calculate whether the latest p-value recorded exceeds the allowable limit or not
                         for device in device_list:
                             if device["id_device"] == id_systemp:
-                                device["wmax"] = power_limit
+                                device["wmax"] = wmax
                                 device["mode"] = device_mode
                                 break
                         # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
