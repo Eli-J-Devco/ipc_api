@@ -1763,8 +1763,7 @@ async def Get_value_Power_Limit():
     value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
     
     if value_offset_zero_export :
-        print("value_zero_export_temp",value_zero_export_temp)
-        value_zero_export = value_zero_export_temp*(value_offset_zero_export/100)
+        value_zero_export = value_zero_export_temp*((100 - value_offset_zero_export)/100)
     else:
         value_zero_export = value_zero_export_temp
     
