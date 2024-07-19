@@ -1065,13 +1065,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             # Calculate the total performance of the system
             if setpoint and power_max_device :
                 efficiency_total = (min(setpoint,value_consumption) / total_power)
-                print("id_device",id_device)
-                print("efficiency_total",efficiency_total)
-                print("setpoint",setpoint)
-                print("value_consumption",value_consumption)
-                print("total_power",total_power)
-                print("power_max_device",power_max_device)
-                print("p_for_each_device_zero_export",p_for_each_device_zero_export)
                 # Calculate the performance for each device based on the total performance
                 if efficiency_total:
                     p_for_each_device_zero_export = efficiency_total * power_max_device
