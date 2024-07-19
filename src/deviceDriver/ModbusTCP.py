@@ -2008,14 +2008,12 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = message
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
+                    asyncio.sleep(5)
                     is_waiting = False  
             elif topic == topic3:
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            print("topic",topic)
-            print("result_topic1_Temp",result_topic1_Temp)
-            print("is_waiting",is_waiting)
         elif topic == topic2:
             result_topic2 = message
             # process 
