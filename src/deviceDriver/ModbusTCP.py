@@ -1854,7 +1854,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("total_wmax_man_temp",total_wmax_man_temp)
                 print("value_power_limit",value_power_limit)
                 print("value_zero_export",value_zero_export)
-                
+                print("ModeSysTemp_Control",ModeSysTemp_Control)
                 if (power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
