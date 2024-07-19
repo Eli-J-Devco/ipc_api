@@ -10,6 +10,8 @@ import json
 # import math
 import os
 import sys
+import base64
+import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -943,8 +945,6 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
-                print("len(parameter)",len(parameter))
-                print("device_mode",device_mode)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -956,7 +956,6 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -993,7 +992,6 @@ async def write_device(
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
                                                                         inverter_info_temp[0]["modbus_func"],
                                                                         inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
-                                                        
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, 'Power Limit Percent Enable'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom_calculator*(power_limit_percent/100), device_control, 'Power Limit'))
@@ -1923,7 +1921,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         total_wmax_man_temp += device["wmax"]
                 else:
                     device["wmax"] = 0
-                    
+            
+            print("total_wmax_man_temp",total_wmax_man_temp)
+            print("value_power_limit",value_power_limit)
             # Check have topic and man mode action because message auto a lot of
             if result_topic1 and bitcheck_topic1 == 1 :
                 for item in result_topic1:
@@ -2017,7 +2017,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
-        
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -2025,10 +2024,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-import base64
-import gzip
-
-
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
@@ -2036,7 +2031,6 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
-
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -2082,7 +2076,6 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
             await client.stop()
     except Exception as err:
         print(f"Error MQTT sub_mqtt: '{err}'")
-
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
