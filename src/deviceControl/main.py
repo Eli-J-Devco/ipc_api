@@ -1083,7 +1083,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     p_for_each_device_zero_export = power_max_device 
                 p_for_each_device_zero_export = int(p_for_each_device_zero_export)
-            if (value_consumption >= value_threshold_zero_export):
+            if (value_consumption >= value_threshold_zero_export) and (value_consumption >= 0):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
                     new_device = {
@@ -1108,8 +1108,19 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                             {"id_pointkey": "WMax", "value": p_for_each_device_zero_export}
                         ]
                     }
-                
-                device_list_control_power_limit.append(new_device)
+            else:
+                new_device = {
+                        "id_device": id_device,
+                        "Mode": "Add",
+                        "mode": mode,
+                        "status": "zero export",
+                        "setpoint": setpoint,
+                        "parameter": [
+                            {"id_pointkey": "ControlINV", "value": 1},
+                            {"id_pointkey": "WMax", "value": 0}
+                        ]
+                    }
+            device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
