@@ -1921,7 +1921,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         total_wmax_man_temp += device["wmax"]
                 else:
                     device["wmax"] = 0
-            
+            print("device_list",device_list)
             print("total_wmax_man_temp",total_wmax_man_temp)
             print("value_power_limit",value_power_limit)
             # Check have topic and man mode action because message auto a lot of
