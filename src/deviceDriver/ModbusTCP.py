@@ -1680,7 +1680,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 # 	 * @return MySQL_Insert (device_mode, id_device)
 # 	 */
 
-async def process_update_mode_for_device(mqtt_result, serial_number_project, host, port, username, password):
+async def process_update_mode_for_device(mqtt_result):
     # Global variables
     global device_mode
     global arr
@@ -1904,7 +1904,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
             # Update mode temp for Device 
-            await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
+            await process_update_mode_for_device(result_topic1)
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params()
             print("result_topic1 auto ",result_topic1)
@@ -1988,13 +1988,17 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     result_topic1_Temp = []
     result_topic2 = ""
+    result_topic3 = ""
     result_topic4 = ""
     result_topic5 = ""
     try:
-        if topic in [topic1, topic3]:
+        if topic == topic1:
             result_topic1_Temp = message
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
+        elif topic == topic3:
+            result_topic3 = message
+            await process_update_mode_for_device(result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2045,6 +2049,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
             topic = message.topic
             if message:
                 payload = gzip_decompress(message.message)
+                
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
