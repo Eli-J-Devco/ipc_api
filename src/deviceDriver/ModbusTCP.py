@@ -1988,11 +1988,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic2 = ""
     result_topic4 = ""
     result_topic5 = ""
+    
     try:
         if topic in [topic1, topic3]:
             result_topic1_Temp = message
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
+
         elif topic == topic2:
             result_topic2 = message
             # process 
