@@ -462,6 +462,7 @@ class DevicesService:
             "CODE": CodeEnum.UpdateDev.name,
             "PAYLOAD": {
                 "id": body.id,
+                "code": 0,
             }
         }
         init_msg.append(update_msg)
