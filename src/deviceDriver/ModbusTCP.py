@@ -1907,13 +1907,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(result_topic1)
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params()
-            print("result_topic1 auto ",result_topic1)
             # Check have topic and man mode action because message auto a lot of
             if result_topic1 and bitcheck_topic1 == 1 :
                 for item in result_topic1:
                     # Check whether the message has rated power or not
                     if "rated_power_custom" in item and "rated_power" in item:
-                        print("result_topic1 man ",result_topic1)
                         # Calculate whether the latest p-value recorded exceeds the allowable limit or not
                         for device in device_list:
                             if device["id_device"] == id_systemp:
@@ -1988,17 +1986,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     result_topic1_Temp = []
     result_topic2 = ""
-    result_topic3 = ""
     result_topic4 = ""
     result_topic5 = ""
     try:
-        if topic == topic1:
+        if topic in [topic1, topic3]:
             result_topic1_Temp = message
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
-        elif topic == topic3:
-            result_topic3 = message
-            await process_update_mode_for_device(result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
