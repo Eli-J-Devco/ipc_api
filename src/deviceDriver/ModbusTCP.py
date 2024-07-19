@@ -1908,27 +1908,28 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
             # extract parameters from mqtt_result in global variables
             wmax = await extract_device_control_params()
-            # Calculate whether the latest p-value recorded exceeds the allowable limit or not
-            for device in device_list:
-                if device["id_device"] == id_systemp:
-                    device["wmax"] = power_limit
-                    device["mode"] = device_mode
-                    break
-            # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
-            for device in device_list:
-                if device["wmax"] is not None:
-                    if device["mode"] == 0:
-                        total_wmax_man_temp += device["wmax"]
-                else:
-                    device["wmax"] = 0
-            print("device_list",device_list)
-            print("total_wmax_man_temp",total_wmax_man_temp)
-            print("value_power_limit",value_power_limit)
+            
             # Check have topic and man mode action because message auto a lot of
             if result_topic1 and bitcheck_topic1 == 1 :
                 for item in result_topic1:
                     # Check whether the message has rated power or not
                     if "rated_power_custom" in item and "rated_power" in item:
+                        # Calculate whether the latest p-value recorded exceeds the allowable limit or not
+                        for device in device_list:
+                            if device["id_device"] == id_systemp:
+                                device["wmax"] = power_limit
+                                device["mode"] = device_mode
+                                break
+                        # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
+                        for device in device_list:
+                            if device["wmax"] is not None:
+                                if device["mode"] == 0:
+                                    total_wmax_man_temp += device["wmax"]
+                            else:
+                                device["wmax"] = 0
+                        print("device_list",device_list)
+                        print("total_wmax_man_temp",total_wmax_man_temp)
+                        print("value_power_limit",value_power_limit)
                         # Update rated power to the device and check status when saving the device's control parameters to the system
                         comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
                         if comment == 400 :
