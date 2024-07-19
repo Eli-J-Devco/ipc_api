@@ -1763,6 +1763,7 @@ async def Get_value_Power_Limit():
     value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
     
     if value_offset_zero_export :
+        print("value_zero_export_temp",value_zero_export_temp)
         value_zero_export = value_zero_export_temp*(value_offset_zero_export/100)
     else:
         value_zero_export = value_zero_export_temp
@@ -1848,11 +1849,19 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
+                print("ModeSysTemp",ModeSysTemp)
+                print("ModeSysTemp_Control",ModeSysTemp_Control)
+                print("power_limit",power_limit)
+                print("rated_power_custom_calculator",rated_power_custom_calculator)
+                print("total_wmax_man_temp",total_wmax_man_temp)
+                print("value_power_limit",value_power_limit)
+                print("value_zero_export",value_zero_export)
+                
                 # Check status when saving device control parameters to the system 
-                if (power_limit > rated_power_custom_calculator) or \
+                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
-                (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-                (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                (ModeSysTemp == 1 and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp == 1 and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
                     comment = 400 
                 else:
                     comment = 200 
@@ -1991,6 +2000,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
+            print("topic",topic)
             result_topic1_Temp = message
             bitcheck_topic1 = 1
             await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
