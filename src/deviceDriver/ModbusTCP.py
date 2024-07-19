@@ -75,6 +75,7 @@ point_list_device=[]
 device_control = 0
 temp_control = False 
 enable_write_control=False
+is_waiting = False
 query_device_control=""
 query_only_device=""
 data_write_device=[]
@@ -1985,6 +1986,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global result_topic2
     global value_zero_export_temp
     global bitcheck_topic1
+    global is_waiting 
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -1999,11 +2001,19 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
-            print("topic",topic)
-            result_topic1_Temp = message
             bitcheck_topic1 = 1
-            await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
-
+            # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
+            if topic == topic1:
+                if not is_waiting:
+                    result_topic1_Temp = message
+                    is_waiting = True
+                    await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
+                    is_waiting = False  
+            elif topic == topic3:
+                if not is_waiting:
+                    result_topic3_Temp = message
+                    await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
+                    
         elif topic == topic2:
             result_topic2 = message
             # process 
