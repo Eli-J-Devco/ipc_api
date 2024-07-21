@@ -2002,6 +2002,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             bitcheck_topic1 = 1
+            # result_topic1_Temp = message
+            # await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
                 print("vao topic 1")
@@ -2012,12 +2014,18 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     await asyncio.sleep(5)
                     is_waiting = False  
+                    message = []
+                    result_topic1_Temp = []
+                    
             elif topic == topic3:
                 print("is_waiting trong toipc 3 ",is_waiting)
                 print("vao topic 3")
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
+            
+            # dang bi van de la sau khi doi mode song no nhan lai message auto nen chuyen lai auto 
+            
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2061,14 +2069,13 @@ def gzip_decompress(message):
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
     try:
         while True:
-            message = await asyncio.wait_for(client.messages.get(), timeout=10.0)
+            message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
             topic = message.topic
             if message:
                 payload = gzip_decompress(message.message)
-                
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
