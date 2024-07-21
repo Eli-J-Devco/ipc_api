@@ -1915,7 +1915,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # Update mode temp for Device 
             await process_update_mode_for_device(result_topic1)
             # extract parameters from mqtt_result in global variables
-            wmax = await extract_device_control_params()
+            if device_mode == 0 :
+                wmax = await extract_device_control_params()
             # Check have topic and man mode action because message auto a lot of
             if result_topic1 and bitcheck_topic1 == 1 :
                 for item in result_topic1:
@@ -2002,15 +2003,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
     try:
         if topic in [topic1, topic3]:
             bitcheck_topic1 = 1
-            # result_topic1_Temp = message
-            # await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
-                print("vao topic 1")
                 if not is_waiting:
                     result_topic1_Temp = message
                     is_waiting = True
-                    print("is_waiting truoc ham",is_waiting)
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     await asyncio.sleep(5)
                     is_waiting = False  
@@ -2018,13 +2015,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = []
                     
             elif topic == topic3:
-                print("is_waiting trong toipc 3 ",is_waiting)
-                print("vao topic 3")
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            
-            # dang bi van de la sau khi doi mode song no nhan lai message auto nen chuyen lai auto 
             
         elif topic == topic2:
             result_topic2 = message
