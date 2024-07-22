@@ -10,6 +10,8 @@ import json
 # import math
 import os
 import sys
+import base64
+import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -73,6 +75,7 @@ point_list_device=[]
 device_control = 0
 temp_control = False 
 enable_write_control=False
+is_waiting = False
 query_device_control=""
 query_only_device=""
 data_write_device=[]
@@ -86,9 +89,11 @@ result_topic2 = []
 bitcheck_topic1 = 0
 
 enable_zero_export = 0
+value_zero_export = 0
 value_zero_export_temp = 0
 enable_power_limit = 0
 value_power_limit = 0
+total_wmax_man_temp = 0
 
 total_wmax = 0
 total_wmax_man = 0
@@ -941,8 +946,6 @@ async def write_device(
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
-                print("result_topic1",result_topic1)
-                print("parameter",parameter)
                 if parameter :
                     print("---------- write data from Device ----------")
                     try:
@@ -954,7 +957,6 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -991,7 +993,6 @@ async def write_device(
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
                                                                         inverter_info_temp[0]["modbus_func"],
                                                                         inverter_info_temp[0]["register"], value=inverter_info_temp[0]["value"])
-                                                        
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent_enable, device_control, 'Power Limit Percent Enable'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (power_limit_percent, device_control, 'Power Limit Percent'))
                                                         MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (rated_power_custom_calculator*(power_limit_percent/100), device_control, 'Power Limit'))
@@ -1029,7 +1030,7 @@ async def write_device(
                                             value = round(value)
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
-                            if results_write_modbus: # Code that writes data to the inverter after execution 
+                            if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
                                 
                                 if code_value == 16 :
@@ -1038,7 +1039,6 @@ async def write_device(
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
-                                
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1047,14 +1047,6 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
-                # check data change mode device action
-                elif len(parameter) == 0 :
-                    data_send = {
-                                "time_stamp": current_time,
-                                "status": 200,
-                            }
-                    mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + "Feedbacksetup", mqtt_username, mqtt_password, data_send)
-                    result_topic1 = []
 # Describe functions before writing code
 # /**
 # 	 * @description read modbus TCP
@@ -1424,7 +1416,10 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
-
+            if rated_power_custom:
+                rated_power_custom_calculator = rated_power_custom
+            else:
+                rated_power_custom_calculator = rated_power
             device_mode=monitor_service_init.device_type()
             if results_control_group:
                 control_group=[
@@ -1687,7 +1682,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 # 	 * @return MySQL_Insert (device_mode, id_device)
 # 	 */
 
-async def process_update_mode_for_device(mqtt_result, serial_number_project, host, port, username, password):
+async def process_update_mode_for_device(mqtt_result):
     # Global variables
     global device_mode
     global arr
@@ -1746,6 +1741,133 @@ async def get_list_device_in_process(mqtt_result):
                             'mode': mode,
                             'wmax': wmax,
                         })
+# Describe Get_value_Power_Limit
+# /**
+# 	 * @description Get_value_Power_Limit
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {}
+# 	 * @return value_zero_export and value_power_limit
+# 	 */
+async def Get_value_Power_Limit():
+    global ModeSysTemp , ModeSysTemp_Control ,value_zero_export,value_power_limit
+    result_value_power_limit = []
+    value_power_limit_temp = 0 
+    value_offset_zero_export = 0
+    value_offset_power_limit = 0
+    
+    # Check Wmax with Value Maximum Power
+    result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
+    value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
+    value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
+    ModeSysTemp = result_value_power_limit[0]['mode']
+    ModeSysTemp_Control = result_value_power_limit[0]['control_mode']
+    value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
+    
+    if value_offset_zero_export :
+        value_zero_export = value_zero_export_temp*((100 - value_offset_zero_export)/100)
+    else:
+        value_zero_export = value_zero_export_temp
+    
+    if value_offset_power_limit :
+        value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
+    else:
+        value_power_limit = value_power_limit_temp
+# Describe extract_device_control_params
+# /**
+# 	 * @description extract_device_control_params
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1}
+# 	 * @return power_limit
+# 	 */
+async def extract_device_control_params():
+    global arr ,total_wmax_man_temp , power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable 
+    global device_list
+    global result_topic1
+    id_systemp = int(arr[1])
+    reactive_power_limit = 0
+    power_limit = 0
+    
+    for item in result_topic1:
+        if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0 and rated_power_custom_calculator != 0:
+            for param in item.get("parameter", []):
+                # extract parameters from message
+                if param["id_pointkey"] == "WMaxPercentEnable":
+                    power_limit_percent_enable = param["value"]
+                elif param["id_pointkey"] == "WMax":
+                    power_limit = param["value"]
+                elif param["id_pointkey"] == "WMaxPercent":
+                    power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                elif param["id_pointkey"] == "VarMaxPercentEnable":
+                    reactive_limit_percent_enable = param["value"]
+                elif param["id_pointkey"] == "VarMax":
+                    reactive_power_limit = param["value"]
+                elif param["id_pointkey"] == "VarMaxPercent":
+                    if rated_reactive_custom is not None:
+                        reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
+                    else:
+                        reactive_limit_percent = 0
+                        rated_reactive_custom = 0
+            # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
+            if power_limit_percent_enable:
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+            if reactive_limit_percent_enable:
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+            # To turn off inv without inv turning itself back on, add this register to inv
+            if "parameter" in item and int(item["id_device"]) == id_systemp:
+                for param in item["parameter"]:
+                    if param["id_pointkey"] == "ControlINV":
+                        control_inv = param["value"]
+                        if not control_inv:
+                            if "parameter" not in item:
+                                item["parameter"] = []
+                            item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
+                            control_inv = True
+    return power_limit 
+# Describe updates_ratedpower_from_message
+# /**
+# 	 * @description updates_ratedpower_from_message
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {result_topic1,power_limit}
+# 	 * @return comment ,watt,custom_watt
+# 	 */
+async def updates_ratedpower_from_message(result_topic1,power_limit):
+    global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
+    id_systemp = int(arr[1])
+    comment = 200
+    custom_watt = 0 
+    watt = 0 
+    if result_topic1:
+        for item in result_topic1:
+            if int(item["id_device"]) == id_systemp:
+                # Get rated_power , rated_power_custom from message
+                custom_watt = item.get("rated_power_custom", 0)
+                watt = item.get("rated_power", 0)
+                # caculator when rated_power_custom is null
+                if custom_watt is None:
+                    rated_power_custom_calculator = watt
+                else:
+                    rated_power_custom_calculator = custom_watt
+                print("ModeSysTemp",ModeSysTemp)
+                print("ModeSysTemp_Control",ModeSysTemp_Control)
+                print("power_limit",power_limit)
+                print("rated_power_custom_calculator",rated_power_custom_calculator)
+                print("total_wmax_man_temp",total_wmax_man_temp)
+                print("value_power_limit",value_power_limit)
+                print("value_zero_export",value_zero_export)
+                
+                # Check status when saving device control parameters to the system 
+                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
+                (power_limit > watt) or \
+                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                    comment = 400 
+                else:
+                    comment = 200 
+                print("comment",comment)
+    return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -1774,133 +1896,82 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global device_list
     global ModeSysTemp
     global ModeSysTemp_Control
-    global value_offset_zero_export
     global bitcheck_topic1
+    global value_zero_export
+    global total_wmax_man_temp
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
-    custom_watt = 0
-    watt = 0
     comment = 200
     current_time = ""
     power_limit = 0
-    value_zero_export = 0
-    reactive_power_limit = 0
-    total_wmax_man_temp = 0
-    control_inv = 1
-    result_value_power_limit = []
+    wmax = 0
+    watt = 0
+    custom_watt = 0
+    
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
-        if result_topic1:
-            bitcheck_topic1 = 1
-            # Check Wmax with Value Maximum Power
-            result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
-            value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
-            value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
-            ModeSysTemp = result_value_power_limit[0]['mode']
-            ModeSysTemp_Control = result_value_power_limit[0]['control_mode']
-            value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
-            
-            if value_offset_zero_export :
-                value_zero_export = value_zero_export_temp*(value_offset_zero_export/100)
-            else:
-                value_zero_export = value_zero_export_temp
-            
-            if value_offset_power_limit :
-                value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
-            else:
-                value_power_limit = value_power_limit_temp
-            
-            if "rated_power_custom" not in result_topic1 and not any('status' in item for item in result_topic1):
-                await process_update_mode_for_device(result_topic1, serial_number_project, host, port, username, password)
-            else:
-                pass
-
-            for item in result_topic1:
-                if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
-                    custom_watt = item.get("rated_power_custom", 0)
-                    watt = item.get("rated_power", 0)
-                    emergency_stop = item.get("emc", 0)
-                    if custom_watt is None:
-                        rated_power_custom_calculator = watt
-                    else:
-                        rated_power_custom_calculator = custom_watt
-
-                    if emergency_stop != 1 :
-                        for param in item.get("parameter", []):
-                            if param["id_pointkey"] == "WMaxPercentEnable":
-                                power_limit_percent_enable = param["value"]
-                            elif param["id_pointkey"] == "WMax":
-                                power_limit = param["value"]
-                                # update power_limit Latest in device_list
-                                for device in device_list:
-                                    if device["id_device"] == id_systemp:
-                                        device["wmax"] = power_limit
-                                        device["mode"] = device_mode
-                                        break
-
-                                for device in device_list:
-                                    if device["wmax"] is not None:
-                                        if device["mode"] == 0:
-                                            total_wmax_man_temp += device["wmax"]
-                                    else:
-                                        device["wmax"] = 0
-                                    
-                            elif param["id_pointkey"] == "WMaxPercent":
-                                power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
-                            elif param["id_pointkey"] == "VarMaxPercentEnable":
-                                reactive_limit_percent_enable = param["value"]
-                            elif param["id_pointkey"] == "VarMax":
-                                reactive_power_limit = param["value"]
-                            elif param["id_pointkey"] == "VarMaxPercent":
-                                if rated_reactive_custom is not None:
-                                    reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
-                                else:
-                                    reactive_limit_percent = 0
-                                    rated_reactive_custom = 0
-                            
-                        if power_limit_percent_enable:
-                            item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
-                        if reactive_limit_percent_enable:
-                            item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
-
-                        # Check wmax with rated power  
-                        if (power_limit > rated_power_custom_calculator) or \
-                        (ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-                        (ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
-                            item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent","PFSetEnable","PFSet","VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
-                            comment = 400 
-                            # If there is an error, there is no need to write it to inv anymore
+        if result_topic1 and bitcheck_topic1 == 1 :
+            # Get value_zero_export and value_power_limit in DB 
+            await Get_value_Power_Limit()
+            # Update mode temp for Device 
+            await process_update_mode_for_device(result_topic1)
+            # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
+            if device_mode == 0 :
+                wmax = await extract_device_control_params()
+            # Check have topic and man mode action because message auto a lot of
+            if result_topic1 and bitcheck_topic1 == 1 :
+                for item in result_topic1:
+                    # Check whether the message has rated power or not
+                    if "rated_power_custom" in item and "rated_power" in item:
+                        # Calculate whether the latest p-value recorded exceeds the allowable limit or not
+                        for device in device_list:
+                            if device["id_device"] == id_systemp:
+                                device["wmax"] = wmax
+                                device["mode"] = device_mode
+                                break
+                        # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
+                        for device in device_list:
+                            if device["wmax"] is not None:
+                                if device["mode"] == 0:
+                                    total_wmax_man_temp += device["wmax"]
+                            else:
+                                device["wmax"] = 0
+                        # Update rated power to the device and check status when saving the device's control parameters to the system
+                        comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+                        print("comment ngoaif", comment)
+                        if comment == 400 :
+                            # If the update fails, return the mode value and print an error without doing anything else
+                            result_topic1 = []
+                            device_mode = mode_each_device
+                            bitcheck_topic1 = 0
+                            # feedback data to mqtt 
                             data_send = {
                                     "time_stamp": current_time,
                                     "status": comment,
                                 }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
-                            result_topic1 = []
-                            device_mode = mode_each_device
                         else:
-                            comment = 200 
-                            # check wmax smaller rated power action . 
-                            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt > 0):
+                            # if update successfully first save ratedpower in variable systemp and seve in DB
+                            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
                                 rated_power = watt
                                 rated_power_custom = custom_watt
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
-                            custom_watt = 0
-                            watt = 0
+                        # reset global value to avoid accumulation
+                        custom_watt = 0
+                        watt = 0
+                        total_wmax_man_temp = 0
+                        
+                        # check data change mode device action
+                        if not item["parameter"] and device_mode == 1:
                             mode_each_device = device_mode
-
-                else:
-                    if "parameter" in item and int(item["id_device"]) == id_systemp:
-                        for param in item["parameter"]:
-                            if param["id_pointkey"] == "ControlINV":
-                                control_inv = param["value"]
-                                if not control_inv:
-                                    if "parameter" not in item:
-                                        item["parameter"] = []
-                                    item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
-                                    control_inv = True
-                
+                            data_send = {
+                                        "time_stamp": current_time,
+                                        "status": 200,
+                                    }
+                            mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
+                            result_topic1 = []
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
@@ -1919,6 +1990,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global result_topic2
     global value_zero_export_temp
     global bitcheck_topic1
+    global is_waiting 
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -1930,11 +2002,26 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic2 = ""
     result_topic4 = ""
     result_topic5 = ""
+    
     try:
         if topic in [topic1, topic3]:
-            result_topic1_Temp = message
             bitcheck_topic1 = 1
-            await process_sud_control_man(result_topic1_Temp,serial_number_project, host, port, username, password)
+            # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
+            if topic == topic1:
+                if not is_waiting:
+                    result_topic1_Temp = message
+                    is_waiting = True
+                    await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
+                    await asyncio.sleep(5)
+                    is_waiting = False  
+                    message = []
+                    result_topic1_Temp = []
+                    
+            elif topic == topic3:
+                if not is_waiting:
+                    result_topic3_Temp = message
+                    await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
+            
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -1954,7 +2041,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
-        
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -1962,10 +2048,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-import base64
-import gzip
-
-
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
@@ -1973,7 +2055,6 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
-        
 # Describe handle_messages_driver 
 # 	 * @description handle_messages_driver
 # 	 * @author bnguyen
@@ -1989,8 +2070,9 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            payload = gzip_decompress(message.message)
-            await process_message(topic, payload, serial_number_project, host, port, username, password)
+            if message:
+                payload = gzip_decompress(message.message)
+                await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
@@ -2018,7 +2100,6 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
             await client.stop()
     except Exception as err:
         print(f"Error MQTT sub_mqtt: '{err}'")
-
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
