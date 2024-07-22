@@ -1885,6 +1885,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
+        print("result_topic1",result_topic1)
         if result_topic1 and bitcheck_topic1 == 1 :
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
@@ -1995,7 +1996,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            
+
         elif topic == topic2:
             result_topic2 = message
             # process 
