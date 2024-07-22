@@ -1858,7 +1858,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("value_zero_export",value_zero_export)
                 
                 # Check status when saving device control parameters to the system 
-                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
+                if (ModeSysTemp == 0 and power_limit >= rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
