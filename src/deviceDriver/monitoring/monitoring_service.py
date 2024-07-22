@@ -15,15 +15,15 @@ def getUTC():
 
 class MonitorService:
     def __init__(self,
-                id_template,rated_DC_input_voltage,maximum_DC_input_current,device_parent,
-                device_id,device_name,status_device,msg_device,status_register_block,point_list_device,
-                power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable,
-                name_device_type,
-                id_device_type,
-                device_mode : None,
-                rated_power,rated_power_custom,min_watt_in_percent,
+                id_template=None,rated_DC_input_voltage=None,maximum_DC_input_current=None,device_parent=None,
+                device_id=None,device_name=None,status_device=None,msg_device=None,status_register_block=None,point_list_device=None,
+                power_limit_percent=None,power_limit_percent_enable=None,reactive_limit_percent=None,reactive_limit_percent_enable=None,
+                name_device_type=None,
+                id_device_type=None,
+                device_mode =None,
+                rated_power=None,rated_power_custom=None,min_watt_in_percent=None,
                 # rated_reactive_custom,
-                meter_type,inverter_type=None,
+                meter_type=None,inverter_type=None,
                 emergency_stop=None
                 ):
             
@@ -55,11 +55,6 @@ class MonitorService:
             self.rated_reactive_custom=None
             # 
     def device_type(self):
-        # match self.name_device_type:
-        #     case "PV System Inverter":
-        #         return self.device_mode
-        #     case _:
-        #         return None
         if self.name_device_type in ["PV System Inverter"]:
             return self.device_mode
         else:
