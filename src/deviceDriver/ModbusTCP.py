@@ -1368,7 +1368,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             
             print(f'-----{getUTC()} monitoring_device -----')
             process = psutil.Process(os.getpid())
-            # print(f'memory: {process.memory_percent()}')
             memory=round(process.memory_percent(),2)
             global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
@@ -1647,8 +1646,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             await asyncio.sleep(1)
     except Exception as err:
         print('Error monitoring_device : ',err)
-        
-    #   return -1
 # Describe process_update_mode_for_device
 # /**
 # 	 * @description process_update_mode_for_device
