@@ -758,6 +758,7 @@ async def device(ConfigPara):
                     for item_device in all_device_data_request:
                         data_one_device={}
                         data_one_device["id_device"]=item_device["id_device"]
+                        data_one_device["parent"]=item_device['parent']
                         data_one_device["id_device_type"]=item_device["id_device_type"]
                         data_one_device["name_device_type"]=item_device['name_device_type']
                         data_one_device["device_name"]=item_device["device_name"]
@@ -767,6 +768,9 @@ async def device(ConfigPara):
                         data_one_device["status_device"]=""
                         data_one_device["id_template"]=item_device['id_template']
                         data_one_device["meter_type"]=item_device['meter_type']
+                        data_one_device["type_device_type"]=item_device["type_device_type"]
+                        data_one_device["inverter_type"]=item_device['inverter_type']
+                        
                         data_rg_one_device = []
                         status_rb=[]
                         status_device=""
@@ -863,6 +867,7 @@ async def device(ConfigPara):
                                                 )
                                 )
                             data_one_device["id_device"]=item_device["id_device"]
+                            data_one_device["parent"]=item_device['parent']
                             data_one_device["device_name"]=item_device["device_name"]
                             data_one_device["name_device_type"]=item_device['name_device_type']
                             data_one_device["id_device_type"]=item_device['id_device_type']
@@ -874,6 +879,8 @@ async def device(ConfigPara):
                             data_one_device["id_template"]=item_device['id_template']
                             data_one_device["control_group"]=item_device['control_group']
                             data_one_device["meter_type"]=item_device['meter_type']
+                            data_one_device["type_device_type"]=item_device["type_device_type"]
+                            data_one_device["inverter_type"]=item_device['inverter_type']
                             new_error_data_device.append(data_one_device)
                     
                     else:
@@ -911,6 +918,7 @@ async def device(ConfigPara):
                                                 )
                                 )
                             data_one_device["id_device"]=item_device["id_device"]
+                            data_one_device["parent"]=item_device['parent']
                             data_one_device["device_name"]=item_device["device_name"]
                             data_one_device["name_device_type"]=item_device['name_device_type']
                             data_one_device["id_device_type"]=item_device['id_device_type']
@@ -922,7 +930,8 @@ async def device(ConfigPara):
                             data_one_device["id_template"]=item_device['id_template']
                             data_one_device["control_group"]=item_device['control_group']
                             data_one_device["meter_type"]=item_device['meter_type']
-                            
+                            data_one_device["type_device_type"]=item_device["type_device_type"]
+                            data_one_device["inverter_type"]=item_device['inverter_type']
                             new_error_data_device.append(data_one_device)
                     all_device_data=new_error_data_device
                 client.close()
@@ -974,6 +983,9 @@ async def monitoring_device(point_type,serial_number_project,
                     fields=item_data['fields']
                     id_template=item_data['id_template']
                     meter_type=item_data['meter_type']
+                    type_device_type=item_data['type_device_type']
+                    inverter_type=item_data['inverter_type']
+                    device_parent=item_data['parent']
                     # 
                     mode=[item for item in device_mode if item['id_device'] == item_data["id_device"]][0]["mode"]
                     # 
@@ -1183,15 +1195,18 @@ async def monitoring_device(point_type,serial_number_project,
                             **item_group,
                             "fields":new_point_control
                         })
-                    
+                    # print(rated_power)
                     data_device={
                                 "id_device":id_device,
+                                "parent":device_parent,
                                 "mode":mode,
                                 "device_name":device_name,
                                 "id_device_type":id_device_type,
                                 "id_template":id_template,
                                 "name_device_type":name_device_type,
+                                "type_device_type":type_device_type,
                                 "meter_type":meter_type,
+                                "inverter_type":inverter_type,
                                 "status_device":status_device,
                                 "timestamp":getUTC(),
                                 "message":message,
@@ -1201,29 +1216,10 @@ async def monitoring_device(point_type,serial_number_project,
                                 "fields":fields,
                                 "mppt":mppt,
                                 "control_group":new_control_group,
-                                "rated_power": (lambda x:  x[0]["rated_power"] if x else None) ([item for item in rated_power if item['id_device'] == id_device]),
-                                "rated_power_custom":(lambda x:  x[0]["rated_power_custom"] if x else None) ([item for item in rated_power_custom if item['id_device'] == id_device]),
-                                "min_watt_in_percent":(lambda x:  x[0]["min_watt_in_percent"] if x else None) ([item for item in min_watt_in_percent if item['id_device'] == id_device]),
+                                "rated_power": (lambda x:  x[0]["rated_power"] if x else None) ([item for item in rated_power if str(item['id_device']) == id_device]),
+                                "rated_power_custom":(lambda x:  x[0]["rated_power_custom"] if x else None) ([item for item in rated_power_custom if str(item['id_device']) == id_device]),
+                                "min_watt_in_percent":(lambda x:  x[0]["min_watt_in_percent"] if x else None) ([item for item in min_watt_in_percent if str(item['id_device']) == id_device]),
                                 }
-                    # data_device_short={
-                    #             "id_device":id_device,
-                    #             "mode":mode,
-                    #             "device_name":device_name,
-                    #             "id_device_type":id_device_type,
-                    #             "id_template":id_template,
-                    #             "name_device_type":name_device_type,
-                    #             "status_device":status_device,
-                    #             "timestamp":getUTC(),
-                    #             "message":message,
-                    #             "status_register":status_register,
-                    #             "point_count":len(new_point),
-                    #             "parameters":parameters,
-                    #             "fields":fields,
-                    #             "mppt":[],
-                    #             # "rated_power":rated_power,
-                    #             # "rated_power_custom":rated_power_custom,
-                    #             # "min_watt_in_percent":min_watt_in_percent,
-                    #         }
                     if device_name !="" and serial_number_project!= None:
                         
                         func_mqtt_public(   host[0],
@@ -1232,21 +1228,6 @@ async def monitoring_device(point_type,serial_number_project,
                                             username[0],
                                             password[0],
                                             data_device)
-                        # func_mqtt_public(   host[0],
-                        #                     port[0],
-                        #                     serial_number_project+"/"+"Shorts/"+""+id_device,
-                        #                     username[0],
-                        #                     password[0],
-                        #                     data_device_short)
-                        # 
-                        # if host[1] != None and port[1]:
-                        #     func_mqtt_public(   host[1],
-                        #                         port[1],
-                        #                         serial_number_project+"/"+"Devices/"+""+id_device,
-                        #                         username[1],
-                        #                         password[1],
-                        #                         data_device)
-                
             await asyncio.sleep(2)
         
     except Exception as err:
