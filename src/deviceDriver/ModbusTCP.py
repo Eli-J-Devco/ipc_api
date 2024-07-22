@@ -1642,12 +1642,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 
             }
             if device_name !="" and serial_number_project!= None:
-                # func_mqtt_public(   host[0],
-                #                     port[0],
-                #                     serial_number_project+"/"+"Devices/"+""+device_id,
-                #                     username[0],
-                #                     password[0],
-                #                     data_device)
                 await mqtt_init.sendZIP("Devices/"+""+device_id,
                                         data_device)
             await asyncio.sleep(1)
