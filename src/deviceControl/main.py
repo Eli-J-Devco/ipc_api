@@ -391,12 +391,9 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
     if mqtt_result:
         try:
             # Wait for up to 5 seconds for the data to be available
-
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             print("result_checkmode_control",result_checkmode_control)
             modes = set([item['mode'] for item in result_checkmode_control])
-            print("Modes", modes)
-            print("len(modes)",len(modes))
             if len(modes) == 1:
                 if 0 in modes:
                     data_send = {"id_device": "Systemp", "mode": 0}
@@ -1461,7 +1458,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
+            print("result_topic8",result_topic8)
             await asyncio.sleep(5)
+            print("song 5s")
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)
