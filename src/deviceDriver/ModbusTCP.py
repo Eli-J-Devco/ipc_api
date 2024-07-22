@@ -122,6 +122,8 @@ rated_power_custom=None
 rated_power_custom_calculator=None
 min_watt_in_percent=None
 meter_type=None
+# The code `start_up_DC_input_voltage` is defining a variable or identifier in Python. It seems to be
+# related to the input voltage at the start-up of a device or system.
 start_up_DC_input_voltage=None
 operating_DC_input_voltage=None
 # 

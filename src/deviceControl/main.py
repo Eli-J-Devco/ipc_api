@@ -337,6 +337,7 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
+            asyncio.sleep(2)
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     flag == 1 
