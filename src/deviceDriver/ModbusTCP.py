@@ -1792,8 +1792,10 @@ async def extract_device_control_params():
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                 power_limit = rated_power_custom_calculator*(power_limit_percent/100)
-            if reactive_limit_percent_enable:
+            if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+            else:
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMaxPercent"]]
             # To turn off inv without inv turning itself back on, add this register to inv
             if "parameter" in item and int(item["id_device"]) == id_systemp:
                 for param in item["parameter"]:

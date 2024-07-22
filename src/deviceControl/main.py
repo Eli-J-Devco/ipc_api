@@ -390,8 +390,8 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
     # Switch to user mode that is both man and auto
     if mqtt_result:
         try:
-            # Wait for up to 2 seconds for the data to be available
-            await asyncio.sleep(2)
+            # Wait for up to 5 seconds for the data to be available
+            await asyncio.sleep(5)
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
             print("Modes", modes)
