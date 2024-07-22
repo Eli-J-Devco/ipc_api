@@ -1858,13 +1858,14 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("value_zero_export",value_zero_export)
                 
                 # Check status when saving device control parameters to the system 
-                if (ModeSysTemp == 0 and power_limit >= rated_power_custom_calculator) or \
+                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
                     comment = 400 
                 else:
                     comment = 200 
+                print("comment",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1937,6 +1938,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 device["wmax"] = 0
                         # Update rated power to the device and check status when saving the device's control parameters to the system
                         comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+                        print("comment ngoaif", comment)
                         if comment == 400 :
                             # If the update fails, return the mode value and print an error without doing anything else
                             result_topic1 = []
