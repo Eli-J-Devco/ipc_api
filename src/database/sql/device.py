@@ -161,8 +161,8 @@ class Query():
         point_list.id_control_group,
         point_list.control_type_input,
         point_list.control_menu_order,
-        point_list.control_min,
-        point_list.control_max,
+        device_point_list_map.control_min,
+        device_point_list_map.control_max,
         device_panel.height as panel_height,
         device_panel.width as panel_width
         FROM `device_point_list_map` 

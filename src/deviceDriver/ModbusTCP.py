@@ -5,13 +5,13 @@
 # *********************************************************/
 
 import asyncio
+import base64
 import datetime
+import gzip
 import json
 # import math
 import os
 import sys
-import base64
-import gzip
 
 # import asyncio_mqtt as aiomqtt
 # absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
@@ -1075,27 +1075,9 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type
         pathSource=path
-        print(f'pathSource: {pathSource}')
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
         device_id = id_device
-        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        # xml=pathSource + '/mybatis/device_list.xml')
-        # statement = mybatis_mapper2sql.get_statement(
-        # mapper, result_type='list', reindent=True, strip_comments=True) 
-        # 
-        # query_all= func_check_data_mybatis(statement,0,"select_all_device")
-        # query_only_device=func_check_data_mybatis(statement,1,"select_only_device")
-        # query_point_list=func_check_data_mybatis(statement,2,"select_point_list")
-        # query_register_block=func_check_data_mybatis(statement,3,"select_register_block")
-        
-        # query_device_control=func_check_data_mybatis(statement,4,"select_device_control")
-        # if query_all != -1 and query_only_device  != -1 and query_point_list  != -1 and query_register_block  != -1:
-        #     pass
-        # else:           
-        #     print("Error not found data in file mybatis")
-        #     return -1
-        # # 
         query_only_device=device_query.select_only_device_use_driver.format(id_device=id_device)
         results_device =await MySQL_Select_v1(query_only_device)
         # 
@@ -1383,9 +1365,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                     serial_number_project)
         
         while True:
+            
             print(f'-----{getUTC()} monitoring_device -----')
             process = psutil.Process(os.getpid())
-            # print(f'memory: {process.memory_percent()}')
             memory=round(process.memory_percent(),2)
             global device_name,status_device,msg_device,status_register_block,point_list_device
             global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
@@ -1654,24 +1636,16 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "rated_power":rated_power,# realtime
                 "rated_power_custom":rated_power_custom,# realtime
                 "min_watt_in_percent":min_watt_in_percent,# realtime
-                "rated_reactive_custom":rated_reactive_custom, # realtime
+                # "rated_reactive_custom":rated_reactive_custom, # realtime
                 "emergency_stop":emergency_stop,# realtime
                 
             }
             if device_name !="" and serial_number_project!= None:
-                # func_mqtt_public(   host[0],
-                #                     port[0],
-                #                     serial_number_project+"/"+"Devices/"+""+device_id,
-                #                     username[0],
-                #                     password[0],
-                #                     data_device)
                 await mqtt_init.sendZIP("Devices/"+""+device_id,
                                         data_device)
             await asyncio.sleep(1)
     except Exception as err:
         print('Error monitoring_device : ',err)
-        
-    #   return -1
 # Describe process_update_mode_for_device
 # /**
 # 	 * @description process_update_mode_for_device
