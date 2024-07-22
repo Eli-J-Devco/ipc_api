@@ -1807,7 +1807,7 @@ async def extract_device_control_params():
 # 	 * @return comment ,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr, device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
+    global arr,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1830,13 +1830,12 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("total_wmax_man_temp",total_wmax_man_temp)
                 print("value_power_limit",value_power_limit)
                 print("value_zero_export",value_zero_export)
-                print("device_mode",device_mode)
                 
                 # Check status when saving device control parameters to the system 
-                if (device_mode == 0 and power_limit > rated_power_custom_calculator) or \
-                (device_mode == 0 and power_limit > watt) or \
-                (device_mode == 1 and total_wmax_man_temp > value_power_limit) or \
-                (device_mode == 1 and total_wmax_man_temp > value_zero_export):
+                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
+                (power_limit > watt) or \
+                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
+                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
                     comment = 400 
                 else:
                     comment = 200 
