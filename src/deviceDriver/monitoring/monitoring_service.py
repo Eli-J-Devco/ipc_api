@@ -124,6 +124,20 @@ class MonitorService:
                         "control_max": control_max,
                         "timestamp":getUTC()
                         })
+                case "VarMax":
+                    cosPhi=0.95
+                    control_max=None
+                    sinPhi=math.sqrt(1-cosPhi**2)
+                    tanPhi=sinPhi/cosPhi
+                    if self.rated_power_custom not in [None, "null"]:
+                        control_max=round(self.rated_power_custom*tanPhi,2)
+                    else:
+                        control_max=round(self.rated_power*tanPhi,2)
+                    new_point_list_device.append({
+                        **item,
+                        "control_max": control_max,
+                        "timestamp":getUTC()
+                        })
                 case _:
                     new_point_list_device.append({
                         **item,
