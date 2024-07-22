@@ -34,6 +34,9 @@ from configs.config import Config
 from database.sql.device import all_query as device_query
 from deviceDriver.monitoring import monitoring_service
 from utils.libMySQL import *
+from utils.mqttManager import (gzip_decompress, mqtt_public,
+                               mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 arr = sys.argv
 print(f'arr: {arr}')
@@ -51,6 +54,7 @@ device_mode=[]
 rated_power=[]
 rated_power_custom=[]
 min_watt_in_percent=[]
+emergency_stop=[]
 
 device_mode=[]
 def getUTC():
@@ -594,6 +598,7 @@ async def device(ConfigPara):
         global rated_power
         global rated_power_custom
         global min_watt_in_percent
+        global emergency_stop
         id_communication=ConfigPara[1]
         query_device_rs485=device_query.select_all_device_rs485.format(id_communication=id_communication)
         query_point_list=device_query.select_point_list
@@ -650,7 +655,7 @@ async def device(ConfigPara):
             data_of_one_device["id_template"]=item['id_template']
             data_of_one_device["meter_type"]=item['meter_type']
             data_of_one_device["inverter_type"]=item['inverter_type']
-            data_of_one_device["emergency_stop"]=item['emergency_stop']
+            # data_of_one_device["emergency_stop"]=item['emergency_stop']
             
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
@@ -668,6 +673,11 @@ async def device(ConfigPara):
             min_watt_in_percent.append({
                 "id_device":item['id'],
                 "min_watt_in_percent":item['min_watt_in_percent']
+                
+            })
+            emergency_stop.append({
+                "id_device":item['id'],
+                "emergency_stop":item['emergency_stop']
                 
             })
             # 
@@ -961,6 +971,11 @@ async def device(ConfigPara):
 async def monitoring_device(point_type,serial_number_project,
                             host=[], port=[], username=[], password=[]):
     try:
+        mqtt_init=mqttService(host[0],
+                    port[0],
+                    username[0],
+                    password[0],
+                    serial_number_project)
         while True:
             print(f'-----{getUTC()} monitoring_device -----')
             global all_device_data
@@ -968,11 +983,16 @@ async def monitoring_device(point_type,serial_number_project,
             global rated_power
             global rated_power_custom
             global min_watt_in_percent
+            global emergency_stop
             # pprint(all_device_data, sort_dicts=False)
             # global  device_name,status_Device,msg_device,status_register_block,point_list_device
             if all_device_data:
                 for item_data in all_device_data:
                     # 
+                    new_data_device={
+                        **item_data,
+                            "timestamp":getUTC()
+                    }
                     id_device=str(item_data['id_device'])
                     device_name=str(item_data['device_name'])
                     id_device_type=item_data['id_device_type']
@@ -986,27 +1006,28 @@ async def monitoring_device(point_type,serial_number_project,
                     type_device_type=item_data['type_device_type']
                     inverter_type=item_data['inverter_type']
                     device_parent=item_data['parent']
-                    # 
+                    
+                    device_rated_power=(lambda x:  x[0]["rated_power"] if x else 0) ([item for item in rated_power if str(item['id_device']) == id_device])
+                    device_rated_power_custom=(lambda x:  x[0]["rated_power_custom"] if x else 0) ([item for item in rated_power_custom if str(item['id_device']) == id_device])
+                    device_min_watt_in_percent=(lambda x:  x[0]["min_watt_in_percent"] if x else 5) ([item for item in min_watt_in_percent if str(item['id_device']) == id_device])
                     mode=[item for item in device_mode if item['id_device'] == item_data["id_device"]][0]["mode"]
-                    # 
-                    new_point=[]
+                    device_emergency_stop=(lambda x:  x[0]["emergency_stop"] if x else 0) ([item for item in emergency_stop if str(item['id_device']) == id_device])
+                    
+                    monitor_service_init=monitoring_service.MonitorService(
+                                                                        id_template=id_template,
+                                                                        device_mode=mode,
+                                                                        name_device_type=name_device_type,
+                                                                        point_list_device=new_data_device["fields"],
+                                                                        rated_power=device_rated_power,
+                                                                        rated_power_custom=device_rated_power_custom
+                                                                        )
+                    
+                    
                     new_point_list_device=[]
+                    mode=monitor_service_init.device_type()
+                    new_point_list_device = monitor_service_init.point_list_change_para_control()
+                    new_point=[]
                     mppt=[]
-                    control_group=item_data['control_group']
-                    new_control_group=[]
-                    
-                    # 
-                    
-                    new_data_device={
-                        **item_data,
-                            "timestamp":getUTC()
-                    }
-                    # print(new_data_device)
-                    for item_point in new_data_device["fields"]:
-                        new_point_list_device.append({
-                            **item_point,
-                            "timestamp":getUTC()
-                        })
                     if new_point_list_device:
                         for point_item in new_point_list_device:
                             if point_item['config']=="MPPT":
@@ -1096,7 +1117,6 @@ async def monitoring_device(point_type,serial_number_project,
                                 new_point.append(point_item)
                             else:
                                 new_point.append(point_item)
-                    # print(new_point)
                     parameters=[]
                     for item_type in point_type:
                         new_point_type=[]
@@ -1111,7 +1131,9 @@ async def monitoring_device(point_type,serial_number_project,
                             "name": item_type['name'],
                             "fields": new_point_type
                         })
-                    # 
+                    
+                    control_group=item_data['control_group']
+                    new_control_group=[]
                     for item_group in control_group:
                         new_point_control=[]
                         for point_item in new_point_list_device:
@@ -1195,7 +1217,7 @@ async def monitoring_device(point_type,serial_number_project,
                             **item_group,
                             "fields":new_point_control
                         })
-                    # print(rated_power)
+                    combiner_box=monitor_service_init.combiner_box(new_point)
                     data_device={
                                 "id_device":id_device,
                                 "parent":device_parent,
@@ -1215,20 +1237,24 @@ async def monitoring_device(point_type,serial_number_project,
                                 "parameters":parameters,
                                 "fields":fields,
                                 "mppt":mppt,
+                                "combiner_box":combiner_box,
                                 "control_group":new_control_group,
-                                "rated_power": (lambda x:  x[0]["rated_power"] if x else None) ([item for item in rated_power if str(item['id_device']) == id_device]),
-                                "rated_power_custom":(lambda x:  x[0]["rated_power_custom"] if x else None) ([item for item in rated_power_custom if str(item['id_device']) == id_device]),
-                                "min_watt_in_percent":(lambda x:  x[0]["min_watt_in_percent"] if x else None) ([item for item in min_watt_in_percent if str(item['id_device']) == id_device]),
+                                "rated_power": device_rated_power,
+                                "rated_power_custom":device_rated_power_custom,
+                                "min_watt_in_percent":device_min_watt_in_percent,
+                                "emergency_stop":device_emergency_stop
                                 }
                     if device_name !="" and serial_number_project!= None:
                         
-                        func_mqtt_public(   host[0],
-                                            port[0],
-                                            serial_number_project+"/"+"Devices/"+""+id_device,
-                                            username[0],
-                                            password[0],
-                                            data_device)
-            await asyncio.sleep(2)
+                        # func_mqtt_public(   host[0],
+                        #                     port[0],
+                        #                     serial_number_project+"/"+"Devices/"+""+id_device,
+                        #                     username[0],
+                        #                     password[0],
+                        #                     data_device)
+                        await mqtt_init.sendZIP("Devices/"+""+id_device,
+                                        data_device)
+            await asyncio.sleep(1)
         
     except Exception as err:
         print('Error monitoring_device : ',err)
