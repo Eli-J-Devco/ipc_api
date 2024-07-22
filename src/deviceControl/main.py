@@ -1043,14 +1043,16 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             process_caculator_zero_export.last_setpoint - max_rate_of_change,
             min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
         )
+        print("setpoint1",setpoint)
         process_caculator_zero_export.last_setpoint = setpoint
         if setpoint:
             setpoint -= setpoint * value_offset_zero_export / 100
-            
+        print("setpoint2",setpoint)
         if value_production > value_consumption:
             setpoint -= (value_production - value_consumption)
-            
+        print("setpoint3",setpoint)
         setpoint = round(setpoint, 4)
+        print("setpoint4",setpoint)
     # Check device equipment qualified for control
     # asyncio.sleep(2)
     if result_topic4:
