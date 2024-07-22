@@ -1830,6 +1830,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("total_wmax_man_temp",total_wmax_man_temp)
                 print("value_power_limit",value_power_limit)
                 print("value_zero_export",value_zero_export)
+                print("device_mode",device_mode)
                 
                 # Check status when saving device control parameters to the system 
                 if (device_mode == 0 and power_limit > rated_power_custom_calculator) or \
