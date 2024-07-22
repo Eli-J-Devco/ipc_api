@@ -337,6 +337,7 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
+            asyncio.sleep(2)
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     flag == 1 
@@ -389,10 +390,13 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
     # Switch to user mode that is both man and auto
     if mqtt_result:
         try:
-            # Wait for up to 2 seconds for the data to be available
-            await asyncio.sleep(2)
+            # Wait for up to 5 seconds for the data to be available
+
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
+            print("result_checkmode_control",result_checkmode_control)
             modes = set([item['mode'] for item in result_checkmode_control])
+            print("Modes", modes)
+            print("len(modes)",len(modes))
             if len(modes) == 1:
                 if 0 in modes:
                     data_send = {"id_device": "Systemp", "mode": 0}
@@ -1031,26 +1035,36 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             consumption_queue.append(value_consumption)
         else:
             consumption_queue.append(value_consumption-total_wmax_man)
+            
+        print("value_consumption",value_consumption)
+        print("consumption_queue",consumption_queue)
+        
         if value_consumption > total_wmax_man:
             avg_consumption = sum(consumption_queue) / len(consumption_queue)
         else:
             avg_consumption = 0
+            
+        print("avg_consumption",avg_consumption)
+        
         # Limit the change in setpoint
         if not hasattr(process_caculator_zero_export, 'last_setpoint'):
             process_caculator_zero_export.last_setpoint = avg_consumption
         new_setpoint = avg_consumption
+        print("new_setpoint",new_setpoint)
         setpoint = max(
             process_caculator_zero_export.last_setpoint - max_rate_of_change,
             min(process_caculator_zero_export.last_setpoint + max_rate_of_change, new_setpoint)
         )
+        print("setpoint1",setpoint)
         process_caculator_zero_export.last_setpoint = setpoint
         if setpoint:
             setpoint -= setpoint * value_offset_zero_export / 100
-            
+        print("setpoint2",setpoint)
         if value_production > value_consumption:
             setpoint -= (value_production - value_consumption)
-            
+        print("setpoint3",setpoint)
         setpoint = round(setpoint, 4)
+        print("setpoint4",setpoint)
     # Check device equipment qualified for control
     # asyncio.sleep(2)
     if result_topic4:
@@ -1447,6 +1461,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             await process_update_mode_detail(result_topic7,serial_number_project, host, port, username, password)
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
+            await asyncio.sleep(5)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)

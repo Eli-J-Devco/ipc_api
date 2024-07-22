@@ -122,6 +122,8 @@ rated_power_custom=None
 rated_power_custom_calculator=None
 min_watt_in_percent=None
 meter_type=None
+# The code `start_up_DC_input_voltage` is defining a variable or identifier in Python. It seems to be
+# related to the input voltage at the start-up of a device or system.
 start_up_DC_input_voltage=None
 operating_DC_input_voltage=None
 # 
@@ -1015,6 +1017,10 @@ async def write_device(
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
                                                     value /= slope
+                                            print("device_control",device_control)
+                                            print("id_pointkey",id_pointkey)
+                                            print("value",value)
+                                            print("slope",slope)
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                 # Auto Mode
@@ -1785,8 +1791,11 @@ async def extract_device_control_params():
             # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
-            if reactive_limit_percent_enable:
+                power_limit = rated_power_custom_calculator*(power_limit_percent/100)
+            if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
+            else:
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMaxPercent"]]
             # To turn off inv without inv turning itself back on, add this register to inv
             if "parameter" in item and int(item["id_device"]) == id_systemp:
                 for param in item["parameter"]:
@@ -1807,7 +1816,7 @@ async def extract_device_control_params():
 # 	 * @return comment ,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr ,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
+    global arr,device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1830,6 +1839,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("total_wmax_man_temp",total_wmax_man_temp)
                 print("value_power_limit",value_power_limit)
                 print("value_zero_export",value_zero_export)
+                print("device_mode",device_mode)
                 
                 # Check status when saving device control parameters to the system 
                 if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
@@ -1884,6 +1894,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
+        print("result_topic1",result_topic1)
         if result_topic1 and bitcheck_topic1 == 1 :
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
@@ -1985,7 +1996,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = message
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10)
                     is_waiting = False  
                     message = []
                     result_topic1_Temp = []
@@ -1994,7 +2005,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            
+
         elif topic == topic2:
             result_topic2 = message
             # process 
