@@ -337,7 +337,7 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
     topic = serial_number_project + MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     try:
         if result_topic1 and bitcheck1 == 1 :
-            asyncio.sleep(2)
+            await asyncio.sleep(2)
             try:
                 if result_topic1.get('id_device') == 'Systemp':
                     flag == 1 
@@ -940,6 +940,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
+        print("devices",devices)
     # asyncio.sleep(2)
     # get information about power in database and varaable devices
     if devices:
@@ -971,6 +972,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     new_device = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "power limit",
                         "setpoint": value_power_limit - total_wmax_man ,
                         "feedback": value_production,
@@ -982,6 +984,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     new_device = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "power limit",
                         "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
@@ -1100,6 +1103,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         "id_device": id_device,
                         "Mode": "Add",
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "zero export",
                         "setpoint": setpoint,
                         "parameter": [
