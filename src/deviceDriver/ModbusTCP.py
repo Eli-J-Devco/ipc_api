@@ -1994,8 +1994,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
-            message[0]["time"] = get_utc()
-            print("message",message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
@@ -2004,13 +2002,15 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     await asyncio.sleep(10)
-                    is_waiting = False 
+                    is_waiting = False  
+                    message = []
+                    result_topic1_Temp = []
+                    
             elif topic == topic3:
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            
-            
+
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2051,18 +2051,13 @@ def gzip_decompress(message):
 # 	 * @param {client, serial_number_project, topic1, topic2, topic3, host, port, username, password}
 # 	 * @return all topic , all message
 # 	 */ 
-async def handle_messages_driver(client, serial_number_project, host, port, username, password):
-    global is_waiting
+async def handle_messages_driver(client,serial_number_project, host, port, username, password):
     try:
         while True:
-            if is_waiting:
-                await asyncio.sleep(1)
-                continue
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
-            
             topic = message.topic
             if message:
                 payload = gzip_decompress(message.message)
