@@ -1994,6 +1994,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
+            message[0]["time"]= get_utc()
+            print("message", message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
