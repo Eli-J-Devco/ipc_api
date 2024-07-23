@@ -972,6 +972,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     new_device = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "power limit",
                         "setpoint": value_power_limit - total_wmax_man ,
                         "feedback": value_production,
@@ -983,6 +984,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     new_device = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "power limit",
                         "setpoint": value_power_limit - total_wmax_man,
                         "feedback": value_production,
