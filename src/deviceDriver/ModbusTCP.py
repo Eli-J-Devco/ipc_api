@@ -1680,6 +1680,7 @@ async def process_update_mode_for_device(mqtt_result):
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
+                    print("device_mode",device_mode)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
@@ -2000,10 +2001,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = message
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    await asyncio.sleep(10)
-                    is_waiting = False  
+                    await asyncio.sleep(30)
                     message = []
                     result_topic1_Temp = []
+                    is_waiting = False  
                     
             elif topic == topic3:
                 if not is_waiting:
