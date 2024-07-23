@@ -86,6 +86,7 @@ len_result_topic1 = 0
 
 result_topic1 = []
 result_topic2 = []
+result_topic3 = []
 bitcheck_topic1 = 0
 
 enable_zero_export = 0
@@ -908,6 +909,7 @@ async def write_device(
     global reactive_limit_percent_enable
     global rated_reactive_custom
     global result_topic1 # result topic 
+    global result_topic3 
     global mode_each_device
     # Local Variables
     
@@ -943,7 +945,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 :
+    if result_topic1 and result_topic3:
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -2018,6 +2020,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global device_mode 
     global mode_each_device
     global result_topic2
+    global result_topic3
     global value_zero_export_temp
     global bitcheck_topic1
     global is_waiting 
@@ -2042,9 +2045,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     
             elif topic == topic3 :
-                result_topic3_Temp = message
-                await process_sud_control_auto(result_topic3_Temp, serial_number_project, host, port, username, password)
- 
+                result_topic3 = message
+                print("result_topic3",result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
