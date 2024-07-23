@@ -2057,26 +2057,18 @@ async def handle_messages_driver(client, serial_number_project, host, port, user
     global is_waiting
     try:
         while True:
+            if is_waiting:
+                await asyncio.sleep(1)
+                continue
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
             
             topic = message.topic
-            
             if message:
-                print("is_waiting", is_waiting)
-                
-                # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
-                if is_waiting:
-                    continue  # Bỏ qua vòng lặp này và tiếp tục với message tiếp theo
-                
-                # Giải nén payload nếu không đang chờ
                 payload = gzip_decompress(message.message)
-                
-                # Xử lý message khi không đang chờ
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
-
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
