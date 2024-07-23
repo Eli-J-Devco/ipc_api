@@ -1085,7 +1085,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Auto Mode
-                                if device_mode == 1 and any('status' in item for item in result_topic1):
+                                if device_mode == 1 and any('status' in item for item in result_topic3):
                                     print("---------- Auto control mode ----------")
                                     addtopic = "FeedbackAuto"
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
@@ -1111,7 +1111,7 @@ async def write_device(
                                 "status": comment,
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
-                            result_topic1 = []
+                            result_topic3 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
 # Describe functions before writing code
