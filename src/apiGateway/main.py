@@ -332,7 +332,9 @@ class apiGateway:
                         if 'emergency_stop' in result.keys():
                             self.DeviceList[i]["emergency_stop"]=result["emergency_stop"]  
                         if 'type_device_type' in result.keys():
-                            self.DeviceList[i]["type_device_type"]=result["type_device_type"]    
+                            self.DeviceList[i]["type_device_type"]=result["type_device_type"]
+                        if 'id_device_group'in result.keys():
+                            self.DeviceList[i]["id_device_group"]=result["id_device_group"]
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
     async def deviceListSub(self):
