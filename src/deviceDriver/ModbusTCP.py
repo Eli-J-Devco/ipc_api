@@ -1994,8 +1994,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
-            message[0]["time"] = get_utc()
-            print("message",message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
@@ -2003,9 +2001,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = message
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    await asyncio.sleep(10)
-                    message = []
-                    result_topic1_Temp = []
                     is_waiting = False  
                     
             elif topic == topic3:
@@ -2061,20 +2056,14 @@ async def handle_messages_driver(client, serial_number_project, host, port, user
             if message is None:
                 print('Broker connection lost!')
                 break
-            
             topic = message.topic
-            
             if message:
-                print("is_waiting", is_waiting)
-                
-                # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
+                # Skip this loop and continue with the next message
                 if is_waiting:
-                    continue  # Bỏ qua vòng lặp này và tiếp tục với message tiếp theo
-                
-                # Giải nén payload nếu không đang chờ
+                    continue 
+                # Decompress payload if not waiting
                 payload = gzip_decompress(message.message)
-                
-                # Xử lý message khi không đang chờ
+                # Process messages when not waiting
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
 
     except Exception as err:
