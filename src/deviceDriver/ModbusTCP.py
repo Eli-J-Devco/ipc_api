@@ -98,7 +98,8 @@ total_wmax_man_temp = 0
 
 total_wmax = 0
 total_wmax_man = 0
-
+# watt = 0
+# custom_watt = 0
 # Set time shutdown of inverter
 inv_shutdown_enable=False
 inv_shutdown_datetime=""
@@ -946,6 +947,7 @@ async def write_device(
     name_device_points_list_map = ""
     
     if result_topic1 and result_topic3:
+        # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1021,24 +1023,9 @@ async def write_device(
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
                                                     value /= slope
-                                            print("device_control",device_control)
-                                            print("id_pointkey",id_pointkey)
-                                            print("value",value)
-                                            print("slope",slope)
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
-                                # Auto Mode
-                                if device_mode == 1 and any('status' in item for item in result_topic1):
-                                    print("---------- Auto control mode ----------")
-                                    addtopic = "FeedbackAuto"
-                                    if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
-                                        result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
-                                        # convert back to actual value
-                                        if result_slope and slope and id_pointkey == 'WMax' :
-                                            slope = float(result_slope[0]['slope'])
-                                            value = value/slope
-                                            value = round(value)
-                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                            
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
@@ -1057,7 +1044,8 @@ async def write_device(
                             result_topic1 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
-    if  result_topic3:
+    # Write Auto Mode 
+    if result_topic3:
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1897,15 +1885,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
-                print("ModeSysTemp",ModeSysTemp)
-                print("ModeSysTemp_Control",ModeSysTemp_Control)
-                print("power_limit",power_limit)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("total_wmax_man_temp",total_wmax_man_temp)
-                print("value_power_limit",value_power_limit)
-                print("value_zero_export",value_zero_export)
-                print("device_mode",device_mode)
-                
                 # Check status when saving device control parameters to the system 
                 if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
@@ -1914,7 +1893,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-                print("comment",comment)
     return comment ,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
@@ -1947,6 +1925,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global bitcheck_topic1
     global value_zero_export
     global total_wmax_man_temp
+    # global watt
+    # global custom_watt
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1956,10 +1936,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     wmax = 0
     watt = 0
     custom_watt = 0
-    
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
-        print("result_topic1",result_topic1)
         if mqtt_result and bitcheck_topic1 == 1 :
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
@@ -1988,7 +1966,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                 device["wmax"] = 0
                         # Update rated power to the device and check status when saving the device's control parameters to the system
                         comment, watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
-                        print("comment ngoaif", comment)
                         if comment == 400 :
                             # If the update fails, return the mode value and print an error without doing anything else
                             mqtt_result = []
@@ -2008,8 +1985,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
                         # reset global value to avoid accumulation
-                        custom_watt = 0
-                        watt = 0
                         total_wmax_man_temp = 0
                         
                         # check data change mode device action
@@ -2021,47 +1996,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
                             mqtt_result = []
-async def process_sud_control_auto(mqtt_result, serial_number_project, host, port, username, password):
-    global arr
-    global MQTT_TOPIC_PUB_CONTROL
-    global device_mode
-    global mode_each_device
-    global result_topic1
-    global rated_power
-    global rated_power_custom
-    global rated_power_custom_calculator
-    global rated_reactive_custom
-    global power_limit_percent
-    global power_limit_percent_enable
-    global reactive_limit_percent
-    global reactive_limit_percent_enable
-    global emergency_stop
-    global total_wmax_man 
-    global value_power_limit
-    global device_list
-    global ModeSysTemp
-    global ModeSysTemp_Control
-    global bitcheck_topic1
-    global value_zero_export
-    global total_wmax_man_temp
-
-    topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
-    id_systemp = int(arr[1])
-    current_time = ""
-    
-    if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
-        print("result_topic1",result_topic1)
-        if mqtt_result and bitcheck_topic1 == 1 :
-            for item in mqtt_result:
-                # check data change mode device action
-                if not item["parameter"] and device_mode == 1:
-                    mode_each_device = device_mode
-                    data_send = {
-                                "time_stamp": current_time,
-                                "status": 200,
-                            }
-                    mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
-                    mqtt_result = []
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
