@@ -2061,16 +2061,22 @@ async def handle_messages_driver(client, serial_number_project, host, port, user
             if message is None:
                 print('Broker connection lost!')
                 break
+            
             topic = message.topic
+            
             if message:
-                print("is_waiting",is_waiting)
-            # If waiting (is_waiting == True), skip message processing
+                print("is_waiting", is_waiting)
+                
+                # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
                 if is_waiting:
-                    payload = []
-                else:
-                    payload = gzip_decompress(message.message)
-            # Xử lý message khi không đang chờ
-            await process_message(topic, payload, serial_number_project, host, port, username, password)
+                    continue  # Bỏ qua vòng lặp này và tiếp tục với message tiếp theo
+                
+                # Giải nén payload nếu không đang chờ
+                payload = gzip_decompress(message.message)
+                
+                # Xử lý message khi không đang chờ
+                await process_message(topic, payload, serial_number_project, host, port, username, password)
+
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
