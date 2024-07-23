@@ -2057,6 +2057,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
     global is_waiting
     try:
         while True:
+            print("is_waiting",is_waiting)
             if is_waiting:
                 break 
             message = await client.messages.get()
@@ -2066,7 +2067,6 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
             topic = message.topic
             if message:
                 payload = gzip_decompress(message.message)
-                print("payload",payload)
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
