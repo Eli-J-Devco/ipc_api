@@ -2057,15 +2057,17 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
     global is_waiting
     try:
         while True:
-            if not is_waiting :
-                message = await client.messages.get()
+            message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if message and not is_waiting:
+            if message :
                 payload = gzip_decompress(message.message)
+            if not is_waiting :
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
+            else:
+                payload = []
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
