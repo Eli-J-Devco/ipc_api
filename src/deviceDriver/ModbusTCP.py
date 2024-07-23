@@ -2052,9 +2052,11 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+    global is_waiting
     try:
         while True:
-            message = await client.messages.get()
+            if not is_waiting :
+                message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
                 break
