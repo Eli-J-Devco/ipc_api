@@ -1994,6 +1994,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
+            message["time"] = get_utc()
+            print("message",message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
@@ -2063,8 +2065,6 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
             topic = message.topic
             if message and not is_waiting:
                 payload = gzip_decompress(message.message)
-                payload["time"] = get_utc()
-                print("payload",payload)
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
