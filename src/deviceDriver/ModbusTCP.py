@@ -1994,6 +1994,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
+            message[0]["time"] = get_utc()
+            print("message",message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
@@ -2059,14 +2061,20 @@ async def handle_messages_driver(client, serial_number_project, host, port, user
             if message is None:
                 print('Broker connection lost!')
                 break
+            
             topic = message.topic
+            
             if message:
-                # Skip this loop and continue with the next message
+                print("is_waiting", is_waiting)
+                
+                # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
                 if is_waiting:
-                    continue 
-                # Decompress payload if not waiting
+                    continue  # Bỏ qua vòng lặp này và tiếp tục với message tiếp theo
+                
+                # Giải nén payload nếu không đang chờ
                 payload = gzip_decompress(message.message)
-                # Process messages when not waiting
+                
+                # Xử lý message khi không đang chờ
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
 
     except Exception as err:
