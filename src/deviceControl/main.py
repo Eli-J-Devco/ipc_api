@@ -362,7 +362,7 @@ async def sub_systemp_mode_when_user_change_mode_systemp(serial_number_project, 
                                 }
                         mqtt_public_paho_zip(host,
                                 port,
-                                topic ,
+                                topic,
                                 username,
                                 password,
                                 data_send)
