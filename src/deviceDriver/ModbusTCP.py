@@ -2002,17 +2002,17 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if not is_waiting:
                     result_topic1_Temp = message
                     is_waiting = True
+                    print("is_waiting 1",is_waiting)
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     await asyncio.sleep(10)
                     message = []
                     result_topic1_Temp = []
                     
-            elif topic == topic3:
+            elif topic == topic3 and device_mode != 0 :
                 if not is_waiting:
                     result_topic3_Temp = message
                     await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
             is_waiting = False  
-            print("is_waiting 1",is_waiting)
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2070,6 +2070,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
+
+
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
