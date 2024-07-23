@@ -2063,6 +2063,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
             topic = message.topic
             if message and not is_waiting:
                 payload = gzip_decompress(message.message)
+                payload["time"] = get_utc()
                 print("payload",payload)
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
