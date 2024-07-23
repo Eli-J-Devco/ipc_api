@@ -1101,6 +1101,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         "id_device": id_device,
                         "Mode": "Add",
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "zero export",
                         "setpoint": setpoint,
                         "parameter": [
