@@ -1961,6 +1961,47 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                     }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
                             mqtt_result = []
+async def process_sud_control_auto(mqtt_result, serial_number_project, host, port, username, password):
+    global arr
+    global MQTT_TOPIC_PUB_CONTROL
+    global device_mode
+    global mode_each_device
+    global result_topic1
+    global rated_power
+    global rated_power_custom
+    global rated_power_custom_calculator
+    global rated_reactive_custom
+    global power_limit_percent
+    global power_limit_percent_enable
+    global reactive_limit_percent
+    global reactive_limit_percent_enable
+    global emergency_stop
+    global total_wmax_man 
+    global value_power_limit
+    global device_list
+    global ModeSysTemp
+    global ModeSysTemp_Control
+    global bitcheck_topic1
+    global value_zero_export
+    global total_wmax_man_temp
+
+    topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
+    id_systemp = int(arr[1])
+    current_time = ""
+    
+    if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
+        print("result_topic1",result_topic1)
+        if mqtt_result and bitcheck_topic1 == 1 :
+            for item in mqtt_result:
+                # check data change mode device action
+                if not item["parameter"] and device_mode == 1:
+                    mode_each_device = device_mode
+                    data_send = {
+                                "time_stamp": current_time,
+                                "status": 200,
+                            }
+                    mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
+                    mqtt_result = []
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
@@ -1994,25 +2035,16 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
-            message[0]["time"]= get_utc()
-            print("message", message)
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
-                if not is_waiting:
-                    result_topic1_Temp = message
-                    is_waiting = True
-                    print("is_waiting 1",is_waiting)
-                    await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    await asyncio.sleep(10)
-                    message = []
-                    result_topic1_Temp = []
+                result_topic1_Temp = message
+                await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                     
-            elif topic == topic3 and device_mode != 0 :
-                if not is_waiting:
-                    result_topic3_Temp = message
-                    await process_sud_control_man(result_topic3_Temp, serial_number_project, host, port, username, password)
-            is_waiting = False  
+            elif topic == topic3 :
+                result_topic3_Temp = message
+                await process_sud_control_auto(result_topic3_Temp, serial_number_project, host, port, username, password)
+ 
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2054,12 +2086,8 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def handle_messages_driver(client,serial_number_project, host, port, username, password):
-    global is_waiting
     try:
         while True:
-            print("is_waiting",is_waiting)
-            if is_waiting:
-                break 
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
