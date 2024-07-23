@@ -1900,17 +1900,17 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         print("result_topic1",result_topic1)
-        if result_topic1 and bitcheck_topic1 == 1 :
+        if mqtt_result and bitcheck_topic1 == 1 :
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
             # Update mode temp for Device 
-            await process_update_mode_for_device(result_topic1)
+            await process_update_mode_for_device(mqtt_result)
             # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
             if device_mode == 0 :
                 wmax = await extract_device_control_params()
             # Check have topic and man mode action because message auto a lot of
-            if result_topic1 and bitcheck_topic1 == 1 :
-                for item in result_topic1:
+            if mqtt_result and bitcheck_topic1 == 1 :
+                for item in mqtt_result:
                     # Check whether the message has rated power or not
                     if "rated_power_custom" in item and "rated_power" in item:
                         # Calculate whether the latest p-value recorded exceeds the allowable limit or not
@@ -1927,11 +1927,11 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             else:
                                 device["wmax"] = 0
                         # Update rated power to the device and check status when saving the device's control parameters to the system
-                        comment, watt,custom_watt = await updates_ratedpower_from_message(result_topic1,wmax)
+                        comment, watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
                         print("comment ngoaif", comment)
                         if comment == 400 :
                             # If the update fails, return the mode value and print an error without doing anything else
-                            result_topic1 = []
+                            mqtt_result = []
                             device_mode = mode_each_device
                             bitcheck_topic1 = 0
                             # feedback data to mqtt 
@@ -1960,7 +1960,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                                         "status": 200,
                                     }
                             mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
-                            result_topic1 = []
+                            mqtt_result = []
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
