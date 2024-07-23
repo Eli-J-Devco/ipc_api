@@ -2053,7 +2053,7 @@ def gzip_decompress(message):
 # 	 * @param {client, serial_number_project, topic1, topic2, topic3, host, port, username, password}
 # 	 * @return all topic , all message
 # 	 */ 
-async def handle_messages_driver(client,serial_number_project, host, port, username, password):
+async def handle_messages_driver(client, serial_number_project, host, port, username, password):
     global is_waiting
     try:
         while True:
@@ -2062,12 +2062,14 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            if message :
-                payload = gzip_decompress(message.message)
-            if not is_waiting :
-                await process_message(topic, payload, serial_number_project, host, port, username, password)
+            # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
+            if is_waiting:
+                payload = []  # Đặt payload thành rỗng
             else:
-                payload = []
+                if message:
+                    payload = gzip_decompress(message.message)
+                # Xử lý message khi không đang chờ
+                await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
