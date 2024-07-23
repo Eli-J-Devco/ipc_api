@@ -1889,7 +1889,7 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system 
-                if (ModeSysTemp == 0 and power_limit > rated_power_custom_calculator) or \
+                if (ModeSysTemp in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
@@ -1950,7 +1950,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(mqtt_result)
             # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
             if device_mode == 0 :
-                wmax ,power_limit_percent_temp= await extract_device_control_params()
+                wmax ,power_limit_percent_temp = await extract_device_control_params()
             # Check have topic and man mode action because message auto a lot of
             if mqtt_result and bitcheck_topic1 == 1 :
                 for item in mqtt_result:
