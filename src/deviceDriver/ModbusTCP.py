@@ -1046,6 +1046,7 @@ async def write_device(
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3:
+        print("result_topic3",result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1939,6 +1940,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if mqtt_result and bitcheck_topic1 == 1 :
+            print("result_topic1",result_topic1)
             # Get value_zero_export and value_power_limit in DB 
             await Get_value_Power_Limit()
             # Update mode temp for Device 
@@ -1968,7 +1970,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                         comment, watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
                         if comment == 400 :
                             # If the update fails, return the mode value and print an error without doing anything else
-                            mqtt_result = []
+                            result_topic1 = []
                             device_mode = mode_each_device
                             bitcheck_topic1 = 0
                             # feedback data to mqtt 
@@ -2035,10 +2037,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if topic == topic1:
                 result_topic1_Temp = message
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    
+                
             elif topic == topic3 :
                 result_topic3 = message
-                print("result_topic3",result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2092,8 +2093,6 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
                 await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
-
-
 # Describe sub_mqtt 
 # 	 * @description sub_mqtt
 # 	 * @author bnguyen
