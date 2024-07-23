@@ -1045,7 +1045,7 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
-    if result_topic3:
+    if result_topic3 and device_mode == 1:
         print("result_topic3",result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
@@ -1821,6 +1821,7 @@ async def extract_device_control_params():
     id_systemp = int(arr[1])
     reactive_power_limit = 0
     power_limit = 0
+    power_limit_percent_temp = 0 
     
     for item in result_topic1:
         if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0 and rated_power_custom_calculator != 0:
@@ -1831,7 +1832,7 @@ async def extract_device_control_params():
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
-                    power_limit_percent = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                    power_limit_percent_temp = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
                 elif param["id_pointkey"] == "VarMaxPercentEnable":
                     reactive_limit_percent_enable = param["value"]
                 elif param["id_pointkey"] == "VarMax":
@@ -1845,7 +1846,7 @@ async def extract_device_control_params():
             # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
-                power_limit = rated_power_custom_calculator*(power_limit_percent/100)
+                power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
             if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
             else:
@@ -1860,7 +1861,7 @@ async def extract_device_control_params():
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-    return power_limit 
+    return power_limit ,power_limit_percent_temp
 # Describe updates_ratedpower_from_message
 # /**
 # 	 * @description updates_ratedpower_from_message
@@ -1937,6 +1938,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     wmax = 0
     watt = 0
     custom_watt = 0
+    power_limit_percent_temp = 0
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         result_topic1 = mqtt_result
         if mqtt_result and bitcheck_topic1 == 1 :
@@ -1947,7 +1949,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             await process_update_mode_for_device(mqtt_result)
             # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
             if device_mode == 0 :
-                wmax = await extract_device_control_params()
+                wmax ,power_limit_percent_temp= await extract_device_control_params()
             # Check have topic and man mode action because message auto a lot of
             if mqtt_result and bitcheck_topic1 == 1 :
                 for item in mqtt_result:
@@ -1984,6 +1986,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
                                 rated_power = watt
                                 rated_power_custom = custom_watt
+                            power_limit_percent = power_limit_percent_temp
                             MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                             MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
                         # reset global value to avoid accumulation
