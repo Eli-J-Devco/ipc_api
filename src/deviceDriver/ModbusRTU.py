@@ -655,7 +655,7 @@ async def device(ConfigPara):
             data_of_one_device["id_template"]=item['id_template']
             data_of_one_device["meter_type"]=item['meter_type']
             data_of_one_device["inverter_type"]=item['inverter_type']
-            # data_of_one_device["emergency_stop"]=item['emergency_stop']
+            data_of_one_device["id_device_group"]=item['id_device_group']
             
             data_of_one_device["RB"]=[]
             data_of_one_device["POINT"]=[]
@@ -780,6 +780,7 @@ async def device(ConfigPara):
                         data_one_device["meter_type"]=item_device['meter_type']
                         data_one_device["type_device_type"]=item_device["type_device_type"]
                         data_one_device["inverter_type"]=item_device['inverter_type']
+                        data_one_device["id_device_group"]=item_device['id_device_group']
                         
                         data_rg_one_device = []
                         status_rb=[]
@@ -891,6 +892,7 @@ async def device(ConfigPara):
                             data_one_device["meter_type"]=item_device['meter_type']
                             data_one_device["type_device_type"]=item_device["type_device_type"]
                             data_one_device["inverter_type"]=item_device['inverter_type']
+                            data_one_device["id_device_group"]=item_device['id_device_group']
                             new_error_data_device.append(data_one_device)
                     
                     else:
@@ -942,6 +944,7 @@ async def device(ConfigPara):
                             data_one_device["meter_type"]=item_device['meter_type']
                             data_one_device["type_device_type"]=item_device["type_device_type"]
                             data_one_device["inverter_type"]=item_device['inverter_type']
+                            data_one_device["id_device_group"]=item_device['id_device_group']
                             new_error_data_device.append(data_one_device)
                     all_device_data=new_error_data_device
                 client.close()
@@ -1006,6 +1009,7 @@ async def monitoring_device(point_type,serial_number_project,
                     type_device_type=item_data['type_device_type']
                     inverter_type=item_data['inverter_type']
                     device_parent=item_data['parent']
+                    id_device_group=item_data['id_device_group']
                     
                     device_rated_power=(lambda x:  x[0]["rated_power"] if x else 0) ([item for item in rated_power if str(item['id_device']) == id_device])
                     device_rated_power_custom=(lambda x:  x[0]["rated_power_custom"] if x else 0) ([item for item in rated_power_custom if str(item['id_device']) == id_device])
@@ -1220,6 +1224,7 @@ async def monitoring_device(point_type,serial_number_project,
                     combiner_box=monitor_service_init.combiner_box(new_point)
                     data_device={
                                 "id_device":id_device,
+                                "id_device_group":id_device_group,
                                 "parent":device_parent,
                                 "mode":mode,
                                 "device_name":device_name,
