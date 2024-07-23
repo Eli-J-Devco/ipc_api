@@ -1928,8 +1928,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global bitcheck_topic1
     global value_zero_export
     global total_wmax_man_temp
-    # global watt
-    # global custom_watt
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1970,7 +1968,10 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                             else:
                                 device["wmax"] = 0
                         # Update rated power to the device and check status when saving the device's control parameters to the system
-                        comment, watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
+                        comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
+                        print("comment",comment)
+                        print("watt",watt)
+                        print("custom_watt",custom_watt)
                         if comment == 400 :
                             # If the update fails, return the mode value and print an error without doing anything else
                             result_topic1 = []

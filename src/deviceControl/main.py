@@ -940,7 +940,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # Check device equipment qualified for control
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-        print("devices",devices)
     # asyncio.sleep(2)
     # get information about power in database and varaable devices
     if devices:
@@ -1090,12 +1089,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                 else:
                     p_for_each_device_zero_export = power_max_device 
                     
-            print("efficiency_total",efficiency_total)
-            print("power_max_device",power_max_device)
-            print("p_for_each_device_zero_export",p_for_each_device_zero_export)
-            print("value_threshold_zero_export",value_threshold_zero_export)
-            print("value_consumption",value_consumption)
-            
             if (value_consumption >= value_threshold_zero_export) and (value_consumption >= 0):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
@@ -1135,7 +1128,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                         ]
                     }
             device_list_control_power_limit.append(new_device)
-            print("device_list_control_power_limit",device_list_control_power_limit)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
