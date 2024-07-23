@@ -2003,7 +2003,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                     result_topic1_Temp = message
                     is_waiting = True
                     await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                    await asyncio.sleep(30)
+                    await asyncio.sleep(10)
                     message = []
                     result_topic1_Temp = []
                     is_waiting = False  
@@ -2062,14 +2062,15 @@ async def handle_messages_driver(client, serial_number_project, host, port, user
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            # Nếu đang chờ (is_waiting == True), bỏ qua việc xử lý message
-            if is_waiting:
-                payload = []  # Đặt payload thành rỗng
-            else:
-                if message:
+            if message:
+                print("is_waiting",is_waiting)
+            # If waiting (is_waiting == True), skip message processing
+                if is_waiting:
+                    payload = []
+                else:
                     payload = gzip_decompress(message.message)
-                # Xử lý message khi không đang chờ
-                await process_message(topic, payload, serial_number_project, host, port, username, password)
+            # Xử lý message khi không đang chờ
+            await process_message(topic, payload, serial_number_project, host, port, username, password)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 # Describe sub_mqtt 
