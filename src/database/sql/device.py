@@ -75,6 +75,7 @@ class Query():
         device_type.id AS id_device_type,
         device_type.type AS type_device_type,
         device_group.name AS device_group,
+        device_group.id AS id_device_group,
         template_library.name AS template_name,
         device_list.rated_power,
 	    device_list.rated_power_custom,

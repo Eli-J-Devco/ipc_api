@@ -142,6 +142,7 @@ rated_reactive_custom=None
 device_parent=None
 emergency_stop=None
 type_device_type=None
+id_device_group=None
 # 
 # config[0] -- id
 # ----- mybatis -----
@@ -1079,7 +1080,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global device_mode
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
-        global type_device_type
+        global type_device_type, id_device_group
         pathSource=path
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -1157,6 +1158,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         device_parent=results_device[0]['device_parent']
         emergency_stop=results_device[0]['emergency_stop']
         type_device_type=results_device[0]['type_device_type']
+        id_device_group=results_device[0]['id_device_group']
         while True:
                 # Share data to Global variable
                 global status_device
@@ -1358,6 +1360,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         global inverter_type
         global device_parent
         global type_device_type
+        global id_device_group
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
         print(f'init monitoring_device')
         # point_list
@@ -1621,6 +1624,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
             data_device={
                 "memory":memory,
                 "id_device":device_id,
+                "id_device_group":id_device_group,
                 "parent":device_parent,
                 "mode":device_mode,
                 "device_name":device_name,
