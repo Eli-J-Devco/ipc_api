@@ -962,6 +962,7 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
+                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -1026,6 +1027,63 @@ async def write_device(
                                             print("slope",slope)
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                # Auto Mode
+                                if device_mode == 1 and any('status' in item for item in result_topic1):
+                                    print("---------- Auto control mode ----------")
+                                    addtopic = "FeedbackAuto"
+                                    if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
+                                        result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
+                                        # convert back to actual value
+                                        if result_slope and slope and id_pointkey == 'WMax' :
+                                            slope = float(result_slope[0]['slope'])
+                                            value = value/slope
+                                            value = round(value)
+                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                            # check fault push the results to mqtt
+                            if results_write_modbus: # Code that writes data to the inverter after execution
+                                code_value = results_write_modbus['code']
+                                
+                                if code_value == 16 :
+                                    comment = 200
+                                    mode_each_device = device_mode
+                                else:
+                                    comment = 400
+                                    device_mode = mode_each_device
+                            data_send = {
+                                "time_stamp": current_time,
+                                "status": comment,
+                            }
+                            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
+                            result_topic1 = []
+                    except Exception as err:
+                        print(f"write_device: '{err}'")
+    if  result_topic3:
+        for item in result_topic3:
+            device_control = item['id_device']
+            device_control = int(device_control) # Get Id_device from message mqtt
+            if id_systemp == device_control :
+                parameter = item['parameter']
+                if parameter :
+                    print("---------- write data from Device ----------")
+                    try:
+                        # Check Id is INV
+                        if device_control : 
+                            is_inverter = await check_inverter_device(device_control)
+                        else :
+                            pass
+                        # Get information INV from Id_device
+                        if is_inverter: 
+                            inverter_info = await find_inverter_information(device_control, parameter)
+                            print("inverter_info",inverter_info)
+                            # Scan message mqtt get information register
+                            for item in inverter_info: 
+                                value = item["value"]
+                                register = item["register"]
+                                id_pointkey = item['id_pointkey']
+                                datatype = item["datatype"]
+                                modbus_func= item["modbus_func"]
+                                result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
+                                name_device_points_list_map = result_query_findname [0]["name"]
                                 # Auto Mode
                                 if device_mode == 1 and any('status' in item for item in result_topic1):
                                     print("---------- Auto control mode ----------")
