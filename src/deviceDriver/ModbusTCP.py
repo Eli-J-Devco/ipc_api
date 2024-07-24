@@ -1877,16 +1877,11 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
     custom_watt = 0 
     watt = 0 
     if result_topic1:
-        print("result_topic1",result_topic1)
         for item in result_topic1:
-            if int(item["id_device"]) == id_systemp:
-                print("item['id_device']",item["id_device"])
-                print("id_systemp",id_systemp)
+            if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
                 # Get rated_power , rated_power_custom from message
                 custom_watt = item.get("rated_power_custom", 0)
                 watt = item.get("rated_power", 0)
-                print("custom_watt trong" ,custom_watt)
-                print("watt trong" ,watt)
                 # caculator when rated_power_custom is null
                 if custom_watt is None:
                     rated_power_custom_calculator = watt
@@ -1900,7 +1895,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-                print("Comment trong" , comment)
             
     return comment,watt,custom_watt
 # Describe caculator_total_wmaxman_fault
