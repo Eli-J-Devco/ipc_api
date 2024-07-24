@@ -1729,7 +1729,6 @@ async def process_update_mode_for_device(mqtt_result):
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
-                    print("device_mode",device_mode)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
@@ -2021,7 +2020,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
-            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
+            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0) and ("rated_power_custom" in item and "rated_power" in item for item in mqtt_result):
                 rated_power = watt
                 rated_power_custom = custom_watt
             power_limit_percent = power_limit_percent_temp
