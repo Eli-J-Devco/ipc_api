@@ -1880,6 +1880,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
         print("result_topic1",result_topic1)
         for item in result_topic1:
             if int(item["id_device"]) == id_systemp:
+                print("item['id_device']",item["id_device"])
+                print("id_systemp",id_systemp)
                 # Get rated_power , rated_power_custom from message
                 custom_watt = item.get("rated_power_custom", 0)
                 watt = item.get("rated_power", 0)
