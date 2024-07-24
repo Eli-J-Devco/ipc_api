@@ -1895,9 +1895,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-            else:
-                watt = rated_power
-                custom_watt = rated_power_custom
                 
     return comment,watt,custom_watt
 # Describe caculator_total_wmaxman_fault
