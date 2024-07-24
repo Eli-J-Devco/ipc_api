@@ -1945,7 +1945,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result):
         count += 1 
         print("count", count)
-        print("item.get('id_device')",item.get('id_device'))
+        print("item.get('id_device')",item['id_device'])
         print("id_systemp",id_systemp)
         result_topic1 = mqtt_result
         if mqtt_result and bitcheck_topic1 == 1 :
