@@ -14,6 +14,8 @@ import platform
 from datetime import datetime
 import datetime
 import collections
+import base64
+import gzip
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 sys.stdout.reconfigure(encoding='utf-8')
@@ -466,6 +468,7 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"status": 200}
             ]
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
+            print("data_send",data_send)
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -1477,9 +1480,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-import base64
-import gzip
-
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
