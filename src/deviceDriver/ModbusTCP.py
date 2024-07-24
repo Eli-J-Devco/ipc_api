@@ -2005,7 +2005,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Calculate the total power in man mode at the time of recording to handle errors
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
-        comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
+        if ("rated_power_custom" in item and "rated_power" in item for item in mqtt_result):
+            comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
 
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
@@ -2020,13 +2021,13 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
-            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0) and ("rated_power_custom" in item and "rated_power" in item for item in mqtt_result):
-                print("mqtt_result",mqtt_result)
-                rated_power = watt
-                rated_power_custom = custom_watt
-            power_limit_percent = power_limit_percent_temp
-            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-            MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
+            for item in mqtt_result:
+                if int(item["id_device"]) == id_systemp and "rated_power_custom" in item and "rated_power" in item:
+                    rated_power = watt
+                    rated_power_custom = custom_watt
+                    power_limit_percent = power_limit_percent_temp
+                    MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                    MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation
         total_wmax_man_temp = 0
         
