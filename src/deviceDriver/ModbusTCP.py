@@ -82,7 +82,7 @@ data_write_device=[]
 parameter = []
 count = 0 
 len_result_topic1 = 0
-
+token = ""
 
 result_topic1 = []
 result_topic2 = []
@@ -1890,6 +1890,23 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 200 
                 
     return comment,watt,custom_watt
+# Describe process_gettoken
+# /**
+# 	 * @description process_gettoken
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {mqtt_result}
+# 	 * @return token
+# 	 */
+async def process_gettoken(mqtt_result):
+    global arr,token
+    id_systemp = int(arr[1])
+    if mqtt_result:
+        for item in mqtt_result:
+            if int(item["id_device"]) == id_systemp :
+                # Get rated_power , rated_power_custom from message
+                token = item.get("token")
+                
 # Describe caculator_total_wmaxman_fault
 # /**
 # 	 * @description caculator_total_wmaxman_fault
@@ -1943,6 +1960,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
                             "status": 200,
                         }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
+        # Just change mode and don't do anything else
         if not "rated_power_custom" in item and not "rated_power" in item:
             # check data change mode device action
             if not item["parameter"] and device_mode == 1:

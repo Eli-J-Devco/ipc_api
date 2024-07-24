@@ -465,7 +465,6 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            print("data_send",data_send)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
@@ -1266,6 +1265,8 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
+                            print("value_power_limit",value_power_limit)
+                            print("value_offset_power_limit",value_offset_power_limit)
             # When you receive one of the above information, give feedback to mqtt
             if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power_systemp):
                 comment = 400 
