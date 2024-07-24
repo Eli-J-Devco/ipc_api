@@ -2000,12 +2000,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
         result_topic1 = mqtt_result
-        # return message mode when switching from man to auto
-        await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
         await process_update_mode_for_device(mqtt_result)
+        # return message mode when switching from man to auto
+        await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
