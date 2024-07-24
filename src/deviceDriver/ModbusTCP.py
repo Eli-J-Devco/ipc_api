@@ -1868,7 +1868,7 @@ async def extract_device_control_params():
 # 	 * @author bnguyen
 # 	 * @since 17-06-2024
 # 	 * @param {result_topic1,power_limit}
-# 	 * @return comment ,watt,custom_watt
+# 	 * @return comment,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
     global arr,device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
@@ -1903,13 +1903,13 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 print("Comment trong" , comment)
             
     return comment,watt,custom_watt
-# Describe updates_ratedpower_from_message
+# Describe caculator_total_wmaxman_fault
 # /**
-# 	 * @description updates_ratedpower_from_message
+# 	 * @description caculator_total_wmaxman_fault
 # 	 * @author bnguyen
 # 	 * @since 17-06-2024
-# 	 * @param {result_topic1,power_limit}
-# 	 * @return comment ,watt,custom_watt
+# 	 * @param {mqtt_result,id_systemp,wmax,device_mode}
+# 	 * @return total_wmax_man_temp
 # 	 */
 async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode):
     global device_list
