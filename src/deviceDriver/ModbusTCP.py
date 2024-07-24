@@ -1871,7 +1871,7 @@ async def extract_device_control_params():
 # 	 * @return comment,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr,device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export
+    global arr,device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export,rated_power,rated_power_custom
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1895,7 +1895,10 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-            
+            else:
+                watt = rated_power
+                custom_watt = rated_power_custom
+                
     return comment,watt,custom_watt
 # Describe caculator_total_wmaxman_fault
 # /**
