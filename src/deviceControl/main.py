@@ -320,6 +320,12 @@ async def get_cpu_information(serial_number_project, mqtt_host, mqtt_port, mqtt_
                             mqtt_username,
                             mqtt_password,
                             system_info)
+        push_data_to_mqtt(mqtt_host,
+                            mqtt_port,
+                            topicPublic + "Binh",
+                            mqtt_username,
+                            mqtt_password,
+                            system_info)
     except Exception as err:
         print(f"Error MQTT subscribe get_cpu_information: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
