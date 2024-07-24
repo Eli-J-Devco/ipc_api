@@ -2021,6 +2021,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
             if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0) and ("rated_power_custom" in item and "rated_power" in item for item in mqtt_result):
+                print("mqtt_result",mqtt_result)
                 rated_power = watt
                 rated_power_custom = custom_watt
             power_limit_percent = power_limit_percent_temp
