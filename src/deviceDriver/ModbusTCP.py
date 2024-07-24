@@ -1883,6 +1883,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 # Get rated_power , rated_power_custom from message
                 custom_watt = item.get("rated_power_custom", 0)
                 watt = item.get("rated_power", 0)
+                print("custom_watt trong" ,custom_watt)
+                print("watt trong" ,watt)
                 # caculator when rated_power_custom is null
                 if custom_watt is None:
                     rated_power_custom_calculator = watt
@@ -1896,7 +1898,8 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-    return comment ,watt,custom_watt
+                print("Comment trong" , comment)
+    return comment,watt,custom_watt
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
