@@ -1734,6 +1734,8 @@ async def process_update_mode_for_device(mqtt_result):
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
+                    print("device_mode",device_mode)
+                    print("id_device",id_device)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
