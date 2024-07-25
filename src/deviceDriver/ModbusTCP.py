@@ -975,6 +975,7 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
+                                print("device_mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
