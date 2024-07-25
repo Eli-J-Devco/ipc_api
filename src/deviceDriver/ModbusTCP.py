@@ -909,6 +909,7 @@ async def write_device(
     global reactive_limit_percent
     global reactive_limit_percent_enable
     global rated_reactive_custom
+    global rated_power_custom_calculator
     global result_topic1 # result topic 
     global result_topic3 
     global mode_each_device
@@ -1081,6 +1082,7 @@ async def write_device(
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                         # convert back to actual value
                                         if result_slope and slope and id_pointkey == 'WMax' :
+                                            power_limit_percent = int((value / rated_power_custom_calculator) * 100)
                                             slope = float(result_slope[0]['slope'])
                                             value = value/slope
                                             value = round(value)
@@ -2049,7 +2051,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation
         total_wmax_man_temp = 0
-        
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
