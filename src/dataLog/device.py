@@ -331,15 +331,24 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
+# async def Insert_TableDevice_AllDevice():
+#     global result_list
+#     manysql_queries = {}
+#     for item in result_list:
+#         sql_id = item["id"]
+#         result_sql_queries = await Insert_TableDevice(sql_id)
+#         if result_sql_queries:
+#             manysql_queries[sql_id] = result_sql_queries
+#     MySQL_Insert_v3(manysql_queries)
 async def Insert_TableDevice_AllDevice():
     global result_list
-    manysql_queries = {}
+    tasks = []
     for item in result_list:
         sql_id = item["id"]
-        result_sql_queries = await Insert_TableDevice(sql_id)
-        if result_sql_queries:
-            manysql_queries[sql_id] = result_sql_queries
-    MySQL_Insert_v3(manysql_queries)
+        task = Insert_TableDevice(sql_id)
+        tasks.append(task)
+    
+    await asyncio.gather(*tasks)
 # Describe Insert_TableDevice
 # /**
 # 	 * @description create query from result_list

@@ -14,6 +14,8 @@ import platform
 from datetime import datetime
 import datetime
 import collections
+import base64
+import gzip
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 sys.stdout.reconfigure(encoding='utf-8')
@@ -400,7 +402,6 @@ async def pud_systemp_mode_trigger_each_device_change(mqtt_result, serial_number
         try:
             # Wait for up to 5 seconds for the data to be available
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
-            print("result_checkmode_control",result_checkmode_control)
             modes = set([item['mode'] for item in result_checkmode_control])
             if len(modes) == 1:
                 if 0 in modes:
@@ -465,8 +466,8 @@ async def pud_feedback_project_setup(mqtt_host, mqtt_port, topicPublic, mqtt_use
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            print("data_send",data_send)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, data_send )
+            print("data_send",data_send)
         except Exception as err:
             print(f"Error MQTT subscribe pud_feedback_project_setup: '{err}'")
     else:
@@ -695,7 +696,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if ModeSysTemp != 1:
                             if mode == 0:
                                 total_wmax_man_temp += wmax
-                                total_wmax_man = total_wmax_man_temp 
+                            else:
+                                total_wmax_man_temp += 0
+                            total_wmax_man = total_wmax_man_temp
                         else:
                             total_wmax_man = 0
                         
@@ -724,7 +727,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-
+    print("total_wmax_man",total_wmax_man)
+    print("value_power_limit",value_power_limit)
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
@@ -737,6 +741,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     # Caculator system_performance
     if total_wmax and value_production:
         system_performance = (value_production /total_wmax) * 100
+        
     elif value_production > 0 and not total_wmax:
         system_performance = 101
     else:
@@ -1266,6 +1271,8 @@ async def process_update_parameter_mode_detail(mqtt_result,serial_number_project
                             result_parameter_power_limit = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (value_power_limit_temp,value_offset_power_limit,))
                         # convert value kw to w 
                             value_power_limit = (value_power_limit - (value_power_limit*value_offset_power_limit)/100)
+                            print("value_power_limit",value_power_limit)
+                            print("value_offset_power_limit",value_offset_power_limit)
             # When you receive one of the above information, give feedback to mqtt
             if result_parameter_zero_export == None or result_parameter_power_limit == None or (value_power_limit_temp != None and value_power_limit_temp > total_power_systemp):
                 comment = 400 
@@ -1476,9 +1483,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-import base64
-import gzip
-
 def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))

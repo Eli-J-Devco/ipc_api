@@ -82,7 +82,7 @@ data_write_device=[]
 parameter = []
 count = 0 
 len_result_topic1 = 0
-
+token = ""
 
 result_topic1 = []
 result_topic2 = []
@@ -909,6 +909,7 @@ async def write_device(
     global reactive_limit_percent
     global reactive_limit_percent_enable
     global rated_reactive_custom
+    global rated_power_custom_calculator
     global result_topic1 # result topic 
     global result_topic3 
     global mode_each_device
@@ -1081,6 +1082,7 @@ async def write_device(
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                         # convert back to actual value
                                         if result_slope and slope and id_pointkey == 'WMax' :
+                                            power_limit_percent = int((value / rated_power_custom_calculator) * 100)
                                             slope = float(result_slope[0]['slope'])
                                             value = value/slope
                                             value = round(value)
@@ -1733,12 +1735,6 @@ async def process_update_mode_for_device(mqtt_result):
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
                         print("Failed to insert data")
-                else:
-                    pass
-            else:
-                pass
-    else:
-        pass
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
 # 	 * @author bnguyen
@@ -1831,14 +1827,14 @@ async def extract_device_control_params():
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
-                    power_limit_percent_temp = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                    power_limit_percent_temp = param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
                 elif param["id_pointkey"] == "VarMaxPercentEnable":
                     reactive_limit_percent_enable = param["value"]
                 elif param["id_pointkey"] == "VarMax":
                     reactive_power_limit = param["value"]
                 elif param["id_pointkey"] == "VarMaxPercent":
                     if rated_reactive_custom is not None:
-                        reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
+                        reactive_limit_percent = param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
                     else:
                         reactive_limit_percent = 0
                         rated_reactive_custom = 0
@@ -1896,6 +1892,22 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 200 
                 
     return comment,watt,custom_watt
+# Describe process_gettoken
+# /**
+# 	 * @description process_gettoken
+# 	 * @author bnguyen
+# 	 * @since 17-06-2024
+# 	 * @param {mqtt_result}
+# 	 * @return token
+# 	 */
+async def process_gettoken(mqtt_result):
+    global arr,token
+    id_systemp = int(arr[1])
+    if mqtt_result:
+        for item in mqtt_result:
+            if int(item["id_device"]) == id_systemp :
+                # Get rated_power , rated_power_custom from message
+                token = item.get("token")
 # Describe caculator_total_wmaxman_fault
 # /**
 # 	 * @description caculator_total_wmaxman_fault
@@ -1949,6 +1961,16 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
                             "status": 200,
                         }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
+        # Just change mode and don't do anything else
+        if not "rated_power_custom" in item and not "rated_power" in item:
+            # check data change mode device action
+            if not item["parameter"] and device_mode == 1:
+                mode_each_device = device_mode
+                data_send = {
+                            "time_stamp": current_time,
+                            "status": 200,
+                        }
+                mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
 # Describe process_sud_control_auto_man
 # /**
 # 	 * @description process_sud_control_auto_man
@@ -2020,15 +2042,14 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
-            if (device_mode == 0 and power_limit <= watt) or (device_mode == 1 and watt >= 0):
+            if watt > 0:
                 rated_power = watt
                 rated_power_custom = custom_watt
-            power_limit_percent = power_limit_percent_temp
-            MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
-            MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
+                power_limit_percent = power_limit_percent_temp
+                MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
+                MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation
         total_wmax_man_temp = 0
-        
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
