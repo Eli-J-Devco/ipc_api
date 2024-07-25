@@ -696,8 +696,9 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         if ModeSysTemp != 1:
                             if mode == 0:
                                 total_wmax_man_temp += wmax
-                                total_wmax_man = total_wmax_man_temp
-                                total_wmax_man_temp = 0
+                            else:
+                                total_wmax_man_temp += 0
+                            total_wmax_man = total_wmax_man_temp
                         else:
                             total_wmax_man = 0
                         
