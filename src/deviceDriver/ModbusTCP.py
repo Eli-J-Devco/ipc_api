@@ -2019,7 +2019,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     power_limit_percent_temp = 0
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
-        result_topic1 = mqtt_result
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
@@ -2048,6 +2047,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
             print("tra ket qua ve ok")
+            result_topic1 = mqtt_result
             if watt > 0:
                 rated_power = watt
                 rated_power_custom = custom_watt
