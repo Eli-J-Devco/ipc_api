@@ -948,7 +948,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent,result_topic8
+    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent,bitcheck8
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -959,6 +959,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
+        if bitcheck8 :
+            await asyncio.sleep(10)
+            bitcheck8 = 0
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
@@ -1021,7 +1024,8 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
-        if len(devices) == len(device_list_control_power_limit) :
+        
+        if len(devices) == len(device_list_control_power_limit) and bitcheck8 == 0:
             mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
@@ -1035,7 +1039,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent,result_topic8
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent,bitcheck8
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1085,6 +1089,10 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     # Get information about power in database and variable devices
     if devices:
         device_list_control_power_limit = []
+        if bitcheck8 :
+            await asyncio.sleep(10)
+            bitcheck8 = 0
+            
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
@@ -1143,7 +1151,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     }
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
-        if len(devices) == len(device_list_control_power_limit) :
+        if len(devices) == len(device_list_control_power_limit) and bitcheck8 == 0:
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_zero_export = 0
@@ -1383,32 +1391,24 @@ async def process_getfirst_zeroexport_powerlimit():
 # 	 */ 
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
-    global control_mode_detail,bitcheck8
+    global control_mode_detail
     # Select the auto run process
-    if bitcheck8 :
-        await asyncio.sleep(10)
-        bitcheck8 = 0
-        print("da vao hang doi")
-        if control_mode_detail == 1 :
-            print("==============================zero_export==============================")
-            await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-        elif control_mode_detail == 2 :
-            print("==============================power_limit==============================")
-            await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-        else :
-            print("=======================power_min========================")
-            await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    else: 
-        if control_mode_detail == 1 :
-            print("==============================zero_export==============================")
-            await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-        elif control_mode_detail == 2 :
-            print("==============================power_limit==============================")
-            await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-        else :
-            print("=======================power_min========================")
-            await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-        
+    if control_mode_detail == 1 :
+        print("==============================zero_export==============================")
+        await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+    elif control_mode_detail == 2 :
+        print("==============================power_limit==============================")
+        await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+    else :
+        print("=======================power_min========================")
+        await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+# Describe process_zero_export_power_limit 
+# 	 * @description process_zero_export_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
+
 ############################################################################ Sud MQTT ############################################################################
 # Describe process_message 
 # 	 * @description pud_systemp_mode_trigger_each_device_change
