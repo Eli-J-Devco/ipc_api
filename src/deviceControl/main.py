@@ -1022,16 +1022,9 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :
-            # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
-            if result_topic8 : 
-                await asyncio.sleep(10)
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
-                push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-                p_for_each_device_power_limit = 0
-            else:
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
-                push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-                p_for_each_device_power_limit = 0
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+            p_for_each_device_power_limit = 0
 ############################################################################ Zero Export Control ############################################################################
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -1042,7 +1035,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent,result_topic10
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent,result_topic8
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1151,15 +1144,9 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
-            if result_topic10:
-                await asyncio.sleep(10)
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-                push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-                p_for_each_device_zero_export = 0
-            else:
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-                push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-                p_for_each_device_zero_export = 0
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+            p_for_each_device_zero_export = 0
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1479,7 +1466,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
-            # await asyncio.sleep(10)
+            await asyncio.sleep(10)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)
