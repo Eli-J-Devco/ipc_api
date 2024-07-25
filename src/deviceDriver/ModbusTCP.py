@@ -975,7 +975,6 @@ async def write_device(
                                 modbus_func= item["modbus_func"]
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
-                                print("device_mode",device_mode)
                                 # Man Mode
                                 if device_mode == 0 and value != None: 
                                     print("---------- Manual control mode ----------")
@@ -1049,7 +1048,6 @@ async def write_device(
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3 and device_mode == 1:
-        print("result_topic3",result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1727,15 +1725,12 @@ async def process_update_mode_for_device(mqtt_result):
     id_systemp = int(id_systemp)
     # Switch to user mode that is both man and auto
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
-        print("mqtt_result",mqtt_result)
         for item in mqtt_result:
             id_device = int(item["id_device"])
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
                     device_mode = int(item["mode"])
-                    print("device_mode",device_mode)
-                    print("id_device",id_device)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
@@ -2022,11 +2017,9 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
-        print("mqtt_result",mqtt_result)
         await process_update_mode_for_device(mqtt_result)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
-        print("device_mode 2 ",device_mode)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
@@ -2034,7 +2027,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
         comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
-        print("da vao ham man")
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
@@ -2047,7 +2039,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
-            print("tra ket qua ve ok")
             result_topic1 = mqtt_result
             if watt > 0:
                 rated_power = watt
