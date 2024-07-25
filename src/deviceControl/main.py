@@ -79,8 +79,8 @@ total_wmax_man = 0
 result_topic1 = []
 result_topic4 = []
 result_topic5 = []
-result_topic8 = []
 bitcheck1 = 0
+bitcheck8 = 0
 
 result_ModeSysTemp = []
 result_ModeDevice = []
@@ -1383,10 +1383,11 @@ async def process_getfirst_zeroexport_powerlimit():
 # 	 */ 
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
-    global control_mode_detail,result_topic8
+    global control_mode_detail,bitcheck8
     # Select the auto run process
-    if result_topic8 :
+    if bitcheck8 :
         await asyncio.sleep(10)
+        bitcheck8 = 0
         print("da vao hang doi")
         if control_mode_detail == 1 :
             print("==============================zero_export==============================")
@@ -1433,12 +1434,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic5 = ""
     result_topic6 = ""
     result_topic7 = ""
+    result_topic8 = ""
     result_topic9 = ""
     
     global result_topic4
     global result_topic1
-    global result_topic8
     global bitcheck1 
+    global bitcheck8
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODEGET_INFORMATION
@@ -1480,6 +1482,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
+            bitcheck8 = 1
             # await asyncio.sleep(10)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
