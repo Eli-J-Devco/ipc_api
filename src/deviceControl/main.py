@@ -1491,7 +1491,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
             bitcheck8 = 1
-            # await asyncio.sleep(10)
+            # await asyncio.sleep(5)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)
