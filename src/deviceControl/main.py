@@ -79,6 +79,7 @@ total_wmax_man = 0
 result_topic1 = []
 result_topic4 = []
 result_topic5 = []
+result_topic10 = []
 bitcheck1 = 0
 
 result_ModeSysTemp = []
@@ -122,6 +123,7 @@ MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
 MQTT_TOPIC_SUD_SETTING_ARLAM = "/Control/Alarm/Setting"
 MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK = "/Control/Alarm/Feedback"
+MQTT_TOPIC_SUD_FEEDBACK_WRITE = "/Control/Feedback"
 MQTT_TOPIC_SUD_MODIFY_DEVICE = "/Control/Modify"
 
 def path_directory_relative(project_name):
@@ -946,7 +948,7 @@ async def monit_value_meter(serial_number_project, mqtt_host, mqtt_port, mqtt_us
 # 	 */ 
 async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent
+    global result_topic4, value_power_limit, devices, value_production, total_power, MQTT_TOPIC_PUD_CONTROL_AUTO, p_for_each_device_power_limit,total_wmax_man,ModeSystempCurrent,result_topic10
     # Local variables
     power_max_device = 0
     power_min_device = 0
@@ -1021,9 +1023,15 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
         if len(devices) == len(device_list_control_power_limit) :
             # print("p_for_each_device_power_limit",p_for_each_device_power_limit)
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
-            push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-            p_for_each_device_power_limit = 0
+            if result_topic10 : 
+                await asyncio.sleep(10)
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+                push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+                p_for_each_device_power_limit = 0
+            else:
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
+                push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+                p_for_each_device_power_limit = 0
 ############################################################################ Zero Export Control ############################################################################
 # Describe process_caculator_zero_export 
 # 	 * @description process_caculator_zero_export
@@ -1034,7 +1042,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
 # 	 */ 
 async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent
+    global result_topic4 ,value_threshold_zero_export ,value_offset_zero_export , value_consumption , devices , value_production ,total_power ,MQTT_TOPIC_PUD_CONTROL_AUTO,p_for_each_device_zero_export,consumption_queue,total_wmax_man,ModeSystempCurrent,result_topic10
     # Local variables
     efficiency_total = 0
     id_device = 0
@@ -1143,15 +1151,15 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
         if len(devices) == len(device_list_control_power_limit) :
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
-            # print("Value setpoint", setpoint)
-            # print("total_power",total_power)
-            # print("P Feedback production", value_production)
-            # print("P Feedback consumption", value_consumption)
-            p_for_each_device_zero_export = 0
-        else:
-            pass
+            if result_topic10:
+                await asyncio.sleep(10)
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+                push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+                p_for_each_device_zero_export = 0
+            else:
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
+                push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
+                p_for_each_device_zero_export = 0
 # Describe process_not_choose_zero_export_power_limit 
 # 	 * @description process_not_choose_zero_export_power_limit
 # 	 * @author bnguyen
@@ -1417,6 +1425,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     global MQTT_TOPIC_SUD_SETTING_ARLAM
     global MQTT_TOPIC_SUD_MODIFY_DEVICE
+    global MQTT_TOPIC_SUD_FEEDBACK_WRITE
 
     result_topic2 = ""
     result_topic3 = ""
@@ -1425,9 +1434,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic7 = ""
     result_topic8 = ""
     result_topic9 = ""
+    result_topic10 
     
     global result_topic4
     global result_topic1
+    global result_topic10
     global bitcheck1 
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
@@ -1439,6 +1450,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     topic7 = serial_number_project + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     topic8 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic9 = serial_number_project + MQTT_TOPIC_SUD_MODIFY_DEVICE
+    topic10 = serial_number_project + MQTT_TOPIC_SUD_FEEDBACK_WRITE
     try:
         if topic == topic1:
             result_topic1 = message
@@ -1469,10 +1481,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
-            await asyncio.sleep(10)
+            # await asyncio.sleep(10)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)
+        elif topic == topic10:
+            result_topic10 = message
+            print("result_topic7",result_topic7)
     except Exception as err:
         print(f"Error MQTT subscribe process_message: '{err}'")
 # Describe gzip_decompress 
@@ -1516,8 +1531,8 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8,topic9):
-    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8, serial_number_project +topic9]
+async def sub_mqtt(host, port, username, password, serial_number_project, topic1, topic2, topic3, topic4, topic5, topic6,topic7,topic8,topic9,topic10):
+    topics = [serial_number_project + topic1, serial_number_project + topic2, serial_number_project +topic3, serial_number_project +topic4, serial_number_project +topic5, serial_number_project +topic6, serial_number_project +topic7, serial_number_project +topic8, serial_number_project +topic9, serial_number_project +topic10]
     try:
         client = mqttools.Client(
             host=host,
@@ -1583,6 +1598,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                 MQTT_TOPIC_SUD_CONTROL_MAN ,
                                                 MQTT_TOPIC_SUD_MODIFY_DEVICE,
+                                                MQTT_TOPIC_SUD_FEEDBACK_WRITE,
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
