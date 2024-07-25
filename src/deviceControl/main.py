@@ -1383,17 +1383,31 @@ async def process_getfirst_zeroexport_powerlimit():
 # 	 */ 
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
-    global control_mode_detail
+    global control_mode_detail,result_topic8
     # Select the auto run process
-    if control_mode_detail == 1 :
-        print("==============================zero_export==============================")
-        await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    elif control_mode_detail == 2 :
-        print("==============================power_limit==============================")
-        await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    else :
-        print("=======================power_min========================")
-        await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+    if result_topic8 :
+        await asyncio.sleep(10)
+        print("da vao hang doi")
+        if control_mode_detail == 1 :
+            print("==============================zero_export==============================")
+            await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        elif control_mode_detail == 2 :
+            print("==============================power_limit==============================")
+            await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        else :
+            print("=======================power_min========================")
+            await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+    else: 
+        if control_mode_detail == 1 :
+            print("==============================zero_export==============================")
+            await process_caculator_zero_export(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        elif control_mode_detail == 2 :
+            print("==============================power_limit==============================")
+            await process_caculator_p_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        else :
+            print("=======================power_min========================")
+            await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        
 ############################################################################ Sud MQTT ############################################################################
 # Describe process_message 
 # 	 * @description pud_systemp_mode_trigger_each_device_change
@@ -1466,7 +1480,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
-            await asyncio.sleep(10)
+            # await asyncio.sleep(10)
             result_topic8 = message
             await pud_systemp_mode_trigger_each_device_change(result_topic8,serial_number_project, host, port, username, password)
             print("result_topic8",result_topic8)
