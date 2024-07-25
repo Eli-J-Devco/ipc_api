@@ -959,9 +959,6 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
-        if bitcheck8 :
-            await asyncio.sleep(10)
-            bitcheck8 = 0
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
@@ -1089,10 +1086,6 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     # Get information about power in database and variable devices
     if devices:
         device_list_control_power_limit = []
-        if bitcheck8 :
-            await asyncio.sleep(10)
-            bitcheck8 = 0
-            
         for device in devices:
             id_device = device["id_device"]
             mode = device["mode"]
@@ -1392,6 +1385,7 @@ async def process_getfirst_zeroexport_powerlimit():
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global control_mode_detail
+    await waitting_process_man()
     # Select the auto run process
     if control_mode_detail == 1 :
         print("==============================zero_export==============================")
@@ -1402,6 +1396,20 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
     else :
         print("=======================power_min========================")
         await process_not_choose_zero_export_power_limit(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+# Describe process_zero_export_power_limit 
+# 	 * @description process_zero_export_power_limit
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
+# 	 */ 
+async def waitting_process_man():
+    # Global variables 
+    global bitcheck8
+    # Select the auto run process
+    if bitcheck8 == 1 :
+        await asyncio.sleep(10)
+        bitcheck8 = 0
 # Describe process_zero_export_power_limit 
 # 	 * @description process_zero_export_power_limit
 # 	 * @author bnguyen
