@@ -1825,14 +1825,15 @@ async def extract_device_control_params():
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
-                    power_limit_percent_temp = power_limit_percent_enable and param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                    power_limit_percent_temp = param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                    print("power_limit_percent_temp",power_limit_percent_temp)
                 elif param["id_pointkey"] == "VarMaxPercentEnable":
                     reactive_limit_percent_enable = param["value"]
                 elif param["id_pointkey"] == "VarMax":
                     reactive_power_limit = param["value"]
                 elif param["id_pointkey"] == "VarMaxPercent":
                     if rated_reactive_custom is not None:
-                        reactive_limit_percent = reactive_limit_percent_enable and param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
+                        reactive_limit_percent = param["value"] or int((reactive_power_limit / rated_reactive_custom) * 100)
                     else:
                         reactive_limit_percent = 0
                         rated_reactive_custom = 0
@@ -1906,7 +1907,6 @@ async def process_gettoken(mqtt_result):
             if int(item["id_device"]) == id_systemp :
                 # Get rated_power , rated_power_custom from message
                 token = item.get("token")
-                
 # Describe caculator_total_wmaxman_fault
 # /**
 # 	 * @description caculator_total_wmaxman_fault
