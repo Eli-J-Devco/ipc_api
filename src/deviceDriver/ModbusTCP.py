@@ -2026,6 +2026,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         await process_update_mode_for_device(mqtt_result)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
+        print("device_mode 2 ",device_mode)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
