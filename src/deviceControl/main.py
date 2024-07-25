@@ -1022,7 +1022,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             # Accumulate devices that are eligible to run automatically to push to mqtt
             device_list_control_power_limit.append(new_device)
         
-        if len(devices) == len(device_list_control_power_limit) and bitcheck8 == 0:
+        if len(devices) == len(device_list_control_power_limit) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
@@ -1144,7 +1144,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
                     }
             device_list_control_power_limit.append(new_device)
         # Push data to MQTT
-        if len(devices) == len(device_list_control_power_limit) and bitcheck8 == 0:
+        if len(devices) == len(device_list_control_power_limit):
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicpud, mqtt_username, mqtt_password, device_list_control_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicpud + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_zero_export = 0
@@ -1385,7 +1385,7 @@ async def process_getfirst_zeroexport_powerlimit():
 async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global control_mode_detail
-    await waitting_process_man()
+    # await waitting_process_man()
     # Select the auto run process
     if control_mode_detail == 1 :
         print("==============================zero_export==============================")

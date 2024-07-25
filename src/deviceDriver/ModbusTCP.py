@@ -1043,6 +1043,7 @@ async def write_device(
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
+                            bitcheck_topic1 = 0
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
@@ -2033,7 +2034,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
             device_mode = mode_each_device
-            bitcheck_topic1 = 0
             # feedback data to mqtt 
             data_send = {
                     "time_stamp": current_time,
@@ -2084,12 +2084,12 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
-            bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
+                bitcheck_topic1 = 1
                 result_topic1_Temp = message
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-            elif topic == topic3 :
+            elif topic == topic3 and bitcheck_topic1 == 0:
                 result_topic3 = message
         elif topic == topic2:
             result_topic2 = message
