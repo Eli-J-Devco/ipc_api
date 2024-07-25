@@ -123,7 +123,7 @@ MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
 MQTT_TOPIC_SUD_SETTING_ARLAM = "/Control/Alarm/Setting"
 MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK = "/Control/Alarm/Feedback"
-MQTT_TOPIC_SUD_FEEDBACK_WRITE = "/Control/Feedback"
+MQTT_TOPIC_SUD_FEEDBACK_WRITE = "/Control/Write"
 MQTT_TOPIC_SUD_MODIFY_DEVICE = "/Control/Modify"
 
 def path_directory_relative(project_name):
