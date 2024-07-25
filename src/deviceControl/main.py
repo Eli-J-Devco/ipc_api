@@ -1408,7 +1408,6 @@ async def choose_mode_auto_detail(serial_number_project,mqtt_host ,mqtt_port ,mq
 # 	 * @return each topic , each message
 # 	 */ 
 async def process_message(topic, message,serial_number_project, host, port, username, password):
-
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     global MQTT_TOPIC_SUD_MODEGET_INFORMATION
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO
