@@ -1434,7 +1434,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic7 = ""
     result_topic8 = ""
     result_topic9 = ""
-    result_topic10 
     
     global result_topic4
     global result_topic1
