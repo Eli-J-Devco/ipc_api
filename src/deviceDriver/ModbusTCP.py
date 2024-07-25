@@ -1727,6 +1727,7 @@ async def process_update_mode_for_device(mqtt_result):
     id_systemp = int(id_systemp)
     # Switch to user mode that is both man and auto
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
+        print("mqtt_result",mqtt_result)
         for item in mqtt_result:
             id_device = int(item["id_device"])
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
@@ -2020,6 +2021,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
+        print("mqtt_result",mqtt_result)
         await process_update_mode_for_device(mqtt_result)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
