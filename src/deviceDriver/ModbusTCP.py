@@ -1827,10 +1827,7 @@ async def extract_device_control_params():
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
-                    if power_limit_percent_enable:
-                        power_limit_percent_temp = param["value"]
-                    else:
-                        power_limit_percent_temp = int((power_limit / rated_power_custom_calculator) * 100)
+                    power_limit_percent_temp = param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
                 elif param["id_pointkey"] == "VarMaxPercentEnable":
                     reactive_limit_percent_enable = param["value"]
                 elif param["id_pointkey"] == "VarMax":
