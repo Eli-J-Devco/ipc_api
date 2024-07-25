@@ -947,7 +947,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 or result_topic3:
+    if result_topic1:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -965,7 +965,7 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info",inverter_info)
+                            print("inverter_info man",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -1055,7 +1055,7 @@ async def write_device(
             if id_systemp == device_control :
                 parameter = item['parameter']
                 if parameter :
-                    print("---------- write data from Device ----------")
+                    print("---------- write data auto from Device ----------")
                     try:
                         # Check Id is INV
                         if device_control : 
@@ -1065,7 +1065,7 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info",inverter_info)
+                            print("inverter_info auto",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
