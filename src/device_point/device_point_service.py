@@ -13,11 +13,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .device_point_entity import DevicePointMap as DevicePointEntity
 from .device_point_filter import PointActionFilter, ConfigPointValueUpdateFilter, PointUpdateFilter
 from .device_point_model import DevicePoint, DevicePointOutput, EnableField, TemplatePoint, PointUnit
+from ..config import env_config
 from ..devices.devices_entity import Devices
+from ..devices.devices_filter import CodeEnum
+from ..devices.devices_service import DevicesService
 from ..point.point_entity import Point
 from ..project_setup.project_setup_filter import ConfigInformationType
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..template.template_entity import Template
+from ..utils.service_wrapper import ServiceWrapper
 
 
 @Injectable
@@ -127,6 +131,19 @@ class DevicePointService:
                      .where(DevicePointEntity.id == value.id_point)
                      .values(value.dict(exclude={"id_point"})))
             await session.execute(query)
+        update_msg = {
+            "CODE": CodeEnum.UpdateDev.name,
+            "PAYLOAD": {
+                "id": body.id_device,
+                "code": 1,
+            }
+        }
+        serial_number = await ProjectSetupService().get_project_serial_number(session)
+        device_services = DevicesService()
+        await ServiceWrapper.publish_message(publisher=device_services.publisher,
+                                             topic=f"{serial_number}/{env_config.MQTT_INITIALIZE_TOPIC}",
+                                             message=[update_msg],
+                                             publisher_info=await device_services.get_publisher_info(session), )
         await session.commit()
         return await self.get_device_point(body.id_device, session)
 
