@@ -1928,22 +1928,16 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
     total_wmax_man_temp = 0
     print("device_list",device_list)
     print("total_wmax_man_temp",total_wmax_man)
-    for item in mqtt_result:
-        # Check whether the message has rated power or not
-        if "rated_power_custom" in item and "rated_power" in item:
-            # Calculate whether the latest p-value recorded exceeds the allowable limit or not
-            for device in device_list:
-                if device["id_device"] == id_systemp:
-                    device["wmax"] = wmax
-                    device["mode"] = device_mode
-                    break
-            # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
-            for device in device_list:
-                if device["wmax"] is not None:
-                    if device["mode"] == 0:
-                        total_wmax_man_temp += device["wmax"]
-                    else:
-                        total_wmax_man_temp += 0
+    # Calculate whether the latest p-value recorded exceeds the allowable limit or not
+    for device in device_list:
+        if device["id_device"] == id_systemp:
+            device["wmax"] = wmax
+            device["mode"] = device_mode
+            if device["wmax"] is not None:
+                if device["mode"] == 0:
+                    total_wmax_man_temp += device["wmax"]
+                else:
+                    total_wmax_man_temp += 0
     print("total_wmax_man_temp",total_wmax_man)
     return total_wmax_man_temp
 # Describe update_para_auto_mode
