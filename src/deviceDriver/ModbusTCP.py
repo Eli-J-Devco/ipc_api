@@ -1937,14 +1937,13 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
                     device["mode"] = device_mode
                     break
     # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
-    print("device_list 1",device_list)
+    await asyncio.sleep(3)
     for device in device_list:
         if device["wmax"] is not None:
             if device["mode"] == 0:
                 total_wmax_man_temp += device["wmax"]
-        else:
-            device["wmax"] = 0
-            
+            else:
+                total_wmax_man_temp += 0
     return total_wmax_man_temp
 # Describe update_para_auto_mode
 # /**
