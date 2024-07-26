@@ -1932,7 +1932,7 @@ async def caculator_total_wmaxman_fault(mqtt_result, id_systemp, wmax, device_mo
         if device["id_device"] == id_systemp:
             device["wmax"] = wmax
             device["mode"] = device_mode
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
     print("device_list",device_list)
     # Tính tổng wmax cho các thiết bị có mode = 0
     for device in device_list:
