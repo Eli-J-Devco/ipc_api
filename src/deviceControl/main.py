@@ -1084,7 +1084,7 @@ async def process_caculator_zero_export(serial_number_project, mqtt_host, mqtt_p
     # asyncio.sleep(2)
     if result_topic4:
         devices = await get_list_device_in_automode(result_topic4)
-    if value_production :
+    if value_consumption > 0 :
         system_performance = (value_production /value_consumption) * 100
     else:
         system_performance = 0
