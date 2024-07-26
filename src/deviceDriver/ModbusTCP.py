@@ -1923,23 +1923,28 @@ async def process_gettoken(mqtt_result):
 # 	 * @param {mqtt_result,id_systemp,wmax,device_mode}
 # 	 * @return total_wmax_man_temp
 # 	 */
-async def caculator_total_wmaxman_fault(mqtt_result, id_systemp, wmax, device_mode):
+async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode):
     global device_list
     total_wmax_man_temp = 0
-    print("device_list", device_list)
-    # Lọc qua device_list
-    for device in device_list:
-        if device["id_device"] == id_systemp:
-            device["wmax"] = wmax
-            device["mode"] = device_mode
-    await asyncio.sleep(2)
     print("device_list",device_list)
-    # Tính tổng wmax cho các thiết bị có mode = 0
+    for item in mqtt_result:
+        # Check whether the message has rated power or not
+        if "rated_power_custom" in item and "rated_power" in item:
+            # Calculate whether the latest p-value recorded exceeds the allowable limit or not
+            for device in device_list:
+                if device["id_device"] == id_systemp:
+                    device["wmax"] = wmax
+                    device["mode"] = device_mode
+                    break
+    # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
+    print("device_list 1",device_list)
     for device in device_list:
-        if device["mode"] == 0 and device["wmax"] is not None:
-            total_wmax_man_temp += device["wmax"]
-
-    print("total_wmax_man_temp", total_wmax_man_temp)
+        if device["wmax"] is not None:
+            if device["mode"] == 0:
+                total_wmax_man_temp += device["wmax"]
+        else:
+            device["wmax"] = 0
+            
     return total_wmax_man_temp
 # Describe update_para_auto_mode
 # /**
