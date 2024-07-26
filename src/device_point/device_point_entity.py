@@ -25,6 +25,9 @@ class DevicePointMap(config.Base):
     low_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     high_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     output_values: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    control_min: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    control_max: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
 
     point_list = relationship("Point",

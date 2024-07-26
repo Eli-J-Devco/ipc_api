@@ -11,7 +11,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .device_point_entity import DevicePointMap as DevicePointEntity
-from .device_point_filter import PointActionFilter, AlarmValueUpdateFilter, PointUpdateFilter
+from .device_point_filter import PointActionFilter, ConfigPointValueUpdateFilter, PointUpdateFilter
 from .device_point_model import DevicePoint, DevicePointOutput, EnableField, TemplatePoint, PointUnit
 from ..devices.devices_entity import Devices
 from ..point.point_entity import Point
@@ -112,7 +112,7 @@ class DevicePointService:
         await session.execute(query)
 
     @async_db_request_handler
-    async def update_alarm_values(self, body: AlarmValueUpdateFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
+    async def update_alarm_values(self, body: ConfigPointValueUpdateFilter, session: AsyncSession) -> DevicePointOutput | HTTPException:
         """
         Update alarm values by id
         :author: nhan.tran
@@ -125,7 +125,7 @@ class DevicePointService:
             query = (update(DevicePointEntity)
                      .where(DevicePointEntity.id_device_list == body.id_device)
                      .where(DevicePointEntity.id == value.id_point)
-                     .values(low_alarm=value.low_alarm, high_alarm=value.high_alarm))
+                     .values(value.dict(exclude={"id_point"})))
             await session.execute(query)
         await session.commit()
         return await self.get_device_point(body.id_device, session)

@@ -25,6 +25,8 @@ class DevicePoint(BaseModel):
     unit: Optional[PointUnit] = None
     low_alarm: float
     high_alarm: float
+    control_min: float
+    control_max: float
     output_values: float
     status: bool
     enable_edit: EnableField

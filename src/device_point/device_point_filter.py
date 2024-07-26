@@ -19,15 +19,17 @@ class PointActionFilter(BaseModel):
     action: str
 
 
-class AlarmValue(BaseModel):
+class ConfigPointValue(BaseModel):
     id_point: int
     low_alarm: float
     high_alarm: float
+    control_min: float
+    control_max: float
 
 
-class AlarmValueUpdateFilter(BaseModel):
+class ConfigPointValueUpdateFilter(BaseModel):
     id_device: int
-    values: list[AlarmValue]
+    values: list[ConfigPointValue]
 
 
 class PointUpdateFilter(BaseModel):

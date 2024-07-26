@@ -6,7 +6,7 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .device_point_filter import GetDevicePointMapFilter, PointActionFilter, AlarmValueUpdateFilter, PointUpdateFilter
+from .device_point_filter import GetDevicePointMapFilter, PointActionFilter, ConfigPointValueUpdateFilter, PointUpdateFilter
 from .device_point_service import DevicePointService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
@@ -36,7 +36,7 @@ class DevicePointController:
 
     @Post("/alarm/")
     async def update_alarm_value(self,
-                                 body: AlarmValueUpdateFilter,
+                                 body: ConfigPointValueUpdateFilter,
                                  session: AsyncSession = Depends(config.get_db),
                                  auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.device_point_service.update_alarm_values)(body, session)
