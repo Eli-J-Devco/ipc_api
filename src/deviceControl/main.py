@@ -741,7 +741,8 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
     # Caculator system_performance
     if total_wmax :
         system_performance = (value_production /total_wmax) * 100
-        
+        print("value_production",value_production)
+        print("total_wmax",total_wmax)
     elif value_production > 0 and not total_wmax:
         system_performance = 101
     else:
