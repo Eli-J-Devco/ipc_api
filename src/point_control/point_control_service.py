@@ -206,6 +206,43 @@ class PointControlService:
 
         return await self.get_template_detail(point.id_template, session)
 
+    @async_db_request_handler
+    async def add_control_group_with_points(self, groups: list[PointListControlGroupChildren], id_template: int,
+                                            session: AsyncSession) -> HTTPException | bool:
+        """
+        Add control group with points
+        :author: nhan.tran
+        :date: 26-07-2024
+        :param groups:
+        :param id_template:
+        :param session:
+        :return: bool
+        """
+        try:
+            for group in groups:
+                new_group = PointListControlGroup(**PointControl(**group.dict(exclude={"id_points",
+                                                                                       "add_type",
+                                                                                       "id_template",
+                                                                                       "namekey"}))
+                                                  .dict(exclude_unset=True),
+                                                  namekey=group.name.replace(" ", ""),
+                                                  id_template=id_template, )
+                session.add(new_group)
+                await session.flush()
+                if group.children:
+                    points = []
+                    for point in group.children:
+                        point.id_control_group = new_group.id
+                        points.append(Point(**PointBase(**point.dict(exclude={"id"}))
+                                            .dict(exclude_unset=True, exclude={"id_control_group"}),
+                                            id_template=new_group.id_template, id_control_group=new_group.id, ))
+                    session.add_all(points)
+        except Exception as e:
+            logging.error(f"Add control group with points error: {e}")
+            return HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                 detail="Add control group with points error")
+        return True
+
     # region Control Group
     @async_db_request_handler
     async def add_new_control_group(self, body: ControlGroupAddFilter,
@@ -251,7 +288,7 @@ class PointControlService:
                     point.id_control_group = new_group.id
                     points.append(Point(**PointBase(**point.dict(exclude={"id"}))
                                         .dict(exclude_unset=True, exclude={"id_control_group"}),
-                                  id_template=body.id_template, id_control_group=new_group.id,))
+                                        id_template=body.id_template, id_control_group=new_group.id, ))
 
                 session.add_all(points)
 

@@ -3,12 +3,13 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+from typing import Any, Sequence
 
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, Row, RowMapping
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .point_entity import Point as PointEntity, ManualPoint as ManualPointEntity
@@ -117,6 +118,23 @@ class PointService:
         result = await session.execute(query)
         points = result.scalars().all()
         return jsonable_encoder(points)
+
+    @async_db_request_handler
+    async def get_points_by_template(self, id_template: int, session: AsyncSession) -> Sequence[PointEntity]:
+        """
+        Get points by template ID
+        :author: nhan.tran
+        :date: 26-07-2024
+        :param id_template:
+        :param session:
+        :return: Sequence[PointEntity]
+        """
+
+        query = (select(PointEntity)
+                 .where(PointEntity.id_template == id_template))
+        result = await session.execute(query)
+        points = result.scalars().all()
+        return points
 
     @async_db_request_handler
     async def get_points_short(self, id_template: int, session: AsyncSession) -> list[PointShort]:

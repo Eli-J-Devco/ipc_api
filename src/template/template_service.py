@@ -18,6 +18,8 @@ from .template_entity import Template as TemplateEntity
 from .template_filter import GetTemplateFilter
 from .template_model import GetTemplate, TemplateOutput, TemplateConfig, TemplateBase
 from ..devices.devices_service import DevicesService
+from ..point.point_entity import Point as PointEntity
+from ..point.point_model import PointBase
 from ..point.point_filter import AddPointListFilter
 from ..point.point_service import PointService
 from ..point_config.point_config_model import PointListControlGroupChildren
@@ -146,6 +148,79 @@ class TemplateService:
         return TemplateOutput(points=points, point_mppt=point_mppt)
 
     @async_db_request_handler
+    async def add_new_template(self, new_template: TemplateBase,
+                               id_device_type: int,
+                               session: AsyncSession) -> None | HTTPException:
+        """
+        Add new template
+        :author: nhan.tran
+        :date: 26-07-2024
+        :param new_template:
+        :param id_device_type:
+        :param session:
+        :return:
+        """
+        points_to_add = await self.get_manual(id_device_type, session)
+        result = await self.point_service.add_point(session,
+                                                    AddPointListFilter(
+                                                        id_template=new_template.id,
+                                                        point=points_to_add.points
+                                                    ))
+
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point")
+
+        result = await self.point_mppt_service.add_mppt_point_formatted(points_to_add.point_mppt,
+                                                                        new_template.id,
+                                                                        session)
+
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point mppt")
+
+    @async_db_request_handler
+    async def duplicate_template(self, id_template: int, new_template_id: int,
+                                 session: AsyncSession) -> HTTPException | bool:
+        """
+        Duplicate template
+        :author: nhan.tran
+        :date: 26-07-2024
+        :param id_template:
+        :param new_template_id:
+        :param session:
+        :return: HTTPException | bool
+        """
+        points = await self.point_service.get_points(id_template, session)
+        points_mppt = await self.point_mppt_service.get_mppt_point_formatted(id_template, session)
+        points_control = await self.point_control_service.get_control_group_point(session, id_template)
+
+        try:
+            points = [PointEntity(**PointBase(**point)
+                                  .dict(exclude={"register_value", "id"}),
+                                  id_template=new_template_id,
+                                  register=point["register"])
+                      for point in points]
+            session.add_all(points)
+            await session.flush()
+        except Exception as e:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail=f"Error adding point {e}")
+
+        result = await self.point_mppt_service.add_mppt_point_formatted(points_mppt, new_template_id, session)
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point mppt")
+
+        result = await self.point_control_service.add_control_group_with_points(points_control,
+                                                                                new_template_id, session)
+        if not result:
+            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                 detail="Error adding point control")
+
+        return True
+
+    @async_db_request_handler
     async def get_template_detail(self, template: str, id_template: int, session: AsyncSession) -> TemplateOutput:
         """
         Get template detail by ID
@@ -209,10 +284,10 @@ class TemplateService:
                                .async_wrapper(RegisterBlockService(project_setup_service)
                                               .get_type_function)(session))
 
-        return TemplateConfig(**json.loads(point_config.body.decode("utf8"))
-        if isinstance(point_config, JSONResponse) else point_config,
-                              type_function=json.loads(type_function.body.decode("utf8"))
-                              if isinstance(type_function, JSONResponse) else type_function)
+        return TemplateConfig(
+            **json.loads(point_config.body.decode("utf8")) if isinstance(point_config, JSONResponse) else point_config,
+            type_function=json.loads(type_function.body.decode("utf8"))
+            if isinstance(type_function, JSONResponse) else type_function)
 
     @async_db_request_handler
     async def add_template(self, session: AsyncSession, new_template: TemplateBase) -> dict[str, int] | HTTPException:
@@ -236,36 +311,25 @@ class TemplateService:
         if id_device_type is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
 
-        points_to_add = await self.get_manual(id_device_type, session)
-
-        new_template = TemplateEntity(
-            **new_template.dict(exclude_unset=True)
+        add_template = TemplateEntity(
+            **new_template.dict(exclude_unset=True, exclude={"id"})
         )
 
-        session.add(new_template)
+        session.add(add_template)
         await session.flush()
 
-        result = await self.point_service.add_point(session,
-                                                    AddPointListFilter(
-                                                        id_template=new_template.id,
-                                                        point=points_to_add.points
-                                                    ))
+        result = None
+        if new_template.id is None:
+            result = await self.add_new_template(add_template, id_device_type, session)
+        else:
+            result = await self.duplicate_template(new_template.id, add_template.id, session)
 
-        if not result:
-            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                 detail="Error adding point")
-
-        result = await self.point_mppt_service.add_mppt_point_formatted(points_to_add.point_mppt,
-                                                                        new_template.id,
-                                                                        session)
-
-        if not result:
-            return HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                 detail="Error adding point mppt")
+        if isinstance(result, HTTPException):
+            return result
 
         await session.commit()
         return {
-            "id": new_template.id,
+            "id": add_template.id,
             "data": await self.get_template(GetTemplateFilter(type=1), session)
         }
 

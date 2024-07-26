@@ -60,6 +60,9 @@ class Point(config.Base):
     status: Mapped[bool] = mapped_column(Integer, nullable=False, default=True)
 
     control_type_input: Mapped[int] = mapped_column(Integer, nullable=True)
+    control_menu_order: Mapped[int] = mapped_column(Integer, nullable=True)
+    control_min: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    control_max: Mapped[float] = mapped_column(DOUBLE, nullable=True)
 
     template_library = relationship("Template", back_populates="point_list", foreign_keys=[id_template])
     type_units = relationship("ConfigInformation", foreign_keys=[id_type_units], lazy="immediate")

@@ -48,6 +48,9 @@ class PointBase(PointShort):
     active: Optional[bool] = None
     status: Optional[bool] = True
     control_type_input: Optional[int] = None
+    control_menu_order: Optional[int] = None
+    control_min: Optional[float] = 0
+    control_max: Optional[float] = 1
 
 
 class PointOutput(PointBase):
