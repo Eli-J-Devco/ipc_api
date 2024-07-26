@@ -729,8 +729,6 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
                         'realpower': realpower,
                         'timestamp': current_time,
                     })
-    print("total_wmax_man",total_wmax_man)
-    print("value_power_limit",value_power_limit)
     if system_performance < low_performance:
         message = "System performance is below expectations."
         status = 0
@@ -1585,7 +1583,7 @@ async def main():
                                                                             MQTT_PORT,
                                                                             MQTT_USERNAME,
                                                                             MQTT_PASSWORD])
-        scheduler.add_job(get_value_meter, 'cron',  second = f'*/1' , args=[])
+        scheduler.add_job(get_value_meter, 'cron',  second = f'*/2' , args=[])
         scheduler.add_job(monit_value_meter, 'cron',  second = f'*/1' , args=[serial_number_project,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,
