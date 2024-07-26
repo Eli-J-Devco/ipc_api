@@ -947,7 +947,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1:
+    if result_topic1 and result_topic3:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -965,7 +965,7 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info man",inverter_info)
+                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -1043,18 +1043,18 @@ async def write_device(
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
-                            bitcheck_topic1 = 0
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3 and device_mode == 1:
+        print("result_topic3",result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
                 parameter = item['parameter']
                 if parameter :
-                    print("---------- write data auto from Device ----------")
+                    print("---------- write data from Device ----------")
                     try:
                         # Check Id is INV
                         if device_control : 
@@ -1064,7 +1064,7 @@ async def write_device(
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info auto",inverter_info)
+                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -2014,6 +2014,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     power_limit_percent_temp = 0
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
+        result_topic1 = mqtt_result
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
@@ -2027,10 +2028,12 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
         comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
+
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
             device_mode = mode_each_device
+            bitcheck_topic1 = 0
             # feedback data to mqtt 
             data_send = {
                     "time_stamp": current_time,
@@ -2039,7 +2042,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
             # if update successfully first save ratedpower in variable systemp and seve in DB
-            result_topic1 = mqtt_result
             if watt > 0:
                 rated_power = watt
                 rated_power_custom = custom_watt
@@ -2082,12 +2084,13 @@ async def process_message(topic, message,serial_number_project, host, port, user
     
     try:
         if topic in [topic1, topic3]:
+            bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
-                bitcheck_topic1 = 1
                 result_topic1_Temp = message
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-            elif topic == topic3 and bitcheck_topic1 == 0:
+                
+            elif topic == topic3 :
                 result_topic3 = message
         elif topic == topic2:
             result_topic2 = message
