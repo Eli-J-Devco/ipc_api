@@ -739,7 +739,7 @@ async def get_list_device_in_process(mqtt_result, serial_number_project, host, p
         message = "System performance is exceeding established thresholds."
         status = 2
     # Caculator system_performance
-    if total_wmax and value_production:
+    if total_wmax :
         system_performance = (value_production /total_wmax) * 100
         
     elif value_production > 0 and not total_wmax:
@@ -1021,7 +1021,7 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
             device_list_control_power_limit.append(new_device)
             print("value_power_limit",value_power_limit)
             print("total_wmax_man",total_wmax_man)
-        if len(devices) == len(device_list_control_power_limit) :
+        if len(devices) == len(device_list_control_power_limit):
             mqtt_public_paho_zip(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO, mqtt_username, mqtt_password, device_list_control_power_limit)
             push_data_to_mqtt(mqtt_host, mqtt_port, serial_number_project + MQTT_TOPIC_PUD_CONTROL_AUTO + "Binh", mqtt_username, mqtt_password, device_list_control_power_limit)
             p_for_each_device_power_limit = 0
