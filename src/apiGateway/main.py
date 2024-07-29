@@ -196,7 +196,7 @@ class apiGateway:
                             #     "PAYLOAD":
                             #         { 
                             #            "id":296,
-                            #            "code":0/1 =0 init =1 update online
+                            #            "code":0/1 =0 init, =1 update mode kw .. , =2 update control min-max
                             #         }
                             # }
                             db_new=await db_config.get_db()

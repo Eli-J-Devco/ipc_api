@@ -37,13 +37,15 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from database.sql.device import all_query as device_query
+from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import (gzip_decompress, mqtt_public,
-                               mqtt_public_common, mqtt_public_paho,
-                               mqtt_public_paho_zip, mqttService)
+from utils.mqttManager import gzip_decompress as gzipDecompress
+from utils.mqttManager import (mqtt_public, mqtt_public_common,
+                               mqtt_public_paho, mqtt_public_paho_zip,
+                               mqttService)
 
 arr = sys.argv
 print(f'arr: {arr}')
@@ -2170,6 +2172,59 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
             await client.stop()
     except Exception as err:
         print(f"Error MQTT sub_mqtt: '{err}'")
+
+# Describe handle_messages_device 
+# 	 * @description handle_messages_device
+# 	 * @author vnguyen
+# 	 * @since 26-07-2024
+# 	 * @param {client}
+# 	 * @return 
+# 	 */ 
+async def handle_messages_device(client,serial_number_project, host, port, username, password):
+    try:
+        while True:
+            message = await client.messages.get()
+            if message is None:
+                print('Broker connection lost!')
+                break
+            topic = message.topic
+            topic_parent='Init/API/Requests'
+            if message:
+                
+                topic=f'{serial_number_project}/{topic_parent}'
+                if message.topic==topic:
+                    payload = gzipDecompress(message.message)
+                    print(payload)
+    except Exception as err:
+        print(f"Error handle_messages_driver: '{err}'")
+"""
+Describe mqtt_update_device 
+	 * @description mqtt_update_device
+	 * @author vnguyen
+	 * @since 26-07-2024
+	 * @param {}
+	 * @return 
+	 *
+"""
+async def mqtt_update_device(host, port, username, password, serial_number_project):
+
+    try:
+        client = mqttools.Client(
+        host=host,
+        port=port,
+        username=username,
+        password=bytes(password, 'utf-8'),
+        subscriptions=["#"],
+        connect_delays=[1, 2, 4, 8]
+        )
+        
+        while True:
+            await client.start()
+            await handle_messages_device(client, serial_number_project,host, port, username, password)
+            await client.stop()
+        
+    except Exception as err:
+        print(f"Error MQTT mqtt_update_device: '{err}'")
 async def main():
     tasks = []
     results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
@@ -2222,7 +2277,13 @@ async def main():
                                                 MQTT_TOPIC_SUD_DEVICES_ALL,
                                                 MQTT_TOPIC_SUD_COMSUMTION_METER,
                                                 )))
-        
+        tasks.append(asyncio.create_task(mqtt_update_device(
+                                                            MQTT_BROKER_LIST[0],
+                                                            MQTT_PORT_LIST[0],
+                                                            MQTT_USERNAME_LIST[0],
+                                                            MQTT_PASSWORD_LIST[0],
+                                                            serial_number_project,
+                                                            )))
         await asyncio.gather(*tasks, return_exceptions=False)
     else:
         pass
