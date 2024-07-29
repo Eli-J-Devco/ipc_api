@@ -734,7 +734,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     "ModeSystempCurrent":gStringModeSystempCurrent,
     "devices": ArrayDeviceList,
     "total_max_power": gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp,
-    "gIntValueSystemPerformance": {
+    "system_performance": {
         "performance": gIntValueSystemPerformance,
         "message": StringMessageStatusSystemPerformance,
         "status": intStatusSystemPerformance
@@ -1343,17 +1343,17 @@ async def initializeValueControlAuto():
         arrayResultInitializeParameterZeroExportInTableProjectSetUp = await MySQL_Select_v1("select * from project_setup")
         if arrayResultInitializeParameterZeroExportInTableProjectSetUp:
             gIntControlModeDetail = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["control_mode"]
-            gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["gIntValueOffsetZeroExport"]
-            gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["gIntValuePowerLimit"]
-            gIntValueOffsetPowerLimit = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["gIntValueOffsetPowerLimit"]
+            gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
+            gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
+            gIntValueOffsetPowerLimit = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_power_limit"]
             gIntValuePowerLimit = (gIntValuePowerLimit_temp - (gIntValuePowerLimit_temp*gIntValueOffsetPowerLimit)/100)
             gIntValueThresholdZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["threshold_zero_export"]
             Kp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["kp_zero_export"]
             Ki = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["ki_zero_export"]
             Kd = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["kd_zero_export"]
             dt = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["delta_time_zero_export"]
-            gIntValueSettingArlamLowPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["gIntValueSettingArlamLowPerformance"]
-            gIntValueSettingArlamHighPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["gIntValueSettingArlamHighPerformance"]
+            gIntValueSettingArlamLowPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["low_performance"]
+            gIntValueSettingArlamHighPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["high_performance"]
     except Exception as err:
         print(f"Error MQTT subscribe initializeValueControlAuto: '{err}'")   
 # Describe process_zero_export_power_limit 
