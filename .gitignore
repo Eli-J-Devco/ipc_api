@@ -50,3 +50,4 @@ src/apiGateway/single_line_diagram
 src/deviceDriver/tesst.py
 main.spec
 docker-compose.yml
+model
