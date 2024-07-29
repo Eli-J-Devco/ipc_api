@@ -9,35 +9,21 @@ import base64
 import datetime
 import gzip
 import json
-# import math
 import os
 import sys
 
-# import asyncio_mqtt as aiomqtt
-# absDirname: D:\NEXTWAVE\project\ipc_api\driver_of_device
-# absDirname=os.path.dirname(os.path.abspath(__file__))
 import mqttools
-# import mybatis_mapper2sql
-# import paho.mqtt.publish as publish
 import psutil
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.exceptions import ConnectionException, ModbusException
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
-# import time
-# from datetime import datetime as DT
-
-
 sys.stdout.reconfigure(encoding='utf-8')
-# sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-# sys.path.append( (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)
-#                 ("src"))
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
 from database.sql.device import all_query as device_query
-# from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
@@ -2196,10 +2182,13 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
             topic = message.topic
             topic_parent='Init/API/Requests'
             if message:
-                
                 topic=f'{serial_number_project}/{topic_parent}'
                 if message.topic==topic:
-                    payload = gzipDecompress(message.message)
+                    result = gzipDecompress(message.message)
+                    # if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
+                    #     id_device=result['PAYLOAD']['id']
+                    #     if result['CODE']=="UpdateDev":
+                    #         pass
                     # print(payload)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")

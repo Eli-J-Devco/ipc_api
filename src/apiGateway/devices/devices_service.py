@@ -331,7 +331,7 @@ class DevicesService:
             # }
             update_code=(lambda x: x['code'] if 'code' in x.keys()  else 0) (update_devices)
             id_device=update_devices['id']
-            if update_code==0:
+            if update_code==0 and update_code==2:
                 sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
                 
                 result= await session.execute(text(sql_query_select_device))
