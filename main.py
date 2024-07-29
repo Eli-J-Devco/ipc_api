@@ -18,7 +18,7 @@ import pandas as pd
 from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
 path=os.path.dirname(__file__)+"/src/"
-from database.sql.device import all_query as device_query
+from src.database.sql.device import all_query as device_query
 from src.utils.libMySQL import *
 from src.utils.logger_manager import setup_logger
 
