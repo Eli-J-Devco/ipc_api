@@ -19,6 +19,7 @@ from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
 path=os.path.dirname(__file__)+"/src/"
 from src.database.sql.device import all_query as device_query
+from src.database.sql.upload_channel import all_query as upload_channel_query
 from src.utils.libMySQL import *
 from src.utils.logger_manager import setup_logger
 
@@ -134,19 +135,21 @@ def init_driver():
 # 	 */
 def init_log_file():
         absDirname=path
-        # load file sql from mybatis
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-            xml= absDirname + '/mybatis/settup.xml')
+        # # load file sql from mybatis
+        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        #     xml= absDirname + '/mybatis/settup.xml')
 
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True)
+        # statement = mybatis_mapper2sql.get_statement(
+        # mapper, result_type='list', reindent=True, strip_comments=True)
         
-        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
-        query_all = statement[1]["select_upload_channel"]
+        # if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
+        #     pass
+        # else:           
+        #     print("Error not found data in file mybatis")
+        #     return -1
+        # query_all = statement[1]["select_upload_channel"]
+        
+        query_all=upload_channel_query.select_all_upload_channel.format(status=1)
         results = MySQL_Select(query_all, ())
         # print(f'results: {results}')
         for item in results:
