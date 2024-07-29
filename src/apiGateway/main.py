@@ -33,9 +33,9 @@ from database.sql.device import all_query
 from utils.libCom import cov_xml_sql, get_mybatis
 from utils.libMySQL import *
 from utils.logger_manager import setup_logger
-from utils.mqttManager import (gzip_decompress, mqtt_public,
-                               mqtt_public_common, mqtt_public_paho,
-                               mqtt_public_paho_zip, mqttService)
+from utils.mqttManager import (gzip_decompress, mqtt_public_common,
+                               mqtt_public_paho, mqtt_public_paho_zip,
+                               mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               create_program_pm2, delete_program_pm2,
                               delete_program_pm2_many, find_program_pm2,
@@ -51,19 +51,9 @@ MQTT_USERNAME = Config.MQTT_USERNAME
 MQTT_PASSWORD =Config.MQTT_PASSWORD
 from dataclasses import asdict, dataclass
 
-# from api.domain.sld_group.sld_group_model import (SldGroupBase,
-#                                                   SldGroupResponse,
-#                                                   SldGroupUpdate)
-# import api.domain.deviceGroup.models as deviceGroup_models
-# import api.domain.deviceList.models as deviceList_models
-# import api.domain.project.models as project_models
-# import api.domain.template.models as template_models
-# import api.domain.user.models as user_models
-# import model.models as models
 from apiGateway.devices import devices_service
 from apiGateway.project_setup import project_service
 from apiGateway.rs485 import rs485_service
-from apiGateway.single_line_diagram import single_line_service
 from apiGateway.template import template_service
 from apiGateway.upload_channel import upload_channel_service
 

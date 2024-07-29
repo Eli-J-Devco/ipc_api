@@ -37,15 +37,14 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from database.sql.device import all_query as device_query
-from deviceDriver.device import device_service
+# from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
 from utils.mqttManager import gzip_decompress as gzipDecompress
-from utils.mqttManager import (mqtt_public, mqtt_public_common,
-                               mqtt_public_paho, mqtt_public_paho_zip,
-                               mqttService)
+from utils.mqttManager import (mqtt_public_common, mqtt_public_paho,
+                               mqtt_public_paho_zip, mqttService)
 
 arr = sys.argv
 print(f'arr: {arr}')

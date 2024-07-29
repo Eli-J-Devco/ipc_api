@@ -31,8 +31,8 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 # )
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from api.domain.template import models as template_models
-from api.domain.uploadChannel import models as uploadChannel_models
+# from api.domain.template import models as template_models
+# from api.domain.uploadChannel import models as uploadChannel_models
 
 
 # Describe functions before writing code
