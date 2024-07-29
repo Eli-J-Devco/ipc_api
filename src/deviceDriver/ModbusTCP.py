@@ -2200,7 +2200,7 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
                 topic=f'{serial_number_project}/{topic_parent}'
                 if message.topic==topic:
                     payload = gzipDecompress(message.message)
-                    print(payload)
+                    # print(payload)
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 """
