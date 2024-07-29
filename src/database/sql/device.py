@@ -3,6 +3,7 @@ class Query():
         SELECT device_list.id, device_list.name, 
         driver_list.name AS connect_type, 
         device_type.name AS device_type,
+        device_type.type AS `type`,
         device_list.id_communication AS id_communication,
         communication.name AS serialport_name,
         communication.namekey AS serialport_group,
