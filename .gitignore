@@ -43,3 +43,7 @@ __pycache__
 /src/dataLog
 /src/dataLog
 .env.development
+test
+api_of_device
+src/api
+src/apiGateway/single_line_diagram

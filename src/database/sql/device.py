@@ -253,6 +253,7 @@ class Query():
         table_timeout.name AS serialport_timeout,
         table_debug_level.name AS serialport_debug_level,
         device_group.name AS device_group,
+        device_group.id AS id_device_group,
         template_library.name AS template_name,
         device_list.rated_power,
         device_list.rated_power_custom,
