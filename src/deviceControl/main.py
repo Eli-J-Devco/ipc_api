@@ -956,6 +956,14 @@ async def process_caculator_p_power_limit(serial_number_project, mqtt_host, mqtt
         system_performance = (value_production /value_power_limit) * 100
     else:
         system_performance = 0
+    
+    if value_power_limit > 0 and value_production > 0:
+        system_performance = (value_production /value_consumption) * 100
+    elif value_consumption <= 0 and value_production > 0:
+        system_performance = 101
+    elif value_consumption <= 0 and value_production <= 0:
+        system_performance = 0
+        
     # get information about power in database and varaable devices
     if devices:
         device_list_control_power_limit = []
