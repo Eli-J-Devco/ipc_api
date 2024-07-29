@@ -128,8 +128,8 @@ class MQTTSubscriber(Subscriber):
         query = (select(PointList)
                  .where(PointList.id_template.__eq__(id_template))
                  .where(PointList.parent.__eq__(parent))
-                 .where(and_(PointList.id_config_information.__ne__(PointType.POINT.value),
-                             PointList.id_config_information.__ne__(PointType.MPPT_CONFIG.value))))
+                 .where(and_(PointList.id_config_information.notin_([PointType.POINT.value]
+                                                                    + list(PointType.MPPT_CONFIG.value)))))
         result = await session.execute(query)
         points = result.scalars().all()
         if not points:

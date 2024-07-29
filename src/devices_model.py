@@ -16,7 +16,7 @@ class ActionEnum(enum.Enum):
 
 class PointType(enum.Enum):
     MPPT = 277
-    MPPT_CONFIG = 274
+    MPPT_CONFIG = 274, 275
     STRING = 276
     PANEL = 278
     POINT = 266
