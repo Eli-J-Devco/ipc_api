@@ -41,7 +41,6 @@ def init_driver():
         # 
         LOGGER.warn(f'query_all: {query_all}')
         results = MySQL_Select(query_all, ())
-        LOGGER.warn(f'results: {results}')
         if type(results) == list and len(results)>=1:
             pass
         else:           
@@ -96,7 +95,6 @@ def init_driver():
                                             'serialport_debug_level':rs485_item['serialport_debug_level']
                                         })
                     data.append(item)
-                
                 for item in data:                                                 
                     # name of pid pm2=Dev|id_communication|connect_type|serialport_name
                     id=item[0]["id_communication"]
@@ -111,20 +109,16 @@ def init_driver():
                     
                         if sys.platform == 'win32':
                             # use run with window
-                          
                             subprocess.Popen(
                                 f'pm2 start {absDirname}/deviceDriver/ModbusRTU.py -f  --name "{pid}" -- "{id}"  --restart-delay=10000', shell=True).communicate()
                         else:
                             # use run with ubuntu/linux
-                           
                             subprocess.Popen(
                                 f'sudo pm2 start {absDirname}/deviceDriver/ModbusRTU.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                         
-                
     except Exception as e:
         print('Error init driver: ',e)
         LOGGER.error(f'{e}')
-        # logging.error("Error init driver: ",e)
 # Describe functions before writing code
 # /**
 # 	 * @description init create log file
@@ -136,30 +130,13 @@ def init_driver():
 def init_log_file():
     try:
         absDirname=path
-        # # load file sql from mybatis
-        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        #     xml= absDirname + '/mybatis/settup.xml')
-
-        # statement = mybatis_mapper2sql.get_statement(
-        # mapper, result_type='list', reindent=True, strip_comments=True)
-        
-        # if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
-        #     pass
-        # else:           
-        #     print("Error not found data in file mybatis")
-        #     return -1
-        # query_all = statement[1]["select_upload_channel"]
-        
         query_all=upload_channel_query.select_all_upload_channel.format(status=1)
         results = MySQL_Select(query_all, ())
-        # print(f'results: {results}')
         for item in results:
-            
             id = item["id"]
             name = item["name"]
             type_protocol= item["type_protocol"]
             pid = f'LogFile|{id}|{name}|{type_protocol}'
-
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
@@ -179,23 +156,10 @@ def init_log_file():
 # 	 * @return data ()
 # 	 */
 def init_sync_file():
+    try:
         absDirname=path
-        # load file sql from mybatis
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-            xml= absDirname + '/mybatis/settup.xml')
-
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True)
-        
-        if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            return -1
-        query_all = statement[1]["select_upload_channel"]
-        # print(f'query_all: {query_all}')
+        query_all=upload_channel_query.select_all_upload_channel.format(status=1)
         results = MySQL_Select(query_all, ())
-        # print(f'results: {results}')
         for item in results:
             id = item["id"]
             name = item["name"]
@@ -208,6 +172,9 @@ def init_sync_file():
                 else:
                     subprocess.Popen(
                             f'sudo pm2 start {absDirname}/dataSync/url.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+    except Exception as e:
+        print('Error init_sync_file: ',e)
+        LOGGER.error(f'{e}')
 # Describe functions before writing code
 # /**
 # 	 * @description init log data
@@ -217,41 +184,18 @@ def init_sync_file():
 # 	 * @return data ()
 # 	 */
 def init_log_data():
+    try:
         absDirname=path
-        # load file sql from mybatis
-        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        #     xml= absDirname + '/mybatis/settup.xml')
-
-        # statement = mybatis_mapper2sql.get_statement(
-        # mapper, result_type='list', reindent=True, strip_comments=True)
-        
-        # if type(statement) == list and len(statement)>1 and 'select_upload_channel' not in statement:
-        #     pass
-        # else:           
-        #     print("Error not found data in file mybatis")
-        #     return -1
-        # query_all = statement[1]["select_upload_channel"]
-        # print(f'query_all: {query_all}')
-        # results = MySQL_Select(query_all, ())
-        # # print(f'results: {results}')
-        # for item in results:
-        #     id = item["id"]
-        #     name = item["name"]
-        #     type_protocol= item["type_protocol"]
-        #     pid = f'LogDevice|{id}|{name}|{type_protocol}'
-            # if sys.platform == 'win32':
-            #     subprocess.Popen(
-            #                 f'pm2 start {absDirname}/dataLog/device.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
-            # else:
-            #     subprocess.Popen(
-            #             f'sudo pm2 start {absDirname}/dataLog/device.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
         pid = f'LogDevice'
         if sys.platform == 'win32':
-                subprocess.Popen(
+            subprocess.Popen(
                             f'pm2 start {absDirname}/dataLog/device.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
         else:
-                subprocess.Popen(
+            subprocess.Popen(
                         f'sudo pm2 start {absDirname}/dataLog/device.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    except Exception as e:
+        print('Error init_log_data: ',e)
+        LOGGER.error(f'{e}')
 # Describe functions before writing code
 # /**
 # 	 * @description enable permission folder config network ubuntu ipc
