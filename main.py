@@ -3,19 +3,10 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import logging
 import os
-import pathlib
 import subprocess
 import sys
 import time
-from pathlib import Path
-from shlex import split
-from subprocess import Popen, run
-
-import mybatis_mapper2sql
-import pandas as pd
-from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
 path=os.path.dirname(__file__)+"/src/"
 from src.database.sql.device import all_query as device_query
