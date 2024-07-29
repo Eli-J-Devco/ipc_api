@@ -36,20 +36,6 @@ LOGGER.warn(f'--- init ---')
 def init_driver():
     try:
         absDirname=path
-        # # load file sql from mybatis
-        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-        #     xml= absDirname + 'mybatis/device_list.xml')
-        # # logging.error({absDirname + 'mybatis/device_list.xml'})
-        # statement = mybatis_mapper2sql.get_statement(
-        # mapper, result_type='list', reindent=True, strip_comments=True)
-        # # 
-        # if type(statement) == list and len(statement)>2 and 'select_all_device' not in statement:
-        #     pass
-        # else:           
-        #     print("Error not found data in file mybatis")
-        #     LOGGER.warn(f'--- Error not found data in file mybatis ---')
-        #     return -1
-        # query_all = statement[0]["select_all_device"]
         query_all=device_query.select_all_device
         # 
         LOGGER.warn(f'query_all: {query_all}')
@@ -75,12 +61,10 @@ def init_driver():
                     print(f'pid: {pid}')
                     if sys.platform == 'win32':
                         # use run with window
-
                         subprocess.Popen(
                             f'pm2 start {absDirname}/deviceDriver/ModbusTCP.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                     else:
                         # use run with ubuntu/linux
-                    
                         subprocess.Popen(
                             f'sudo pm2 start {absDirname}/deviceDriver/ModbusTCP.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 # join the same group ModbusRTU
