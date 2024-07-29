@@ -823,10 +823,10 @@ async def getValueProductionAndConsumtion():
                     cycle_time1s = current_time
                 # Caculator powwer for 1 minute
                 if current_minute != int(start_time_minutely // 60):
-                    gIntValueProduction1Minute = round(value_production_integral)
-                    gIntValueConsumption1Minute = round(value_consumption_integral)
-                    value_production_integral = 0
-                    value_consumption_integral = 0
+                    gIntValueProduction1Minute = round(IntIntegralValueProduction)
+                    gIntValueConsumption1Minute = round(gIntValueConsumptionSystemp)
+                    IntIntegralValueProduction = 0
+                    gIntValueConsumptionSystemp = 0
                     gIntValueProduction1Hour += gIntValueProduction1Minute
                     gIntValueConsumption1Hour += gIntValueConsumption1Minute
                     gIntValueProductionDaily += gIntValueProduction1Minute
