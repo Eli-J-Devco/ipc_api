@@ -134,6 +134,7 @@ def init_driver():
 # 	 * @return data ()
 # 	 */
 def init_log_file():
+    try:
         absDirname=path
         # # load file sql from mybatis
         # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
@@ -166,6 +167,9 @@ def init_log_file():
                 else:
                     subprocess.Popen(
                             f'sudo pm2 start {absDirname}/dataLog/file.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+    except Exception as e:
+        print('Error init_log_file: ',e)
+        LOGGER.error(f'{e}')
 # Describe functions before writing code
 # /**
 # 	 * @description init sync file
