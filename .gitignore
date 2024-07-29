@@ -48,3 +48,5 @@ api_of_device
 src/api
 src/apiGateway/single_line_diagram
 src/deviceDriver/tesst.py
+main.spec
+docker-compose.yml
