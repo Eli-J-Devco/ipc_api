@@ -936,26 +936,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         
-    if gIntValueProductionSystemp :
-        gIntValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
-    else:
-<<<<<<< HEAD
-        system_performance = 0
-    
-    if value_power_limit > 0 and value_production > 0:
-        system_performance = (value_production /value_consumption) * 100
-    elif value_consumption <= 0 and value_production > 0:
-        system_performance = 101
-    elif value_consumption <= 0 and value_production <= 0:
-        system_performance = 0
-        
-    # get information about power in database and varaable devices
-    if devices:
-        device_list_control_power_limit = []
-        for device in devices:
-=======
-        gIntValueSystemPerformance = 0
-    
     if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
         gIntValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
     elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
@@ -967,7 +947,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gArraydevices:
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
->>>>>>> Dev-Binh
             id_device = device["id_device"]
             mode = device["mode"]
             intPowerMaxOfInv = device["p_max"]
