@@ -948,7 +948,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 and result_topic3:
+    if result_topic1 or result_topic3:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
