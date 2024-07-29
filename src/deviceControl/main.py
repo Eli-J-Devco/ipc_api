@@ -3,21 +3,22 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import asyncio
+import base64
+import collections
+import datetime
+import gzip
+import json
 import logging
 import os
-import sys
-import mqttools
-import asyncio
-import json
-import psutil
 import platform
+import sys
 from datetime import datetime
-import datetime
-import collections
-import base64
-import gzip
 
+import mqttools
+import psutil
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -25,9 +26,9 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import (gzip_decompress, mqtt_public,
-                               mqtt_public_common, mqtt_public_paho,
-                               mqtt_public_paho_zip, mqttService)
+from utils.mqttManager import (gzip_decompress, mqtt_public_common,
+                               mqtt_public_paho, mqtt_public_paho_zip,
+                               mqttService)
 
 arr = sys.argv
 ModeSysTemp = ""
@@ -137,6 +138,7 @@ def path_directory_relative(project_name):
 path=path_directory_relative("ipc_api") # name of project
 sys.path.append(path)
 from utils.logger_manager import LoggerSetup
+
 arr = sys.argv
 ############################################################################ CPU ############################################################################
 # Describe get_size cpu 

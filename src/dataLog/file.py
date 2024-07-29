@@ -5,12 +5,12 @@
 # *********************************************************/
 
 import asyncio
+import base64
 import datetime
+import gzip
 import json
 import os
 import sys
-import base64
-import gzip
 
 import mqttools
 import mybatis_mapper2sql
@@ -23,9 +23,9 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from utils.libMySQL import *
-from utils.mqttManager import (gzip_decompress, mqtt_public,
-                               mqtt_public_common, mqtt_public_paho,
-                               mqtt_public_paho_zip, mqttService)
+from utils.mqttManager import (gzip_decompress, mqtt_public_common,
+                               mqtt_public_paho, mqtt_public_paho_zip,
+                               mqttService)
 
 # from config import *
 # from test.libMySQL import *
