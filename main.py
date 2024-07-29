@@ -17,10 +17,8 @@ import mybatis_mapper2sql
 import pandas as pd
 from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
-# absDirname=os.path.dirname(os.path.abspath(__file__))
-# path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")+"/"
-# sys.path.append(path)
 path=os.path.dirname(__file__)+"/src/"
+from database.sql.device import all_query as device_query
 from src.utils.libMySQL import *
 from src.utils.logger_manager import setup_logger
 
@@ -38,20 +36,21 @@ LOGGER.warn(f'--- init ---')
 def init_driver():
     try:
         absDirname=path
-        # load file sql from mybatis
-        mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
-            xml= absDirname + 'mybatis/device_list.xml')
-        # logging.error({absDirname + 'mybatis/device_list.xml'})
-        statement = mybatis_mapper2sql.get_statement(
-        mapper, result_type='list', reindent=True, strip_comments=True)
-        # 
-        if type(statement) == list and len(statement)>2 and 'select_all_device' not in statement:
-            pass
-        else:           
-            print("Error not found data in file mybatis")
-            LOGGER.warn(f'--- Error not found data in file mybatis ---')
-            return -1
-        query_all = statement[0]["select_all_device"]
+        # # load file sql from mybatis
+        # mapper, xml_raw_text = mybatis_mapper2sql.create_mapper(
+        #     xml= absDirname + 'mybatis/device_list.xml')
+        # # logging.error({absDirname + 'mybatis/device_list.xml'})
+        # statement = mybatis_mapper2sql.get_statement(
+        # mapper, result_type='list', reindent=True, strip_comments=True)
+        # # 
+        # if type(statement) == list and len(statement)>2 and 'select_all_device' not in statement:
+        #     pass
+        # else:           
+        #     print("Error not found data in file mybatis")
+        #     LOGGER.warn(f'--- Error not found data in file mybatis ---')
+        #     return -1
+        # query_all = statement[0]["select_all_device"]
+        query_all=device_query.select_all_device
         # 
         LOGGER.warn(f'query_all: {query_all}')
         results = MySQL_Select(query_all, ())
