@@ -734,6 +734,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     "ModeSystempCurrent":gStringModeSystempCurrent,
     "devices": ArrayDeviceList,
     "total_max_power": gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp,
+    "total_max_power_1": gIntValueTotalPowerInALLInv,
     "system_performance": {
         "performance": gIntValueSystemPerformance,
         "message": StringMessageStatusSystemPerformance,
@@ -1206,7 +1207,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSer
     mqtt_username,mqtt_password ):
     # Global variables
     global gIntValueThresholdZeroExport,gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit,\
-    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,gIntValueTotalPowerInInvInAutoMode
+    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO,gIntValueTotalPowerInInvInAutoMode,gIntValueTotalPowerInALLInv
     
     # Local variables
     topicPudUpdateParameterModeDetail = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_PUD_CHOICES_MODE_AUTO
