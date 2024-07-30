@@ -348,7 +348,7 @@ async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjec
                 if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
                     gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')  
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
+                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
                     if gStringModeSysTemp in [0, 1, 2]:
                         gArrayResultExecuteSQLModeSysTemp = MySQL_Insert_v5(querysystemp, (gStringModeSysTemp,))
                     else :
