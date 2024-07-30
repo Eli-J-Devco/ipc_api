@@ -23,8 +23,7 @@ class DeviceService:
         try:
             if 'CODE' in payload.keys() and 'PAYLOAD' in payload.keys():
                 if payload['CODE']=="UpdateDev":
-                    id_device=payload['PAYLOAD']['id']
-                    print(payload)        
+                    id_device=payload['PAYLOAD']['id']      
                     query = (select(DevicesEntity)
                                 .where(DevicesEntity.id == id_device))
                     db_new=await db_config.get_db()
