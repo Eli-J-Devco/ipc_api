@@ -51,3 +51,4 @@ src/deviceDriver/tesst.py
 main.spec
 docker-compose.yml
 model
+entity

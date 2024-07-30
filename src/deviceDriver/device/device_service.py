@@ -7,74 +7,40 @@ import json
 from uuid import uuid1
 
 import mqttools
+from sqlalchemy import select, update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 from async_db.wrapper import async_db_request_handler
+from configs.config import orm_provider as db_config
+from entity.devices.devices_entity import Devices as DevicesEntity
 from utils.mqttManager import gzip_decompress
 
 
 class DeviceService:
-    def __init__(self,
-                    host="127.0.0.1",
-                    port=1883,
-                    topic="",
-                    username="",
-                    password="",
-                    serial_number="",
-                    topic_parent=""
-                    # device_parent=None,
-                    # id_device=None,
-                    # device_name=None,
-                    ):
-        self.mqtt_host = host
-        self.mqtt_port = port
-        self.mqtt_topic = topic
-        self.mqtt_username = username
-        self.mqtt_password = bytes(password, 'utf-8')
-        self.serial_number = serial_number
-        self.topic_parent = topic_parent
-        # self.device_parent = device_parent
-        # self.id_device = id_device
-        # self.device_name = device_name
-        self.client = mqttools.Client(host=self.mqtt_host, 
-                            port=self.mqtt_port,
-                            username= self.mqtt_username, 
-                            password=self.mqtt_password,
-                            subscriptions=["#"],
-                            # client_id='mqttools-{}'.format(uuid1().node),
-                            connect_delays=[1, 2, 4, 8]
-                            )
-    @async_db_request_handler
-    async def handle_messages_mqtt(self,client):
-        
-        while True:
-            message = await client.messages.get()
-            if message is None:
-                print('Broker connection lost!')
-                break
-            topic=f'{self.serial_number}/{self.topic_parent}'
-            # topic_parent="/Init/API/Requests"
-            if message.topic==topic:
-                # print(f'device_name: {device_parent}')
-                result=gzip_decompress(message.message)
-                payload=result['PAYLOAD']['parent']
-                print(result)
-                print(payload)
-                # device_parent=payload
-                # print(self.id_device)
-                # global device_parent
-                # device_parent=payload
-                # self.device_parent=payload
-                # self.device_name=payload
-                
-    @async_db_request_handler
-    async def subscribe_device(self):
-        print("mqtt -------------------------------")
-
+    # def __init__(self):
+    #     pass
+    async def update_device(self,payload):
         try:
-            await  self.client.start()
-            await self.handle_messages_mqtt(self.client)
-            await self.client.stop()
-        except Exception as err:
-            print("Error create_dev_no_log: ", err)
+            if 'CODE' in payload.keys() and 'PAYLOAD' in payload.keys():
+                if payload['CODE']=="UpdateDev":
+                    id_device=payload['PAYLOAD']['id']
+                    print(payload)        
+                    query = (select(DevicesEntity)
+                                .where(DevicesEntity.id == id_device))
+                    db_new=await db_config.get_db()
+                    result=await db_new.execute(query)
+                    await db_new.commit()
+                    output = result.scalars().first()
+                    if output:
+                        return {
+                            "rated_power": output.rated_power,
+                            "rated_power_custom":output.rated_power_custom,
+                            "min_watt_in_percent":output.min_watt_in_percent,
+                            "maximum_DC_input_current":output.DC_voltage,
+                            "rated_DC_input_voltage":output.DC_current,
+                            "efficiency":output.efficiency
+                            }
+        except Exception as e:
+            print("Error update_device: ", e)
         finally:
-            print("hello")
+            await db_new.close()

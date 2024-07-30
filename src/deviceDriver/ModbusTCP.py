@@ -23,9 +23,15 @@ from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
+from sqlalchemy import select, update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
+
 from configs.config import Config
+# from configs.config import orm_provider as db_config
 from database.sql.device import all_query as device_query
+from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
+# from entity.devices.devices_entity import Devices as DevicesEntity
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
@@ -2120,7 +2126,10 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
 # 	 */ 
 async def handle_messages_device(client,serial_number_project, host, port, username, password):
     try:
+        device_service_init=device_service.DeviceService()
         while True:
+            global rated_power,rated_power_custom,min_watt_in_percent
+            global maximum_DC_input_current,rated_DC_input_voltage
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
@@ -2131,11 +2140,13 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
                 topic=f'{serial_number_project}/{topic_parent}'
                 if message.topic==topic:
                     result = gzipDecompress(message.message)
-                    # if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                    #     id_device=result['PAYLOAD']['id']
-                    #     if result['CODE']=="UpdateDev":
-                    #         pass
-                    # print(payload)
+                    output= await device_service_init.update_device(result)
+                    if output:
+                        rated_power=output["rated_power"]
+                        rated_power_custom=output["rated_power_custom"]
+                        min_watt_in_percent=output["min_watt_in_percent"]
+                        maximum_DC_input_current=output["maximum_DC_input_current"]
+                        rated_DC_input_voltage=output["rated_DC_input_voltage"]     
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 """
@@ -2158,7 +2169,6 @@ async def mqtt_update_device(host, port, username, password, serial_number_proje
         subscriptions=["#"],
         connect_delays=[1, 2, 4, 8]
         )
-        
         while True:
             await client.start()
             await handle_messages_device(client, serial_number_project,host, port, username, password)
