@@ -1811,6 +1811,7 @@ async def extract_device_control_params():
                 # extract parameters from message
                 if param["id_pointkey"] == "WMaxPercentEnable":
                     power_limit_percent_enable = param["value"]
+                    print("power_limit_percent_enable",power_limit_percent_enable)
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
@@ -2022,6 +2023,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
+            print("wmax",wmax)
+            print("power_limit_percent_temp",power_limit_percent_temp)
         # Calculate the total power in man mode at the time of recording to handle errors
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
