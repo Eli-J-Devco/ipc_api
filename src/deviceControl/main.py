@@ -617,8 +617,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     # Global variables
     global gIntValueTotalPowerInInvInAutoMode, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,gIntValueConsumptionSystemp,\
     gIntValueProductionSystemp,gIntValuePowerLimit,gIntValueSystemPerformance,gIntValueSettingArlamLowPerformance , \
-    gIntValueSettingArlamHighPerformance ,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,\
-    gIntValueTotalPowerInALLInv
+    gIntValueSettingArlamHighPerformance ,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInALLInv,gStringModeSystempCurrent
     
     # Local variable
     ArrayDeviceList = []
@@ -635,7 +634,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     StringMessageStatusSystemPerformance = ''
     intStatusSystemPerformance = 0
     gIntValueTotalPowerInInvInManModeTemp = 0
-    gIntValueTotalPowerInALLInvTemp = 0
     # Get result mqtt 
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
@@ -673,8 +671,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                     floatCapacitypower = ArrayCapacitypower[0] if ArrayCapacitypower else 0
                     
                     if floatWmax != None :
-                        gIntValueTotalPowerInALLInvTemp += floatWmax
-                        gIntValueTotalPowerInALLInv = gIntValueTotalPowerInALLInvTemp
                         if gStringModeSysTemp != 1:
                             if mode == 0:
                                 gIntValueTotalPowerInInvInManModeTemp += floatWmax
@@ -730,11 +726,12 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
     gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,1)
     
+    gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
+    
     result = {
     "ModeSystempCurrent":gStringModeSystempCurrent,
     "devices": ArrayDeviceList,
-    "total_max_power": gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp,
-    "total_max_power_1": gIntValueTotalPowerInALLInv,
+    "total_max_power": gIntValueTotalPowerInALLInv,
     "system_performance": {
         "performance": gIntValueSystemPerformance,
         "message": StringMessageStatusSystemPerformance,
