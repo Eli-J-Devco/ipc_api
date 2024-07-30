@@ -2282,8 +2282,6 @@ async def main():
                                                             serial_number_project,
                                                             )))
         await asyncio.gather(*tasks, return_exceptions=False)
-    else:
-        pass
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(

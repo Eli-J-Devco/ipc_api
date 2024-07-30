@@ -348,7 +348,7 @@ async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjec
                 if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
                     gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')  
                     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
+                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
                     if gStringModeSysTemp in [0, 1, 2]:
                         gArrayResultExecuteSQLModeSysTemp = MySQL_Insert_v5(querysystemp, (gStringModeSysTemp,))
                     else :
@@ -1459,7 +1459,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
             # If there is no timeout, there will be confusion between message man and message auto
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
             print("result_topic8",result_topic8)
@@ -1580,8 +1580,6 @@ async def main():
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
-    else:
-        pass
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
