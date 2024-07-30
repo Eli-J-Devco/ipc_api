@@ -3,17 +3,18 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import json
-from uuid import uuid1
+# import json
+# from uuid import uuid1
 
-import mqttools
+# import mqttools
 from sqlalchemy import select, update
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
-from async_db.wrapper import async_db_request_handler
+# from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
 from entity.devices.devices_entity import Devices as DevicesEntity
-from utils.mqttManager import gzip_decompress
+
+# from utils.mqttManager import gzip_decompress
 
 
 class DeviceService:
