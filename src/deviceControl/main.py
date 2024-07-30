@@ -1236,7 +1236,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSer
                     pass
                 else :
                     gIntValueThresholdZeroExport = gIntValueThresholdZeroExport_temp
-                arrayResultUpdateParameterZeroExportInTableProjectSetUp = MySQL_Update_V1("update project_setup set gIntValueOffsetZeroExport = %s,threshold_zero_export = %s", (gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,))
+                arrayResultUpdateParameterZeroExportInTableProjectSetUp = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,))
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit_temp = messageParameterControlAuto["offset"]
                 if gIntValueOffsetPowerLimit_temp is None:
@@ -1249,16 +1249,10 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSer
                         gIntValuePowerLimit = gIntValuePowerLimit_temp
                         # write information in database 
                         if gIntValuePowerLimit <= gIntValueTotalPowerInALLInv:
-                            arrayResultUpdateParameterPowerLimitInTableProjectSetUp = MySQL_Update_V1("update project_setup set gIntValuePowerLimit = %s ,gIntValueOffsetPowerLimit = %s ", (gIntValuePowerLimit_temp,gIntValueOffsetPowerLimit,))
+                            arrayResultUpdateParameterPowerLimitInTableProjectSetUp = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (gIntValuePowerLimit_temp,gIntValueOffsetPowerLimit,))
                         # convert value kw to w 
                             gIntValuePowerLimit = (gIntValuePowerLimit - (gIntValuePowerLimit*gIntValueOffsetPowerLimit)/100)
             # When you receive one of the above information, give feedback to mqtt
-            print("arrayResultUpdateParameterZeroExportInTableProjectSetUp",arrayResultUpdateParameterZeroExportInTableProjectSetUp)
-            print("arrayResultUpdateParameterPowerLimitInTableProjectSetUp",arrayResultUpdateParameterPowerLimitInTableProjectSetUp)
-            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
-            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
-            print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
-            
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit_temp != None and gIntValuePowerLimit_temp > gIntValueTotalPowerInALLInv):
                 intComment = 400 
             else:
