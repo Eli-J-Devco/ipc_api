@@ -1931,6 +1931,7 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
                     else:
                         total_wmax_man_temp += 0
     print("device_list",device_list)
+    print("total_wmax_man_temp",total_wmax_man_temp)
     return total_wmax_man_temp
 # Describe update_para_auto_mode
 # /**
