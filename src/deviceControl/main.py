@@ -1253,6 +1253,12 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSer
                         # convert value kw to w 
                             gIntValuePowerLimit = (gIntValuePowerLimit - (gIntValuePowerLimit*gIntValueOffsetPowerLimit)/100)
             # When you receive one of the above information, give feedback to mqtt
+            print("arrayResultUpdateParameterZeroExportInTableProjectSetUp",arrayResultUpdateParameterZeroExportInTableProjectSetUp)
+            print("arrayResultUpdateParameterPowerLimitInTableProjectSetUp",arrayResultUpdateParameterPowerLimitInTableProjectSetUp)
+            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
+            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
+            print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
+            
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit_temp != None and gIntValuePowerLimit_temp > gIntValueTotalPowerInALLInv):
                 intComment = 400 
             else:
