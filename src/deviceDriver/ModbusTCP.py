@@ -1926,7 +1926,8 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
             # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
             for device in device_list:
                 if device["wmax"] is not None:
-                    if device["mode"] == 0 and device["id_device"] == id_systemp:
+                    # if device["mode"] == 0 and device["id_device"] == id_systemp:
+                    if device["mode"] == 0 :
                         total_wmax_man_temp += device["wmax"]
                     else:
                         total_wmax_man_temp += 0
