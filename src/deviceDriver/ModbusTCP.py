@@ -1911,6 +1911,7 @@ async def process_gettoken(mqtt_result):
 # 	 * @return total_wmax_man_temp
 # 	 */
 async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode):
+    print("len",len(mqtt_result))
     global device_list
     total_wmax_man_temp = 0
     print("device_list",device_list)
