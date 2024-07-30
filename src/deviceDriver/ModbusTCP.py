@@ -1737,7 +1737,7 @@ async def Get_value_Power_Limit():
         value_zero_export = value_zero_export_temp
     
     if value_offset_power_limit :
-        value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
+        value_power_limit = value_power_limit_temp*((100-value_offset_power_limit)/100)
     else:
         value_power_limit = value_power_limit_temp
 # Describe extract_device_control_params
@@ -1763,10 +1763,14 @@ async def extract_device_control_params():
                 # extract parameters from message
                 if param["id_pointkey"] == "WMaxPercentEnable":
                     power_limit_percent_enable = param["value"]
+                    print("power_limit_percent_enable",power_limit_percent_enable)
                 elif param["id_pointkey"] == "WMax":
                     power_limit = param["value"]
                 elif param["id_pointkey"] == "WMaxPercent":
-                    power_limit_percent_temp = param["value"] or int((power_limit / rated_power_custom_calculator) * 100)
+                    if power_limit_percent_enable :
+                        power_limit_percent_temp = param["value"] 
+                    else:
+                        power_limit_percent_temp = int((power_limit / rated_power_custom_calculator) * 100)
                 elif param["id_pointkey"] == "VarMaxPercentEnable":
                     reactive_limit_percent_enable = param["value"]
                 elif param["id_pointkey"] == "VarMax":
@@ -1781,6 +1785,7 @@ async def extract_device_control_params():
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                 power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
+                power_limit = round(power_limit,2)
             if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
             else:
@@ -1822,13 +1827,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system 
-                print("ModeSysTemp",ModeSysTemp)
-                print("power_limit",power_limit)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("ModeSysTemp_Control",ModeSysTemp_Control)
-                print("total_wmax_man_temp",total_wmax_man_temp)
-                print("value_power_limit",value_power_limit)
-                print("value_zero_export",value_zero_export)
                 if (ModeSysTemp in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
@@ -1865,7 +1863,6 @@ async def process_gettoken(mqtt_result):
 async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode):
     global device_list
     total_wmax_man_temp = 0
-    print("device_list",device_list)
     for item in mqtt_result:
         # Check whether the message has rated power or not
         if "rated_power_custom" in item and "rated_power" in item:
@@ -1878,11 +1875,16 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
             # Update mode and power limit for the device you just recorded, then calculate the total p of devices in man mode
             for device in device_list:
                 if device["wmax"] is not None:
-                    if device["mode"] == 0 and device["id_device"] == id_systemp:
-                        total_wmax_man_temp += device["wmax"]
+                    if len(mqtt_result) == 1:
+                        if device["mode"] == 0 :
+                            total_wmax_man_temp += device["wmax"]
+                        else:
+                            total_wmax_man_temp += 0
                     else:
-                        total_wmax_man_temp += 0
-    print("device_list",device_list)
+                        if device["mode"] == 0 and device["id_device"] == id_systemp:
+                            total_wmax_man_temp += device["wmax"]
+                        else:
+                            total_wmax_man_temp += 0
     return total_wmax_man_temp
 # Describe update_para_auto_mode
 # /**
