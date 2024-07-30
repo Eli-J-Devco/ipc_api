@@ -1785,7 +1785,7 @@ async def Get_value_Power_Limit():
         value_zero_export = value_zero_export_temp
     
     if value_offset_power_limit :
-        value_power_limit = value_power_limit_temp*(value_offset_power_limit/100)
+        value_power_limit = value_power_limit_temp*((100-value_offset_power_limit)/100)
     else:
         value_power_limit = value_power_limit_temp
 # Describe extract_device_control_params
@@ -1875,13 +1875,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system 
-                print("ModeSysTemp",ModeSysTemp)
-                print("power_limit",power_limit)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("ModeSysTemp_Control",ModeSysTemp_Control)
-                print("total_wmax_man_temp",total_wmax_man_temp)
-                print("value_power_limit",value_power_limit)
-                print("value_zero_export",value_zero_export)
                 if (ModeSysTemp in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
@@ -2027,8 +2020,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
-            print("wmax",wmax)
-            print("power_limit_percent_temp",power_limit_percent_temp)
         # Calculate the total power in man mode at the time of recording to handle errors
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
