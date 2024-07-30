@@ -34,7 +34,7 @@ arr = sys.argv # Variables Array System
 gStringModeSysTemp = ""
 gStringModeSystempCurrent = ""
 gArraygArraydevices = []
-gIntValueSystemPerformance = 0
+gFloatValueSystemPerformance = 0
 # Parameters values PowerLimit and ZeroExport
 gIntControlModeDetail = 0
 gIntValueThresholdZeroExport = 0
@@ -616,7 +616,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
 async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProjectSetup, host, port, username, password):
     # Global variables
     global gIntValueTotalPowerInInvInAutoMode, MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,gIntValueConsumptionSystemp,\
-    gIntValueProductionSystemp,gIntValuePowerLimit,gIntValueSystemPerformance,gIntValueSettingArlamLowPerformance , \
+    gIntValueProductionSystemp,gIntValuePowerLimit,gFloatValueSystemPerformance,gIntValueSettingArlamLowPerformance , \
     gIntValueSettingArlamHighPerformance ,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInALLInv,gStringModeSystempCurrent
     
     # Local variable
@@ -705,23 +705,23 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                         'realpower': floatRealpower,
                         'timestamp': timeStampGetList,
                     })
-    if gIntValueSystemPerformance < gIntValueSettingArlamLowPerformance:
+    if gFloatValueSystemPerformance < gIntValueSettingArlamLowPerformance:
         StringMessageStatusSystemPerformance = "System performance is below expectations."
         intStatusSystemPerformance = 0
-    elif gIntValueSettingArlamLowPerformance <= gIntValueSystemPerformance < gIntValueSettingArlamHighPerformance:
+    elif gIntValueSettingArlamLowPerformance <= gFloatValueSystemPerformance < gIntValueSettingArlamHighPerformance:
         StringMessageStatusSystemPerformance = "System performance is meeting"
         intStatusSystemPerformance = 1
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
-    # Caculator gIntValueSystemPerformance
+    # Caculator gFloatValueSystemPerformance
     if gStringModeSystempCurrent == 0:
         if gIntValueTotalPowerInALLInv :
-            gIntValueSystemPerformance = (gIntValueProductionSystemp /gIntValueTotalPowerInALLInv) * 100
+            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueTotalPowerInALLInv) * 100
         else:
-            gIntValueSystemPerformance = 0
+            gFloatValueSystemPerformance = 0
         
-    gIntValueSystemPerformance = round(gIntValueSystemPerformance, 1)
+    gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     
     gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
     gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,1)
@@ -733,7 +733,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     "devices": ArrayDeviceList,
     "total_max_power": gIntValueTotalPowerInALLInv,
     "system_performance": {
-        "performance": gIntValueSystemPerformance,
+        "performance": gFloatValueSystemPerformance,
         "message": StringMessageStatusSystemPerformance,
         "status": intStatusSystemPerformance
     }
@@ -924,7 +924,7 @@ async def pudValueProductionAndConsumtionInMQTT(StringSerialNumerInTableProjectS
 async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
     global gArrayMessageAllDevice, gIntValuePowerLimit, gArraydevices, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
-    MQTT_TOPIC_PUD_CONTROL_AUTO, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gIntValueSystemPerformance,gIntValueTotalPowerInInvInManMode
+    MQTT_TOPIC_PUD_CONTROL_AUTO, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode
     # Local variables
     intPowerMaxOfInv = 0
     intPowerMinOfInv = 0
@@ -935,11 +935,11 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         print("device",gArraydevices)
     if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-        gIntValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
+        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
     elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-        gIntValueSystemPerformance = 101
-    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp <= 0:
-        gIntValueSystemPerformance = 0
+        gFloatValueSystemPerformance = 101
+    else:
+        gFloatValueSystemPerformance = 0
         
     # get information about power in database and varaable gArraydevices
     if gArraydevices:
@@ -1024,7 +1024,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Global variables
     global gArrayMessageAllDevice ,gIntValueThresholdZeroExport ,gIntValueOffsetZeroExport , gIntValueConsumptionSystemp , gArraydevices ,\
     gIntValueProductionSystemp ,gIntValueTotalPowerInInvInAutoMode ,MQTT_TOPIC_PUD_CONTROL_AUTO,gIntValuePowerForEachInvInModeZeroExport,\
-    gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gIntValueSystemPerformance
+    gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gFloatValueSystemPerformance
     # Local variables
     floatEfficiencySystemp = 0
     id_device = 0
@@ -1063,11 +1063,11 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         print("Device List", gArraydevices)
     if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
-        gIntValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
+        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
     elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-        gIntValueSystemPerformance = 101
-    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp <= 0:
-        gIntValueSystemPerformance = 0
+        gFloatValueSystemPerformance = 101
+    else :
+        gFloatValueSystemPerformance = 0
     
     # Get information about power in database and variable devices
     if gArraydevices:

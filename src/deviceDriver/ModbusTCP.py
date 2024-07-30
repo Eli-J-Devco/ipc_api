@@ -1833,6 +1833,7 @@ async def extract_device_control_params():
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
                 power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
+                power_limit = round(power_limit,2)
             if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
             else:
