@@ -934,7 +934,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     print("result_topic1",result_topic1)
-    print("device_mode",device_mode)
+    print("device_mode 7",device_mode)
     if result_topic1:
         # Write Man Mode 
         for item in result_topic1:
@@ -1017,7 +1017,6 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
-                                
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
@@ -2009,18 +2008,23 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         await Get_value_Power_Limit()
         # Update mode temp for Device 
         await process_update_mode_for_device(mqtt_result)
+        print("devicemode1", device_mode)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
+        print("devicemode2", device_mode)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
             wmax ,power_limit_percent_temp = await extract_device_control_params()
+        print("devicemode3", device_mode)
         # Calculate the total power in man mode at the time of recording to handle errors
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
+        print("devicemode4", device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
         comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
+        print("devicemode5", device_mode)
         # make new song message for topic 1 result
         result_topic1 = mqtt_result
-        
+        print("devicemode6", device_mode)
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
