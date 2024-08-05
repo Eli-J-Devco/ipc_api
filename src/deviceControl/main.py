@@ -1481,10 +1481,13 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
         print(f"Error MQTT subscribe processMessage: '{err}'")  
         
 async def reset_gBitManWrite_after_delay(delay):
+    start_time = time.time()  # Lưu thời gian bắt đầu
     await asyncio.sleep(delay)
     global gBitManWrite
     gBitManWrite = 0
+    end_time = time.time()  # Lưu thời gian kết thúc
     print(f'gBitManWrite after reset: {gBitManWrite}')
+    print(f'Thời gian đã trôi qua: {end_time - start_time:.2f} giây')
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
