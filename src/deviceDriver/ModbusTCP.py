@@ -947,8 +947,6 @@ async def write_device(
                         # Check Id is INV
                         if device_control : 
                             is_inverter = await check_inverter_device(device_control)
-                        else :
-                            pass
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
@@ -1011,8 +1009,9 @@ async def write_device(
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
                                                     value /= slope
-                                            # Write down the inv value after conversion
-                                            results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                            if id_pointkey :
+                                                # Write down the inv value after conversion
+                                                results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
@@ -1783,7 +1782,6 @@ async def Get_value_Power_Limit():
         value_zero_export = value_zero_export_temp*((100 - value_offset_zero_export)/100)
     else:
         value_zero_export = value_zero_export_temp
-    
     if value_offset_power_limit :
         value_power_limit = value_power_limit_temp*((100-value_offset_power_limit)/100)
     else:
