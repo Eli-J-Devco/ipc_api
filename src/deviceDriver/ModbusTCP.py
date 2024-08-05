@@ -1846,7 +1846,8 @@ async def extract_device_control_params(mqtt_result):
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-    result_topic1 = mqtt_result 
+    result_topic1 = mqtt_result
+    print("result_topic1", result_topic1)
     return power_limit ,power_limit_percent_temp
 # Describe updates_ratedpower_from_message
 # /**
