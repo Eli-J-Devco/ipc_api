@@ -1031,6 +1031,7 @@ async def write_device(
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
+                            result_topic3 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
@@ -1219,8 +1220,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
-                        if result_topic1 and result_topic3:
-                            await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
