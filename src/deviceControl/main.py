@@ -77,7 +77,7 @@ gArrayMessageChangeModeSystemp = []
 gArrayMessageAllDevice = []
 gArrayResultExecuteSQLModeSysTemp = []
 gArrayResultExecuteSQLModeDevice = []
-    
+gBitManWrite = 0
 # Stores information about bytes_sent and bytes_recv of the previous query
 net_io_counters_prev = {}
 net_io_counters_prev["TotalSent"] = 0
@@ -924,7 +924,8 @@ async def pudValueProductionAndConsumtionInMQTT(StringSerialNumerInTableProjectS
 async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
     global gArrayMessageAllDevice, gIntValuePowerLimit, gArraydevices, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
-    MQTT_TOPIC_PUD_CONTROL_AUTO, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode
+    MQTT_TOPIC_PUD_CONTROL_AUTO, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+    gIntValueTotalPowerInInvInManMode,gBitManWrite
     # Local variables
     intPowerMaxOfInv = 0
     intPowerMinOfInv = 0
@@ -1006,7 +1007,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             listInvControlPowerLimitMode.append(ItemlistInvControlPowerLimitMode)
-        if len(gArraydevices) == len(listInvControlPowerLimitMode):
+        if len(gArraydevices) == len(listInvControlPowerLimitMode) and gBitManWrite == 0:
             print("Value Power Limit ", gIntValuePowerLimit)
             print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode, mqtt_username, mqtt_password, listInvControlPowerLimitMode)
@@ -1024,7 +1025,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Global variables
     global gArrayMessageAllDevice ,gIntValueThresholdZeroExport ,gIntValueOffsetZeroExport , gIntValueConsumptionSystemp , gArraydevices ,\
     gIntValueProductionSystemp ,gIntValueTotalPowerInInvInAutoMode ,MQTT_TOPIC_PUD_CONTROL_AUTO,gIntValuePowerForEachInvInModeZeroExport,\
-    gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gFloatValueSystemPerformance
+    gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gFloatValueSystemPerformance,gBitManWrite
     # Local variables
     floatEfficiencySystemp = 0
     id_device = 0
@@ -1130,7 +1131,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     }
             listInvControlZeroExportMode.append(ItemlistInvControlPowerLimitMode)
         # Push data to MQTT
-        if len(gArraydevices) == len(listInvControlZeroExportMode):
+        if len(gArraydevices) == len(listInvControlZeroExportMode) and gBitManWrite == 0:
             print("Value ZeroExport ", setpointCalculatorPowerForEachInv)
             print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
@@ -1418,7 +1419,8 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     
     global gArrayMessageAllDevice
     global gArrayMessageChangeModeSystemp
-
+    global gBitManWrite
+    
     topic1 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     topic2 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODEGET_INFORMATION
     topic3 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO
@@ -1459,15 +1461,24 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
             # If there is no timeout, there will be confusion between message man and message auto
-            await asyncio.sleep(3)
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
+            # if user wirings
+            gBitManWrite = 1
+            # Tạo một tác vụ để đặt lại gBitManWrite sau 10 giây
+            asyncio.create_task(reset_gBitManWrite_after_delay(10))
             print("result_topic8",result_topic8)
         # elif topic == topic10:
         #     result_topic10 = message
         #     print("result_topic10",result_topic10)
     except Exception as err:
-        print(f"Error MQTT subscribe processMessage: '{err}'")
+        print(f"Error MQTT subscribe processMessage: '{err}'")  
+        
+async def reset_gBitManWrite_after_delay(delay):
+    await asyncio.sleep(delay)
+    global gBitManWrite
+    gBitManWrite = 0
+    print(f'gBitManWrite = {gBitManWrite}')
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
