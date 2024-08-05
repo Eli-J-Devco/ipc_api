@@ -934,7 +934,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 or result_topic3:
+    if result_topic1 and device_mode == 0:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -961,7 +961,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if device_mode == 0 and value != None: 
+                                if value != None: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1033,7 +1033,6 @@ async def write_device(
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3 and device_mode == 1:
-        print("result_topic3",result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -1045,12 +1044,9 @@ async def write_device(
                         # Check Id is INV
                         if device_control : 
                             is_inverter = await check_inverter_device(device_control)
-                        else :
-                            pass
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
-                            print("inverter_info",inverter_info)
                             # Scan message mqtt get information register
                             for item in inverter_info: 
                                 value = item["value"]
@@ -1061,24 +1057,20 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Auto Mode
-                                if device_mode == 1 and any('status' in item for item in result_topic3):
-                                    print("---------- Auto control mode ----------")
-                                    addtopic = "FeedbackAuto"
-                                    if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
-                                        result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
-                                        # convert back to actual value
-                                        if result_slope and slope and id_pointkey == 'WMax' :
-                                            power_limit_percent = int((value / rated_power_custom_calculator) * 100)
-                                            slope = float(result_slope[0]['slope'])
-                                            value = value/slope
-                                            value = round(value)
-                                        print("---------- Auto control mode  1 ----------")
-                                        results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
-                                        print("---------- Auto control mode  2 ----------")
+                                print("---------- Auto control mode ----------")
+                                addtopic = "FeedbackAuto"
+                                if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)):# Control Auto On/Off and Write parameter to INV
+                                    result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
+                                    # convert back to actual value
+                                    if result_slope and slope and id_pointkey == 'WMax' :
+                                        power_limit_percent = int((value / rated_power_custom_calculator) * 100)
+                                        slope = float(result_slope[0]['slope'])
+                                        value = value/slope
+                                        value = round(value)
+                                    results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
-                                print("---------- Auto control mode  3 ----------")
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
@@ -1090,7 +1082,6 @@ async def write_device(
                                 "status": comment,
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
-                            print("---------- Auto control mode  4 ----------")
                             result_topic3 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
@@ -2089,7 +2080,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            elif topic == topic3 and not gBitManWrite :
+            elif topic == topic3 and gBitManWrite == 0:
                 print("gBitManWrite",gBitManWrite)
                 result_topic3 = message
         elif topic == topic2:
