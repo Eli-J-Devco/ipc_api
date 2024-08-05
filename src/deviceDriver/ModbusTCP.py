@@ -2105,9 +2105,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
             elif topic == topic3 and gBitManWrite == 0 :
-                print("gBitManWrite",gBitManWrite)
                 result_topic3 = message
-                print("result_topic3",result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
