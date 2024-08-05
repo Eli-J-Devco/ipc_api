@@ -11,7 +11,7 @@ import gzip
 import json
 import os
 import sys
-
+from datetime import datetime
 import mqttools
 import psutil
 from pymodbus.client.sync import ModbusTcpClient
@@ -1039,10 +1039,16 @@ async def write_device(
     # Write Auto Mode 
     if result_topic3 and gBitManWrite == 0:
         print("getutc", get_utc())
+        timeCurrent = get_utc()
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
-            if id_systemp == device_control :
+            timeMessage = item['time']
+            print("timeMessage",timeMessage)
+            # Tính toán sự khác biệt
+            time_difference = (timeCurrent - timeMessage)
+            print("time_difference",time_difference)
+            if id_systemp == device_control and time_difference < 10:
                 print("result_topic3", result_topic3)
                 parameter = item['parameter']
                 if parameter :
