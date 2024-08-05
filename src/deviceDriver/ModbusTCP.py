@@ -1072,7 +1072,9 @@ async def write_device(
                                             slope = float(result_slope[0]['slope'])
                                             value = value/slope
                                             value = round(value)
+                                        print("---------- Auto control mode  1 ----------")
                                         results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
+                                        print("---------- Auto control mode  2 ----------")
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
@@ -2083,7 +2085,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if topic == topic1:
                 result_topic1_Temp = message
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                
             elif topic == topic3 :
                 result_topic3 = message
         elif topic == topic2:
