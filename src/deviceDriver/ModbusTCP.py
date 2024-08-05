@@ -70,7 +70,7 @@ parameter = []
 count = 0 
 len_result_topic1 = 0
 token = ""
-
+gBitManWrite = 0
 result_topic1 = []
 result_topic2 = []
 result_topic3 = []
@@ -2067,6 +2067,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global value_zero_export_temp
     global bitcheck_topic1
     global is_waiting 
+    global gBitManWrite
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -2085,8 +2086,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
                 result_topic1_Temp = message
+                gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-            elif topic == topic3 and not result_topic1_Temp:
+                asyncio.create_task(reset_gBitManWrite_after_delay(10))
+            elif topic == topic3 and not gBitManWrite :
+                print("gBitManWrite",gBitManWrite)
                 result_topic3 = message
         elif topic == topic2:
             result_topic2 = message
@@ -2107,6 +2111,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
+        
+async def reset_gBitManWrite_after_delay(delay):
+    await asyncio.sleep(delay)
+    global gBitManWrite
+    gBitManWrite = 0
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
