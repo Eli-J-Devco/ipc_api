@@ -1078,7 +1078,7 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
-                                
+                                print("---------- Auto control mode  3 ----------")
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
@@ -1090,6 +1090,7 @@ async def write_device(
                                 "status": comment,
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
+                            print("---------- Auto control mode  4 ----------")
                             result_topic3 = []
                     except Exception as err:
                         print(f"write_device: '{err}'")
