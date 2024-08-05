@@ -2086,7 +2086,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if topic == topic1:
                 result_topic1_Temp = message
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-            elif topic == topic3 :
+            elif topic == topic3 and not result_topic1_Temp:
                 result_topic3 = message
         elif topic == topic2:
             result_topic2 = message
