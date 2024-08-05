@@ -1298,7 +1298,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         point_list_device=point_list
                         
                         # 
-                        # await asyncio.sleep(5)
+                        await asyncio.sleep(5)
                         # 
                         client.close()
                 except (ConnectionException, ModbusException) as e:
