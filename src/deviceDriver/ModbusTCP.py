@@ -936,9 +936,8 @@ async def write_device(
     inverter_info_temp = []
     result_query_findname = []
     name_device_points_list_map = ""
-    print("result_topic1",result_topic1)
-    print("device_mode 7",device_mode)
-    if result_topic1 and gBitManWrite:
+    
+    if result_topic1 :
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -965,7 +964,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if value != None and device_mode == 0: 
+                                if value != None : 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1035,7 +1034,7 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
-    if result_topic3 and device_mode == 1:
+    if result_topic3:
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
