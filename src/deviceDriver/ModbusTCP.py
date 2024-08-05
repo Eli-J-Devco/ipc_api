@@ -841,6 +841,9 @@ async def check_inverter_device(device_control):
 # 	 * @return value , register , datatype , id_point_key 
 # 	 */ 
 async def find_inverter_information(device_control, parameter):
+    # query_register = """SELECT id_pointkey, register, id_type_datatype 
+    #                     FROM point_list INNER JOIN device_list ON device_list.id_template = point_list.id_template 
+    #                     WHERE device_list.id = %s;"""
     query_register = """SELECT id_pointkey, point_list.register, point_list.id_type_datatype ,table_type_function.value AS modbus_func
                         FROM device_point_list_map 
                         INNER JOIN point_list ON device_point_list_map.id_point_list = point_list.id 
@@ -1014,6 +1017,7 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
+                                
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
@@ -1792,7 +1796,7 @@ async def Get_value_Power_Limit():
 # 	 * @param {result_topic1}
 # 	 * @return power_limit
 # 	 */
-async def extract_device_control_params(mqtt_result):
+async def extract_device_control_params():
     global arr ,total_wmax_man_temp , power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable 
     global device_list
     global result_topic1
@@ -1801,7 +1805,7 @@ async def extract_device_control_params(mqtt_result):
     power_limit = 0
     power_limit_percent_temp = 0 
     
-    for item in mqtt_result:
+    for item in result_topic1:
         if int(item["id_device"]) == id_systemp and len(item["parameter"]) != 0 and rated_power_custom_calculator != 0:
             for param in item.get("parameter", []):
                 # extract parameters from message
@@ -1827,12 +1831,9 @@ async def extract_device_control_params(mqtt_result):
                         rated_reactive_custom = 0
             # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
             if power_limit_percent_enable:
-                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMaxPercent"]]
-                power_limit = round(rated_power_custom_calculator*(power_limit_percent_temp/100),2)
-                for param in item.get("parameter", []):
-                    if param["id_pointkey"] == "WMax":
-                        param["value"] = power_limit
-            
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+                power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
+                power_limit = round(power_limit,2)
             if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
             else:
@@ -1847,8 +1848,6 @@ async def extract_device_control_params(mqtt_result):
                                 item["parameter"] = []
                             item["parameter"].append({"id_pointkey": "Conn_RvrtTms", "value": 0})
                             control_inv = True
-    result_topic1 = mqtt_result
-    print("result_topic1", result_topic1)
     return power_limit ,power_limit_percent_temp
 # Describe updates_ratedpower_from_message
 # /**
@@ -2011,6 +2010,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     power_limit_percent_temp = 0
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
+        result_topic1 = mqtt_result
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
@@ -2019,7 +2019,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
         if device_mode == 0 :
-            wmax,power_limit_percent_temp = await extract_device_control_params(mqtt_result)
+            wmax ,power_limit_percent_temp = await extract_device_control_params()
         # Calculate the total power in man mode at the time of recording to handle errors
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
