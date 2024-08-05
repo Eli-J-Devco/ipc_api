@@ -1115,6 +1115,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type, id_device_group
+        global result_topic1,result_topic3
         pathSource=path
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -1219,8 +1220,8 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     # client =ModbusTcpClient(slave_ip, port=slave_port)
                     # connection = client.connect()
                     # if connection:
-
-                        await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
+                        if result_topic1 and result_topic3:
+                            await write_device(ConfigPara,client,slave_ID ,serial_number_project , mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password)
                         # await asyncio.sleep(1)
                         # print("---------- read data from Device ----------")
 
