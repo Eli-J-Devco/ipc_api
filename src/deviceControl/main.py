@@ -1466,13 +1466,17 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
             # if user wirings
+            # Đặt gBitManWrite = 1
             gBitManWrite = 1
+            print("gBitManWrite before delay:", gBitManWrite)
+
             # Tạo một tác vụ để đặt lại gBitManWrite sau 10 giây
             asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            print("result_topic8",result_topic8)
-        # elif topic == topic10:
-        #     result_topic10 = message
-        #     print("result_topic10",result_topic10)
+
+            # In giá trị gBitManWrite ngay sau khi đặt
+            print("gBitManWrite after setting:", gBitManWrite)
+
+            print("result_topic8", result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'")  
         
@@ -1480,7 +1484,7 @@ async def reset_gBitManWrite_after_delay(delay):
     await asyncio.sleep(delay)
     global gBitManWrite
     gBitManWrite = 0
-    print(f'gBitManWrite = {gBitManWrite}')
+    print(f'gBitManWrite after reset: {gBitManWrite}')
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
