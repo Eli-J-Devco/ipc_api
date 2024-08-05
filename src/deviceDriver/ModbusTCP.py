@@ -1828,7 +1828,7 @@ async def extract_device_control_params(mqtt_result):
                         rated_reactive_custom = 0
             # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
             if power_limit_percent_enable:
-                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMax", "WMaxPercent"]]
+                item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMaxPercent"]]
                 power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
                 power_limit = round(power_limit,2)
                 print("Power Limit",power_limit)
