@@ -933,8 +933,9 @@ async def write_device(
     inverter_info_temp = []
     result_query_findname = []
     name_device_points_list_map = ""
-    
-    if result_topic1 and device_mode == 0:
+    print("result_topic1",result_topic1)
+    print("device_mode",device_mode)
+    if result_topic1:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -961,7 +962,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if value != None: 
+                                if value != None and device_mode == 0: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
