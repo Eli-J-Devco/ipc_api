@@ -1033,16 +1033,17 @@ async def write_device(
                             result_topic1 = []
                             result_topic3 = []
                             print("result_topic1", result_topic1)
-                            print("result_topic1", result_topic3)
+                            print("result_topic3", result_topic3)
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3 and gBitManWrite == 0:
-        print("result_topic3", result_topic3)
+        print("getutc", get_utc())
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
+                print("result_topic3", result_topic3)
                 parameter = item['parameter']
                 if parameter :
                     print("---------- write data from Device ----------")
