@@ -388,8 +388,10 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
     if MessageCheckModeSystemp:
         try:
             # Wait for up to 5 seconds for the data to be available
-            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
+            await asyncio.sleep(1)
+            result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
+            
             if len(modes) == 1:
                 if 0 in modes:
                     data_send = {"id_device": "Systemp", "mode": 0}
