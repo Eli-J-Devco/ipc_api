@@ -1013,6 +1013,9 @@ async def write_device(
                                                     pass
                                             if id_pointkey :
                                                 # Write down the inv value after conversion
+                                                print("id_pointkey",id_pointkey)
+                                                print("register",register)
+                                                print("value",value)
                                                 results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                                             else:
                                                 pass
