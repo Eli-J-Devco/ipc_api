@@ -1021,10 +1021,10 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                    mode_each_device = device_mode
+                                    device_mode = 0
                                 else:
                                     comment = 400
-                                    device_mode = mode_each_device
+                                    device_mode = 1
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1075,10 +1075,10 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                    mode_each_device = device_mode
+                                    device_mode = 1
                                 else:
                                     comment = 400
-                                    device_mode = mode_each_device
+                                    device_mode = 0
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
