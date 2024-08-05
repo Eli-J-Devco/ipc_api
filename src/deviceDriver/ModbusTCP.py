@@ -75,6 +75,8 @@ result_topic1 = []
 result_topic2 = []
 result_topic3 = []
 bitcheck_topic1 = 0
+# Khai báo lock toàn cục
+device_mode_lock = asyncio.Lock()
 
 enable_zero_export = 0
 value_zero_export = 0
@@ -900,6 +902,7 @@ async def write_device(
     global result_topic1 # result topic 
     global result_topic3 
     global mode_each_device
+    global gBitManWrite
     # Local Variables
     
     # Get Id_Systemp
@@ -935,7 +938,7 @@ async def write_device(
     name_device_points_list_map = ""
     print("result_topic1",result_topic1)
     print("device_mode 7",device_mode)
-    if result_topic1:
+    if result_topic1 and gBitManWrite:
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -1700,19 +1703,22 @@ async def process_update_mode_for_device(mqtt_result):
     # Global variables
     global device_mode
     global arr
+    global device_mode_lock 
     # Local variables
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
     # Switch to user mode that is both man and auto
     if mqtt_result and all(item.get('id_device') != 'Systemp' for item in mqtt_result):
         print("mqtt_result",mqtt_result)
+        
         for item in mqtt_result:
             id_device = int(item["id_device"])
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
-                    device_mode = int(item["mode"])
-                    print("device_mode",device_mode)
+                    async with device_mode_lock:
+                        device_mode = int(item["mode"])
+                        print("device_mode",device_mode)
                     if device_mode in [0, 1]:
                         MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
