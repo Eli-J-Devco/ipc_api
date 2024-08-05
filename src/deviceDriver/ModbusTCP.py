@@ -1829,11 +1829,11 @@ async def extract_device_control_params(mqtt_result):
             # action when power_limit_percent_enable or reactive_limit_percent_enable == 1 :
             if power_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["WMaxPercentEnable", "WMaxPercent"]]
-                power_limit = rated_power_custom_calculator*(power_limit_percent_temp/100)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("power_limit_percent_temp",power_limit_percent_temp)
-                print("power_limit",power_limit)
-                power_limit = round(power_limit,2)
+                power_limit = round(rated_power_custom_calculator*(power_limit_percent_temp/100),2)
+                for param in item.get("parameter", []):
+                    if param["id_pointkey"] == "WMax":
+                        param["value"] = power_limit
+            
             if not reactive_limit_percent_enable:
                 item["parameter"] = [p for p in item["parameter"] if p["id_pointkey"] not in ["VarMaxPercentEnable", "VarMax", "VarMaxPercent"]]
             else:
