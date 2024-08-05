@@ -1032,10 +1032,13 @@ async def write_device(
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
                             result_topic3 = []
+                            print("result_topic1", result_topic1)
+                            print("result_topic1", result_topic3)
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
     if result_topic3 and gBitManWrite == 0:
+        print("result_topic3", result_topic3)
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -2094,9 +2097,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            elif topic == topic3 and gBitManWrite == 0:
+            elif topic == topic3 and gBitManWrite == 0 :
                 print("gBitManWrite",gBitManWrite)
                 result_topic3 = message
+                print("result_topic3",result_topic3)
         elif topic == topic2:
             result_topic2 = message
             # process 
