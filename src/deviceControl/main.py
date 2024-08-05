@@ -1008,6 +1008,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             # Accumulate devices that are eligible to run automatically to push to mqtt
             listInvControlPowerLimitMode.append(ItemlistInvControlPowerLimitMode)
         if len(gArraydevices) == len(listInvControlPowerLimitMode) and gBitManWrite == 0:
+            print("gBitManWrite",gBitManWrite)
             print("Value Power Limit ", gIntValuePowerLimit)
             print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode, mqtt_username, mqtt_password, listInvControlPowerLimitMode)
@@ -1132,6 +1133,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             listInvControlZeroExportMode.append(ItemlistInvControlPowerLimitMode)
         # Push data to MQTT
         if len(gArraydevices) == len(listInvControlZeroExportMode) and gBitManWrite == 0:
+            print("gBitManWrite",gBitManWrite)
             print("Value ZeroExport ", setpointCalculatorPowerForEachInv)
             print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
