@@ -974,9 +974,9 @@ async def write_device(
                                     if len(inverter_info) >= 1 and (isinstance(value, int) or isinstance(value, float)): # Control Parameter INV
                                         id_pointkey = str(id_pointkey)
                                         result_slope = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = %s AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_pointkey, id_systemp,))
-                                        # # convert back to actual value
-                                        # if result_slope and slope :
-                                        #     slope = float(result_slope[0]['slope'])
+                                        # convert back to actual value
+                                        if result_slope and slope :
+                                            slope = float(result_slope[0]['slope'])
                                         #     if power_limit_percent_enable == 1:
                                         #         result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                         #         if result_slope_wmax:
