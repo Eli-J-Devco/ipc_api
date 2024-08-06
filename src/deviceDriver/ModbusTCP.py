@@ -1172,6 +1172,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 results_Plist.append({**itemP})
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
+        print("device_mode AVu",device_mode)
         global rated_power
         global rated_power_custom
         global rated_power_custom_calculator
