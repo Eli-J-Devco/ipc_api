@@ -117,7 +117,6 @@ MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS = "/Control/Process"
 MQTT_TOPIC_PUD_MONIT_METER = "/Meter/Monitor"
 MQTT_TOPIC_SUD_SETTING_ARLAM = "/Control/Alarm/Setting"
 MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK = "/Control/Alarm/Feedback"
-MQTT_TOPIC_SUD_FEEDBACK_WRITE = "/Control/Write"
 MQTT_TOPIC_SUD_MODIFY_DEVICE = "/Control/Modify"
 
 def pathDirectory(project_name):
@@ -1411,7 +1410,6 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     global MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
     global MQTT_TOPIC_SUD_SETTING_ARLAM
     global MQTT_TOPIC_SUD_MODIFY_DEVICE
-    global MQTT_TOPIC_SUD_FEEDBACK_WRITE
     global MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
 
     result_topic2 = ""
@@ -1468,17 +1466,8 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             # If there is no timeout, there will be confusion between message man and message auto
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
-            # if user wirings
-            # gBitManWrite = 1
-            # asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            # print("result_topic8", result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'")  
-        
-# async def reset_gBitManWrite_after_delay(delay):
-#     await asyncio.sleep(delay)
-#     global gBitManWrite
-#     gBitManWrite = 0
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -1587,7 +1576,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
                                                 MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN ,
                                                 MQTT_TOPIC_SUD_MODIFY_DEVICE,
-                                                MQTT_TOPIC_SUD_FEEDBACK_WRITE,
+                                                MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
                                                 )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
