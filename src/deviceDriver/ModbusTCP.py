@@ -940,8 +940,6 @@ async def write_device(
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
-            device_mode = await process_update_mode_for_device(result_topic1)
-            print("device_mode",device_mode)
             if id_systemp == device_control :
                 parameter = item['parameter']
                 if parameter :
@@ -950,8 +948,6 @@ async def write_device(
                         # Check Id is INV
                         if device_control : 
                             is_inverter = await check_inverter_device(device_control)
-                        else :
-                            pass
                         # Get information INV from Id_device
                         if is_inverter: 
                             inverter_info = await find_inverter_information(device_control, parameter)
@@ -1023,7 +1019,6 @@ async def write_device(
                                 
                                 if code_value == 16 :
                                     comment = 200
-                                    device_mode = await process_update_mode_for_device(result_topic1)
                                     mode_each_device = device_mode
                                 else:
                                     comment = 400
@@ -1081,7 +1076,6 @@ async def write_device(
                             # check fault push the results to mqtt
                             if results_write_modbus: # Code that writes data to the inverter after execution
                                 code_value = results_write_modbus['code']
-                                
                                 if code_value == 16 :
                                     comment = 200
                                     mode_each_device = device_mode
@@ -1172,7 +1166,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 results_Plist.append({**itemP})
         # inv_shutdown_enable=results_device[0]["enable_poweroff"]
         device_mode=results_device[0]['mode']
-        print("device_mode AVu",device_mode)
         global rated_power
         global rated_power_custom
         global rated_power_custom_calculator
@@ -1711,8 +1704,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 async def process_update_mode_for_device(mqtt_result):
     # Global variables
     global arr
-    
-    device_mode_temp = None
+    global device_mode
     # Local variables
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
@@ -1723,13 +1715,12 @@ async def process_update_mode_for_device(mqtt_result):
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
-                    device_mode_temp = int(item["mode"])
-                    print("device_mode",device_mode_temp)
-                    if device_mode_temp in [0, 1]:
-                        MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode_temp, id_device))
+                    device_mode = int(item["mode"])
+                    print("device_mode",device_mode)
+                    if device_mode in [0, 1]:
+                        MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
                     else:
                         print("Failed to insert data")
-    return device_mode_temp
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
 # 	 * @author bnguyen
@@ -2020,7 +2011,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
-        device_mode = await process_update_mode_for_device(mqtt_result)
+        await process_update_mode_for_device(mqtt_result)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
@@ -2072,11 +2063,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global value_zero_export_temp
     global bitcheck_topic1
     global is_waiting 
-    global gBitManWrite
-    global arr
-    # Local variables
-    id_systemp = arr[1]
-    id_systemp = int(id_systemp)
+    # global gBitManWrite
+    # global arr
+    # # Local variables
+    # id_systemp = arr[1]
+    # id_systemp = int(id_systemp)
     
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -2088,29 +2079,21 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic2 = ""
     result_topic4 = ""
     result_topic5 = ""
-    timeMessage = ""
-    timeCurrent = ""
+    # timeMessage = ""
+    # timeCurrent = ""
     try:
         if topic in [topic1, topic3]:
             bitcheck_topic1 = 1
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
                 result_topic1_Temp = message
-                gBitManWrite = 1
+                # gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                asyncio.create_task(reset_gBitManWrite_after_delay(20))
+                # asyncio.create_task(reset_gBitManWrite_after_delay(20))
             elif topic == topic3 :
-                # Lấy giá trị time cho id_device bằng id_systemp
-                time_value = next((item['time'] for item in result_topic3 if item['id_device'] == id_systemp), get_utc())
-                timeCurrent = get_utc()
-                print("timeCurrent", timeCurrent)
-                print("time_value", time_value)
                 result_topic3 = message
-                print("gBitManWrite",gBitManWrite)
-                print("device_mode",device_mode)
-                if gBitManWrite == 1 or device_mode == 0:
-                    result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
-                    
+                # if gBitManWrite == 1 or device_mode == 0:
+                #     result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2118,11 +2101,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
                     mode_each_device = device_mode
-                    print("device_mode all",device_mode)
-                else:
-                    pass
-            else:
-                pass
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4)

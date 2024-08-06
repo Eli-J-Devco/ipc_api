@@ -1469,16 +1469,16 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
             # if user wirings
-            gBitManWrite = 1
-            asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            print("result_topic8", result_topic8)
+            # gBitManWrite = 1
+            # asyncio.create_task(reset_gBitManWrite_after_delay(10))
+            # print("result_topic8", result_topic8)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'")  
         
-async def reset_gBitManWrite_after_delay(delay):
-    await asyncio.sleep(delay)
-    global gBitManWrite
-    gBitManWrite = 0
+# async def reset_gBitManWrite_after_delay(delay):
+#     await asyncio.sleep(delay)
+#     global gBitManWrite
+#     gBitManWrite = 0
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
