@@ -940,6 +940,8 @@ async def write_device(
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
+            device_mode = await process_update_mode_for_device(result_topic1)
+            print("device_mode",device_mode)
             if id_systemp == device_control :
                 parameter = item['parameter']
                 if parameter :
