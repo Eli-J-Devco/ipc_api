@@ -2096,11 +2096,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
             elif topic == topic3 :
                 result_topic3 = message
-                print("result_topic3 truoc khi xoa",result_topic3)
+                print("gBitManWrite",gBitManWrite)
+                print("device_mode",device_mode)
                 if gBitManWrite == 1 or device_mode == 0:
                     result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
-                # Kết quả sau khi xóa
-                print("result_topic3 sau khi xoa",result_topic3)
                     
         elif topic == topic2:
             result_topic2 = message
