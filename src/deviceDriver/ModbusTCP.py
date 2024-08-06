@@ -1021,7 +1021,7 @@ async def write_device(
                                 
                                 if code_value == 16 :
                                     comment = 200
-                                    mode_each_device = device_mode
+                                    device_mode = device_mode
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
@@ -1706,8 +1706,9 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
 
 async def process_update_mode_for_device(mqtt_result):
     # Global variables
-    global device_mode
     global arr
+    
+    device_mode_temp = None
     # Local variables
     id_systemp = arr[1]
     id_systemp = int(id_systemp)
@@ -1718,12 +1719,13 @@ async def process_update_mode_for_device(mqtt_result):
             checktype_device = MySQL_Select("SELECT device_type.name FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_list.id = %s;", (id_device,))[0]["name"]
             if checktype_device == "PV System Inverter":
                 if id_device == id_systemp:
-                    device_mode = int(item["mode"])
-                    print("device_mode",device_mode)
-                    if device_mode in [0, 1]:
-                        MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode, id_device))
+                    device_mode_temp = int(item["mode"])
+                    print("device_mode",device_mode_temp)
+                    if device_mode_temp in [0, 1]:
+                        MySQL_Insert_v5("UPDATE device_list SET device_list.mode = %s WHERE `device_list`.id = %s;", (device_mode_temp, id_device))
                     else:
                         print("Failed to insert data")
+    return device_mode_temp
 # Describe get_list_device_in_process 
 # 	 * @description get_list_device_in_process
 # 	 * @author bnguyen
@@ -2014,7 +2016,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
-        await process_update_mode_for_device(mqtt_result)
+        device_mode = await process_update_mode_for_device(mqtt_result)
         # return message mode when switching from man to auto
         await update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password)
         # extract the parameters from mqtt_result in global variables, to recalibrate the message accordingly to the trimmed parameter
