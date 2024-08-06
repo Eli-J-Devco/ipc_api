@@ -2097,11 +2097,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
-        
-async def reset_gBitManWrite_after_delay(delay):
-    await asyncio.sleep(delay)
-    global gBitManWrite
-    gBitManWrite = 0
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen

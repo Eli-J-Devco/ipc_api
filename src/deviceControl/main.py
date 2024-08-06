@@ -1376,7 +1376,6 @@ async def selectAutoModeDetail(StringSerialNumerInTableProjectSetup,mqtt_host ,m
 # 	 * @since 2-05-2024
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
-
 ############################################################################ Sud MQTT ############################################################################
 # Describe processMessage 
 # 	 * @description pudSystempModeTrigerEachDeviceChange
@@ -1403,7 +1402,6 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     result_topic6 = ""
     result_topic7 = ""
     result_topic8 = ""
-    # result_topic9 = ""
     
     global gArrayMessageAllDevice
     global gArrayMessageChangeModeSystemp
@@ -1454,11 +1452,11 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'")  
 # Describe gzip_decompress 
-# 	 * @description gzip_decompress
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {message}
-# 	 * @return result_list
+# 	 * @description gzip_decompress 
+# 	 * @author bnguyen 
+# 	 * @since 2-05-2024 
+# 	 * @param {message} 
+# 	 * @return result_list 
 # 	 */ 
 def gzip_decompress(message):
     try:
