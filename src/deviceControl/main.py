@@ -108,7 +108,8 @@ MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK = "/Control/Setup/Mode/Write/De
 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto"
 MQTT_TOPIC_PUD_CHOICES_MODE_AUTO = "/Control/Setup/Auto/Feedback"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
-MQTT_TOPIC_SUD_CONTROL_MAN = "/Control/Write"
+MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN = "/Control/Feedback"
+MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP = "/Control/Feedbacksetup"
 MQTT_TOPIC_PUD_CONTROL_AUTO = "/Control/WriteAuto"
 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE = "/Project/Set"
 MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE = "/Project/Set/Feedback"
@@ -386,7 +387,7 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
     topicpud = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
-        await asyncio.sleep(2)
+        # After recording for 2 seconds, buff the total mode again to avoid buffing too quickly.
         try:
             # Wait for up to 5 seconds for the data to be available
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
@@ -1411,6 +1412,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     global MQTT_TOPIC_SUD_SETTING_ARLAM
     global MQTT_TOPIC_SUD_MODIFY_DEVICE
     global MQTT_TOPIC_SUD_FEEDBACK_WRITE
+    global MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
 
     result_topic2 = ""
     result_topic3 = ""
@@ -1431,9 +1433,9 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
     # topic5 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODEGET_CPU
     topic6 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE
     topic7 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL
-    topic8 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_CONTROL_MAN
+    topic8 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN
     topic9 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODIFY_DEVICE
-    # topic10 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_FEEDBACK_WRITE
+    topic10 = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
     try:
         if topic == topic1:
             gArrayMessageChangeModeSystemp = message
@@ -1461,7 +1463,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             result_topic7 = message
             await processUpdateModeDetail(result_topic7,StringSerialNumerInTableProjectSetup, host, port, username, password)
             print("result_topic7",result_topic7)
-        elif topic in [topic8,topic9]:
+        elif topic in [topic8,topic9,topic10]:
             print("result_topic8",result_topic8)
             # If there is no timeout, there will be confusion between message man and message auto
             result_topic8 = message
@@ -1583,7 +1585,7 @@ async def main():
                                                 MQTT_TOPIC_SUD_MODEGET_CPU,
                                                 MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
                                                 MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
-                                                MQTT_TOPIC_SUD_CONTROL_MAN ,
+                                                MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN ,
                                                 MQTT_TOPIC_SUD_MODIFY_DEVICE,
                                                 MQTT_TOPIC_SUD_FEEDBACK_WRITE,
                                                 )))
