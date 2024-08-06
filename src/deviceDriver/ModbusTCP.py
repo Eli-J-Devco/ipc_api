@@ -937,7 +937,6 @@ async def write_device(
     
     if result_topic1 :
         # Write Man Mode 
-        await asyncio.sleep(1)
         for item in result_topic1:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
@@ -965,7 +964,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if value != None and device_mode == 0: 
+                                if value != None : 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -2012,7 +2011,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     power_limit_percent_temp = 0
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
-        result_topic1 = mqtt_result
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
@@ -2026,7 +2024,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         total_wmax_man_temp = await caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
         # Update rated power to the device and check status when saving the device's control parameters to the system
         comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
-        print("device_mode 1 ",device_mode)
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
@@ -2048,6 +2045,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation
         total_wmax_man_temp = 0
+        result_topic1 = mqtt_result
 # Describe process_message 
 # 	 * @description processmessage from mqtt
 # 	 * @author bnguyen
