@@ -2004,7 +2004,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     id_systemp = int(arr[1])
     comment = 200
     current_time = get_utc()
-    power_limit = 0
     wmax = 0
     watt = 0
     custom_watt = 0
@@ -2068,7 +2067,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global bitcheck_topic1
     global is_waiting 
     global gBitManWrite
-    global device_mode
     global arr
     # Local variables
     id_systemp = arr[1]
@@ -2093,7 +2091,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 result_topic1_Temp = message
                 gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                asyncio.create_task(reset_gBitManWrite_after_delay(10))
+                asyncio.create_task(reset_gBitManWrite_after_delay(20))
             elif topic == topic3 :
                 result_topic3 = message
                 print("gBitManWrite",gBitManWrite)
