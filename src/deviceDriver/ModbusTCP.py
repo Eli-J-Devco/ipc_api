@@ -2094,10 +2094,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
-            elif topic == topic3 and gBitManWrite == 0 :
+            elif topic == topic3 :
                 result_topic3 = message
                 print("result_topic3 truoc khi xoa",result_topic3)
-                if device_mode == 0 :
+                if gBitManWrite == 1 :
                     result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
                 # Kết quả sau khi xóa
                 print("result_topic3 sau khi xoa",result_topic3)
