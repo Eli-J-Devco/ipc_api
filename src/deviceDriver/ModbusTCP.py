@@ -2118,6 +2118,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
                     mode_each_device = device_mode
+                    print("device_mode all",device_mode)
                 else:
                     pass
             else:
