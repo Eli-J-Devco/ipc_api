@@ -75,6 +75,7 @@ result_topic1 = []
 result_topic2 = []
 result_topic3 = []
 bitcheck_topic1 = 0
+gBitManWrite = 0
 
 enable_zero_export = 0
 value_zero_export = 0
@@ -934,7 +935,7 @@ async def write_device(
     result_query_findname = []
     name_device_points_list_map = ""
     
-    if result_topic1 or result_topic3:
+    if result_topic1 :
         # Write Man Mode 
         for item in result_topic1:
             device_control = item['id_device']
@@ -963,7 +964,7 @@ async def write_device(
                                 result_query_findname = MySQL_Select('select `name` from `point_list` where `register` = %s and `id_pointkey` = %s', (register,id_pointkey,))
                                 name_device_points_list_map = result_query_findname [0]["name"]
                                 # Man Mode
-                                if device_mode == 0 and value != None: 
+                                if value != None: 
                                     print("---------- Manual control mode ----------")
                                     addtopic = "Feedback"
                                     if len(inverter_info) == 1 and parameter[0]['id_pointkey'] == "ControlINV": # Control On/Off INV 
@@ -1033,12 +1034,12 @@ async def write_device(
                     except Exception as err:
                         print(f"write_device: '{err}'")
     # Write Auto Mode 
-    if result_topic3 and device_mode == 1:
-        print("result_topic3",result_topic3)
+    if result_topic3 :
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
             if id_systemp == device_control :
+                print("result_topic3",result_topic3)
                 parameter = item['parameter']
                 if parameter :
                     print("---------- write data from Device ----------")
@@ -2066,6 +2067,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global value_zero_export_temp
     global bitcheck_topic1
     global is_waiting 
+    global gBitManWrite
 
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -2084,9 +2086,10 @@ async def process_message(topic, message,serial_number_project, host, port, user
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
                 result_topic1_Temp = message
+                gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                
-            elif topic == topic3 :
+                asyncio.create_task(reset_gBitManWrite_after_delay(10))
+            elif topic == topic3 and gBitManWrite == 0 :
                 result_topic3 = message
         elif topic == topic2:
             result_topic2 = message
@@ -2107,6 +2110,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
             value_zero_export_temp = result_topic5["instant"]["consumption"]
     except Exception as err:
         print(f"Error process_message: '{err}'")
+        
+async def reset_gBitManWrite_after_delay(delay):
+    await asyncio.sleep(delay)
+    global gBitManWrite
+    gBitManWrite = 0
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
