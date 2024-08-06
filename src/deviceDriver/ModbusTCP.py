@@ -1958,7 +1958,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
         # Just change mode and don't do anything else
         if not "rated_power_custom" in item and not "rated_power" in item:
             # check data change mode device action
-            if not item["parameter"] and device_mode == 1:
+            if not item["parameter"] and device_mode == 0:
                 mode_each_device = device_mode
                 data_send = {
                             "time_stamp": current_time,
@@ -2086,13 +2086,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
             # check topic 1, if there is a message, you have to wait for the function to process before receiving a new topic
             if topic == topic1:
                 result_topic1_Temp = message
-                # gBitManWrite = 1
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
-                # asyncio.create_task(reset_gBitManWrite_after_delay(20))
             elif topic == topic3 :
                 result_topic3 = message
-                # if gBitManWrite == 1 or device_mode == 0:
-                #     result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
         elif topic == topic2:
             result_topic2 = message
             # process 
@@ -2100,6 +2096,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
                     mode_each_device = device_mode
+                    print("device_mode all",device_mode)
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4)
