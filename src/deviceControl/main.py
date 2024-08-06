@@ -386,6 +386,7 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
     topicpud = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
+        await asyncio.sleep(2)
         try:
             # Wait for up to 5 seconds for the data to be available
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
@@ -1462,7 +1463,6 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
-            await asyncio.sleep(3)
             # If there is no timeout, there will be confusion between message man and message auto
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
