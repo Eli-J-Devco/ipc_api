@@ -382,6 +382,7 @@ async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjec
 async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSerialNumerInTableProjectSetup, host, port, username, password):
     # Global variables
     global MQTT_TOPIC_SUD_MODECONTROL_DEVICE
+    global MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
     # Local variables
     topicpud = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     # Switch to user mode that is both man and auto
@@ -1529,12 +1530,6 @@ async def main():
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            MQTT_BROKER,
-                                                                            MQTT_PORT,
-                                                                            MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
-                                                                            MQTT_USERNAME,
-                                                                            MQTT_PASSWORD])
         scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
                                                                             MQTT_BROKER,
                                                                             MQTT_PORT,
@@ -1571,6 +1566,14 @@ async def main():
                                                 MQTT_TOPIC_SUD_MODIFY_DEVICE,
                                                 MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
                                                 )))
+        tasks.append(asyncio.create_task(confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp(
+                                                                    StringSerialNumerInTableProjectSetup,
+                                                                    MQTT_BROKER,
+                                                                    MQTT_PORT,
+                                                                    MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
+                                                                    MQTT_USERNAME,
+                                                                    MQTT_PASSWORD
+                                                                    )))
         # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
