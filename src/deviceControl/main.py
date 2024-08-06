@@ -386,9 +386,9 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
     topicpud = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
+        await asyncio.sleep(2)
         # After recording for 2 seconds, buff the total mode again to avoid buffing too quickly.
         try:
-            # Wait for up to 5 seconds for the data to be available
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
             if len(modes) == 1:
@@ -972,7 +972,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                 if device['controlinv'] == 1: # Check device is off , on device 
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        # "mode": mode,
+                        "mode": mode,
                         "time": get_utc(),
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode ,
@@ -984,7 +984,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                 elif device['controlinv'] == 0:
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        # "mode": mode,
+                        "mode": mode,
                         "time": get_utc(),
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
@@ -997,7 +997,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             else:
                 ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        # "mode": mode,
+                        "mode": mode,
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
                         "feedback": gIntValueProductionSystemp,
@@ -1008,10 +1008,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                     }
             # Accumulate devices that are eligible to run automatically to push to mqtt
             listInvControlPowerLimitMode.append(ItemlistInvControlPowerLimitMode)
-        if len(gArraydevices) == len(listInvControlPowerLimitMode) and gBitManWrite == 0:
-            print("gBitManWrite",gBitManWrite)
-            print("Value Power Limit ", gIntValuePowerLimit)
-            print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
+        if len(gArraydevices) == len(listInvControlPowerLimitMode) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode, mqtt_username, mqtt_password, listInvControlPowerLimitMode)
             push_data_to_mqtt(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode + "Binh", mqtt_username, mqtt_password, listInvControlPowerLimitMode)
             gIntValuePowerForEachInvInModePowerLimit = 0
@@ -1064,7 +1061,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-        print("Device List", gArraydevices)
     if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
         gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
     elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
@@ -1099,7 +1095,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        # "mode": mode,
+                        "mode": mode,
                         "time": get_utc(),
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
@@ -1111,7 +1107,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        # "mode": mode,
+                        "mode": mode,
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
                         "parameter": [
@@ -1123,7 +1119,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                 ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        # "mode": mode,
+                        "mode": mode,
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
                         "parameter": [
@@ -1133,10 +1129,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     }
             listInvControlZeroExportMode.append(ItemlistInvControlPowerLimitMode)
         # Push data to MQTT
-        if len(gArraydevices) == len(listInvControlZeroExportMode) and gBitManWrite == 0:
-            print("gBitManWrite",gBitManWrite)
-            print("Value ZeroExport ", setpointCalculatorPowerForEachInv)
-            print("Value Power Man  ", gIntValueTotalPowerInInvInManMode)
+        if len(gArraydevices) == len(listInvControlZeroExportMode) :
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
             gIntValuePowerForEachInvInModeZeroExport = 0
