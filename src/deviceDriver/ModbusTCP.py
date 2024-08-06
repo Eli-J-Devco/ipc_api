@@ -2082,7 +2082,8 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic2 = ""
     result_topic4 = ""
     result_topic5 = ""
-    
+    timeMessage = ""
+    timeCurrent = ""
     try:
         if topic in [topic1, topic3]:
             bitcheck_topic1 = 1
@@ -2093,6 +2094,11 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 await process_sud_control_man(result_topic1_Temp, serial_number_project, host, port, username, password)
                 asyncio.create_task(reset_gBitManWrite_after_delay(20))
             elif topic == topic3 :
+                # Lấy giá trị time cho id_device bằng id_systemp
+                time_value = next((item['time'] for item in result_topic3 if item['id_device'] == id_systemp), None)
+                timeCurrent = get_utc()
+                print("timeCurrent", timeCurrent)
+                print("time_value", time_value)
                 result_topic3 = message
                 print("gBitManWrite",gBitManWrite)
                 print("device_mode",device_mode)
