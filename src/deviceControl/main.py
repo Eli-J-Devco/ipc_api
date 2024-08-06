@@ -1462,7 +1462,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup, ho
             print("result_topic7",result_topic7)
         elif topic in [topic8,topic9]:
             print("result_topic8",result_topic8)
-            await asyncio.sleep(5)
+            await asyncio.sleep(3)
             # If there is no timeout, there will be confusion between message man and message auto
             result_topic8 = message
             await pudSystempModeTrigerEachDeviceChange(result_topic8,StringSerialNumerInTableProjectSetup, host, port, username, password)
