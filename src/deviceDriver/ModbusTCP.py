@@ -1023,7 +1023,8 @@ async def write_device(
                                 
                                 if code_value == 16 :
                                     comment = 200
-                                    device_mode = device_mode
+                                    device_mode = await process_update_mode_for_device(result_topic1)
+                                    mode_each_device = device_mode
                                 else:
                                     comment = 400
                                     device_mode = mode_each_device
