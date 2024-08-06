@@ -2097,7 +2097,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             elif topic == topic3 :
                 result_topic3 = message
                 print("result_topic3 truoc khi xoa",result_topic3)
-                if gBitManWrite == 1 :
+                if gBitManWrite == 1 or device_mode == 0:
                     result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
                 # Kết quả sau khi xóa
                 print("result_topic3 sau khi xoa",result_topic3)
