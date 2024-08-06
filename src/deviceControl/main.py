@@ -971,7 +971,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                 if device['controlinv'] == 1: # Check device is off , on device 
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        "mode": mode,
+                        # "mode": mode,
                         "time": get_utc(),
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode ,
@@ -983,7 +983,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                 elif device['controlinv'] == 0:
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        "mode": mode,
+                        # "mode": mode,
                         "time": get_utc(),
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
@@ -996,7 +996,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             else:
                 ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
-                        "mode": mode,
+                        # "mode": mode,
                         "status": "power limit",
                         "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
                         "feedback": gIntValueProductionSystemp,
@@ -1098,7 +1098,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        "mode": mode,
+                        # "mode": mode,
                         "time": get_utc(),
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
@@ -1110,7 +1110,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        "mode": mode,
+                        # "mode": mode,
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
                         "parameter": [
@@ -1122,7 +1122,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                 ItemlistInvControlPowerLimitMode = {
                         "id_device": id_device,
                         "Mode": "Add",
-                        "mode": mode,
+                        # "mode": mode,
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
                         "parameter": [
