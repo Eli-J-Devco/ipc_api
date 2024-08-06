@@ -1038,7 +1038,7 @@ async def write_device(
         for item in result_topic3:
             device_control = item['id_device']
             device_control = int(device_control) # Get Id_device from message mqtt
-            if id_systemp == device_control :
+            if id_systemp == device_control and device_mode == 1:
                 print("result_topic3",result_topic3)
                 parameter = item['parameter']
                 if parameter :
@@ -2068,7 +2068,12 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global bitcheck_topic1
     global is_waiting 
     global gBitManWrite
-
+    global device_mode
+    global arr
+    # Local variables
+    id_systemp = arr[1]
+    id_systemp = int(id_systemp)
+    
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
     topic3 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_AUTO
@@ -2091,6 +2096,12 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 asyncio.create_task(reset_gBitManWrite_after_delay(10))
             elif topic == topic3 and gBitManWrite == 0 :
                 result_topic3 = message
+                print("result_topic3 truoc khi xoa",result_topic3)
+                if device_mode == 0 :
+                    result_topic3 = [item for item in result_topic3 if not (item["id_device"] == id_systemp)]
+                # Kết quả sau khi xóa
+                print("result_topic3 sau khi xoa",result_topic3)
+                    
         elif topic == topic2:
             result_topic2 = message
             # process 
