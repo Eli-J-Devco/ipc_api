@@ -374,7 +374,6 @@ async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjec
                             gStringModeSysTemp = ModeSystempInDB[0]['mode']
                         # Have ModeSysTemp push to mqtt 
                         if gStringModeSysTemp in (0, 1, 2):
-                            print("da vao confirm mode system ", {gStringModeSysTemp})
                             gStringModeSystempCurrent = gStringModeSysTemp
                             current_time = get_utc()
                             objectSend = {
@@ -410,7 +409,7 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
     topicpud = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_SUD_MODECONTROL_DEVICE
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
-        await asyncio.sleep(2)
+        # await asyncio.sleep(2)
         # After recording for 2 seconds, buff the total mode again to avoid buffing too quickly.
         try:
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
@@ -425,38 +424,6 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
             mqtt_public_paho_zip(host, port, topicpud, username, password, data_send)
         except asyncio.TimeoutError:
             print("Timeout waiting for data from MySQL")
-# Describe confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp 
-# 	 * @description confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
-# 	 * @return ModeSysTemp
-# 	 */ 
-async def confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, \
-    topicPublic, mqtt_username, mqtt_password):
-    global gStringModeSysTemp, gArrayResultExecuteSQLModeSysTemp, gArrayResultExecuteSQLModeDevice,gStringModeSystempCurrent
-    ModeSystempInDB = []
-    topicConfirmModeSystemp = StringSerialNumerInTableProjectSetup + topicPublic
-    # Get ModeSysTemp from database when start program
-    if gArrayResultExecuteSQLModeSysTemp is not None and gArrayResultExecuteSQLModeDevice is not None:
-        if not gStringModeSysTemp:
-            ModeSystempInDB = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
-            gStringModeSysTemp = ModeSystempInDB[0]['mode']
-        # Have ModeSysTemp push to mqtt 
-        if gStringModeSysTemp in (0, 1, 2):
-            print("da vao confirm mode system ", {gStringModeSysTemp})
-            gStringModeSystempCurrent = gStringModeSysTemp
-            try:
-                current_time = get_utc()
-                data_send = {
-                    "status": 200,
-                    "confirm_mode": gStringModeSysTemp,
-                    "time_stamp": current_time,
-                }
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicConfirmModeSystemp, mqtt_username, mqtt_password, data_send)
-                gStringModeSysTemp = None
-            except Exception as err:
-                print(f"Error MQTT subscribe confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp: '{err}'")
 ############################################################################ Config SiteInfo ############################################################################
 # Describe pudFeedBackProjectSetup 
 # 	 * @description pudFeedBackProjectSetup
@@ -1590,15 +1557,6 @@ async def main():
                                                 MQTT_TOPIC_SUD_MODIFY_DEVICE,
                                                 MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP
                                                 )))
-        # tasks.append(asyncio.create_task(confirmSystemModeAfterDeviceChangeOrUserChangeModeSystemp(
-        #                                                             StringSerialNumerInTableProjectSetup,
-        #                                                             MQTT_BROKER,
-        #                                                             MQTT_PORT,
-        #                                                             MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL,
-        #                                                             MQTT_USERNAME,
-        #                                                             MQTT_PASSWORD
-        #                                                             )))
-        # Move the gather outside the loop to wait for all tasks to complete
         await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
     if sys.platform == 'win32':

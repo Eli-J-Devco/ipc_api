@@ -2061,11 +2061,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global value_zero_export_temp
     global bitcheck_topic1
     global is_waiting 
-    # global gBitManWrite
-    # global arr
-    # # Local variables
-    # id_systemp = arr[1]
-    # id_systemp = int(id_systemp)
     
     topic1 = serial_number_project + MQTT_TOPIC_SUD_CONTROL_MAN
     topic2 = serial_number_project + MQTT_TOPIC_SUD_MODE_SYSTEMP
@@ -2077,8 +2072,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
     result_topic2 = ""
     result_topic4 = ""
     result_topic5 = ""
-    # timeMessage = ""
-    # timeCurrent = ""
     try:
         if topic in [topic1, topic3]:
             bitcheck_topic1 = 1
@@ -2095,7 +2088,6 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
                     mode_each_device = device_mode
-                    print("device_mode all",device_mode)
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4)
