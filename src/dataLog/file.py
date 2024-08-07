@@ -62,9 +62,7 @@ QUERY_SELECT_TOPIC = ""
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-# MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Devices/#"
-MQTT_TOPIC_SUB = ""
-# MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogFile" 
+MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE = ""
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -143,7 +141,6 @@ async def processGetMessageAllDeviceCreateListDeviceLogFile(messageAllDevice):
             gStrStatusOfRegister = items["status_register"]
             listFieldsOfDevice = items["fields"]
             typeOfDevice = items["type_device_type"]
-            
             if deviceId not in dictionaryInforEachOfDevice:
                 dictionaryInforEachOfDevice[deviceId] = {
                     "id": int(deviceId),
@@ -153,7 +150,6 @@ async def processGetMessageAllDeviceCreateListDeviceLogFile(messageAllDevice):
                     "status_device": gStrStatusEachOfDevice,
                     "status_register": gStrStatusOfRegister
                 }
-            
             # Condition log device 
             if typeOfDevice != 1:      
                 for field in listFieldsOfDevice:
@@ -161,7 +157,6 @@ async def processGetMessageAllDeviceCreateListDeviceLogFile(messageAllDevice):
                         dictionaryInforEachOfDevice[deviceId]["point_id"].append(str(field["id"]))
                         dataCorrespondingfield = str(field["value"]) if field["value"] is not None else ""
                         dictionaryInforEachOfDevice[deviceId]["data"].append(dataCorrespondingfield)
-        
         # Convert dictionary to list
         gArrayListDeviceLogFile = list(dictionaryInforEachOfDevice.values())
     except Exception as err:
@@ -353,7 +348,7 @@ async def processFeedbackStatusLogFileSentMqttAllDevice(arrayIdChanel,serialNumb
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListDB,arrayIdChanel,head_file,host, port,topic, username, password):
+async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListMQTT,arrayIdChanel,head_file,host, port,topic, username, password):
     global gJsonFeedbackStatusLogFileSentMqtt
     global gStrStatusEachOfDevice 
     global gStrStatusOfFile
@@ -366,9 +361,8 @@ async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListDB,array
     
     strSqlID = ""
     strNameDevice = ""
-    
-    currentTime = get_utc()
     arrayDataOfDevice = []
+    currentTime = get_utc()
     timeGetMessageAllDevice = get_utc()
 
     intIdChanel = arrayIdChanel[1]
@@ -378,16 +372,16 @@ async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListDB,array
     for item in informationTableUploadChannel:
         typeOfFile = item["type_protocol"]
     
-    if IdDeviceGetListDB :
-        gStrNameOfFile = f'{head_file}-{IdDeviceGetListDB:03d}.{gStrTimeCreateNameFile}.txt'
-        DictID = [item for item in gArrayListDeviceLogFile if item["id"] == IdDeviceGetListDB]
+    if IdDeviceGetListMQTT :
+        gStrNameOfFile = f'{head_file}-{IdDeviceGetListMQTT:03d}.{gStrTimeCreateNameFile}.txt'
+        DictID = [item for item in gArrayListDeviceLogFile if item["id"] == IdDeviceGetListMQTT]
         if DictID:
             timeGetMessageAllDevice = DictID[0]["time"]
             arrayDataOfDevice = DictID[0]["data"]  
         try: 
             if gStrTimeCreateNameFile :
                 gJsonFeedbackStatusLogFileSentMqtt={
-                    "id_device":IdDeviceGetListDB,
+                    "id_device":IdDeviceGetListMQTT,
                     "status_data":gStrStatusEachOfDevice,
                     "status_chanel":gStrStatusOfFile,
                     "file_name":gStrNameOfFile,
@@ -399,7 +393,7 @@ async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListDB,array
             else :
                 gStrStatusOfFile = "fault"
                 gJsonFeedbackStatusLogFileSentMqtt={
-                    "id_device":IdDeviceGetListDB,
+                    "id_device":IdDeviceGetListMQTT,
                     "status_data":"old",
                     "status_chanel":"no_files_yet",
                     "file_name":"No files yet",
@@ -410,8 +404,8 @@ async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListDB,array
                     }
 
             # File creation time 
-            strSqlID = str(IdDeviceGetListDB)
-            strNameDevice = [item['name'] for item in gArrayListDeviceNeedLogFile if item['id'] == IdDeviceGetListDB][0] 
+            strSqlID = str(IdDeviceGetListMQTT)
+            strNameDevice = [item['name'] for item in gArrayListDeviceNeedLogFile if item['id'] == IdDeviceGetListMQTT][0] 
             mqtt_public_paho_zip(host,
                     port,
                     topic + f"/Channel{intIdChanel}|{typeOfFile}/"+strSqlID+"|"+strNameDevice,
@@ -458,6 +452,7 @@ async def processDeleteDataInTableSyncDataFolowCycle():
         print(f"Deleted {resultDeleteData.rowcount} rows from sync_data table")
     except Exception as err:
         print(f"Error MQTT subscribe processDeleteDataInTableSyncDataFolowCycle: '{err}'")
+        
 async def main():
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     # Query global 
@@ -471,7 +466,7 @@ async def main():
     
     global MQTT_BROKER
     global MQTT_PORT
-    global MQTT_TOPIC_SUB
+    global MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE
     global MQTT_USERNAME
     global MQTT_PASSWORD
 
@@ -499,13 +494,11 @@ async def main():
     if len(arr) > 1 :
         gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
         gArrayResultCycleTimeLogFileInDB = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
-    else:
-        pass
     # Get serial number from DB
     arrayResultSerialNumber = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
     if arrayResultSerialNumber != None :
         strSerialNumber = arrayResultSerialNumber[0]["serial_number"]
-        MQTT_TOPIC_SUB = str(strSerialNumber) + "/Devices/#"
+        MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE = str(strSerialNumber) + "/Devices/#"
         
         if not gArrayListDeviceNeedLogFile :
             print("None of the devices have been selected in the database (check table upload_channel_device_map , divice_list)")
