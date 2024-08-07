@@ -33,7 +33,6 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 arr = sys.argv # Variables Array System
 gStringModeSysTemp = ""
 gStringModeSystempCurrent = ""
-gArraygArraydevices = []
 gFloatValueSystemPerformance = 0
 # Parameters values PowerLimit and ZeroExport
 gIntControlModeDetail = 0
