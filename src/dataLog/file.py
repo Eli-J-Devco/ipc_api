@@ -24,7 +24,7 @@ sys.path.append(path)
 from configs.config import Config
 from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import (gzipDecompress, mqtt_public_common,
+from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
@@ -166,14 +166,14 @@ async def processGetMessageAllDeviceCreateListDeviceLogFile(messageAllDevice):
         gArrayListDeviceLogFile = list(dictionaryInforEachOfDevice.values())
     except Exception as err:
         print(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
-# Describe gzipDecompress 
-# 	 * @description gzipDecompress
+# Describe gzip_decompress 
+# 	 * @description gzip_decompress
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {message}
 # 	 * @return result_list
 # 	 */ 
-def gzipDecompress(message):
+def gzip_decompress(message):
     try:
         result_decode=base64.b64decode(message.decode('ascii'))
         result_decompress=gzip.decompress(result_decode)
@@ -194,7 +194,7 @@ async def handleMessageDriver(client):
                 print('Broker connection lost!')
                 break
             # payload = json.loads(message.message.decode())
-            payload = gzipDecompress(message.message)
+            payload = gzip_decompress(message.message)
             await processGetMessageAllDeviceCreateListDeviceLogFile(payload)
         except Exception as err:
             print(f"Error handleMessageDriver: '{err}'")
