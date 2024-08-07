@@ -147,11 +147,10 @@ def MySQL_Insert_v3(data):
     if db:
         cursor = db.cursor(dictionary=True)
         try:
-            for device_id, ditionaryqueries in data.items():
-                for device_id , queries in ditionaryqueries.items():
-                    query = queries [0]
-                    values = queries [1]
-                    cursor.execute(query, values)
+            for key, value in data.items():
+                sql = value[0]
+                val = value[1]
+                cursor.execute(sql, val)
             db.commit()
             result = cursor.rowcount
             cursor.close()
@@ -160,7 +159,7 @@ def MySQL_Insert_v3(data):
         except Exception as err:
             cursor.close()
             db.close()
-            print(f"Error: '{err} with value {query}'")
+            print(f"Error: '{err}{val}'")
             return None
     else:
         return None
