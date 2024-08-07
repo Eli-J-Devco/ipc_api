@@ -1954,10 +1954,10 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
                             "status": 200,
                         }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
-        # Just change mode and don't do anything else
+        # Just change mode and don't do anything else 
         if not "rated_power_custom" in item and not "rated_power" in item:
             # check data change mode device action
-            if not item["parameter"] and device_mode == 1:
+            if not item["parameter"] and device_mode == 1:# Using page Devices
                 mode_each_device = device_mode
                 data_send = {
                             "time_stamp": current_time,
