@@ -982,7 +982,7 @@ async def write_device(
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
-                                                    floatPmaxConvertPercent = round(rated_power_custom_calculator*(power_limit_percent/100) / slope_wmax,1)
+                                                    floatPmaxConvertPercent = round(rated_power_custom_calculator*(power_limit_percent/100) / slope_wmax)
                                                     print("rated_power_custom_calculator",rated_power_custom_calculator)
                                                     print("power_limit_percent",power_limit_percent)
                                                     print("slope_wmax",slope_wmax)
