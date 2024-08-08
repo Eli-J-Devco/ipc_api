@@ -926,6 +926,7 @@ async def write_device(
     comment = 200
     current_time = get_utc()
     data_send = ""
+    floatPmaxConvertPercent = 0.0
     
     # database
     is_inverter = []
@@ -981,7 +982,12 @@ async def write_device(
                                                 result_slope_wmax = MySQL_Select("SELECT `point_list`.`slope` FROM point_list JOIN device_list ON point_list.id_template = device_list.id_template AND `point_list`.`id_pointkey` = 'WMax' AND `point_list`.`slopeenabled` = 1 WHERE `device_list`.id = %s", (id_systemp,))
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
-                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value':round(rated_power_custom_calculator*(power_limit_percent/100) / slope_wmax,2)}]
+                                                    floatPmaxConvertPercent = round(rated_power_custom_calculator*(power_limit_percent/100) / slope_wmax,2)
+                                                    print("rated_power_custom_calculator",rated_power_custom_calculator)
+                                                    print("power_limit_percent",power_limit_percent)
+                                                    print("slope_wmax",slope_wmax)
+                                                    print("floatPmaxConvertPercent",floatPmaxConvertPercent)
+                                                    parameter_temp = [{'id_pointkey': 'WMax', 'value':floatPmaxConvertPercent}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
                                                         write_modbus_tcp(client, slave_ID, inverter_info_temp[0]["datatype"],
