@@ -1334,7 +1334,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
 async def initializeValueControlAuto():
     # Global variables
     global gIntControlModeDetail,gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit,gIntValueThresholdZeroExport,\
-    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance
+    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gStringModeSystempCurrent
     # Local variables
     gIntValuePowerLimit_temp = 0
     arrayResultInitializeParameterZeroExportInTableProjectSetUp = []
@@ -1342,6 +1342,7 @@ async def initializeValueControlAuto():
     try:
         arrayResultInitializeParameterZeroExportInTableProjectSetUp = await MySQL_Select_v1("select * from project_setup")
         if arrayResultInitializeParameterZeroExportInTableProjectSetUp:
+            gStringModeSystempCurrent = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["mode"]
             gIntControlModeDetail = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["control_mode"]
             gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
             gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
