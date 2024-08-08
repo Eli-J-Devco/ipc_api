@@ -714,7 +714,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
             gFloatValueSystemPerformance = 0
     gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     
-    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
+    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode,2)
     gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,2)
     
     gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
