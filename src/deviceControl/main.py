@@ -706,6 +706,12 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
+        
+    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
+    print("gIntValueSettingArlamLowPerformance",gIntValueSettingArlamLowPerformance)
+    print("gIntValueSettingArlamHighPerformance",gIntValueSettingArlamHighPerformance)
+    print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+    print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
     # Caculator gFloatValueSystemPerformance
     if gStringModeSystempCurrent == 0:
         if gIntValueTotalPowerInALLInv :

@@ -49,9 +49,9 @@ MQTT_TOPIC_SUD_CONTROL_AUTO = "/Control/WriteAuto"
 MQTT_TOPIC_SUD_DEVICES_ALL = "/Devices/All"
 MQTT_TOPIC_SUD_COMSUMTION_METER = "/Meter/Monitor"
 # 
-ModeSysTemp = "" 
-ModeSysTemp_Control = "" 
-mode_each_device = 0
+gStrModeSysTem = "" 
+gStrModeAutoControl = "" 
+gIntModeConfirmOfDevice = 0
 device_name=""
 status_register_block=[]
 status_device=""
@@ -899,7 +899,7 @@ async def write_device(
     global rated_power_custom_calculator
     global result_topic1 # result topic 
     global result_topic3 
-    global mode_each_device
+    global gIntModeConfirmOfDevice
     # Local Variables
     
     # Get Id_Systemp
@@ -1020,10 +1020,10 @@ async def write_device(
                                 
                                 if code_value == 16 :
                                     comment = 200
-                                    mode_each_device = device_mode
+                                    gIntModeConfirmOfDevice = device_mode
                                 else:
                                     comment = 400
-                                    device_mode = mode_each_device
+                                    device_mode = gIntModeConfirmOfDevice
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1078,10 +1078,10 @@ async def write_device(
                                 code_value = results_write_modbus['code']
                                 if code_value == 16 :
                                     comment = 200
-                                    mode_each_device = device_mode
+                                    gIntModeConfirmOfDevice = device_mode
                                 else:
                                     comment = 400
-                                    device_mode = mode_each_device
+                                    device_mode = gIntModeConfirmOfDevice
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
@@ -1764,7 +1764,7 @@ async def get_list_device_in_process(mqtt_result):
 # 	 * @return value_zero_export and value_power_limit
 # 	 */
 async def Get_value_Power_Limit():
-    global ModeSysTemp , ModeSysTemp_Control ,value_zero_export,value_power_limit
+    global gStrModeSysTem , gStrModeAutoControl ,value_zero_export,value_power_limit
     result_value_power_limit = []
     value_power_limit_temp = 0 
     value_offset_zero_export = 0
@@ -1774,8 +1774,8 @@ async def Get_value_Power_Limit():
     result_value_power_limit = MySQL_Select('SELECT value_power_limit,value_offset_power_limit,mode,control_mode,value_offset_zero_export FROM `project_setup`', ())
     value_power_limit_temp = result_value_power_limit[0]['value_power_limit']
     value_offset_power_limit = result_value_power_limit[0]['value_offset_power_limit']
-    ModeSysTemp = result_value_power_limit[0]['mode']
-    ModeSysTemp_Control = result_value_power_limit[0]['control_mode']
+    gStrModeSysTem = result_value_power_limit[0]['mode']
+    gStrModeAutoControl = result_value_power_limit[0]['control_mode']
     value_offset_zero_export = result_value_power_limit[0]['value_offset_zero_export']
     
     if value_offset_zero_export :
@@ -1857,7 +1857,7 @@ async def extract_device_control_params():
 # 	 * @return comment,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr,device_mode,ModeSysTemp_Control,total_wmax_man_temp,value_power_limit,value_zero_export,rated_power,rated_power_custom
+    global arr,device_mode,gStrModeAutoControl,total_wmax_man_temp,value_power_limit,value_zero_export,rated_power,rated_power_custom
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1874,10 +1874,10 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system 
-                if (ModeSysTemp in [0,2] and power_limit > rated_power_custom_calculator) or \
+                if (gStrModeSysTem in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
-                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 2 and total_wmax_man_temp > value_power_limit) or \
-                (ModeSysTemp in [1,2] and ModeSysTemp_Control == 1 and total_wmax_man_temp > value_zero_export):
+                (gStrModeSysTem in [1,2] and gStrModeAutoControl == 2 and total_wmax_man_temp > value_power_limit) or \
+                (gStrModeSysTem in [1,2] and gStrModeAutoControl == 1 and total_wmax_man_temp > value_zero_export):
                     comment = 400 
                 else:
                     comment = 200 
@@ -1939,10 +1939,10 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
 # 	 * @author bnguyen
 # 	 * @since 17-06-2024
 # 	 * @param {mqtt_result,topicPublic, host, port, username, password}
-# 	 * @return device_mode ,mode_each_device
+# 	 * @return device_mode ,gIntModeConfirmOfDevice
 # 	 */
 async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password):
-    global device_list,device_mode,mode_each_device
+    global device_list,device_mode,gIntModeConfirmOfDevice
     
     current_time = get_utc()
     for item in mqtt_result:
@@ -1950,7 +1950,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
         if "rated_power_custom" in item and "rated_power" in item:
             # check data change mode device action
             if not item["parameter"] and device_mode == 1:
-                mode_each_device = device_mode
+                gIntModeConfirmOfDevice = device_mode
                 data_send = {
                             "time_stamp": current_time,
                             "status": 200,
@@ -1960,7 +1960,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
         if not "rated_power_custom" in item and not "rated_power" in item:
             # check data change mode device action
             if not item["parameter"] and device_mode == 1:# Using page Devices
-                mode_each_device = device_mode
+                gIntModeConfirmOfDevice = device_mode
                 data_send = {
                             "time_stamp": current_time,
                             "status": 200,
@@ -1970,7 +1970,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
         if not "rated_power_custom" in item and not "rated_power" in item:
             # check data change mode device action
             if not item["parameter"] and device_mode == 0:# Using page Devices
-                mode_each_device = device_mode
+                gIntModeConfirmOfDevice = device_mode
                 data_send = {
                             "time_stamp": current_time,
                             "status": 200,
@@ -1988,7 +1988,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global arr
     global MQTT_TOPIC_PUB_CONTROL
     global device_mode
-    global mode_each_device
+    global gIntModeConfirmOfDevice
     global result_topic1
     global rated_power
     global rated_power_custom
@@ -2002,8 +2002,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global total_wmax_man 
     global value_power_limit
     global device_list
-    global ModeSysTemp
-    global ModeSysTemp_Control
+    global gStrModeSysTem
+    global gStrModeAutoControl
     global bitcheck_topic1
     global value_zero_export
     global total_wmax_man_temp
@@ -2035,7 +2035,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         if comment == 400 :
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
-            device_mode = mode_each_device
+            device_mode = gIntModeConfirmOfDevice
             bitcheck_topic1 = 0
             # feedback data to mqtt 
             data_send = {
@@ -2068,7 +2068,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
     global MQTT_TOPIC_SUD_DEVICES_ALL
     global MQTT_TOPIC_SUD_COMSUMTION_METER
     global device_mode 
-    global mode_each_device
+    global gIntModeConfirmOfDevice
     global result_topic2
     global result_topic3
     global value_zero_export_temp
@@ -2100,7 +2100,7 @@ async def process_message(topic, message,serial_number_project, host, port, user
             if result_topic2 and 'confirm_mode' in result_topic2:
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
-                    mode_each_device = device_mode
+                    gIntModeConfirmOfDevice = device_mode
         elif topic == topic4:
             result_topic4 = message
             await get_list_device_in_process(result_topic4)
