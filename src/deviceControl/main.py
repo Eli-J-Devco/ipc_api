@@ -706,23 +706,16 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
-        
-    # print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
-    # print("gIntValueSettingArlamLowPerformance",gIntValueSettingArlamLowPerformance)
-    # print("gIntValueSettingArlamHighPerformance",gIntValueSettingArlamHighPerformance)
-    # print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-    # print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
-    # Caculator gFloatValueSystemPerformance
+    # Caculator Performance Man System 
     if gStringModeSystempCurrent == 0:
         if gIntValueTotalPowerInALLInv :
             gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueTotalPowerInALLInv) * 100
         else:
             gFloatValueSystemPerformance = 0
-        print("tinh hieu suat cho man ")
     gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     
     gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
-    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,1)
+    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,2)
     
     gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
     
@@ -932,7 +925,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-        print("device",gArraydevices)
     if gStringModeSystempCurrent != 0:
         if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
             gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
@@ -940,7 +932,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             gFloatValueSystemPerformance = 101
         else:
             gFloatValueSystemPerformance = 0
-    print("tinh hieu suat cho power limit ")
     # get information about power in database and varaable gArraydevices
     if gArraydevices:
         listInvControlPowerLimitMode = []
