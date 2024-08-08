@@ -983,10 +983,6 @@ async def write_device(
                                                 if result_slope_wmax:
                                                     slope_wmax = float(result_slope_wmax[0]['slope'])
                                                     floatPmaxConvertPercent = round(rated_power_custom_calculator*(power_limit_percent/100) / slope_wmax)
-                                                    print("rated_power_custom_calculator",rated_power_custom_calculator)
-                                                    print("power_limit_percent",power_limit_percent)
-                                                    print("slope_wmax",slope_wmax)
-                                                    print("floatPmaxConvertPercent",floatPmaxConvertPercent)
                                                     parameter_temp = [{'id_pointkey': 'WMax', 'value':floatPmaxConvertPercent}]
                                                     inverter_info_temp = await find_inverter_information(device_control, parameter_temp)
                                                     if inverter_info_temp and inverter_info_temp[0]["register"] and inverter_info_temp[0]["datatype"]:
