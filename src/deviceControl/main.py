@@ -936,7 +936,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gStringModeSystempCurrent != 0:
         if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
             gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
-        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+        elif gIntValuePowerLimit <= 0 and gIntValueProductionSystemp > 0:
             gFloatValueSystemPerformance = 101
         else:
             gFloatValueSystemPerformance = 0
@@ -1028,6 +1028,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     id_device = 0
     intPowerMaxOfInv = 0
     setpointCalculatorPowerForEachInv = 0
+    intPracticalConsumptionValue = 0
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + MQTT_TOPIC_PUD_CONTROL_AUTO
     if gIntValueConsumptionSystemp :
         # Calculate the moving average, the number of times declared at the beginning of the program
@@ -1053,6 +1054,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         processCaculatorPowerForInvInZeroExportMode.last_setpoint = setpointCalculatorPowerForEachInv
         if setpointCalculatorPowerForEachInv:
             setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * gIntValueOffsetZeroExport / 100
+            intPracticalConsumptionValue = gIntValueConsumptionSystemp * gIntValueOffsetZeroExport / 100
         if gIntValueProductionSystemp > gIntValueConsumptionSystemp:
             setpointCalculatorPowerForEachInv -= (gIntValueProductionSystemp - gIntValueConsumptionSystemp)
         setpointCalculatorPowerForEachInv = round(setpointCalculatorPowerForEachInv, 4)
@@ -1060,9 +1062,9 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     if gStringModeSystempCurrent != 0:
-        if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
-        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+        if intPracticalConsumptionValue > 0 and gIntValueProductionSystemp > 0:
+            gFloatValueSystemPerformance = (gIntValueProductionSystemp /intPracticalConsumptionValue) * 100
+        elif intPracticalConsumptionValue <= 0 and gIntValueProductionSystemp > 0:
             gFloatValueSystemPerformance = 101
         else :
             gFloatValueSystemPerformance = 0
