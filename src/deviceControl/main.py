@@ -721,8 +721,8 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         
     gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     
-    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
-    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,1)
+    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 2)
+    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,2)
     
     gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
     
@@ -933,12 +933,13 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         print("device",gArraydevices)
-    if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
-    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = 101
-    else:
-        gFloatValueSystemPerformance = 0
+    if gStringModeSystempCurrent != 0:
+        if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
+            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
+        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+            gFloatValueSystemPerformance = 101
+        else:
+            gFloatValueSystemPerformance = 0
         
     # get information about power in database and varaable gArraydevices
     if gArraydevices:
@@ -1058,12 +1059,13 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
-    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = 101
-    else :
-        gFloatValueSystemPerformance = 0
+    if gStringModeSystempCurrent != 0:
+        if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
+            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
+        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+            gFloatValueSystemPerformance = 101
+        else :
+            gFloatValueSystemPerformance = 0
     
     # Get information about power in database and variable devices
     if gArraydevices:
@@ -1332,7 +1334,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
 async def initializeValueControlAuto():
     # Global variables
     global gIntControlModeDetail,gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit,gIntValueThresholdZeroExport,\
-    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance
+    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gStringModeSystempCurrent
     # Local variables
     gIntValuePowerLimit_temp = 0
     arrayResultInitializeParameterZeroExportInTableProjectSetUp = []
@@ -1340,6 +1342,7 @@ async def initializeValueControlAuto():
     try:
         arrayResultInitializeParameterZeroExportInTableProjectSetUp = await MySQL_Select_v1("select * from project_setup")
         if arrayResultInitializeParameterZeroExportInTableProjectSetUp:
+            gStringModeSystempCurrent = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["mode"]
             gIntControlModeDetail = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["control_mode"]
             gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
             gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
