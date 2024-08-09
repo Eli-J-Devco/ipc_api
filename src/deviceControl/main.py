@@ -85,8 +85,8 @@ net_io_counters_prev["Timestamp"] = datetime.datetime.now()
 
 # Stores information about read_count and write_count of the previous query
 disk_io_counters_prev = {}
-disk_io_counters_prev["ReadCount"] = 0
-disk_io_counters_prev["WriteCount"] = 0
+disk_io_counters_prev["ReadBytes"] = 0
+disk_io_counters_prev["WriteBytes"] = 0
 disk_io_counters_prev["Timestamp"] = datetime.datetime.now()
 
 MQTT_BROKER = Config.MQTT_BROKER
