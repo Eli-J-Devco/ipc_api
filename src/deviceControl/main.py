@@ -303,21 +303,14 @@ async def getCpuInformation(StringSerialNumerInTableProjectSetup, mqtt_host, mqt
         current_time = datetime.datetime.now()
         time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
 
-        print("disk_io_counters",disk_io_counters.read_bytes)
-        print("disk_io_counters",disk_io_counters.read_count)
-        print("disk_io_counters",disk_io_counters.read_time)
-        print("disk_io_counters",disk_io_counters.write_bytes)
-        print("disk_io_counters",disk_io_counters.write_count)
-        print("disk_io_counters",disk_io_counters.write_time)
-        
-        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
-        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff , unit="KB")
         system_info["DiskIO"]["ReadBytes"] = getReadableSize(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = getReadableSize(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
 
-        disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
-        disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
+        disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
+        disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
         disk_io_counters_prev["Timestamp"] = current_time
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host,
@@ -713,16 +706,23 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
-    # Caculator Performance Man System 
+        
+    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
+    print("gIntValueSettingArlamLowPerformance",gIntValueSettingArlamLowPerformance)
+    print("gIntValueSettingArlamHighPerformance",gIntValueSettingArlamHighPerformance)
+    print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+    print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
+    # Caculator gFloatValueSystemPerformance
     if gStringModeSystempCurrent == 0:
         if gIntValueTotalPowerInALLInv :
             gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueTotalPowerInALLInv) * 100
         else:
             gFloatValueSystemPerformance = 0
+        
     gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     
-    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode,2)
-    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,2)
+    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 3)
+    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,1)
     
     gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
     
@@ -932,13 +932,14 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    if gStringModeSystempCurrent != 0:
-        if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
-        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = 101
-        else:
-            gFloatValueSystemPerformance = 0
+        print("device",gArraydevices)
+    if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
+    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = 101
+    else:
+        gFloatValueSystemPerformance = 0
+        
     # get information about power in database and varaable gArraydevices
     if gArraydevices:
         listInvControlPowerLimitMode = []
@@ -1057,14 +1058,13 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    if gStringModeSystempCurrent != 0:
-        if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
-        elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = 101
-        else :
-            gFloatValueSystemPerformance = 0
-        print("tinh hieu suat cho zero export ")
+    if gIntValueConsumptionSystemp > 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueConsumptionSystemp) * 100
+    elif gIntValueConsumptionSystemp <= 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = 101
+    else :
+        gFloatValueSystemPerformance = 0
+    
     # Get information about power in database and variable devices
     if gArraydevices:
         listInvControlZeroExportMode = []
@@ -1332,7 +1332,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
 async def initializeValueControlAuto():
     # Global variables
     global gIntControlModeDetail,gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit,gIntValueThresholdZeroExport,\
-    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gStringModeSystempCurrent
+    Kp,Ki,Kd,dt,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance
     # Local variables
     gIntValuePowerLimit_temp = 0
     arrayResultInitializeParameterZeroExportInTableProjectSetUp = []
@@ -1340,7 +1340,6 @@ async def initializeValueControlAuto():
     try:
         arrayResultInitializeParameterZeroExportInTableProjectSetUp = await MySQL_Select_v1("select * from project_setup")
         if arrayResultInitializeParameterZeroExportInTableProjectSetUp:
-            gStringModeSystempCurrent = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["mode"]
             gIntControlModeDetail = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["control_mode"]
             gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
             gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
