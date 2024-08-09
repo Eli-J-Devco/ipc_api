@@ -303,14 +303,14 @@ async def getCpuInformation(StringSerialNumerInTableProjectSetup, mqtt_host, mqt
         current_time = datetime.datetime.now()
         time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
 
-        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
-        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
         system_info["DiskIO"]["ReadBytes"] = getReadableSize(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = getReadableSize(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
 
-        disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
-        disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
+        disk_io_counters_prev["ReadCount"] = disk_io_counters.read_bytes
+        disk_io_counters_prev["WriteCount"] = disk_io_counters.write_bytes
         disk_io_counters_prev["Timestamp"] = current_time
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host,
