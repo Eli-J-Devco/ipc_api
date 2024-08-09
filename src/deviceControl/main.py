@@ -299,55 +299,25 @@ async def getCpuInformation(StringSerialNumerInTableProjectSetup, mqtt_host, mqt
         net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
         net_io_counters_prev["Timestamp"] = current_time
         #  Disk I/O Information
-        # disk_io_counters = psutil.disk_io_counters()
-        # current_time = datetime.datetime.now()
-        # time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
-
-        # print("disk_io_counters",disk_io_counters.read_bytes)
-        # print("disk_io_counters",disk_io_counters.read_count)
-        # print("disk_io_counters",disk_io_counters.read_time)
-        # print("disk_io_counters",disk_io_counters.write_bytes)
-        # print("disk_io_counters",disk_io_counters.write_count)
-        # print("disk_io_counters",disk_io_counters.write_time)
-        
-        # system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
-        # system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
-        # system_info["DiskIO"]["ReadBytes"] = getReadableSize(disk_io_counters.read_bytes)
-        # system_info["DiskIO"]["WriteBytes"] = getReadableSize(disk_io_counters.write_bytes)
-        # system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-
-        # disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
-        # disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
-        # disk_io_counters_prev["Timestamp"] = current_time
-        # Lấy thông tin Disk I/O
         disk_io_counters = psutil.disk_io_counters()
         current_time = datetime.datetime.now()
+        time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
 
-        # Tính toán thời gian đã trôi qua cho đọc và ghi
-        read_time_diff = (disk_io_counters.read_time - disk_io_counters_prev["ReadTime"]) / 1000.0  # Chuyển đổi từ mili giây sang giây
-        write_time_diff = (disk_io_counters.write_time - disk_io_counters_prev["WriteTime"]) / 1000.0
-
-        # In thông tin Disk I/O
-        print("disk_io_counters", disk_io_counters.read_bytes)
-        print("disk_io_counters", disk_io_counters.read_count)
-        print("disk_io_counters", disk_io_counters.read_time)
-        print("disk_io_counters", disk_io_counters.write_bytes)
-        print("disk_io_counters", disk_io_counters.write_count)
-        print("disk_io_counters", disk_io_counters.write_time)
-
-        # Tính toán tốc độ đọc và ghi
-        system_info = {"DiskIO": {}}
-        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / read_time_diff, unit="KB") if read_time_diff > 0 else 0
-        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / write_time_diff, unit="KB") if write_time_diff > 0 else 0
+        print("disk_io_counters",disk_io_counters.read_bytes)
+        print("disk_io_counters",disk_io_counters.read_count)
+        print("disk_io_counters",disk_io_counters.read_time)
+        print("disk_io_counters",disk_io_counters.write_bytes)
+        print("disk_io_counters",disk_io_counters.write_count)
+        print("disk_io_counters",disk_io_counters.write_time)
+        
+        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_count - disk_io_counters_prev["ReadCount"]) / time_diff , unit="KB")
+        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_count - disk_io_counters_prev["WriteCount"]) / time_diff , unit="KB")
         system_info["DiskIO"]["ReadBytes"] = getReadableSize(disk_io_counters.read_bytes)
         system_info["DiskIO"]["WriteBytes"] = getReadableSize(disk_io_counters.write_bytes)
         system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
 
-        # Cập nhật thông tin trước đó
         disk_io_counters_prev["ReadCount"] = disk_io_counters.read_count
         disk_io_counters_prev["WriteCount"] = disk_io_counters.write_count
-        disk_io_counters_prev["ReadTime"] = disk_io_counters.read_time
-        disk_io_counters_prev["WriteTime"] = disk_io_counters.write_time
         disk_io_counters_prev["Timestamp"] = current_time
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host,
