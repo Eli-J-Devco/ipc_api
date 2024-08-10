@@ -1470,6 +1470,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
     topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11):
+    
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
                 StringSerialNumerInTableProjectSetup +topic5, StringSerialNumerInTableProjectSetup +topic6, \
@@ -1492,6 +1493,11 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 
 async def main():
+    print("Mqtt_Broker",Mqtt_Broker)
+    print("Mqtt_Port",Mqtt_Port)
+    print("Mqtt_UserName",Mqtt_UserName)
+    print("Mqtt_Password",Mqtt_Password)
+    
     StringSerialNumerInTableProjectSetup = ""
     tasks = []
     await initializeValueControlAuto()
