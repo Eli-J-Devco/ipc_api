@@ -35,14 +35,11 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
         gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
         if gStringModeSysTemp in [0, 1, 2]:
-            print("1111111")
             await updateDatabase(gStringModeSysTemp)
         else:
             print("Failed to insert data")
-        print("222222")
         if gStringModeSysTemp in [0, 1]:
             await updateDeviceMode(gStringModeSysTemp)
-        print("33333333")
         current_time = get_utc()
         if gStringModeSysTemp in [0, 1, 2]:
             objectSend = {
@@ -50,7 +47,6 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
                 "confirm_mode": gStringModeSysTemp,
                 "time_stamp": current_time,
             }
-            print("44444444")
         else:
             objectSend = {
                 "status": 400,
@@ -58,14 +54,13 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
             }
         # Push system_info to MQTT 
         mqtt_public_paho_zip(host, port, topicFeedbackModeSystemp, username, password, objectSend)
-        print("gStringModeSysTemp",gStringModeSysTemp)
         return gStringModeSysTemp
 async def updateDatabase(mode):
     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-    result = await MySQL_Insert_v5(querysystemp, (mode,))
+    result = MySQL_Insert_v5(querysystemp, (mode,))
     return result
 
 async def updateDeviceMode(mode):
     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
-    result = await MySQL_Insert_v5(querydevice, (mode,))
+    result = MySQL_Insert_v5(querydevice, (mode,))
     return result
