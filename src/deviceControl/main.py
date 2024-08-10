@@ -1066,6 +1066,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             # Calculate the total performance of the system
             if setpointCalculatorPowerForEachInv and intPowerMaxOfInv :
                 floatEfficiencySystemp = (min(setpointCalculatorPowerForEachInv,gIntValueConsumptionSystemp) / gIntValueTotalPowerInInvInAutoMode)
+                print("floatEfficiencySystemp",floatEfficiencySystemp)
                 # Calculate the performance for each device based on the total performance
                 if floatEfficiencySystemp:
                     gIntValuePowerForEachInvInModeZeroExport = floatEfficiencySystemp * intPowerMaxOfInv
