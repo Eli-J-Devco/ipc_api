@@ -908,13 +908,13 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNum
 # 	 */ 
 async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global gArrayMessageAllDevice, gIntValuePowerLimit, gArraydevices, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
+    global gArrayMessageAllDevice, gIntValuePowerLimit, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
     Topic_Control_WriteAuto, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gFloatValueSystemPerformance,\
     gIntValueTotalPowerInInvInManMode,gBitManWrite
     # Local variables
     intPowerMaxOfInv = 0
     intPowerMinOfInv = 0
-    
+    gArraydevices = []
     processCaculatorPowerForInvInPowerLimitMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
@@ -1006,7 +1006,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
 # 	 */ 
 async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global gArrayMessageAllDevice ,gIntValueThresholdZeroExport ,gIntValueOffsetZeroExport , gIntValueConsumptionSystemp , gArraydevices ,\
+    global gArrayMessageAllDevice ,gIntValueThresholdZeroExport ,gIntValueOffsetZeroExport , gIntValueConsumptionSystemp,\
     gIntValueProductionSystemp ,gIntValueTotalPowerInInvInAutoMode ,Topic_Control_WriteAuto,gIntValuePowerForEachInvInModeZeroExport,\
     gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gFloatValueSystemPerformance,gBitManWrite
     # Local variables
@@ -1015,6 +1015,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     intPowerMaxOfInv = 0
     setpointCalculatorPowerForEachInv = 0
     intPracticalConsumptionValue = 0
+    gArraydevices = []
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     if gIntValueConsumptionSystemp :
         # Calculate the moving average, the number of times declared at the beginning of the program
@@ -1129,12 +1130,13 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
 # 	 */ 
 async def processNonExportPowerLimit(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global gArrayMessageAllDevice , gArraydevices ,Topic_Control_WriteAuto
+    global gArrayMessageAllDevice ,Topic_Control_WriteAuto
     # Local variables
     intPowerMaxOfInv = 0
     floatCoefficientConvertedValueForINV = 1.0
     topicPudprocessNonExportPowerLimit = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     gIntValuePowerForEachInvInModeNoneAuto = 0
+    gArraydevices = []
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
