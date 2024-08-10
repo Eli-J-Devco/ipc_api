@@ -1400,6 +1400,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
             StringSerialNumerInTableProjectSetup + topic9,
             StringSerialNumerInTableProjectSetup + topic10
         ]
+    print("topics",topics)
     try:
         if topic == topics[0]:  # topic1
             gArrayMessageChangeModeSystemp = message
