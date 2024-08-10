@@ -91,10 +91,6 @@ class Settings(BaseSettings):
 
 Config = Settings()
 
-
-
-
-
 db_config = MySqlConfigFactory(
     user=Config.DATABASE_USERNAME,
     password=Config.DATABASE_PASSWORD,
