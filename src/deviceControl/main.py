@@ -194,7 +194,9 @@ async def subSystempModeWhenUserChangeModeSystemp(gArrayMessageChangeModeSystemp
     topicFeedbackModeSystemp = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Feedback
     try:
         if gArrayMessageChangeModeSystemp:
+            print("gArrayMessageChangeModeSystemp",gArrayMessageChangeModeSystemp)
             gStringModeSystempCurrent = await processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password)
+            print("gStringModeSystempCurrent",gStringModeSystempCurrent)
     except Exception as err:
         print(f"Error MQTT subscribe subSystempModeWhenUserChangeModeSystemp: '{err}'")
 # Describe pudSystempModeTrigerEachDeviceChange
