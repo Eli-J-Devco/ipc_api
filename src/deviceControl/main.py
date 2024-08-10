@@ -152,7 +152,7 @@ arr = sys.argv
 #      }
 # 	 */ 
 # Hàm chính
-async def getCpuInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global net_io_counters_prev,disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
     timeStampPudCpuInformation = get_utc()
@@ -169,7 +169,6 @@ async def getCpuInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Infor
         "NetworkSpeed": {},
         "DiskIO": {}
     }
-
     try:
         system_info["SystemInformation"] = getSystemInformation()
         system_info["BootTime"] = getBootTime()
@@ -179,10 +178,8 @@ async def getCpuInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Infor
         system_info["NetworkInformation"] = getNetworkInformation()
         system_info["NetworkSpeed"] = getNetworkSpeedInformation(net_io_counters_prev)
         system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev)
-
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
-
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 
@@ -1358,7 +1355,7 @@ async def main():
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+        scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
                                                                             Topic_CPU_Information,
                                                                             Mqtt_Broker,
                                                                             Mqtt_Port,
