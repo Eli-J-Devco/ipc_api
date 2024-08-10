@@ -1076,7 +1076,8 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     gIntValuePowerForEachInvInModeZeroExport = 0 
                 else:
                     gIntValuePowerForEachInvInModeZeroExport = intPowerMaxOfInv 
-                    
+            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
+            print("floatEfficiencySystemp",floatEfficiencySystemp)
             if (gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport) and (gIntValueConsumptionSystemp >= 0):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
