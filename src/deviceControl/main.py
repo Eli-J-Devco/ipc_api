@@ -1412,7 +1412,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         elif topic == topics[3]:  # topic4
             gArrayMessageAllDevice = message
             await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, host, port, username, password)
-            await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
+            # await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
         elif topic == topics[4]:  # topic5
             pass
         elif topic == topics[5]:  # topic6
