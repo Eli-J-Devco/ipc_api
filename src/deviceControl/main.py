@@ -1400,7 +1400,6 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
             StringSerialNumerInTableProjectSetup + topic9,
             StringSerialNumerInTableProjectSetup + topic10
         ]
-    print("topics",topics)
     try:
         if topic == topics[0]:  # topic1
             gArrayMessageChangeModeSystemp = message
@@ -1458,7 +1457,6 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
                 topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password)
-            print("payload",payload)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -1493,11 +1491,6 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 
 async def main():
-    print("Mqtt_Broker",Mqtt_Broker)
-    print("Mqtt_Port",Mqtt_Port)
-    print("Mqtt_UserName",Mqtt_UserName)
-    print("Mqtt_Password",Mqtt_Password)
-    
     StringSerialNumerInTableProjectSetup = ""
     tasks = []
     await initializeValueControlAuto()
@@ -1506,16 +1499,16 @@ async def main():
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        # scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
-        # scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
+        scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Mqtt_Broker,
+                                                                            Mqtt_Port,
+                                                                            Mqtt_UserName,
+                                                                            Mqtt_Password])
+        scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Mqtt_Broker,
+                                                                            Mqtt_Port,
+                                                                            Mqtt_UserName,
+                                                                            Mqtt_Password])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
