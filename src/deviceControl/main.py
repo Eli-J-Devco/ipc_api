@@ -26,6 +26,7 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
+from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -77,22 +78,22 @@ gArrayMessageAllDevice = []
 gArrayResultExecuteSQLModeSysTemp = []
 gArrayResultExecuteSQLModeDevice = []
 gBitManWrite = 0
-# Stores information about bytes_sent and bytes_recv of the previous query
-net_io_counters_prev = {}
-net_io_counters_prev["TotalSent"] = 0
-net_io_counters_prev["TotalReceived"] = 0
-net_io_counters_prev["Timestamp"] = datetime.datetime.now()
 
-# Stores information about read_count and write_count of the previous query
-disk_io_counters_prev = {}
-disk_io_counters_prev["ReadBytes"] = 0
-disk_io_counters_prev["WriteBytes"] = 0
-disk_io_counters_prev["Timestamp"] = datetime.datetime.now()
+# Khởi tạo biến lưu trữ thông tin trước đó
+net_io_counters_prev = {
+    "TotalSent": 0,
+    "TotalReceived": 0,
+    "Timestamp": datetime.datetime.now()
+}
+
+disk_io_counters_prev = {
+    "ReadBytes": 0,
+    "WriteBytes": 0,
+    "Timestamp": datetime.datetime.now()
+}
 
 Mqtt_Broker = Config.MQTT_BROKER
 Mqtt_Port = Config.MQTT_PORT
-# Publish   -> IPC|device_id|device_name
-# Subscribe -> IPC|device_id|device_name|control
 Mqtt_Topic = Config.MQTT_TOPIC +"/Dev/"
 Mqtt_UserName = Config.MQTT_USERNAME
 Mqtt_Password = Config.MQTT_PASSWORD
@@ -134,35 +135,6 @@ from utils.logger_manager import LoggerSetup
 
 arr = sys.argv
 ############################################################################ CPU ############################################################################
-# Describe get_size cpu 
-# 	 * @description get size
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {bytes,suffix}
-# 	 * @return (size)
-# 	 */  
-def getReadableSize(size_bytes):
-    for unit in ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB"]:
-        if abs(size_bytes) < 1024.0:
-            return f"{size_bytes:.2f} {unit}"
-        size_bytes /= 1024.0
-    return f"{size_bytes:.2f} YB"
-# Describe convertBytesToReadable  
-# 	 * @description get size
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {bytes,suffix}
-# 	 * @return (size)
-# 	 */  
-def convertBytesToReadable(bytes_value, unit="KB"):
-    if unit == "KB":
-        return f"{bytes_value / 1024:.2f} KB"
-    elif unit == "MB":
-        return f"{bytes_value / (1024 ** 2):.2f} MB"
-    elif unit == "GB":
-        return f"{bytes_value / (1024 ** 3):.2f} GB"
-    else:
-        return f"{bytes_value} B"
 # Describe getCpuInformation 
 # 	 * @description get cpu information
 # 	 * @author bnguyen
@@ -179,154 +151,41 @@ def convertBytesToReadable(bytes_value, unit="KB"):
 #     "NetworkInformation": {}
 #      }
 # 	 */ 
-async def getCpuInformation(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global Topic_CPU_Information
+# Hàm chính
+async def getCpuInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global net_io_counters_prev,disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
     timeStampPudCpuInformation = get_utc()
+    
+    system_info = {
+        "Timestamp": timeStampPudCpuInformation,
+        "Time": int(time.time() * 1000),
+        "SystemInformation": {},
+        "BootTime": {},
+        "CPUInfo": {},
+        "MemoryInformation": {},
+        "DiskInformation": {},
+        "NetworkInformation": {},
+        "NetworkSpeed": {},
+        "DiskIO": {}
+    }
+
     try:
-        # Format system_info
-        system_info = {
-            "Timestamp": timeStampPudCpuInformation,
-            "Time": int(time.time() * 1000),
-            "SystemInformation": {},
-            "BootTime": {},
-            "CPUInfo": {},
-            "MemoryInformation": {},
-            "DiskInformation": {},
-            "NetworkInformation": {},
-            "NetworkSpeed": {},
-            "DiskIO": {}
-        }
-        # System Information
-        uname = platform.uname()
-        system_info["SystemInformation"]["System"] = uname.system
-        system_info["SystemInformation"]["NodeName"] = uname.node
-        system_info["SystemInformation"]["Release"] = uname.release
-        system_info["SystemInformation"]["Version"] = uname.version
-        system_info["SystemInformation"]["Machine"] = uname.machine
-        system_info["SystemInformation"]["Processor"] = uname.processor
+        system_info["SystemInformation"] = getSystemInformation()
+        system_info["BootTime"] = getBootTime()
+        system_info["CPUInfo"] = getCpuInformation()
+        system_info["MemoryInformation"] = getMemoryInformation()
+        system_info["DiskInformation"] = getDiskInformation()
+        system_info["NetworkInformation"] = getNetworkInformation()
+        system_info["NetworkSpeed"] = getNetworkSpeedInformation(net_io_counters_prev)
+        system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev)
 
-        boot_time_timestamp = psutil.boot_time()
-        bt = datetime.datetime.fromtimestamp(boot_time_timestamp)
-        system_info["BootTime"]["BootTime"] = f"{bt.year}/{bt.month}/{bt.day} {bt.hour}:{bt.minute}:{bt.second}"
-        # CPU Information
-        system_info["CPUInfo"]["Physicalcores"] = psutil.cpu_count(logical=False)
-        system_info["CPUInfo"]["Totalcores"] = psutil.cpu_count(logical=True)
-        cpufreq = psutil.cpu_freq()
-        system_info["CPUInfo"]["MaxFrequency"] = f"{cpufreq.max:.2f}Mhz"
-        system_info["CPUInfo"]["MinFrequency"] = f"{cpufreq.min:.2f}Mhz"
-        system_info["CPUInfo"]["CurrentFrequency"] = f"{cpufreq.current:.2f}Mhz"
-        system_info["CPUInfo"]["TotalCPUUsage"] = f"{psutil.cpu_percent()}%"
-        # Memory Information
-        svmem = psutil.virtual_memory()
-        system_info["MemoryInformation"]["Total"] = getReadableSize(svmem.total)
-        system_info["MemoryInformation"]["Available"] = getReadableSize(svmem.available)
-        system_info["MemoryInformation"]["Used"] = getReadableSize(svmem.total - svmem.available)
-        system_info["MemoryInformation"]["UsedReal"] = getReadableSize(svmem.used)
-        system_info["MemoryInformation"]["Free"] = getReadableSize(svmem.free)
-        system_info["MemoryInformation"]["Percentage"] = f"{svmem.percent:.1f}%"
-
-        swap = psutil.swap_memory()
-        system_info["MemoryInformation"]["SWAP"] = {
-            "Total": getReadableSize(swap.total),
-            "Free": getReadableSize(swap.free),
-            "Used": getReadableSize(swap.used),
-            "Percentage": f"{swap.percent}%"
-        }
-        # Disk Information
-        total_disk_size = 0
-        total_disk_used = 0
-        disk_partitions = psutil.disk_partitions()
-        unique_partitions = {}
-
-        for partition in disk_partitions:
-            try:
-                partition_usage = psutil.disk_usage(partition.mountpoint)
-
-                partition_key = f"{partition_usage.total}_{partition_usage.used}_{partition_usage.free}"
-
-                if partition_key in unique_partitions:
-                    continue
-
-                unique_partitions[partition_key] = {
-                    "MountPoint": partition.mountpoint,
-                    "TotalSize": getReadableSize(partition_usage.total),
-                    "Used": getReadableSize(partition_usage.used),
-                    "Free": getReadableSize(partition_usage.free),
-                    "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
-                }
-
-                total_disk_size += partition_usage.total
-                total_disk_used += partition_usage.used
-            except PermissionError:
-                continue
-
-        total_disk_info = {
-            "TotalSize": getReadableSize(total_disk_size),
-            "Used": getReadableSize(total_disk_used),
-            "Free": getReadableSize(total_disk_size - total_disk_used),
-            "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
-        }
-
-        system_info["DiskInformation"] = total_disk_info
-        # Network Information
-        for interface_name, interface_addresses in psutil.net_if_addrs().items():
-            for address in interface_addresses:
-                if str(address.family) == 'AddressFamily.AF_INET':
-                    system_info["NetworkInformation"][interface_name] = {
-                        "IPAddress": address.address,
-                        "Netmask": address.netmask,
-                        "BroadcastIP": address.broadcast
-                    }
-                elif str(address.family) == 'AddressFamily.AF_PACKET':
-                    system_info["NetworkInformation"][interface_name] = {
-                        "MACAddress": address.address,
-                        "Netmask": address.netmask,
-                        "BroadcastMAC": address.broadcast
-                    }
-        # Network Speed Information
-        net_io_counters = psutil.net_io_counters()
-        current_time = datetime.datetime.now()
-        time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
-
-        system_info["NetworkSpeed"]["Upstream"] = convertBytesToReadable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff , unit="KB")
-        system_info["NetworkSpeed"]["Downstream"] = convertBytesToReadable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff , unit="KB")
-        system_info["NetworkSpeed"]["TotalSent"] = getReadableSize(net_io_counters.bytes_sent)
-        system_info["NetworkSpeed"]["TotalReceived"] = getReadableSize(net_io_counters.bytes_recv)
-        system_info["NetworkSpeed"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-        
-        net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
-        net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
-        net_io_counters_prev["Timestamp"] = current_time
-        #  Disk I/O Information
-        disk_io_counters = psutil.disk_io_counters()
-        current_time = datetime.datetime.now()
-        time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
-
-        system_info["DiskIO"]["SpeedRead"] = convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff , unit="KB")
-        system_info["DiskIO"]["SpeedWrite"] = convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff , unit="KB")
-        system_info["DiskIO"]["ReadBytes"] = getReadableSize(disk_io_counters.read_bytes)
-        system_info["DiskIO"]["WriteBytes"] = getReadableSize(disk_io_counters.write_bytes)
-        system_info["DiskIO"]["Timestamp"] = f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-
-        disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
-        disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
-        disk_io_counters_prev["Timestamp"] = current_time
         # Push system_info to MQTT 
-        mqtt_public_paho_zip(mqtt_host,
-                            mqtt_port,
-                            topicPublicInformationCpu,
-                            mqtt_username,
-                            mqtt_password,
-                            system_info)
-        push_data_to_mqtt(mqtt_host,
-                            mqtt_port,
-                            topicPublicInformationCpu + "Binh",
-                            mqtt_username,
-                            mqtt_password,
-                            system_info)
+        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
+
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
+
 ############################################################################ Mode Systemp ############################################################################
 # Describe subSystempModeWhenUserChangeModeSystemp 
 # 	 * @description subSystempModeWhenUserChangeModeSystemp
@@ -1500,6 +1359,7 @@ async def main():
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
         scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Topic_CPU_Information,
                                                                             Mqtt_Broker,
                                                                             Mqtt_Port,
                                                                             Mqtt_UserName,
