@@ -1458,6 +1458,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
                 topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password)
+            print("payload",payload)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -1469,7 +1470,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
     topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11):
-    arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2, \
+    arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
                 StringSerialNumerInTableProjectSetup +topic5, StringSerialNumerInTableProjectSetup +topic6, \
                 StringSerialNumerInTableProjectSetup +topic7, StringSerialNumerInTableProjectSetup +topic8, \
