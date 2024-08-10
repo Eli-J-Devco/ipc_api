@@ -1498,16 +1498,16 @@ async def main():
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
-        scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
+        # scheduler.add_job(getCpuInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+        #                                                                     Mqtt_Broker,
+        #                                                                     Mqtt_Port,
+        #                                                                     Mqtt_UserName,
+        #                                                                     Mqtt_Password])
+        # scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
+        #                                                                     Mqtt_Broker,
+        #                                                                     Mqtt_Port,
+        #                                                                     Mqtt_UserName,
+        #                                                                     Mqtt_Password])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
