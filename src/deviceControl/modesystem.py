@@ -35,11 +35,14 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
         gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
         if gStringModeSysTemp in [0, 1, 2]:
+            print("1111111")
             await updateDatabase(gStringModeSysTemp)
         else:
             print("Failed to insert data")
+        print("222222")
         if gStringModeSysTemp in [0, 1]:
             await updateDeviceMode(gStringModeSysTemp)
+        print("33333333")
         current_time = get_utc()
         if gStringModeSysTemp in [0, 1, 2]:
             objectSend = {
@@ -47,6 +50,7 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
                 "confirm_mode": gStringModeSysTemp,
                 "time_stamp": current_time,
             }
+            print("44444444")
         else:
             objectSend = {
                 "status": 400,
