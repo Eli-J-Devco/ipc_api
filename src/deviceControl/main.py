@@ -919,7 +919,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     # Check device equipment qualified for control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-        print("device",gArraydevices)
     if gStringModeSystempCurrent != 0:
         if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
             gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
@@ -1236,12 +1235,6 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSer
                         # convert value kw to w 
                             gIntValuePowerLimit = (gIntValuePowerLimit - (gIntValuePowerLimit*gIntValueOffsetPowerLimit)/100)
             # When you receive one of the above information, give feedback to mqtt
-            print("arrayResultUpdateParameterZeroExportInTableProjectSetUp",arrayResultUpdateParameterZeroExportInTableProjectSetUp)
-            print("arrayResultUpdateParameterPowerLimitInTableProjectSetUp",arrayResultUpdateParameterPowerLimitInTableProjectSetUp)
-            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
-            print("gIntValuePowerLimit_temp",gIntValuePowerLimit_temp)
-            print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
-            
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit_temp != None and gIntValuePowerLimit_temp > gIntValueTotalPowerInALLInv):
                 intComment = 400 
             else:
