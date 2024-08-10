@@ -180,6 +180,7 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_C
         system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev)
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
+        mqtt_public_paho(mqtt_host, mqtt_port, topicPublicInformationCpu + "Binh", mqtt_username, mqtt_password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 
