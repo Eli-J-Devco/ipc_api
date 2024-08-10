@@ -1055,9 +1055,12 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             gFloatValueSystemPerformance = 101
         else :
             gFloatValueSystemPerformance = 0
-    print("gIntValueConsumptionSystemp zeroexport",type(gIntValueConsumptionSystemp))
-    print("floatEfficiencySystemp",type(floatEfficiencySystemp))
-    print("gIntValueThresholdZeroExport",type(gIntValueThresholdZeroExport))
+    # Kiểm tra kiểu dữ liệu của các biến
+    print("Kiểu dữ liệu của gIntValueConsumptionSystemp:", type(gIntValueConsumptionSystemp))
+    print("Kiểu dữ liệu của gIntValueThresholdZeroExport:", type(gIntValueThresholdZeroExport))
+    print("Kiểu dữ liệu của gIntValueProductionSystemp:", type(gIntValueProductionSystemp))
+    print("Kiểu dữ liệu của gIntValueTotalPowerInInvInAutoMode:", type(gIntValueTotalPowerInInvInAutoMode))
+    print("Kiểu dữ liệu của gIntValueOffsetZeroExport:", type(gIntValueOffsetZeroExport))
     
     # Get information about power in database and variable devices
     if gArraydevices and gIntValueConsumptionSystemp:
