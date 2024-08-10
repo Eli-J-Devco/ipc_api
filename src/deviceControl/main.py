@@ -1360,7 +1360,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,mqtt
     # Select the auto run process
     if gIntControlModeDetail == 1 :
         print("==============================zero_export==============================")
-        # await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif gIntControlModeDetail == 2 :
         print("==============================power_limit==============================")
         await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
@@ -1412,7 +1412,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         elif topic == topics[3]:  # topic4
             gArrayMessageAllDevice = message
             await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, host, port, username, password)
-            # await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
+            await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
         elif topic == topics[4]:  # topic5
             pass
         elif topic == topics[5]:  # topic6
