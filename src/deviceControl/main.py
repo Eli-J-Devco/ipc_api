@@ -1055,7 +1055,9 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             gFloatValueSystemPerformance = 101
         else :
             gFloatValueSystemPerformance = 0
-    print("gIntValueConsumptionSystemp zero export",gIntValueConsumptionSystemp)
+    print("gIntValueConsumptionSystemp zeroexport",gIntValueConsumptionSystemp)
+    print("floatEfficiencySystemp",floatEfficiencySystemp)
+    print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
     # Get information about power in database and variable devices
     if gArraydevices and gIntValueConsumptionSystemp:
         listInvControlZeroExportMode = []
@@ -1063,8 +1065,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             id_device = device["id_device"]
             mode = device["mode"]
             intPowerMaxOfInv = float(device["p_max"])
-            print("floatEfficiencySystemp",floatEfficiencySystemp)
-            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
             # Calculate the total performance of the system
             if setpointCalculatorPowerForEachInv and intPowerMaxOfInv :
                 floatEfficiencySystemp = (min(setpointCalculatorPowerForEachInv,gIntValueConsumptionSystemp) / gIntValueTotalPowerInInvInAutoMode)
