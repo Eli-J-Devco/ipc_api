@@ -31,7 +31,6 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
-
 async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password):
     gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
@@ -42,7 +41,6 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
         if gStringModeSysTemp in [0, 1]:
             await updateDeviceMode(gStringModeSysTemp)
         current_time = get_utc()
-
         if gStringModeSysTemp in [0, 1, 2]:
             objectSend = {
                 "status": 200,
