@@ -1508,7 +1508,6 @@ async def main():
                                                                             Mqtt_Port,
                                                                             Mqtt_UserName,
                                                                             Mqtt_Password])
-        scheduler.add_job(getValueProductionAndConsumtion, 'cron',  second = f'*/1' , args=[])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
