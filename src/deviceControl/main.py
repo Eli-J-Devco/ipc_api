@@ -1063,10 +1063,11 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             id_device = device["id_device"]
             mode = device["mode"]
             intPowerMaxOfInv = float(device["p_max"])
+            print("floatEfficiencySystemp",floatEfficiencySystemp)
+            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
             # Calculate the total performance of the system
             if setpointCalculatorPowerForEachInv and intPowerMaxOfInv :
                 floatEfficiencySystemp = (min(setpointCalculatorPowerForEachInv,gIntValueConsumptionSystemp) / gIntValueTotalPowerInInvInAutoMode)
-                print("floatEfficiencySystemp",floatEfficiencySystemp)
                 # Calculate the performance for each device based on the total performance
                 if floatEfficiencySystemp:
                     gIntValuePowerForEachInvInModeZeroExport = floatEfficiencySystemp * intPowerMaxOfInv
@@ -1077,8 +1078,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                     gIntValuePowerForEachInvInModeZeroExport = 0 
                 else:
                     gIntValuePowerForEachInvInModeZeroExport = intPowerMaxOfInv 
-            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
-            print("floatEfficiencySystemp",floatEfficiencySystemp)
             if (gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport) and (gIntValueConsumptionSystemp >= 0):
                 # Check device is off, on device
                 if device['controlinv'] == 1:
