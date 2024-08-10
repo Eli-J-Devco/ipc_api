@@ -894,7 +894,7 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNum
         ValueProductionAndConsumtion["power_limit"]["differential"] = round((gIntValueProductionInModePowerLimit - gIntValueConsumtionInModePowerLimit), 4)
         
         # Push system_info to MQTT
-        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion, mqtt_username, mqtt_password, ValueProductionAndConsumtion)
+        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion + "Binh1", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
