@@ -27,12 +27,12 @@ from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
 from getcpu import *
+from modesystem import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
 arr = sys.argv # Variables Array System
-gStringModeSysTemp = ""
 gStringModeSystempCurrent = ""
 gFloatValueSystemPerformance = 0
 # Parameters values PowerLimit and ZeroExport
@@ -73,7 +73,6 @@ gIntValueTotalPowerInALLInv = 0
 gIntValuePowerForEachInvInModeZeroExport = 0
 gIntValuePowerForEachInvInModePowerLimit = 0
 gIntValueTotalPowerInInvInManMode = 0
-gArrayMessageChangeModeSystemp = []
 gArrayMessageAllDevice = []
 gArrayResultExecuteSQLModeSysTemp = []
 gArrayResultExecuteSQLModeDevice = []
@@ -151,7 +150,6 @@ arr = sys.argv
 #     "NetworkInformation": {}
 #      }
 # 	 */ 
-# Hàm chính
 async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global net_io_counters_prev,disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
@@ -180,10 +178,8 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_C
         system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev)
         # Push system_info to MQTT 
         mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
-        mqtt_public_paho(mqtt_host, mqtt_port, topicPublicInformationCpu + "Binh", mqtt_username, mqtt_password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
-
 ############################################################################ Mode Systemp ############################################################################
 # Describe subSystempModeWhenUserChangeModeSystemp 
 # 	 * @description subSystempModeWhenUserChangeModeSystemp
@@ -192,61 +188,13 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_C
 # 	 * @param {result_topic1,ModeSysTemp}
 # 	 * @return ModeSysTemp
 # 	 */ 
-async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjectSetup, host, port, username, password):
+async def subSystempModeWhenUserChangeModeSystemp(gArrayMessageChangeModeSystemp, StringSerialNumerInTableProjectSetup, Topic_Control_Setup_Mode_Feedback, host, port, username, password):
     # Global variables
-    global gArrayMessageChangeModeSystemp, gStringModeSysTemp, Topic_Control_Setup_Mode_Feedback, gArrayResultExecuteSQLModeSysTemp,\
-    gArrayResultExecuteSQLModeDevice,gStringModeSystempCurrent
-    # Local variables
+    global gStringModeSystempCurrent
     topicFeedbackModeSystemp = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Feedback
-    ModeSystempInDB = []
     try:
-        if gArrayMessageChangeModeSystemp :
-            try:
-                if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
-                    gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')  
-                    querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-                    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';;"
-                    if gStringModeSysTemp in [0, 1, 2]:
-                        gArrayResultExecuteSQLModeSysTemp = MySQL_Insert_v5(querysystemp, (gStringModeSysTemp,))
-                    else :
-                        print("Failed to insert data")
-                    if gStringModeSysTemp in [0, 1]:
-                        gArrayResultExecuteSQLModeDevice = MySQL_Insert_v5(querydevice, (gStringModeSysTemp,))
-                    if gArrayResultExecuteSQLModeSysTemp is None or gArrayResultExecuteSQLModeDevice is None:
-                        current_time = get_utc()
-                        objectSend = {
-                                "status" : 400,
-                                "time_stamp" :current_time,
-                                }
-                        mqtt_public_paho_zip(host,
-                                port,
-                                topicFeedbackModeSystemp,
-                                username,
-                                password,
-                                objectSend)
-                    else:
-                        if not gStringModeSysTemp:
-                            ModeSystempInDB = await MySQL_Select_v1("SELECT `project_setup`.`mode` FROM `project_setup`")
-                            gStringModeSysTemp = ModeSystempInDB[0]['mode']
-                        # Have ModeSysTemp push to mqtt 
-                        if gStringModeSysTemp in (0, 1, 2):
-                            gStringModeSystempCurrent = gStringModeSysTemp
-                            current_time = get_utc()
-                            objectSend = {
-                                "status": 200,
-                                "confirm_mode": gStringModeSysTemp,
-                                "time_stamp": current_time,
-                            }
-                            mqtt_public_paho_zip(host,
-                                port,
-                                topicFeedbackModeSystemp,
-                                username,
-                                password,
-                                objectSend
-                                )
-                            gStringModeSysTemp = None
-            except Exception as json_err:
-                print(f"Error processing JSON data: {json_err}")
+        if gArrayMessageChangeModeSystemp:
+            gStringModeSystempCurrent = await processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password)
     except Exception as err:
         print(f"Error MQTT subscribe subSystempModeWhenUserChangeModeSystemp: '{err}'")
 # Describe pudSystempModeTrigerEachDeviceChange
@@ -257,16 +205,12 @@ async def subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjec
 # 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup,host, port, username, password}
 # 	 * @return push message systemp when user changes mode each device
 # 	 */
-async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSerialNumerInTableProjectSetup, host, port, username, password):
-    # Global variables
-    global Topic_Control_Setup_Mode_Write
-    global Topic_Control_Setup_Mode_Feedback
+async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSerialNumerInTableProjectSetup,Topic_Control_Setup_Mode_Write,\
+    host, port, username, password):
     # Local variables
     topicpud = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Write
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
-        # await asyncio.sleep(2)
-        # After recording for 2 seconds, buff the total mode again to avoid buffing too quickly.
         try:
             result_checkmode_control = await MySQL_Select_v1("SELECT device_list.mode ,device_list.id FROM device_list JOIN device_type ON device_list.id_device_type = device_type.id WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;")
             modes = set([item['mode'] for item in result_checkmode_control])
@@ -520,7 +464,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                     floatCapacitypower = ArrayCapacitypower[0] if ArrayCapacitypower else 0
                     
                     if floatWmax != None :
-                        if gStringModeSysTemp != 1:
+                        if gStringModeSystempCurrent != 1:
                             if mode == 0:
                                 gIntValueTotalPowerInInvInManModeTemp += floatWmax
                             else:
@@ -563,12 +507,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
-        
-    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
-    print("gIntValueSettingArlamLowPerformance",gIntValueSettingArlamLowPerformance)
-    print("gIntValueSettingArlamHighPerformance",gIntValueSettingArlamHighPerformance)
-    print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-    print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
     # Caculator gFloatValueSystemPerformance
     if gStringModeSystempCurrent == 0:
         if gIntValueTotalPowerInALLInv :
@@ -912,13 +850,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             gFloatValueSystemPerformance = 101
         else :
             gFloatValueSystemPerformance = 0
-    # Kiểm tra kiểu dữ liệu của các biến
-    print("Kiểu dữ liệu của gIntValueConsumptionSystemp:", type(gIntValueConsumptionSystemp))
-    print("Kiểu dữ liệu của gIntValueThresholdZeroExport:", type(gIntValueThresholdZeroExport))
-    print("Kiểu dữ liệu của gIntValueProductionSystemp:", type(gIntValueProductionSystemp))
-    print("Kiểu dữ liệu của gIntValueTotalPowerInInvInAutoMode:", type(gIntValueTotalPowerInInvInAutoMode))
-    print("Kiểu dữ liệu của gIntValueOffsetZeroExport:", type(gIntValueOffsetZeroExport))
-    
     # Get information about power in database and variable devices
     if gArraydevices and gIntValueConsumptionSystemp:
         listInvControlZeroExportMode = []
@@ -1239,10 +1170,9 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,mqtt
 # 	 * @return each topic , each message
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
-    topic5,topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password):
+    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password):
     
     global gArrayMessageAllDevice
-    global gArrayMessageChangeModeSystemp
     global gBitManWrite
     
     topics = [
@@ -1259,9 +1189,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         ]
     try:
         if topic == topics[0]:  # topic1
-            gArrayMessageChangeModeSystemp = message
-            await subSystempModeWhenUserChangeModeSystemp(StringSerialNumerInTableProjectSetup, host, port, username, password)
-            print("gArrayMessageChangeModeSystemp", gArrayMessageChangeModeSystemp)
+            await subSystempModeWhenUserChangeModeSystemp(message,StringSerialNumerInTableProjectSetup,topic12, host, port, username, password)
         elif topic == topics[1]:  # topic2
             await pudInformationProjectSetupWhenRequest(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic == topics[2]:  # topic3
@@ -1277,7 +1205,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         elif topic == topics[6]:  # topic7
             await processUpdateModeDetail(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic in topics[7:]:  # topic8, topic9, topic10
-            await pudSystempModeTrigerEachDeviceChange(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
+            await pudSystempModeTrigerEachDeviceChange(message, StringSerialNumerInTableProjectSetup,topic13, host, port, username, password)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
 # Describe gzip_decompress 
@@ -1302,7 +1230,7 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password):
+    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password):
     
     try:
         while True:
@@ -1313,7 +1241,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             topic = message.topic
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -1324,7 +1252,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 * @return all topic , all message
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11):
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13):
     
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
@@ -1342,7 +1270,8 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         )
         while True:
             await client.start()
-            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host, port, username, password)
+            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host, port, username, password)
             await client.stop()
     except Exception as err:
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
@@ -1386,7 +1315,9 @@ async def main():
                                                 Topic_Control_Feedback ,
                                                 Topic_Control_Modify,
                                                 Topic_Control_FeedbackSetup,
-                                                Topic_Meter_Monitor
+                                                Topic_Meter_Monitor,
+                                                Topic_Control_Setup_Mode_Feedback,
+                                                Topic_Control_Setup_Mode_Write
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
