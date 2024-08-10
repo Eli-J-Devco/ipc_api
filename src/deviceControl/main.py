@@ -861,7 +861,7 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNum
                         if "power" in mppt:
                             gFloatValueMaxPredictProductionInstant_temp += mppt["power"]
                             gFloatValueMaxPredictProductionInstant = gFloatValueMaxPredictProductionInstant_temp
-
+        print("gIntValueConsumptionSystemp Get Consumtion",gIntValueConsumptionSystemp)
         # instant power
         ValueProductionAndConsumtion["instant"]["production"] = round(gIntValueProductionSystemp , 4)
         ValueProductionAndConsumtion["instant"]["consumption"] = round(gIntValueConsumptionSystemp , 4)
@@ -1055,9 +1055,9 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             gFloatValueSystemPerformance = 101
         else :
             gFloatValueSystemPerformance = 0
-    
+    print("gIntValueConsumptionSystemp zero export",gIntValueConsumptionSystemp)
     # Get information about power in database and variable devices
-    if gArraydevices:
+    if gArraydevices and gIntValueConsumptionSystemp:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
             id_device = device["id_device"]
