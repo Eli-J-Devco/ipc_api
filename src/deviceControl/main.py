@@ -1438,7 +1438,7 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,host,port,username,password):
+    topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password):
     
     try:
         while True:
@@ -1449,7 +1449,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             topic = message.topic
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,host,port,username,password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host,port,username,password)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -1460,7 +1460,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 * @return all topic , all message
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10):
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11):
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2, \
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
                 StringSerialNumerInTableProjectSetup +topic5, StringSerialNumerInTableProjectSetup +topic6, \
@@ -1477,7 +1477,7 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         )
         while True:
             await client.start()
-            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,host, port, username, password)
+            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,host, port, username, password)
             await client.stop()
     except Exception as err:
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
