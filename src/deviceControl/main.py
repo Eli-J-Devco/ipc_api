@@ -89,13 +89,13 @@ disk_io_counters_prev["ReadBytes"] = 0
 disk_io_counters_prev["WriteBytes"] = 0
 disk_io_counters_prev["Timestamp"] = datetime.datetime.now()
 
-Mqtt_Broker = Config.DATABASE_HOSTNAME
-Mqtt_Port = Config.DATABASE_PORT
+Mqtt_Broker = Config.MQTT_BROKER
+Mqtt_Port = Config.MQTT_PORT
 # Publish   -> IPC|device_id|device_name
 # Subscribe -> IPC|device_id|device_name|control
 Mqtt_Topic = Config.MQTT_TOPIC +"/Dev/"
-Mqtt_UserName = Config.DATABASE_USERNAME
-Mqtt_Password = Config.DATABASE_PASSWORD
+Mqtt_UserName = Config.MQTT_USERNAME
+Mqtt_Password = Config.MQTT_PASSWORD
 Topic_Control_Setup_Mode_Write = Config.MQTT_TOPIC_SUD_MODECONTROL_DEVICE
 Topic_Control_Setup_Mode_Feedback = Config.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL
 Topic_Project_Information = Config.MQTT_TOPIC_PUD_PROJECT_SETUP
