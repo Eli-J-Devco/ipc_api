@@ -32,13 +32,12 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqttService)
 
 async def calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,gIntValueProductionSystemp,gIntValuePowerLimit):
-    if gStringModeSystempCurrent != 0:
-        if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp / gIntValuePowerLimit) * 100
-        elif gIntValuePowerLimit <= 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = 101
-        else:
-            gFloatValueSystemPerformance = 0
+    if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = (gIntValueProductionSystemp / gIntValuePowerLimit) * 100
+    elif gIntValuePowerLimit <= 0 and gIntValueProductionSystemp > 0:
+        gFloatValueSystemPerformance = 101
+    else:
+        gFloatValueSystemPerformance = 0
     return gFloatValueSystemPerformance
 def process_device_powerlimit_info(device):
     id_device = device["id_device"]

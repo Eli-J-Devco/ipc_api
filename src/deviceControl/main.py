@@ -56,10 +56,11 @@ gIntValueConsumptionSystemp = 0
 start_time_minutely = time.time()
 
 # Parameters Value Power In Inv Each Mode 
+gIntValueTotalPowerInInvInManMode = 0
 gIntValueTotalPowerInInvInAutoMode = 0
 gIntValueTotalPowerInALLInv = 0
+
 gIntValuePowerForEachInvInModeZeroExport = 0
-gIntValueTotalPowerInInvInManMode = 0
 gArrayMessageAllDevice = []
 gArrayResultExecuteSQLModeSysTemp = []
 gArrayResultExecuteSQLModeDevice = []
@@ -452,8 +453,9 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
-    gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
-    gIntValueProductionSystemp,gIntValuePowerLimit)
+    if gStringModeSystempCurrent != 0:
+        gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+        gIntValueProductionSystemp,gIntValuePowerLimit)
     print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
     # Get Infor Device Control 
     if gArraydevices:
