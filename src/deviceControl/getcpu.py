@@ -172,11 +172,9 @@ def getNetworkSpeedInformation(net_io_counters_prev):
     else:
         upstream = convertBytesToReadable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
         downstream = convertBytesToReadable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
-        print("time_diff 1",time_diff)
         net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
         net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
         net_io_counters_prev["Timestamp"] = current_time
-
     return {
         "Upstream": upstream,
         "Downstream": downstream,
@@ -186,20 +184,63 @@ def getNetworkSpeedInformation(net_io_counters_prev):
     }
 
 # Function to get disk I/O information
+# def getDiskIoInformation(disk_io_counters_prev):
+#     disk_io_counters = psutil.disk_io_counters()
+#     current_time = datetime.datetime.now()
+#     time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
+#     if time_diff < 1:
+#         return None
+#     else:
+#         disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
+#         disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
+#         disk_io_counters_prev["Timestamp"] = current_time
+#         print("time_diff",time_diff)
+#         print("disk_io_counters",disk_io_counters.read_bytes)
+#         return {
+#             "SpeedRead": convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff, unit="KB"),
+#             "SpeedWrite": convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff, unit="KB"),
+#             "ReadBytes": getReadableSize(disk_io_counters.read_bytes),
+#             "WriteBytes": getReadableSize(disk_io_counters.write_bytes),
+#             "Timestamp": f"{current_time.hour}:{current_time.minute}:{current_time.second}"
+#         }
 def getDiskIoInformation(disk_io_counters_prev):
     disk_io_counters = psutil.disk_io_counters()
     current_time = datetime.datetime.now()
     time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
+
+    # Kiểm tra time_diff
     if time_diff < 1:
-        return None  
+        return None
     else:
+        # In ra giá trị trước khi cập nhật
+        print("Previous ReadBytes:", disk_io_counters_prev["ReadBytes"])
+        print("Previous WriteBytes:", disk_io_counters_prev["WriteBytes"])
+
+        # Cập nhật giá trị trước
         disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
         disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
         disk_io_counters_prev["Timestamp"] = current_time
 
+        print("Current ReadBytes:", disk_io_counters.read_bytes)
+        print("Current WriteBytes:", disk_io_counters.write_bytes)
+
+        # Tính toán tốc độ
+        speed_read = (disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff
+        speed_write = (disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff
+
+        print("Raw SpeedRead:", speed_read)
+        print("Raw SpeedWrite:", speed_write)
+
+        # Kiểm tra tốc độ có khác 0 không
+        speed_read_readable = convertBytesToReadable(speed_read, unit="KB")
+        speed_write_readable = convertBytesToReadable(speed_write, unit="KB")
+
+        print("SpeedRead:", speed_read_readable)
+        print("SpeedWrite:", speed_write_readable)
+
         return {
-            "SpeedRead": convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff, unit="KB"),
-            "SpeedWrite": convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff, unit="KB"),
+            "SpeedRead": speed_read_readable,
+            "SpeedWrite": speed_write_readable,
             "ReadBytes": getReadableSize(disk_io_counters.read_bytes),
             "WriteBytes": getReadableSize(disk_io_counters.write_bytes),
             "Timestamp": f"{current_time.hour}:{current_time.minute}:{current_time.second}"

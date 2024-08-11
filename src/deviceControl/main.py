@@ -31,8 +31,8 @@ from getlistdevice import *
 from caculatorauto import *
 from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
-                               mqtt_public_paho, mqtt_public_paho_zip,
-                               mqttService)
+                                mqtt_public_paho, mqtt_public_paho_zip,
+                                mqttService)
 
 arr = sys.argv # Variables Array System
 gStringModeSystempCurrent = ""
@@ -45,36 +45,31 @@ gIntValuePowerLimit = 0
 gIntValueOffsetPowerLimit = 0 
 gListMovingAverageConsumption = collections.deque(maxlen=10)
 gMaxValueChangeSetpoint = 10  # Maximum allowed change per second
-
 # Performance Systemp 
 gIntValueSettingArlamLowPerformance = 0
 gIntValueSettingArlamHighPerformance = 0
-
 # Parameters Value Production and Consumtion 
 gIntValueProductionSystemp = 0
 gIntValueConsumptionSystemp = 0
 start_time_minutely = time.time()
-
 # Parameters Value Power In Inv Each Mode 
 gIntValueTotalPowerInInvInManMode = 0
 gIntValueTotalPowerInInvInAutoMode = 0
 gIntValueTotalPowerInALLInv = 0
 # message device all 
 gArrayMessageAllDevice = []
-
 # Initialize a variable that stores previous information
 net_io_counters_prev = {
     "TotalSent": 0,
     "TotalReceived": 0,
     "Timestamp": datetime.datetime.now()
 }
-
 disk_io_counters_prev = {
     "ReadBytes": 0,
     "WriteBytes": 0,
     "Timestamp": datetime.datetime.now()
 }
-
+# Infor Configuration
 Mqtt_Broker = Config.MQTT_BROKER
 Mqtt_Port = Config.MQTT_PORT
 Mqtt_Topic = Config.MQTT_TOPIC +"/Dev/"
@@ -138,7 +133,6 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
     global net_io_counters_prev, disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
     timeStampPudCpuInformation = get_utc()
-    
     system_info = {
         "Timestamp": timeStampPudCpuInformation,
         "Time": int(time.time() * 1000),
