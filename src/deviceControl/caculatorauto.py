@@ -31,25 +31,26 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
-async def calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,gIntValueProductionSystemp,gIntValuePowerLimit):
-    if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = (gIntValueProductionSystemp / gIntValuePowerLimit) * 100
-    elif gIntValuePowerLimit <= 0 and gIntValueProductionSystemp > 0:
-        gFloatValueSystemPerformance = 101
-    else:
-        gFloatValueSystemPerformance = 0
-    return gFloatValueSystemPerformance
+async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,gIntValuePowerLimit):
+    if ModeSystemp != 0 :
+        if gIntValuePowerLimit > 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = (ValueProductionSystemp / gIntValuePowerLimit) * 100
+        elif gIntValuePowerLimit <= 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = 101
+        else:
+            ValueSystemPerformance = 0
+        return ValueSystemPerformance
 def process_device_powerlimit_info(device):
     id_device = device["id_device"]
     mode = device["mode"]
     intPowerMaxOfInv = float(device["p_max"])
     return id_device, mode, intPowerMaxOfInv
-def calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInInvInAutoMode,gIntValuePowerLimit):
+def calculate_power_value(intPowerMaxOfInv,modeSystem,TotalPowerInInvInManMode,TotalPowerInInvInAutoMode,Setpoint):
     # Calulator peformance for device 
-    if gStringModeSystempCurrent == 1:
-        floatEfficiencySystemp = (gIntValuePowerLimit / gIntValueTotalPowerInInvInAutoMode)
+    if modeSystem == 1:
+        floatEfficiencySystemp = (Setpoint / TotalPowerInInvInAutoMode)
     else:
-        floatEfficiencySystemp = (gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode) / gIntValueTotalPowerInInvInAutoMode
+        floatEfficiencySystemp = (Setpoint - TotalPowerInInvInManMode) / TotalPowerInInvInAutoMode
     # The power of the device is equal to the efficiency multiplied by the maximum power.
     if 0 <= floatEfficiencySystemp <= 1:
         return floatEfficiencySystemp * intPowerMaxOfInv
@@ -57,7 +58,7 @@ def calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTo
         return 0
     else:
         return intPowerMaxOfInv
-def create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntValuePowerLimit,gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp):
+def create_control_item(device, PowerForEachInv,Setpoint,TotalPowerInInvInManMode,ValueProductionSystemp):
     id_device = device["id_device"]
     mode = device["mode"]
     ItemlistInvControlPowerLimitMode = {
@@ -65,17 +66,44 @@ def create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntVal
         "mode": mode,
         "time": get_utc(),
         "status": "power limit",
-        "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
-        "feedback": gIntValueProductionSystemp,
+        "setpoint": Setpoint - TotalPowerInInvInManMode,
+        "feedback": ValueProductionSystemp,
         "parameter": []
     }
     # Create item for device
     if device['controlinv'] == 1:
-        ItemlistInvControlPowerLimitMode["parameter"].append({"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModePowerLimit})
+        ItemlistInvControlPowerLimitMode["parameter"].append({"id_pointkey": "WMax", "value": PowerForEachInv})
     elif device['controlinv'] == 0:
         ItemlistInvControlPowerLimitMode["parameter"].extend([
             {"id_pointkey": "ControlINV", "value": 1},
-            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModePowerLimit}
+            {"id_pointkey": "WMax", "value": PowerForEachInv}
         ])
     
     return ItemlistInvControlPowerLimitMode
+async def calculate_setpoint(modeSystem ,ValueConsumptionSystemp,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
+    gMaxValueChangeSetpoint,ValueConsump,ValueOffetConsump):
+    if modeSystem == 1:
+        gListMovingAverageConsumption.append(ValueConsumptionSystemp)
+    else:
+        gListMovingAverageConsumption.append(ValueConsumptionSystemp - ValueTotalPowerInInvInManMode)
+
+    if ValueConsumptionSystemp > ValueTotalPowerInInvInManMode:
+        intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
+    else:
+        intAvgValueComsumtion = 0
+
+    if not hasattr(calculate_setpoint, 'last_setpoint'):
+        calculate_setpoint.last_setpoint = intAvgValueComsumtion
+
+    new_setpoint = intAvgValueComsumtion
+    setpointCalculatorPowerForEachInv = max(
+        calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
+        min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
+    )
+    calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
+
+    if setpointCalculatorPowerForEachInv:
+        setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
+        intPracticalConsumptionValue = ValueConsump * ValueOffetConsump / 100
+
+    return setpointCalculatorPowerForEachInv, intPracticalConsumptionValue

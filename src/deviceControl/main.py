@@ -455,7 +455,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
-        gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+        gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,gIntValuePowerLimit)
     # Get Infor Device Control 
     if gArraydevices:
@@ -494,107 +494,40 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
 # 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
 # 	 * @return gIntValuePowerForEachInvInModeZeroExport
 # 	 */ 
-async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    # Global variables
-    global gArrayMessageAllDevice ,gIntValueThresholdZeroExport ,gIntValueOffsetZeroExport , gIntValueConsumptionSystemp,\
-    gIntValueProductionSystemp ,gIntValueTotalPowerInInvInAutoMode ,Topic_Control_WriteAuto,gIntValuePowerForEachInvInModeZeroExport,\
-    gListMovingAverageConsumption,gIntValueTotalPowerInInvInManMode,gStringModeSystempCurrent,gFloatValueSystemPerformance,gBitManWrite
+async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global gArrayMessageAllDevice, gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValueConsumptionSystemp,\
+        gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,gListMovingAverageConsumption, gIntValueTotalPowerInInvInManMode, \
+        gStringModeSystempCurrent, gFloatValueSystemPerformance
     # Local variables
-    floatEfficiencySystemp = 0
-    id_device = 0
-    intPowerMaxOfInv = 0
-    setpointCalculatorPowerForEachInv = 0
-    intPracticalConsumptionValue = 0
     gArraydevices = []
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
-    if gIntValueConsumptionSystemp :
-        # Calculate the moving average, the number of times declared at the beginning of the program
-        if gStringModeSystempCurrent == 1:
-            gListMovingAverageConsumption.append(gIntValueConsumptionSystemp)
-        else:
-            gListMovingAverageConsumption.append(gIntValueConsumptionSystemp-gIntValueTotalPowerInInvInManMode)
-            
-        if gIntValueConsumptionSystemp > gIntValueTotalPowerInInvInManMode:
-            intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
-            intAvgValueComsumtion
-        else:
-            intAvgValueComsumtion = 0
-
-        # Limit the change in setpoint
-        if not hasattr(processCaculatorPowerForInvInZeroExportMode, 'last_setpoint'):
-            processCaculatorPowerForInvInZeroExportMode.last_setpoint = intAvgValueComsumtion
-        new_setpoint = intAvgValueComsumtion
-        setpointCalculatorPowerForEachInv = max(
-            processCaculatorPowerForInvInZeroExportMode.last_setpoint - gMaxValueChangeSetpoint,
-            min(processCaculatorPowerForInvInZeroExportMode.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
-        )
-        processCaculatorPowerForInvInZeroExportMode.last_setpoint = setpointCalculatorPowerForEachInv
-        if setpointCalculatorPowerForEachInv:
-            setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * gIntValueOffsetZeroExport / 100
-            intPracticalConsumptionValue = gIntValueConsumptionSystemp * gIntValueOffsetZeroExport / 100
-        if gIntValueProductionSystemp > gIntValueConsumptionSystemp:
-            setpointCalculatorPowerForEachInv -= (gIntValueProductionSystemp - gIntValueConsumptionSystemp)
-        setpointCalculatorPowerForEachInv = round(setpointCalculatorPowerForEachInv, 4)
-    # Check device equipment qualified for control
-    if gArrayMessageAllDevice:
-        gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    if gStringModeSystempCurrent != 0:
-        if intPracticalConsumptionValue > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /intPracticalConsumptionValue) * 100
-        elif intPracticalConsumptionValue <= 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = 101
-        else :
-            gFloatValueSystemPerformance = 0
-    # Get information about power in database and variable devices
-    if gArraydevices and gIntValueConsumptionSystemp:
-        listInvControlZeroExportMode = []
-        for device in gArraydevices:
-            id_device = device["id_device"]
-            mode = device["mode"]
-            intPowerMaxOfInv = float(device["p_max"])
-            # Calculate the total performance of the system
-            if setpointCalculatorPowerForEachInv and intPowerMaxOfInv :
-                floatEfficiencySystemp = (min(setpointCalculatorPowerForEachInv,gIntValueConsumptionSystemp) / gIntValueTotalPowerInInvInAutoMode)
-                # Calculate the performance for each device based on the total performance
-                if floatEfficiencySystemp:
-                    gIntValuePowerForEachInvInModeZeroExport = floatEfficiencySystemp * intPowerMaxOfInv
-                # Calculate power value according to total system performance
-                if 0 <= floatEfficiencySystemp <= 1:
-                    gIntValuePowerForEachInvInModeZeroExport = floatEfficiencySystemp * intPowerMaxOfInv
-                elif floatEfficiencySystemp < 0:
-                    gIntValuePowerForEachInvInModeZeroExport = 0 
+    gIntValuePowerForEachInvInModeZeroExport = 0
+    # Get Setpoint ,Value Consumption System 
+    if gIntValueConsumptionSystemp:
+        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
+        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueConsumptionSystemp,gIntValueOffsetZeroExport)
+        # Get List Device Can Control 
+        if gArrayMessageAllDevice:
+            gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
+        # Caculator System Performance 
+        if gStringModeSystempCurrent != 0:
+            gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+            gIntValueProductionSystemp,intPracticalConsumptionValue)
+        
+        if gArraydevices and gIntValueConsumptionSystemp:
+            listInvControlZeroExportMode = []
+            for device in gArraydevices:
+                id_device, mode, intPowerMaxOfInv = process_device_powerlimit_info(device)
+                gIntValuePowerForEachInvInModeZeroExport = calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
+                    gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
+                # Create Infor Device Publish MQTT
+                if gIntValueProductionSystemp <= intPracticalConsumptionValue and \
+                    gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+                    item = create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
+                    gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
                 else:
-                    gIntValuePowerForEachInvInModeZeroExport = intPowerMaxOfInv 
-            if (gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport) and (gIntValueConsumptionSystemp >= 0):
-                # Check device is off, on device
-                if device['controlinv'] == 1:
-                    ItemlistInvControlPowerLimitMode = {
+                    item = {
                         "id_device": id_device,
-                        "Mode": "Add",
-                        "mode": mode,
-                        "time": get_utc(),
-                        "status": "zero export",
-                        "setpoint": setpointCalculatorPowerForEachInv,
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModeZeroExport}
-                        ]
-                    }
-                elif device['controlinv'] == 0:
-                    ItemlistInvControlPowerLimitMode = {
-                        "id_device": id_device,
-                        "Mode": "Add",
-                        "mode": mode,
-                        "status": "zero export",
-                        "setpoint": setpointCalculatorPowerForEachInv,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModeZeroExport}
-                        ]
-                    }
-            else:
-                ItemlistInvControlPowerLimitMode = {
-                        "id_device": id_device,
-                        "Mode": "Add",
                         "mode": mode,
                         "status": "zero export",
                         "setpoint": setpointCalculatorPowerForEachInv,
@@ -603,12 +536,12 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                             {"id_pointkey": "WMax", "value": 0}
                         ]
                     }
-            listInvControlZeroExportMode.append(ItemlistInvControlPowerLimitMode)
-        # Push data to MQTT
-        if len(gArraydevices) == len(listInvControlZeroExportMode) :
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
-            gIntValuePowerForEachInvInModeZeroExport = 0
+                # Create List Device 
+                listInvControlZeroExportMode.append(item)
+            # Push MQTT
+            if len(gArraydevices) == len(listInvControlZeroExportMode):
+                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
+                push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
 # Describe processNonExportPowerLimit 
 # 	 * @description processNonExportPowerLimit
 # 	 * @author bnguyen
@@ -843,7 +776,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
     # Select the auto run process
     if gIntControlModeDetail == 1 :
         print("==============================zero_export==============================")
-        await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif gIntControlModeDetail == 2 :
         print("==============================power_limit==============================")
         await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
