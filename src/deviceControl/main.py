@@ -368,6 +368,9 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
         gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance
     ArrayDeviceList = []
+    StringMessageStatusSystemPerformance = ""
+    intStatusSystemPerformance = 0
+    
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
@@ -384,9 +387,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         gIntValueSettingArlamLowPerformance,
         gIntValueSettingArlamHighPerformance
     )
-    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
-    print("StringMessageStatusSystemPerformance",StringMessageStatusSystemPerformance)
-    print("intStatusSystemPerformance",intStatusSystemPerformance)
     # Message Public MQTT
     result = {
         "ModeSystempCurrent": gStringModeSystempCurrent,

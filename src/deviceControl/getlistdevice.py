@@ -129,23 +129,24 @@ def calculate_p_min(p_max_custom, p_min_percent):
     return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
 
 def update_system_performance(current_mode, total_power_in_all_inv, production_system, low_performance_threshold, high_performance_threshold):
+    systemPerformanceManMode = 0
     # Calculate system performance
     if current_mode == 0:
-        gFloatValueSystemPerformance = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
+        systemPerformanceManMode = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
     # Round performance to 1 decimal place
-    gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
+    systemPerformanceManMode = round(systemPerformanceManMode, 1)
     # Determine performance status
-    if gFloatValueSystemPerformance < low_performance_threshold:
+    if systemPerformanceManMode < low_performance_threshold:
         StringMessageStatusSystemPerformance = "System performance is below expectations."
         intStatusSystemPerformance = 0
-    elif low_performance_threshold <= gFloatValueSystemPerformance < high_performance_threshold:
+    elif low_performance_threshold <= systemPerformanceManMode < high_performance_threshold:
         StringMessageStatusSystemPerformance = "System performance is meeting"
         intStatusSystemPerformance = 1
     else:
         StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
         intStatusSystemPerformance = 2
 
-    return gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance
+    return systemPerformanceManMode, StringMessageStatusSystemPerformance, intStatusSystemPerformance
 # ==================================================== Meter ==================================================================
 def get_device_type(id_device):
     return MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
