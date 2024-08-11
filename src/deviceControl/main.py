@@ -351,7 +351,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
     ArayyDeviceList = []
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            device_info = extract_device_info(item)
+            device_info = extract_device_auto_info(item)
             if not device_info:
                 continue
             # Get Information Each Device 
@@ -386,7 +386,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            device_info = extract_device_info(item)
+            device_info = extract_device_all_info(item)
             if device_info:
                 ArrayDeviceList.append(device_info)
     # Call the update_system_performance function and get the return value

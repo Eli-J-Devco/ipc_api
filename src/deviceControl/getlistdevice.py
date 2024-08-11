@@ -31,7 +31,7 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 # ==================================================== Auto Device  ==================================================================
-def extract_device_info(item):
+def extract_device_auto_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:
         id_device = item['id_device']
         mode = item['mode']
@@ -66,7 +66,7 @@ def is_device_controlable(results_device_type, status_device, mode, operator):
             mode == 1 and 
             operator not in [7, 8])
 # ==================================================== All Device  ==================================================================
-def extract_device_info(item):
+def extract_device_all_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:
         id_device = item['id_device']
         mode = item['mode']
