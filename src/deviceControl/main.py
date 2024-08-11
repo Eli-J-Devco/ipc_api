@@ -365,7 +365,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
 # 	 */ 
 async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProjectSetup,Topic_Control_Process, host, port, username, password):
     global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
-        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent
+        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode
     ArrayDeviceList = []
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
@@ -374,8 +374,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
             if device_info:
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
-    gIntValueTotalPowerInALLInv = calculate_total_wmax(ArrayDeviceList)
-    print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
+    gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = calculate_total_wmax(ArrayDeviceList)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
