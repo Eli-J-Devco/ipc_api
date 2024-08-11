@@ -26,10 +26,10 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from modeSystem import *
-from getListDevice import *
-from caculatorAuto import *
-from getCPU import *
+from modesystem import *
+from getlistdevice import *
+from caculatorauto import *
+from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
