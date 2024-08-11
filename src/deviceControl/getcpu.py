@@ -167,13 +167,15 @@ def getNetworkSpeedInformation(net_io_counters_prev):
     net_io_counters = psutil.net_io_counters()
     current_time = datetime.datetime.now()
     time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
-
-    upstream = convertBytesToReadable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
-    downstream = convertBytesToReadable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
-    print("time_diff 1",time_diff)
-    net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
-    net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
-    net_io_counters_prev["Timestamp"] = current_time
+    if time_diff < 1:
+        return None  
+    else:
+        upstream = convertBytesToReadable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
+        downstream = convertBytesToReadable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
+        print("time_diff 1",time_diff)
+        net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
+        net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
+        net_io_counters_prev["Timestamp"] = current_time
 
     return {
         "Upstream": upstream,
@@ -188,15 +190,17 @@ def getDiskIoInformation(disk_io_counters_prev):
     disk_io_counters = psutil.disk_io_counters()
     current_time = datetime.datetime.now()
     time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
-    print("time_diff 2",time_diff)
-    disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
-    disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
-    disk_io_counters_prev["Timestamp"] = current_time
+    if time_diff < 1:
+        return None  
+    else:
+        disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
+        disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
+        disk_io_counters_prev["Timestamp"] = current_time
 
-    return {
-        "SpeedRead": convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff, unit="KB"),
-        "SpeedWrite": convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff, unit="KB"),
-        "ReadBytes": getReadableSize(disk_io_counters.read_bytes),
-        "WriteBytes": getReadableSize(disk_io_counters.write_bytes),
-        "Timestamp": f"{current_time.hour}:{current_time.minute}:{current_time.second}"
-    }
+        return {
+            "SpeedRead": convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff, unit="KB"),
+            "SpeedWrite": convertBytesToReadable((disk_io_counters.write_bytes - disk_io_counters_prev["WriteBytes"]) / time_diff, unit="KB"),
+            "ReadBytes": getReadableSize(disk_io_counters.read_bytes),
+            "WriteBytes": getReadableSize(disk_io_counters.write_bytes),
+            "Timestamp": f"{current_time.hour}:{current_time.minute}:{current_time.second}"
+        }

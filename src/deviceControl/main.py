@@ -134,8 +134,8 @@ arr = sys.argv
 #     "NetworkInformation": {}
 #      }
 # 	 */ 
-async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global net_io_counters_prev,disk_io_counters_prev
+async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global net_io_counters_prev, disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
     timeStampPudCpuInformation = get_utc()
     
@@ -152,16 +152,19 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,Topic_C
         "DiskIO": {}
     }
     try:
-        system_info["SystemInformation"] = getSystemInformation()
-        system_info["BootTime"] = getBootTime()
-        system_info["CPUInfo"] = getCpuInformation()
-        system_info["MemoryInformation"] = getMemoryInformation()
-        system_info["DiskInformation"] = getDiskInformation()
-        system_info["NetworkInformation"] = getNetworkInformation()
-        system_info["NetworkSpeed"] = getNetworkSpeedInformation(net_io_counters_prev)
-        system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev)
-        # Push system_info to MQTT 
-        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
+        # Get system information
+        system_info["SystemInformation"] = getSystemInformation() or {}
+        system_info["BootTime"] = getBootTime() or {}
+        system_info["CPUInfo"] = getCpuInformation() or {}
+        system_info["MemoryInformation"] = getMemoryInformation() or {}
+        system_info["DiskInformation"] = getDiskInformation() or {}
+        system_info["NetworkInformation"] = getNetworkInformation() or {}
+        system_info["NetworkSpeed"] = getNetworkSpeedInformation(net_io_counters_prev) or {}
+        system_info["DiskIO"] = getDiskIoInformation(disk_io_counters_prev) or {}
+        # Check that all fields are not None
+        if all(system_info.values()):
+            # Push system_info to MQTT 
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
