@@ -420,157 +420,31 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
 # 	 * @return value_production ,value_consumption
 # 	 */ 
 ############################################################################ Get Value Metter ############################################################################
-async def getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,Topic_Meter_Monitor, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    # Global variables
-    global gIntValueProductionSystemp, gIntValueConsumptionSystemp ,gIntValueProduction1Minute,\
-    gIntValueConsumption1Minute,gIntValueProduction1Hour, gIntValueConsumption1Hour,gIntValueProductionDaily,gIntValueConsumptionDaily, \
-    start_time_hourly , start_time_daily ,start_time_minutely,gIntValueConsumtionInModeZeroExport,gIntValueConsumtionInModePowerLimit,\
-    gIntValueProductionInModePowerLimit,gIntValueProductionInModeZeroExport,cycle_time1s,gIntControlModeDetail
+async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, Topic_Meter_Monitor, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+    global gIntValueProductionSystemp, gIntValueConsumptionSystemp
     # Local variables
-    ArrayValueProduction = []
-    ArrayValueConsumtion = []
-    IntTotalValueProduction = 0
-    IntTotalValueConsumtion = 0
-    IntIntegralValueProduction = 0
-    IntIntegralValueConsumtion = 0
-    last_update_time = start_time_minutely
-    last_update_time_production = start_time_minutely
     current_time = time.time()
-    # Get Topic /Devices/All
+    IntTotalValueProduction, IntTotalValueConsumtion = 0, 0
+    IntIntegralValueProduction, IntIntegralValueConsumtion = 0, 0
+    last_update_time_comsumption = start_time_minutely
+    last_update_time_production = start_time_minutely
+    # Get Value Production And Consumtion From message All
     if gArrayMessageAllDevice:
         for item in gArrayMessageAllDevice:
             if 'id_device' in item:
                 id_device = item['id_device']
-                # Select type Meter
-                result_type_meter = MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
-                # Caculator Value Meter Production
+                result_type_meter = get_device_type(id_device)
                 if result_type_meter:
-                    if result_type_meter[0]["name"] == "PV System Inverter": 
-                        ArrayValueProduction = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                        if len(ArrayValueProduction) > 0 and ArrayValueProduction[0] is not None:
-                            IntTotalValueProduction += ArrayValueProduction[0]
-                            gIntValueProductionSystemp = IntTotalValueProduction
-                            dt = current_time - last_update_time_production
-                            IntIntegralValueProduction += gIntValueProductionSystemp * dt/3600
-                            last_update_time_production = current_time
-                    # Caculator Value Meter Consumption
-                    elif result_type_meter[0]["name"] == "Consumption meter":
-                        ArrayValueConsumtion = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                        if len(ArrayValueConsumtion) > 0 and ArrayValueConsumtion[0] is not None:
-                            IntTotalValueConsumtion += ArrayValueConsumtion[0]
-                            gIntValueConsumptionSystemp = IntTotalValueConsumtion
-                            dt = current_time - last_update_time
-                            IntIntegralValueConsumtion += gIntValueConsumptionSystemp * dt/3600 
-                            last_update_time = current_time
-                # Check if 1 hour has passed and Reset variable
-                current_second = int(current_time // 1) 
-                current_minute = int(current_time // 60)
-                current_hour = int(current_time // 3600)
-                current_day = int(current_time // (3600 * 24))
-                # total value of power consumption and production power in power limit and zero export mode
-                if current_second != int(cycle_time1s):
-                    dts = current_time - cycle_time1s
-                    
-                    if gIntControlModeDetail == 1:
-                        gIntValueProductionInModeZeroExport += gIntValueProductionSystemp * dts / 3600
-                        gIntValueConsumtionInModeZeroExport += gIntValueConsumptionSystemp * dts / 3600
-                        gIntValueProductionInModePowerLimit = 0
-                        gIntValueConsumtionInModePowerLimit = 0
-                        
-                    elif gIntControlModeDetail == 2:
-                        gIntValueProductionInModePowerLimit += gIntValueProductionSystemp * dts / 3600
-                        gIntValueConsumtionInModePowerLimit += gIntValueConsumptionSystemp * dts / 3600
-                        gIntValueProductionInModeZeroExport = 0
-                        gIntValueConsumtionInModeZeroExport = 0
-                        
-                    elif current_hour == 0 and current_minute == 0 and current_second == 0:
-                        gIntValueProductionInModeZeroExport = 0
-                        gIntValueConsumtionInModeZeroExport = 0
-                        gIntValueProductionInModePowerLimit = 0
-                        gIntValueConsumtionInModePowerLimit = 0
-                    
-                    cycle_time1s = current_time
-                # Caculator powwer for 1 minute
-                if current_minute != int(start_time_minutely // 60):
-                    gIntValueProduction1Minute = round(IntIntegralValueProduction)
-                    gIntValueConsumption1Minute = round(gIntValueConsumptionSystemp)
-                    IntIntegralValueProduction = 0
-                    gIntValueConsumptionSystemp = 0
-                    gIntValueProduction1Hour += gIntValueProduction1Minute
-                    gIntValueConsumption1Hour += gIntValueConsumption1Minute
-                    gIntValueProductionDaily += gIntValueProduction1Minute
-                    gIntValueConsumptionDaily += gIntValueConsumption1Minute
-                    start_time_minutely = current_time
-                # Caculator powwer for 1 hour
-                if current_hour != int(start_time_hourly // 3600):
-                    gIntValueProduction1Hour = 0
-                    gIntValueConsumption1Hour = 0
-                    start_time_hourly = current_time
-                # Caculator powwer for 1 day
-                if current_day != int(start_time_daily // (3600 * 24)):
-                    gIntValueProductionDaily = 0
-                    gIntValueConsumptionDaily = 0
-                    start_time_daily = current_time  
+                    gIntValueProductionSystemp, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
+                    gIntValueConsumptionSystemp, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
     try:
-        timeStampGetValueProductionAndConsumtion = get_utc()
-        topicPublicValueProductionAndConsumtion = StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor
-        gFloatValueMaxPredictProductionInstant_temp = 0
-        # Format data
-        ValueProductionAndConsumtion = {
-            "Timestamp": timeStampGetValueProductionAndConsumtion,
-            "instant": {},
-            "minutely": {},
-            "hourly": {},
-            "daily": {},
-            "zero_export": {},
-            "power_limit": {},
-        }
-
-        if gArrayMessageAllDevice:
-            # await getValueProductionAndConsumtion_zero_export()
-            for device in gArrayMessageAllDevice:
-                if "mppt" in device:
-                    for mppt in device["mppt"]:
-                        if "power" in mppt:
-                            gFloatValueMaxPredictProductionInstant_temp += mppt["power"]
-                            gFloatValueMaxPredictProductionInstant = gFloatValueMaxPredictProductionInstant_temp
-        print("gIntValueConsumptionSystemp Get Consumtion",gIntValueConsumptionSystemp)
-        # instant power
-        ValueProductionAndConsumtion["instant"]["production"] = round(gIntValueProductionSystemp , 4)
-        ValueProductionAndConsumtion["instant"]["consumption"] = round(gIntValueConsumptionSystemp , 4)
-        ValueProductionAndConsumtion["instant"]["grid_feed"] = round((gIntValueProductionSystemp - gIntValueConsumptionSystemp), 4)
-        ValueProductionAndConsumtion["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant , 4)
-
-        # minutely power
-        ValueProductionAndConsumtion["minutely"]["production"] = round(gIntValueProduction1Minute , 4)
-        ValueProductionAndConsumtion["minutely"]["consumption"] = round(gIntValueConsumption1Minute , 4)
-        ValueProductionAndConsumtion["minutely"]["grid_feed"] = round((gIntValueProduction1Minute - gIntValueConsumption1Minute), 4)
-
-        # hourly power
-        ValueProductionAndConsumtion["hourly"]["production"] = round(gIntValueProduction1Hour , 4)
-        ValueProductionAndConsumtion["hourly"]["consumption"] = round(gIntValueConsumption1Hour , 4)
-        ValueProductionAndConsumtion["hourly"]["grid_feed"] = round((gIntValueProduction1Hour - gIntValueConsumption1Hour), 4)
-
-        # daily power
-        ValueProductionAndConsumtion["daily"]["production"] = round(gIntValueProductionDaily , 4)
-        ValueProductionAndConsumtion["daily"]["consumption"] = round(gIntValueConsumptionDaily, 4)
-        ValueProductionAndConsumtion["daily"]["grid_feed"] = round((gIntValueProductionDaily - gIntValueConsumptionDaily) , 4)
-
-        # power limit 
-        ValueProductionAndConsumtion["zero_export"]["totalproduction"] = round(gIntValueProductionInModeZeroExport , 4)
-        ValueProductionAndConsumtion["zero_export"]["totalconsumption"] = round(gIntValueConsumtionInModeZeroExport , 4)
-        ValueProductionAndConsumtion["zero_export"]["differential"] = round((gIntValueConsumtionInModeZeroExport - gIntValueProductionInModeZeroExport) , 4)
-
-        # power zero export 
-        ValueProductionAndConsumtion["power_limit"]["totalproduction"] = round(gIntValueProductionInModePowerLimit , 4)
-        ValueProductionAndConsumtion["power_limit"]["totalconsumption"] = round(gIntValueConsumtionInModePowerLimit , 4)
-        ValueProductionAndConsumtion["power_limit"]["differential"] = round((gIntValueProductionInModePowerLimit - gIntValueConsumtionInModePowerLimit), 4)
-        
+        ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
-        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion , mqtt_username, mqtt_password, ValueProductionAndConsumtion)
-        push_data_to_mqtt(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
+        mqtt_public_paho_zip(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, mqtt_username, mqtt_password, ValueProductionAndConsumtion)
+        push_data_to_mqtt(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
+
 ############################################################################ Power Limit Control  ############################################################################
 # Describe processCaculatorPowerForInvInPowerLimitMode 
 # 	 * @description processCaculatorPowerForInvInPowerLimitMode

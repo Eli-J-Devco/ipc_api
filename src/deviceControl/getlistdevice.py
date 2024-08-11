@@ -30,7 +30,7 @@ from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
-
+# ==================================================== Auto Device  ==================================================================
 def extract_device_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:
         id_device = item['id_device']
@@ -65,7 +65,7 @@ def is_device_controlable(results_device_type, status_device, mode, operator):
             status_device == 'online' and 
             mode == 1 and 
             operator not in [7, 8])
-
+# ==================================================== All Device  ==================================================================
 def extract_device_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:
         id_device = item['id_device']
@@ -143,3 +143,50 @@ def update_system_performance(current_mode, total_power_in_all_inv, production_s
         intStatusSystemPerformance = 2
 
     return gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance
+# ==================================================== Meter ==================================================================
+def get_device_type(id_device):
+    return MySQL_Select("SELECT `device_type`.`name` FROM `device_type` INNER JOIN `device_list` ON `device_list`.`id_device_type` = `device_type`.id WHERE `device_list`.id = %s", (id_device,))
+
+def calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time):
+    if result_type_meter[0]["name"] == "PV System Inverter": 
+        ArrayValueProduction = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
+        if ArrayValueProduction and ArrayValueProduction[0] is not None:
+            IntTotalValueProduction += ArrayValueProduction[0]
+            dt = current_time - last_update_time_production
+            IntIntegralValueProduction += IntTotalValueProduction * dt / 3600
+            last_update_time_production = current_time
+    return IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production
+
+def calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time):
+    if result_type_meter[0]["name"] == "Consumption meter":
+        ArrayValueConsumtion = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
+        if ArrayValueConsumtion and ArrayValueConsumtion[0] is not None:
+            IntTotalValueConsumtion += ArrayValueConsumtion[0]
+            dt = current_time - last_update_time_comsumption
+            IntIntegralValueConsumtion += IntTotalValueConsumtion * dt / 3600 
+            last_update_time_comsumption = current_time
+    return IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption
+
+def messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
+    timeStampGetValueProductionAndConsumtion = get_utc()
+    gFloatValueMaxPredictProductionInstant_temp = 0
+
+    ValueProductionAndConsumtion = {
+        "Timestamp": timeStampGetValueProductionAndConsumtion,
+        "instant": {},
+    }
+
+    if gArrayMessageAllDevice:
+        for device in gArrayMessageAllDevice:
+            if "mppt" in device:
+                for mppt in device["mppt"]:
+                    if "power" in mppt:
+                        gFloatValueMaxPredictProductionInstant_temp += mppt["power"]
+
+    # instant power
+    ValueProductionAndConsumtion["instant"]["production"] = round(gIntValueProductionSystemp, 4)
+    ValueProductionAndConsumtion["instant"]["consumption"] = round(gIntValueConsumptionSystemp, 4)
+    ValueProductionAndConsumtion["instant"]["grid_feed"] = round((gIntValueProductionSystemp - gIntValueConsumptionSystemp), 4)
+    ValueProductionAndConsumtion["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant_temp, 4)
+
+    return ValueProductionAndConsumtion
