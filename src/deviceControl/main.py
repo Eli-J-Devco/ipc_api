@@ -373,6 +373,8 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
             device_info = extract_device_all_info(item)
             if device_info:
                 ArrayDeviceList.append(device_info)
+    print("ArrayDeviceList",ArrayDeviceList)
+    print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
@@ -441,7 +443,7 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
 # 	 */ 
 async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global gArrayMessageAllDevice, gIntValuePowerLimit, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
-    gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode, gBitManWrite
+    gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode
     # Local variables
     gArraydevices = []
     gIntValuePowerForEachInvInModePowerLimit = 0 
@@ -452,6 +454,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     # Caculator System Performance 
     gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
     gIntValueProductionSystemp,gIntValuePowerLimit)
+    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
     # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
