@@ -506,47 +506,47 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
         gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueConsumptionSystemp,gIntValueOffsetZeroExport)
-        # Get List Device Can Control 
-        if gArrayMessageAllDevice:
-            gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-        # Caculator System Performance 
-        if gStringModeSystempCurrent != 0:
-            gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
-            gIntValueProductionSystemp,intPracticalConsumptionValue)
-        
-        if gArraydevices and gIntValueConsumptionSystemp:
-            listInvControlZeroExportMode = []
-            for device in gArraydevices:
-                id_device, mode, intPowerMaxOfInv = process_device_powerlimit_info(device)
-                gIntValuePowerForEachInvInModeZeroExport = calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
-                    gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
-                # Create Infor Device Publish MQTT
-                print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-                print("intPracticalConsumptionValue",intPracticalConsumptionValue)
-                print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
-                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
-                
-                if gIntValueProductionSystemp < intPracticalConsumptionValue and \
-                    gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
-                    item = create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
-                    gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
-                else:
-                    item = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "status": "zero export",
-                        "setpoint": setpointCalculatorPowerForEachInv,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": 0}
-                        ]
-                    }
-                # Create List Device 
-                listInvControlZeroExportMode.append(item)
-            # Push MQTT
-            if len(gArraydevices) == len(listInvControlZeroExportMode):
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
-                push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
+    # Get List Device Can Control 
+    if gArrayMessageAllDevice:
+        gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
+    # Caculator System Performance 
+    if gStringModeSystempCurrent != 0:
+        gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+        gIntValueProductionSystemp,intPracticalConsumptionValue)
+    
+    if gArraydevices and gIntValueConsumptionSystemp:
+        listInvControlZeroExportMode = []
+        for device in gArraydevices:
+            id_device, mode, intPowerMaxOfInv = process_device_powerlimit_info(device)
+            gIntValuePowerForEachInvInModeZeroExport = calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
+                gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
+            # Create Infor Device Publish MQTT
+            print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+            print("intPracticalConsumptionValue",intPracticalConsumptionValue)
+            print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
+            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
+            
+            if gIntValueProductionSystemp < intPracticalConsumptionValue and \
+                gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+                item = create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
+                gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
+            else:
+                item = {
+                    "id_device": id_device,
+                    "mode": mode,
+                    "status": "zero export",
+                    "setpoint": setpointCalculatorPowerForEachInv,
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": 0}
+                    ]
+                }
+            # Create List Device 
+            listInvControlZeroExportMode.append(item)
+        # Push MQTT
+        if len(gArraydevices) == len(listInvControlZeroExportMode):
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
 # Describe processNonExportPowerLimit 
 # 	 * @description processNonExportPowerLimit
 # 	 * @author bnguyen
