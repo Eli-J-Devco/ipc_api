@@ -521,7 +521,12 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                 gIntValuePowerForEachInvInModeZeroExport = calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
                     gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
                 # Create Infor Device Publish MQTT
-                if gIntValueProductionSystemp <= intPracticalConsumptionValue and \
+                print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+                print("intPracticalConsumptionValue",intPracticalConsumptionValue)
+                print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
+                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
+                
+                if gIntValueProductionSystemp < intPracticalConsumptionValue and \
                     gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
                     item = create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                     gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
