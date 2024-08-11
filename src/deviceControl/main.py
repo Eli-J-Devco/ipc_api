@@ -195,9 +195,7 @@ async def subSystempModeWhenUserChangeModeSystemp(gArrayMessageChangeModeSystemp
     topicFeedbackModeSystemp = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Feedback
     try:
         if gArrayMessageChangeModeSystemp:
-            print("gArrayMessageChangeModeSystemp",gArrayMessageChangeModeSystemp)
             gStringModeSystempCurrent = await processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password)
-            print("gStringModeSystempCurrent",gStringModeSystempCurrent)
     except Exception as err:
         print(f"Error MQTT subscribe subSystempModeWhenUserChangeModeSystemp: '{err}'")
 # Describe pudSystempModeTrigerEachDeviceChange
@@ -435,8 +433,15 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
                 id_device = item['id_device']
                 result_type_meter = get_device_type(id_device)
                 if result_type_meter:
-                    gIntValueProductionSystemp, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
-                    gIntValueConsumptionSystemp, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
+                    IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
+                    IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
+    # Cập nhật giá trị toàn cục
+    gIntValueProductionSystemp = IntTotalValueProduction
+    gIntValueConsumptionSystemp = IntTotalValueConsumtion
+    print("IntTotalValueProduction",IntTotalValueProduction)
+    print("IntTotalValueConsumtion",IntTotalValueConsumtion)
+    print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+    print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
     try:
         ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
@@ -444,7 +449,6 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
         push_data_to_mqtt(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
-
 ############################################################################ Power Limit Control  ############################################################################
 # Describe processCaculatorPowerForInvInPowerLimitMode 
 # 	 * @description processCaculatorPowerForInvInPowerLimitMode
