@@ -523,11 +523,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             gIntValuePowerForEachInvInModeZeroExport = calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
                 gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
-            print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-            print("intPracticalConsumptionValue",intPracticalConsumptionValue)
-            print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
-            print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
-            
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
                 gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
                 item = create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
@@ -549,63 +544,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         if len(gArraydevices) == len(listInvControlZeroExportMode):
             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
             push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
-# Describe processNonExportPowerLimit 
-# 	 * @description processNonExportPowerLimit
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
-# 	 * @return power_max
-# 	 */ 
-async def processNonExportPowerLimit(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    # Global variables
-    global gArrayMessageAllDevice ,Topic_Control_WriteAuto
-    # Local variables
-    intPowerMaxOfInv = 0
-    floatCoefficientConvertedValueForINV = 1.0
-    topicPudprocessNonExportPowerLimit = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
-    gIntValuePowerForEachInvInModeNoneAuto = 0
-    gArraydevices = []
-    # Check device equipment qualified for control
-    if gArrayMessageAllDevice:
-        gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    # get information about power in database and varable gArraydevices
-    if gArraydevices :
-            listInvControlNonAutoMode = []
-            for device in gArraydevices:
-                id_device = device["id_device"]
-                mode = device["mode"]
-                intPowerMaxOfInv = device["p_max"]
-                intPowerMaxOfInv = float(intPowerMaxOfInv)
-                intPowerMinOfInv = device["p_min"]
-                intPowerMinOfInv = float(intPowerMinOfInv)
-                floatCoefficientConvertedValueForINV = device["slope"]
-                # Convert power max real 
-                if intPowerMaxOfInv and floatCoefficientConvertedValueForINV :
-                    gIntValuePowerForEachInvInModeNoneAuto = intPowerMinOfInv/floatCoefficientConvertedValueForINV
-                # Check device is off , on device 
-                if device['controlinv'] == 1:
-                    new_device = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "status": "Pmin",
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModeNoneAuto}
-                        ]
-                    }
-                else:
-                    new_device = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "status": "Pmin",
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModeNoneAuto}
-                        ]
-                    }
-                listInvControlNonAutoMode.append(new_device)
-            # Push data to mqtt 
-            if len(gArraydevices) == len(listInvControlNonAutoMode):
-                mqtt_public_paho_zip( mqtt_host, mqtt_port, topicPudprocessNonExportPowerLimit, mqtt_username, mqtt_password, listInvControlNonAutoMode)
 ############################################################################ Setup Parameter Control ############################################################################
 # Describe processUpdateParameterModeDetail 
 # 	 * @description processUpdateParameterModeDetail
@@ -614,80 +552,71 @@ async def processNonExportPowerLimit(StringSerialNumerInTableProjectSetup, mqtt_
 # 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
 # 	 * @return MySQL_Update gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit
 # 	 */ 
-async def processUpdateParameterModeDetail(messageParameterControlAuto,StringSerialNumerInTableProjectSetup, mqtt_host ,mqtt_port, \
-    mqtt_username,mqtt_password ):
+async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSerialNumerInTableProjectSetup,Topic_Control_Setup_Auto_Feedback, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     # Global variables
-    global gIntValueThresholdZeroExport,gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit,\
-    Topic_Control_Setup_Auto_Feedback,gIntValueTotalPowerInInvInAutoMode,gIntValueTotalPowerInALLInv
-    
+    global gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValuePowerLimit, gIntValueOffsetPowerLimit, gIntValueTotalPowerInALLInv
     # Local variables
     topicPudUpdateParameterModeDetail = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Auto_Feedback
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
-    gIntValueOffsetZeroExport_temp = 0
-    gIntValueThresholdZeroExport_temp = 0
-    gIntValuePowerLimit_temp = 0
-    gIntValueOffsetPowerLimit_temp = 0
     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
-    # Receve data from mqtt
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
-            stringAutoMode = messageParameterControlAuto['mode'] 
-            stringAutoMode = int(stringAutoMode)
-            # Compare get information update database 
+            stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
-                gIntValueOffsetZeroExport_temp = messageParameterControlAuto["offset"]
-                if gIntValueOffsetZeroExport_temp is None:
-                    pass
-                else :
-                    gIntValueOffsetZeroExport = gIntValueOffsetZeroExport_temp
-                gIntValueThresholdZeroExport_temp = messageParameterControlAuto["threshold"]
-                if gIntValueThresholdZeroExport_temp is None:
-                    pass
-                else :
-                    gIntValueThresholdZeroExport = gIntValueThresholdZeroExport_temp
-                arrayResultUpdateParameterZeroExportInTableProjectSetUp = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s,threshold_zero_export = %s", (gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,))
+                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
-                gIntValueOffsetPowerLimit_temp = messageParameterControlAuto["offset"]
-                if gIntValueOffsetPowerLimit_temp is None:
-                    pass
-                else :
-                    gIntValueOffsetPowerLimit = gIntValueOffsetPowerLimit_temp
-                gIntValuePowerLimit_temp = messageParameterControlAuto["value"]
-                if gIntValuePowerLimit_temp is not None :
-                    if gIntValuePowerLimit_temp <= gIntValueTotalPowerInALLInv:
-                        gIntValuePowerLimit = gIntValuePowerLimit_temp
-                        # write information in database 
-                        if gIntValuePowerLimit <= gIntValueTotalPowerInALLInv:
-                            arrayResultUpdateParameterPowerLimitInTableProjectSetUp = MySQL_Update_V1("update project_setup set value_power_limit = %s ,value_offset_power_limit = %s ", (gIntValuePowerLimit_temp,gIntValueOffsetPowerLimit,))
-                        # convert value kw to w 
-                            gIntValuePowerLimit = (gIntValuePowerLimit - (gIntValuePowerLimit*gIntValueOffsetPowerLimit)/100)
-            # When you receive one of the above information, give feedback to mqtt
-            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit_temp != None and gIntValuePowerLimit_temp > gIntValueTotalPowerInALLInv):
+                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto)
+            # Feedback to MQTT
+            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv):
                 intComment = 400 
             else:
                 intComment = 200 
+            # Object Sent MQTT
             objectSend = {
-                        "time_stamp" :timeStamp,
-                        "status":intComment, 
-                        }
-            mqtt_public_paho_zip(mqtt_host,
-                    mqtt_port,
-                    topicPudUpdateParameterModeDetail ,
-                    mqtt_username,
-                    mqtt_password,
-                    objectSend)
-            push_data_to_mqtt(mqtt_host,
-                    mqtt_port,
-                    topicPudUpdateParameterModeDetail + "Binh" ,
-                    mqtt_username,
-                    mqtt_password,
-                    objectSend)
-            
+                "time_stamp": timeStamp,
+                "status": intComment,
+            }
+            # Push MQTT
+            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudUpdateParameterModeDetail, mqtt_username, mqtt_password, objectSend)
+            push_data_to_mqtt(mqtt_host, mqtt_port, topicPudUpdateParameterModeDetail + "Binh", mqtt_username, mqtt_password, objectSend)
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
+
+async def handle_zero_export_mode(message,ValueOffset,ValueThreshold):
+    ValueOffsetTemp = 0
+    ValueThresholdTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValueThreshold From Message
+    ValueThresholdTemp = message.get("threshold")
+    if ValueThresholdTemp is not None:
+        ValueThreshold = ValueThresholdTemp
+    # Result Query 
+    ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (gIntValueOffsetZeroExport, gIntValueThresholdZeroExport))
+    return ValueOffset,ValueThreshold,ResultQuery
+
+async def handle_power_limit_mode(message,ValueOffset,ValuePowerLimit,TotalPower):
+    ValueOffsetTemp = 0
+    ValuePowerLimitTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValuePowerLimit From Message
+    ValuePowerLimitTemp = message.get("value")
+    if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+        ValuePowerLimit = ValuePowerLimitTemp
+        ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
+    # Result Query 
+    ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
+    return ValueOffset,ValuePowerLimit,ResultQuery
 # Describe processUpdateModeDetail 
 # 	 * @description processUpdateModeDetail
 # 	 * @author bnguyen
@@ -779,17 +708,13 @@ async def initializeValueControlAuto():
 async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global gIntControlModeDetail
-    # await waitting_process_man()
     # Select the auto run process
     if gIntControlModeDetail == 1 :
         print("==============================zero_export==============================")
         await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    elif gIntControlModeDetail == 2 :
+    else:
         print("==============================power_limit==============================")
         await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-    else :
-        print("=======================power_min========================")
-        await processNonExportPowerLimit(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
 # Describe process_zero_export_power_limit 
 # 	 * @description process_zero_export_power_limit
 # 	 * @author bnguyen
@@ -805,7 +730,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
 # 	 * @return each topic , each message
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
-    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password):
+    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
     
     global gArrayMessageAllDevice
     global gBitManWrite
@@ -828,7 +753,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         elif topic == topics[1]:  # topic2
             await pudInformationProjectSetupWhenRequest(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic == topics[2]:  # topic3
-            await processUpdateParameterModeDetail(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
+            await processUpdateParameterModeDetail(message, StringSerialNumerInTableProjectSetup,topic15, host, port, username, password)
         elif topic == topics[3]:  # topic4
             gArrayMessageAllDevice = message
             await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topic14, host, port, username, password)
@@ -865,7 +790,7 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password):
+    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
     
     try:
         while True:
@@ -876,7 +801,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             topic = message.topic
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -887,7 +812,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 * @return all topic , all message
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14):
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15):
     
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
@@ -906,7 +831,7 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         while True:
             await client.start()
             await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host, port, username, password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host, port, username, password)
             await client.stop()
     except Exception as err:
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
@@ -954,7 +879,8 @@ async def main():
                                                 Topic_Meter_Monitor,
                                                 Topic_Control_Setup_Mode_Feedback,
                                                 Topic_Control_Setup_Mode_Write,
-                                                Topic_Control_Process
+                                                Topic_Control_Process,
+                                                Topic_Control_Setup_Auto_Feedback
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
