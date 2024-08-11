@@ -49,7 +49,7 @@ def extract_device_auto_info(item):
         slope = get_device_value(item, "WMax", field_key='slope')
         if slope is None:
             return None
-        results_device_type = item.get('name_device_type')  # Lấy giá trị loại thiết bị
+        results_device_type = item.get('name_device_type') 
         if results_device_type is None:
             return None
         return id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type
