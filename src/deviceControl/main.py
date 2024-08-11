@@ -29,6 +29,7 @@ from utils.libTime import *
 from getcpu import *
 from modesystem import *
 from getlistdevice import *
+from caculatorauto import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -52,27 +53,12 @@ gIntValueSettingArlamHighPerformance = 0
 # Parameters Value Production and Consumtion 
 gIntValueProductionSystemp = 0
 gIntValueConsumptionSystemp = 0
-gIntValueProduction1Minute = 0
-gIntValueConsumption1Minute = 0
-gIntValueProduction1Hour = 0
-gIntValueConsumption1Hour = 0
-gIntValueProductionDaily = 0
-gIntValueConsumptionDaily = 0 
-gIntValueProductionInModeZeroExport = 0
-gIntValueConsumtionInModeZeroExport = 0
-gIntValueProductionInModePowerLimit = 0
-gIntValueConsumtionInModePowerLimit = 0
-gFloatValueMaxPredictProductionInstant = 0.0
 start_time_minutely = time.time()
-start_time_hourly = time.time()
-start_time_daily = time.time()
-cycle_time1s = time.time()
 
 # Parameters Value Power In Inv Each Mode 
 gIntValueTotalPowerInInvInAutoMode = 0
 gIntValueTotalPowerInALLInv = 0
 gIntValuePowerForEachInvInModeZeroExport = 0
-gIntValuePowerForEachInvInModePowerLimit = 0
 gIntValueTotalPowerInInvInManMode = 0
 gArrayMessageAllDevice = []
 gArrayResultExecuteSQLModeSysTemp = []
@@ -419,7 +405,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
 # 	 */ 
 ############################################################################ Get Value Metter ############################################################################
 async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, Topic_Meter_Monitor, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    global gIntValueProductionSystemp, gIntValueConsumptionSystemp
+    global gIntValueProductionSystemp, gIntValueConsumptionSystemp,start_time_minutely
     # Local variables
     current_time = time.time()
     IntTotalValueProduction, IntTotalValueConsumtion = 0, 0
@@ -435,13 +421,9 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
                 if result_type_meter:
                     IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
                     IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
-    # Cập nhật giá trị toàn cục
+    # Update the global values ​​of total production and total consumption
     gIntValueProductionSystemp = IntTotalValueProduction
     gIntValueConsumptionSystemp = IntTotalValueConsumtion
-    print("IntTotalValueProduction",IntTotalValueProduction)
-    print("IntTotalValueConsumtion",IntTotalValueConsumtion)
-    print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-    print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
     try:
         ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
@@ -457,96 +439,48 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
 # 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
 # 	 * @return gIntValuePowerForEachInvInModePowerLimit
 # 	 */ 
-async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
-    # Global variables
+async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
     global gArrayMessageAllDevice, gIntValuePowerLimit, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
-    Topic_Control_WriteAuto, gIntValuePowerForEachInvInModePowerLimit,gStringModeSystempCurrent,gFloatValueSystemPerformance,\
-    gIntValueTotalPowerInInvInManMode,gBitManWrite
+    gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode, gBitManWrite
     # Local variables
-    intPowerMaxOfInv = 0
-    intPowerMinOfInv = 0
     gArraydevices = []
+    gIntValuePowerForEachInvInModePowerLimit = 0 
     processCaculatorPowerForInvInPowerLimitMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
-    # Check device equipment qualified for control
+    # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
-    if gStringModeSystempCurrent != 0:
-        if gIntValuePowerLimit > 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValuePowerLimit) * 100
-        elif gIntValuePowerLimit <= 0 and gIntValueProductionSystemp > 0:
-            gFloatValueSystemPerformance = 101
-        else:
-            gFloatValueSystemPerformance = 0
-        
-    # get information about power in database and varaable gArraydevices
+    # Caculator System Performance 
+    gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+    gIntValueProductionSystemp,gIntValuePowerLimit)
+    # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
-            id_device = device["id_device"]
-            mode = device["mode"]
-            intPowerMaxOfInv = device["p_max"]
-            intPowerMaxOfInv = float(intPowerMaxOfInv)
-            intPowerMinOfInv = device["p_min"]
-            intPowerMinOfInv = float(intPowerMinOfInv)
-            # Convert power real 
-            if intPowerMaxOfInv :
-                if gStringModeSystempCurrent == 1:
-                    floatEfficiencySystemp = ((gIntValuePowerLimit)/gIntValueTotalPowerInInvInAutoMode)
-                else:
-                    floatEfficiencySystemp = ((gIntValuePowerLimit-gIntValueTotalPowerInInvInManMode)/gIntValueTotalPowerInInvInAutoMode)
-                # Calculate power value according to total system performance
-                if 0 <= floatEfficiencySystemp <= 1:
-                    gIntValuePowerForEachInvInModePowerLimit = (floatEfficiencySystemp * intPowerMaxOfInv)
-                elif floatEfficiencySystemp < 0:
-                    gIntValuePowerForEachInvInModePowerLimit = 0
-                else:
-                    gIntValuePowerForEachInvInModePowerLimit = intPowerMaxOfInv
-
-            # If the total capacity produced has not reached the set value, proceed
+            id_device, mode, intPowerMaxOfInv = process_device_powerlimit_info(device)
+            gIntValuePowerForEachInvInModePowerLimit = calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,\
+                gIntValueTotalPowerInInvInAutoMode,gIntValuePowerLimit)
+            # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < gIntValuePowerLimit:
-                if device['controlinv'] == 1: # Check device is off , on device 
-                    ItemlistInvControlPowerLimitMode = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "time": get_utc(),
-                        "status": "power limit",
-                        "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode ,
-                        "feedback": gIntValueProductionSystemp,
-                        "parameter": [
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModePowerLimit}
-                        ]
-                    }
-                elif device['controlinv'] == 0:
-                    ItemlistInvControlPowerLimitMode = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "time": get_utc(),
-                        "status": "power limit",
-                        "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
-                        "feedback": gIntValueProductionSystemp,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": gIntValuePowerForEachInvInModePowerLimit}
-                        ]
-                    }
+                item = create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntValuePowerLimit,\
+                    gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
-                ItemlistInvControlPowerLimitMode = {
-                        "id_device": id_device,
-                        "mode": mode,
-                        "status": "power limit",
-                        "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
-                        "feedback": gIntValueProductionSystemp,
-                        "parameter": [
-                            {"id_pointkey": "ControlINV", "value": 1},
-                            {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - gIntValuePowerLimit))}
-                        ]
-                    }
-            # Accumulate devices that are eligible to run automatically to push to mqtt
-            listInvControlPowerLimitMode.append(ItemlistInvControlPowerLimitMode)
-        if len(gArraydevices) == len(listInvControlPowerLimitMode) :
+                item = {
+                    "id_device": id_device,
+                    "mode": mode,
+                    "status": "power limit",
+                    "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
+                    "feedback": gIntValueProductionSystemp,
+                    "parameter": [
+                        {"id_pointkey": "ControlINV", "value": 1},
+                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - gIntValuePowerLimit))}
+                    ]
+                }
+            # Create List Device 
+            listInvControlPowerLimitMode.append(item)
+        # Push MQTT
+        if len(gArraydevices) == len(listInvControlPowerLimitMode):
             mqtt_public_paho_zip(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode, mqtt_username, mqtt_password, listInvControlPowerLimitMode)
             push_data_to_mqtt(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode + "Binh", mqtt_username, mqtt_password, listInvControlPowerLimitMode)
-            gIntValuePowerForEachInvInModePowerLimit = 0
 ############################################################################ Zero Export Control ############################################################################
 # Describe processCaculatorPowerForInvInZeroExportMode 
 # 	 * @description processCaculatorPowerForInvInZeroExportMode
@@ -897,7 +831,7 @@ async def initializeValueControlAuto():
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 # 	 */ 
-async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
+async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
     # Global variables 
     global gIntControlModeDetail
     # await waitting_process_man()
@@ -907,7 +841,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,mqtt
         await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     elif gIntControlModeDetail == 2 :
         print("==============================power_limit==============================")
-        await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
     else :
         print("=======================power_min========================")
         await processNonExportPowerLimit(StringSerialNumerInTableProjectSetup,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
@@ -1048,6 +982,7 @@ async def main():
                                                                             Mqtt_UserName,
                                                                             Mqtt_Password])
         scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Topic_Control_WriteAuto,
                                                                             Mqtt_Broker,
                                                                             Mqtt_Port,
                                                                             Mqtt_UserName,
