@@ -143,7 +143,7 @@ def getNetworkSpeedInformation(net_io_counters_prev):
 
     upstream = convertBytesToReadable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
     downstream = convertBytesToReadable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
-
+    print("time_diff 1",time_diff)
     net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
     net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
     net_io_counters_prev["Timestamp"] = current_time
@@ -161,7 +161,7 @@ def getDiskIoInformation(disk_io_counters_prev):
     disk_io_counters = psutil.disk_io_counters()
     current_time = datetime.datetime.now()
     time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
-
+    print("time_diff 2",time_diff)
     disk_io_counters_prev["ReadBytes"] = disk_io_counters.read_bytes
     disk_io_counters_prev["WriteBytes"] = disk_io_counters.write_bytes
     disk_io_counters_prev["Timestamp"] = current_time

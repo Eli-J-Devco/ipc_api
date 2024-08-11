@@ -26,10 +26,10 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from getcpu import *
-from modesystem import *
-from getlistdevice import *
-from caculatorauto import *
+from getCpu import *
+from modeSystem import *
+from getListDevice import *
+from caculatorAuto import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -59,14 +59,10 @@ start_time_minutely = time.time()
 gIntValueTotalPowerInInvInManMode = 0
 gIntValueTotalPowerInInvInAutoMode = 0
 gIntValueTotalPowerInALLInv = 0
-
-gIntValuePowerForEachInvInModeZeroExport = 0
+# message device all 
 gArrayMessageAllDevice = []
-gArrayResultExecuteSQLModeSysTemp = []
-gArrayResultExecuteSQLModeDevice = []
-gBitManWrite = 0
 
-# Khởi tạo biến lưu trữ thông tin trước đó
+# Initialize a variable that stores previous information
 net_io_counters_prev = {
     "TotalSent": 0,
     "TotalReceived": 0,
@@ -682,12 +678,6 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
     else:
         print("==============================power_limit==============================")
         await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
-# Describe process_zero_export_power_limit 
-# 	 * @description process_zero_export_power_limit
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {}
-# 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 ############################################################################ Sud MQTT ############################################################################
 # Describe processMessage 
 # 	 * @description pudSystempModeTrigerEachDeviceChange
@@ -806,11 +796,12 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
 async def main():
     StringSerialNumerInTableProjectSetup = ""
     tasks = []
+    # Initialize values ​​for global variables
     await initializeValueControlAuto()
-    results_project = MySQL_Select('SELECT * FROM `project_setup`', ())
+    results_project = MySQL_Select('SELECT serial_number FROM `project_setup`', ())
     if results_project != None :
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
-        #-------------------------------------------------------
+        # Cycle
         scheduler = AsyncIOScheduler()
         scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
                                                                             Topic_CPU_Information,
@@ -825,7 +816,7 @@ async def main():
                                                                             Mqtt_UserName,
                                                                             Mqtt_Password])
         scheduler.start()
-        #-------------------------------------------------------
+        # Listenner 
         tasks = []
         tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
                                                 Mqtt_Broker,
