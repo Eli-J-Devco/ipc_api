@@ -368,9 +368,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
         gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance
     ArrayDeviceList = []
-    StringMessageStatusSystemPerformance = ""
-    intStatusSystemPerformance = 0
-    
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
