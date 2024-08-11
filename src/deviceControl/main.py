@@ -28,6 +28,7 @@ from utils.libMySQL import *
 from utils.libTime import *
 from getcpu import *
 from modesystem import *
+from getlistdeviceauto import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -346,58 +347,28 @@ async def insertInformationProjectSetupWhenRequest(messageInsertInformationProje
 # 	 */ 
 ############################################################################ List Device Auto ############################################################################
 async def getListDeviceAutoModeInALLInv(messageAllDevice):
-    # Global variables
     global gIntValueTotalPowerInInvInAutoMode
-    # Local variables
     ArayyDeviceList = []
-    p_min = 0
-    # Get results mqtt
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            if 'id_device' in item and 'mode' in item and 'status_device' in item:
-                id_device = item['id_device']
-                mode = item['mode']
-                status_device = item['status_device']
-                p_max = item['rated_power']
-                if item['rated_power_custom'] != None :
-                    p_max_custom = item['rated_power_custom']
-                else:
-                    p_max_custom = item['rated_power']
-                p_min_percent = item['min_watt_in_percent']
-                results_device_type = item['name_device_type']
-                if p_max and p_min_percent:
-                    p_min = (p_max*p_min_percent)/100
-                # Check device On/Off
-                value_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ControlINV"]
-                if value_array:
-                    value = value_array[0]
-                else:
-                    continue
-                # Check device Fault
-                operator_array = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
-                if operator_array:
-                    operator = operator_array[0]
-                else:
-                    continue
-                # Get Slope Power Limit 
-                slope_array = [field["slope"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
-                if slope_array:
-                    slope = slope_array[0]
-                else:
-                    continue
-                # device is inv , online , auto , not fault => control 
-                if results_device_type == "PV System Inverter" and status_device == 'online' and mode == 1 and operator not in [7, 8]:
-                    # create list sent mqtt 
-                    ArayyDeviceList.append({
-                        'id_device': id_device,
-                        'mode': mode,
-                        'status_device': status_device,
-                        'p_max': p_max_custom,
-                        'p_min': p_min,
-                        'controlinv': value,
-                        'operator': operator,
-                        'slope': slope,
-                    })
+            device_info = extract_device_info(item)
+            if not device_info:
+                continue
+            # Get Information Each Device 
+            id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type = device_info
+            # Check Device Auto 
+            if is_device_controlable(results_device_type, status_device, mode, operator):
+                ArayyDeviceList.append({
+                    'id_device': id_device,
+                    'mode': mode,
+                    'status_device': status_device,
+                    'p_max': p_max_custom,
+                    'p_min': p_min,
+                    'controlinv': value,
+                    'operator': operator,
+                    'slope': slope,
+                })
+    # Caculator Power Device In Auto Mode
     gIntValueTotalPowerInInvInAutoMode = sum(device['p_max'] for device in ArayyDeviceList)
     return ArayyDeviceList
 ############################################################################ List Device Systemp ############################################################################
@@ -691,7 +662,7 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNum
         ValueProductionAndConsumtion["power_limit"]["differential"] = round((gIntValueProductionInModePowerLimit - gIntValueConsumtionInModePowerLimit), 4)
         
         # Push system_info to MQTT
-        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion + "Binh1", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
+        mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion , mqtt_username, mqtt_password, ValueProductionAndConsumtion)
         push_data_to_mqtt(mqtt_host, mqtt_port, topicPublicValueProductionAndConsumtion + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
