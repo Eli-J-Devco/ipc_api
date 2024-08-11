@@ -502,6 +502,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     gArraydevices = []
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     gIntValuePowerForEachInvInModeZeroExport = 0
+    intPracticalConsumptionValue = 0
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
