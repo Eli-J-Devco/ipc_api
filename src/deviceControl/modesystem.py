@@ -64,3 +64,36 @@ async def updateDeviceMode(mode):
     querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
     result = MySQL_Insert_v5(querydevice, (mode,))
     return result
+
+async def handle_zero_export_mode(message,ValueOffset,ValueThreshold):
+    ValueOffsetTemp = 0
+    ValueThresholdTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValueThreshold From Message
+    ValueThresholdTemp = message.get("threshold")
+    if ValueThresholdTemp is not None:
+        ValueThreshold = ValueThresholdTemp
+    # Result Query 
+    ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffset, ValueThreshold))
+    return ValueOffset,ValueThreshold,ResultQuery
+
+async def handle_power_limit_mode(message,ValueOffset,ValuePowerLimit,TotalPower):
+    ValueOffsetTemp = 0
+    ValuePowerLimitTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValuePowerLimit From Message
+    ValuePowerLimitTemp = message.get("value")
+    if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+        ValuePowerLimit = ValuePowerLimitTemp
+        ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
+    # Result Query 
+    ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
+    return ValueOffset,ValuePowerLimit,ResultQuery
