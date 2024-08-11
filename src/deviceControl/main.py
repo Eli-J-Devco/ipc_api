@@ -384,6 +384,9 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         gIntValueSettingArlamLowPerformance,
         gIntValueSettingArlamHighPerformance
     )
+    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
+    print("StringMessageStatusSystemPerformance",StringMessageStatusSystemPerformance)
+    print("intStatusSystemPerformance",intStatusSystemPerformance)
     # Message Public MQTT
     result = {
         "ModeSystempCurrent": gStringModeSystempCurrent,
@@ -456,7 +459,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     if gStringModeSystempCurrent != 0:
         gFloatValueSystemPerformance = await calculate_system_performance_powerlimit(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,gIntValuePowerLimit)
-    print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
     # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
