@@ -28,7 +28,7 @@ from utils.libMySQL import *
 from utils.libTime import *
 from getcpu import *
 from modesystem import *
-from getlistdeviceauto import *
+from getlistdevice import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -379,131 +379,36 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
 # 	 * @param {mqtt_result }
 # 	 * @return device_list 
 # 	 */ 
-async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProjectSetup, host, port, username, password):
-    # Global variables
-    global gIntValueTotalPowerInInvInAutoMode, Topic_Control_Process,gIntValueConsumptionSystemp,\
-    gIntValueProductionSystemp,gIntValuePowerLimit,gFloatValueSystemPerformance,gIntValueSettingArlamLowPerformance , \
-    gIntValueSettingArlamHighPerformance ,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInALLInv,gStringModeSystempCurrent
-    
-    # Local variable
+async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProjectSetup,Topic_Control_Process, host, port, username, password):
+    global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
+        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent
     ArrayDeviceList = []
-    ArrayOperator = []
-    ArrayWmax = []
-    ArrayCapacitypower = []
-    ArrayRealpower = []
-    intOperator = 0
-    stringOperatorText = ""
-    floatWmax = 0.0
-    floatCapacitypower = 0.0
-    floatRealpower = 0.0
-    timeStampGetList = get_utc()
-    StringMessageStatusSystemPerformance = ''
-    intStatusSystemPerformance = 0
-    gIntValueTotalPowerInInvInManModeTemp = 0
-    # Get result mqtt 
+    # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            # get info about device
-            if 'id_device' in item and 'mode' in item and 'status_device' in item:
-                id_device = item['id_device']
-                mode = item['mode']
-                status_device = item['status_device']
-                if item['rated_power_custom'] != None :
-                    p_max_custom = item['rated_power_custom']
-                else:
-                    p_max_custom = item['rated_power']
-                p_min_percent = item['min_watt_in_percent']
-                device_name = item['device_name']
-                results_device_type = item['name_device_type']
-                # check device is inv
-                if results_device_type == "PV System Inverter":
-                    # get info list device
-                    stringOperatorText = {
-                        0: "shutting down",
-                        1: "shutting down",
-                        4: "running",
-                        5: "running",  
-                        6: "shutting down",
-                        7: "fault",
-                    }
-                    ArrayOperator = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
-                    intOperator = ArrayOperator[0] if ArrayOperator else 0
-                    stringOperatorText = stringOperatorText.get(intOperator, "off")
-                    
-                    ArrayWmax = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "WMax"]
-                    floatWmax = ArrayWmax[0] if ArrayWmax else 0
-                    
-                    ArrayCapacitypower = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "PowerOutputCapability"]
-                    floatCapacitypower = ArrayCapacitypower[0] if ArrayCapacitypower else 0
-                    
-                    if floatWmax != None :
-                        if gStringModeSystempCurrent != 1:
-                            if mode == 0:
-                                gIntValueTotalPowerInInvInManModeTemp += floatWmax
-                            else:
-                                gIntValueTotalPowerInInvInManModeTemp += 0
-                            gIntValueTotalPowerInInvInManMode = gIntValueTotalPowerInInvInManModeTemp
-                        else:
-                            gIntValueTotalPowerInInvInManMode = 0
-                        
-                    ArrayRealpower = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" for field in param.get("fields", []) if field["point_key"] == "ACActivePower"]
-                    floatRealpower = ArrayRealpower[0] if ArrayRealpower else 0
-                    # device offline   
-                    if status_device == 'offline':
-                        floatRealpower = 0.0
-                        stringOperatorText = "off"
-                    # Calculate pmin   
-                    if p_max_custom and p_min_percent:
-                        p_min = round((p_max_custom * p_min_percent) / 100, 4)
-                    else:
-                        p_min = 0.0
-                    # create list sent mqtt
-                    ArrayDeviceList.append({
-                        'id_device': id_device,
-                        'device_name': device_name,
-                        'mode': mode,
-                        'status_device': status_device,
-                        'operator': stringOperatorText,
-                        'capacitypower': floatCapacitypower,
-                        'p_max': p_max_custom,
-                        'p_min': p_min,
-                        'wmax': floatWmax,
-                        'realpower': floatRealpower,
-                        'timestamp': timeStampGetList,
-                    })
-    if gFloatValueSystemPerformance < gIntValueSettingArlamLowPerformance:
-        StringMessageStatusSystemPerformance = "System performance is below expectations."
-        intStatusSystemPerformance = 0
-    elif gIntValueSettingArlamLowPerformance <= gFloatValueSystemPerformance < gIntValueSettingArlamHighPerformance:
-        StringMessageStatusSystemPerformance = "System performance is meeting"
-        intStatusSystemPerformance = 1
-    else:
-        StringMessageStatusSystemPerformance = "System performance is exceeding established thresholds."
-        intStatusSystemPerformance = 2
-    # Caculator gFloatValueSystemPerformance
-    if gStringModeSystempCurrent == 0:
-        if gIntValueTotalPowerInALLInv :
-            gFloatValueSystemPerformance = (gIntValueProductionSystemp /gIntValueTotalPowerInALLInv) * 100
-        else:
-            gFloatValueSystemPerformance = 0
-        
-    gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
-    
-    gIntValueTotalPowerInInvInAutoMode = round(gIntValueTotalPowerInInvInAutoMode, 2)
-    gIntValueTotalPowerInInvInManModeTemp = round(gIntValueTotalPowerInInvInManModeTemp,2)
-    
-    gIntValueTotalPowerInALLInv = gIntValueTotalPowerInInvInAutoMode + gIntValueTotalPowerInInvInManModeTemp
-    
+            device_info = extract_device_info(item)
+            if device_info:
+                ArrayDeviceList.append(device_info)
+    # Call the update_system_performance function and get the return value
+    gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
+        gStringModeSystempCurrent,
+        gIntValueTotalPowerInALLInv,
+        gIntValueProductionSystemp,
+        gIntValueSettingArlamLowPerformance,
+        gIntValueSettingArlamHighPerformance
+    )
+    # Message Public MQTT
     result = {
-    "ModeSystempCurrent":gStringModeSystempCurrent,
-    "devices": ArrayDeviceList,
-    "total_max_power": gIntValueTotalPowerInALLInv,
-    "system_performance": {
-        "performance": gFloatValueSystemPerformance,
-        "message": StringMessageStatusSystemPerformance,
-        "status": intStatusSystemPerformance
+        "ModeSystempCurrent": gStringModeSystempCurrent,
+        "devices": ArrayDeviceList,
+        "total_max_power": gIntValueTotalPowerInALLInv,
+        "system_performance": {
+            "performance": gFloatValueSystemPerformance,
+            "message": StringMessageStatusSystemPerformance,
+            "status": intStatusSystemPerformance
+        }
     }
-    }
+    # Public MQTT
     mqtt_public_paho_zip(host, port, StringSerialNumerInTableProjectSetup + Topic_Control_Process, username, password, result)
     push_data_to_mqtt(host, port, StringSerialNumerInTableProjectSetup + Topic_Control_Process + "Binh", username, password, result)
     return ArrayDeviceList
@@ -1143,7 +1048,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,mqtt
 # 	 * @return each topic , each message
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
-    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password):
+    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password):
     
     global gArrayMessageAllDevice
     global gBitManWrite
@@ -1169,7 +1074,7 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
             await processUpdateParameterModeDetail(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic == topics[3]:  # topic4
             gArrayMessageAllDevice = message
-            await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, host, port, username, password)
+            await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topic14, host, port, username, password)
             await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
         elif topic == topics[4]:  # topic5
             pass
@@ -1203,7 +1108,7 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password):
+    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password):
     
     try:
         while True:
@@ -1214,7 +1119,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
             topic = message.topic
             payload = gzip_decompress(message.message)
             await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host,port,username,password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host,port,username,password)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -1225,7 +1130,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 * @return all topic , all message
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13):
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14):
     
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
@@ -1244,7 +1149,7 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         while True:
             await client.start()
             await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,host, port, username, password)
+                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,host, port, username, password)
             await client.stop()
     except Exception as err:
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
@@ -1290,7 +1195,8 @@ async def main():
                                                 Topic_Control_FeedbackSetup,
                                                 Topic_Meter_Monitor,
                                                 Topic_Control_Setup_Mode_Feedback,
-                                                Topic_Control_Setup_Mode_Write
+                                                Topic_Control_Setup_Mode_Write,
+                                                Topic_Control_Process
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
 if __name__ == '__main__':
