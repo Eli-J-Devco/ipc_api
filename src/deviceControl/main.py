@@ -373,7 +373,8 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
             device_info = extract_device_all_info(item)
             if device_info:
                 ArrayDeviceList.append(device_info)
-    print("ArrayDeviceList",ArrayDeviceList)
+    # Calculate the sum of wmax values ​​of all inv in the system
+    gIntValueTotalPowerInALLInv = calculate_total_wmax(ArrayDeviceList)
     print("gIntValueTotalPowerInALLInv",gIntValueTotalPowerInALLInv)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(

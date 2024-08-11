@@ -120,6 +120,10 @@ def get_device_parameters(item):
     # Return Wmax , Capacity Power , Real Power
     return operator, wmax, capacity_power, real_power
 
+def calculate_total_wmax(device_list):
+    totalpoer =  sum(device['wmax'] for device in device_list if device['wmax'] is not None)
+    return totalpoer
+
 def calculate_p_min(p_max_custom, p_min_percent):
     return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
 
