@@ -365,7 +365,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
 # 	 */ 
 async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProjectSetup,Topic_Control_Process, host, port, username, password):
     global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
-        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode
+        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance
     ArrayDeviceList = []
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
