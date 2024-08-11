@@ -382,6 +382,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
+        gFloatValueSystemPerformance,
         gIntValueTotalPowerInALLInv,
         gIntValueProductionSystemp,
         gIntValueSettingArlamLowPerformance,
