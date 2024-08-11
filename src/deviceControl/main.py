@@ -515,7 +515,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,intPracticalConsumptionValue)
     
-    if gArraydevices and gIntValueConsumptionSystemp:
+    if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
             id_device, mode, intPowerMaxOfInv = process_device_powerlimit_info(device)
