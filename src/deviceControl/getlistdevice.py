@@ -132,8 +132,6 @@ def update_system_performance(current_mode, total_power_in_all_inv, production_s
     # Calculate system performance
     if current_mode == 0:
         gFloatValueSystemPerformance = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
-    else:
-        gFloatValueSystemPerformance = 0
     # Round performance to 1 decimal place
     gFloatValueSystemPerformance = round(gFloatValueSystemPerformance, 1)
     # Determine performance status
