@@ -347,7 +347,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
                     'slope': slope,
                 })
     # Caculator Power Device In Auto Mode
-    gIntValueTotalPowerInInvInAutoMode = sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None)
+    gIntValueTotalPowerInInvInAutoMode = round(sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None),2)
     return ArayyDeviceList
 ############################################################################ List Device Systemp ############################################################################
 # Describe getListALLInvInProject 
