@@ -25,6 +25,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from utils.libMySQL import *
+from utils.libTime import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -35,29 +36,24 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 # ------------------------------------
 
 # Declare Variable 
-result_list = []
-result_all = []
-result_list_MPPT = []
-result_list_MPPTSTRING = []
-status_device = ""   
-code_error = 0
-msg_device = ""
-status_register = ""
-status_file = "Success"
-status = "Waiting for the record to finish"
-time_interval = ""
-result_topic = []
+gArrayListDeviceLogDBFromMQTT = []
+gArrayListDeviceLogDBFromTableDeviceList = []
+gArrayListDeviceMPPTFromMQTT = []
+gStrStatusEachOfDevice = ""   
+gIntErrorCodeOfDevice = 0
+gStrMessageOfDevice = ""
+gStrStatusOfDevice = ""
+gStrStatusLogEachDevice = "Waiting for the record to finish"
+gStrTimeIntervalLogDeviceInDB = ""
+gArrayResultSerialNumberInDB = []
 # Information Query
 QUERY_TIME_CREATE_FILE = ""
 QUERY_ALL_DEVICES = ""
 QUERY_TIME_SYNC_DATA = ""
 QUERY_SELECT_TOPIC = ""
-    
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-# MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Devices/#"
-MQTT_TOPIC_SUB = ""
 MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogDevice" 
 MQTT_TOPIC_PUB = ""
 MQTT_USERNAME = Config.MQTT_USERNAME 
@@ -137,22 +133,6 @@ def func_check_data_mybatis(data,item,object_name):
     except Exception as err:
         print('Error not find object mybatis', err)
     return 
-#----------------------------------------
-# /**
-# 	 * @description take time 
-# 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {}
-# 	 * @return datetime
-# 	 */
-def get_utc():
-    now=None
-    try:
-        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        if now:
-            return now
-    except Exception as err:
-        return None
 # ----- MQTT -----
 # /**
 # Describe process_message_result_list 
@@ -162,80 +142,77 @@ def get_utc():
 # 	 * @param { message}
 # 	 * @return result_list
 # 	 */ 
-async def process_message_result_list(message):
-    global status_device    
-    global msg_device 
-    global status_register
-    global result_list
-    global status_file
-    device_name = ""
-    device_dict = {}
+async def processGetMessageAllDeviceCreateListDeviceLogDeviceInDB(message):
+    global gStrStatusEachOfDevice    
+    global gStrMessageOfDevice 
+    global gStrStatusOfDevice
+    global gArrayListDeviceLogDBFromMQTT
+    strNameOfDevice = ""
+    arrayListDeviceLogDevice = {}
     
     try:
         current_time = get_utc()
         # create list data device from topic ALL devices 
         for items in message:
-            device_id = items["id_device"]
-            status_device = items["status_device"]
+            deviceId = items["id_device"]
+            gStrStatusEachOfDevice = items["status_device"]
             message = items["message"]
-            status_register = items["status_register"]
+            gStrStatusOfDevice = items["status_register"]
             fields = items["fields"]
-            type_device_type = items["type_device_type"]
-            device_name = items["device_name"]
-            if device_id not in device_dict:
-                device_dict[device_id] = {
-                    "id": int(device_id),
-                    "device_name":device_name,
+            strTpyeOfDevice = items["type_device_type"]
+            strNameOfDevice = items["device_name"]
+            if deviceId not in arrayListDeviceLogDevice:
+                arrayListDeviceLogDevice[deviceId] = {
+                    "id": int(deviceId),
+                    "device_name":strNameOfDevice,
                     "point_id": [],
                     "data": [],
                     "namekey":[],
                     "time": current_time,
-                    "status_device": status_device,
-                    "msg_device": msg_device,
-                    "status_register": status_register
+                    "status_device": gStrStatusEachOfDevice,
+                    "gStrMessageOfDevice": gStrMessageOfDevice,
+                    "status_register": gStrStatusOfDevice
                 }
             
             # Condition log device 
-            if type_device_type != 1:      
+            if strTpyeOfDevice != 1:      
                 for field in fields:
                     if field['config'] != 'MPPT':
-                        device_dict[device_id]["point_id"].append(str(field["id"]))
-                        data_value = str(field["value"]) if field["value"] is not None else 0.0
-                        device_dict[device_id]["data"].append(data_value)
-                        device_dict[device_id]["namekey"].append(field["point_key"])
+                        arrayListDeviceLogDevice[deviceId]["point_id"].append(str(field["id"]))
+                        dataCorrespondingfield = str(field["value"]) if field["value"] is not None else 0.0
+                        arrayListDeviceLogDevice[deviceId]["data"].append(dataCorrespondingfield)
+                        arrayListDeviceLogDevice[deviceId]["namekey"].append(field["point_key"])
         # Convert dictionary to list
-        result_list = list(device_dict.values())
-        # print("result_list",result_list)
+        gArrayListDeviceLogDBFromMQTT = list(arrayListDeviceLogDevice.values())
     except Exception as err:
         print(f"process_message_result_list : '{err}'")
-# Describe process_message_result_list_mptt 
-# 	 * @description process_message_result_list_mptt
+# Describe processGetMessageAllDeviceCreateListDeviceMPTT 
+# 	 * @description processGetMessageAllDeviceCreateListDeviceMPTT
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param { message}
 # 	 * @return result_list_MPPT
 # 	 */ 
-async def process_message_result_list_mptt(message):
-    global status_device    
-    global msg_device 
-    global status_register
-    global status_file
-    global result_list_MPPT 
+async def processGetMessageAllDeviceCreateListDeviceMPTT(message):
+    global gStrStatusEachOfDevice    
+    global gStrMessageOfDevice 
+    global gStrStatusOfDevice
+    global gArrayListDeviceMPPTFromMQTT 
 
-    device_id = 0 
-    type_device_type = 0
-    name_device_type = ""
-    mppt_dict = {}
+    deviceId = 0 
+    strTpyeOfDevice = 0
+    strNameDeviceType = ""
+    dictionaryInforEachOfDevice = {}
 
     try:
         # create list data device from topic ALL devices 
         for items in message:
-            device_id = items["id_device"]
+            deviceId = items["id_device"]
             fields = items["fields"]
-            name_device_type = items["name_device_type"]
-            type_device_type = items["type_device_type"]
+            strNameDeviceType = items["name_device_type"]
+            strTpyeOfDevice = items["type_device_type"]
             # Condition log device 
-            if type_device_type != 1 and name_device_type == "PV System Inverter":      
+            if strTpyeOfDevice != 1 and strNameDeviceType == "PV System Inverter":      
                 for field in fields:
                     if field['config'] == 'MPPT':
                         # Get data for table mppt 
@@ -246,25 +223,24 @@ async def process_message_result_list_mptt(message):
                         for item_string in MPPTpoint_key_strings:
                             MPPTpoint_key_string = item_string['point_key']
                         
-                        key_mppt = (int(device_id), MPPTpoint_key, MPPTpoint_key_string)
-                        if key_mppt in mppt_dict:
+                        key_mppt = (int(deviceId), MPPTpoint_key, MPPTpoint_key_string)
+                        if key_mppt in dictionaryInforEachOfDevice:
                             # If the object already exists, update the values
-                            mppt_dict[key_mppt]['MPPTVolt'] = MPPTVolt
-                            mppt_dict[key_mppt]['MPPTAmps'] = MPPTAmps
+                            dictionaryInforEachOfDevice[key_mppt]['MPPTVolt'] = MPPTVolt
+                            dictionaryInforEachOfDevice[key_mppt]['MPPTAmps'] = MPPTAmps
                         else:
                             # If it does not exist, add a new object to the dictionary
-                            mppt_dict[key_mppt] = {
-                                "id": int(device_id),
+                            dictionaryInforEachOfDevice[key_mppt] = {
+                                "id": int(deviceId),
                                 "point_key": MPPTpoint_key,
                                 "point_key_string": MPPTpoint_key_string,
                                 "MPPTVolt": MPPTVolt,
                                 "MPPTAmps": MPPTAmps
                             }
-                        
                         # Pass the values ​​from the dictionary into result_list_MPPT
-                        result_list_MPPT = list(mppt_dict.values())
+                        gArrayListDeviceMPPTFromMQTT = list(dictionaryInforEachOfDevice.values())
     except Exception as err:
-        print(f"process_message_result_list_mptt_list: '{err}'")
+        print(f"processGetMessageAllDeviceCreateListDeviceMPTT_list: '{err}'")
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -295,18 +271,18 @@ async def handle_messages_driver(client):
                 break
             # payload = json.loads(message.message.decode())
             payload = gzip_decompress(message.message)
-            await process_message_result_list(payload)
-            await process_message_result_list_mptt(payload)
+            await processGetMessageAllDeviceCreateListDeviceLogDeviceInDB(payload)
+            await processGetMessageAllDeviceCreateListDeviceMPTT(payload)
         except Exception as err:
             print(f"Error handle_messages_driver: '{err}'")
-# Describe sub_mqtt 
-# 	 * @description sub_mqtt
+# Describe processSudAllMessageFromMQTT 
+# 	 * @description processSudAllMessageFromMQTT
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project):
+async def processSudAllMessageFromMQTT(host, port, username, password, serial_number_project):
     topics = [serial_number_project + "/Devices/All"]
     try:
         client = mqttools.Client(
@@ -322,8 +298,8 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
             await handle_messages_driver(client)
             await client.stop()
     except Exception as err:
-        print(f"Error MQTT sub_mqtt: '{err}'")
-# Describe Insert_TableDevice_AllDevice
+        print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
+# Describe processInsertListDeviceFromMQTT
 # /**
 # 	 * @description Multi-threaded running of devices in the database
 # 	 * @author bnguyen
@@ -331,86 +307,79 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-# async def Insert_TableDevice_AllDevice():
+# async def processInsertListDeviceFromMQTT():
 #     global result_list
 #     manysql_queries = {}
 #     for item in result_list:
 #         sql_id = item["id"]
-#         result_sql_queries = await Insert_TableDevice(sql_id)
+#         result_sql_queries = await processInsertEachDeviceFromListMQTT(sql_id)
 #         if result_sql_queries:
 #             manysql_queries[sql_id] = result_sql_queries
 #     MySQL_Insert_v3(manysql_queries)
-async def Insert_TableDevice_AllDevice():
-    global result_list
+async def processInsertListDeviceFromMQTT():
+    global gArrayListDeviceLogDBFromMQTT
     tasks = []
-    for item in result_list:
-        sql_id = item["id"]
-        task = Insert_TableDevice(sql_id)
+    for item in gArrayListDeviceLogDBFromMQTT:
+        deviceId = item["id"]
+        task = processInsertEachDeviceFromListMQTT(deviceId)
         tasks.append(task)
-    
     await asyncio.gather(*tasks)
-# Describe Insert_TableDevice
+# Describe processInsertEachDeviceFromListMQTT
 # /**
 # 	 * @description create query from result_list
 # 	 * @author bnguyen
 # 	 * @since 12/3/2024
-# 	 * @param {sql_id, result_all}
+# 	 * @param {sql_id, gArrayListDeviceLogDBFromTableDeviceList}
 # 	 * @return queries 
 # 	 */
-async def Insert_TableDevice(sql_id):
-    global result_list
-    global status
-    global status_device 
-    global status_register
-    global code_error
-    sql_queries = {}
-    data = []
-    filedtable = []
-
-    DictID = [item for item in result_list if item["id"] == sql_id]
+async def processInsertEachDeviceFromListMQTT(IdDeviceFromListMQTTAll):
+    global gArrayListDeviceLogDBFromMQTT
+    global gStrStatusLogEachDevice
+    global gStrStatusEachOfDevice 
+    global gStrStatusOfDevice
+    global gIntErrorCodeOfDevice
+    dictionaryQueriesEachOfDevice = {}
+    arrayDataUsingLogDB = []
+    arrayFieldOfDevice = []
+    # Filter Information Device From List All = IdDeviceFromListMQTTAll
+    DictID = [item for item in gArrayListDeviceLogDBFromMQTT if item["id"] == IdDeviceFromListMQTTAll]
 
     if DictID:
-        data = DictID[0]["data"]
-        status_device = DictID[0]["status_device"]
-        status_register = DictID[0]["status_register"]
-        filedtable = DictID[0]["namekey"]
-        
-    if not data:  # Check data if data empty 
-        data = [None] * len(filedtable)
-
-    if status_device == "offline" :
-        code_error = 139
-    elif status_device == "online" :
-        if len(status_register) > 0 :
-            code_error = status_register[0]["ERROR_CODE"]
+        arrayDataUsingLogDB = DictID[0]["data"]
+        gStrStatusEachOfDevice = DictID[0]["status_device"]
+        gStrStatusOfDevice = DictID[0]["status_register"]
+        arrayFieldOfDevice = DictID[0]["namekey"]
+    # Check data if data empty
+    if not arrayDataUsingLogDB: 
+        arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
+    # Check status register device
+    if gStrStatusEachOfDevice == "offline" :
+        gIntErrorCodeOfDevice = 139
+    elif gStrStatusEachOfDevice == "online" :
+        if len(gStrStatusOfDevice) > 0 :
+            gIntErrorCodeOfDevice = gStrStatusOfDevice[0]["ERROR_CODE"]
         else :
-            code_error = 0
-    else :
-        pass
+            gIntErrorCodeOfDevice = 0
 
     try:
         # Write data to corresponding devices in the database
-        time_insert_dev = get_utc()
-        value_insert = (time_insert_dev, sql_id , code_error) + tuple(data)
-        
+        timeCurrent = get_utc()
+        ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll , gIntErrorCodeOfDevice) + tuple(arrayDataUsingLogDB)
         # Replace '0.0' with '' in the data tuple
-        value_insert = tuple("0.0" if x == "" else x for x in value_insert)
-        
+        ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
         # Create Query
         columns = ["time", "id_device", "error"]
-        
-        for itemp in filedtable:
+        for itemp in arrayFieldOfDevice:
             columns.append(itemp)
-        
-        table_name = f"dev_{sql_id}"
-
+        tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
         # Create a query with REPLACE INTO syntax
-        query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-        sql_queries[sql_id] = [query, value_insert]
+        queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+        dictionaryQueriesEachOfDevice[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
+        # Execute the query
+        MySQL_Insert_v3(dictionaryQueriesEachOfDevice)
     except Exception as e:
         print(f"Error during file creation is : {e}")
-    return sql_queries
-        
+    return dictionaryQueriesEachOfDevice
 # /**
 # 	 * @description 
 #       - create and write data in file  
@@ -420,40 +389,39 @@ async def Insert_TableDevice(sql_id):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def Insert_TableMPPT():
-    global result_list_MPPT
-    val_list_MPPT = []
-    val_list_STRING = []
-    id_device = ""
+async def processInsertDeviceMPTTFromListMQTT():
+    global gArrayListDeviceMPPTFromMQTT
+    arrayValueListDeviceMPTTFromMQTT = []
+    arrayValueListDeviceMPTTSttingFromMQTT = []
+    deviceId = ""
     MPPTKey = ""
     MPPTKey_string = ""
-    voltage = ""
-    current = ""
-    # print("result_list_MPPT",result_list_MPPT)
+    voltageDeviceMPTT = ""
+    currentDeviceMPTT = ""
+    queryUpdateDeviceMPPT = ""
+    queryUpdateDeviceMPPTString = ""
     try:
-        if result_list_MPPT :
-            for item in result_list_MPPT:
+        if gArrayListDeviceMPPTFromMQTT :
+            for item in gArrayListDeviceMPPTFromMQTT:
                 if 'id' in item and 'point_key' in item and 'point_key_string' in item and 'MPPTVolt' in item and 'MPPTAmps' in item:
-                    id_device = item['id']
+                    deviceId = item['id']
                     MPPTKey = item['point_key']
                     MPPTKey_string = item['point_key_string']
-                    voltage = item['MPPTVolt']
-                    current = item['MPPTAmps']
-
-                    val_list_MPPT.append((voltage, current, id_device, MPPTKey))
-                    val_list_STRING.append((current, id_device, MPPTKey_string))
-
-            query = "UPDATE device_mppt SET voltage = %s, current = %s WHERE id_device_list = %s AND namekey = %s;"
-            MySQL_Insert_v4(query, val_list_MPPT)
-            query = "UPDATE device_mppt_string SET current = %s WHERE id_device_mppt = %s AND namekey = %s;"
-            MySQL_Insert_v4(query, val_list_STRING)
-            
-            result_list_MPPT = []
-        else:
-            pass
+                    voltageDeviceMPTT = item['MPPTVolt']
+                    currentDeviceMPTT = item['MPPTAmps']
+                    # get Information about Device From MQTT
+                    arrayValueListDeviceMPTTFromMQTT.append((voltageDeviceMPTT, currentDeviceMPTT, deviceId, MPPTKey))
+                    arrayValueListDeviceMPTTSttingFromMQTT.append((currentDeviceMPTT, deviceId, MPPTKey_string))
+            # Execute query 
+            queryUpdateDeviceMPPT = "UPDATE device_mppt SET voltage = %s, current = %s WHERE id_device_list = %s AND namekey = %s;"
+            MySQL_Insert_v4(queryUpdateDeviceMPPT, arrayValueListDeviceMPTTFromMQTT)
+            queryUpdateDeviceMPPTString = "UPDATE device_mppt_string SET current = %s WHERE id_device_mppt = %s AND namekey = %s;"
+            MySQL_Insert_v4(queryUpdateDeviceMPPTString, arrayValueListDeviceMPTTSttingFromMQTT)
+            # Reset List Device MQTT 
+            gArrayListDeviceMPPTFromMQTT = []
     except Exception as e:
         print(f"Error during data insertion: {e}")
-# Describe monitoring_device_AllDevice
+# Describe processFeedbackStatusLogDeviceSentMqttAllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
 # 	 * @author bnguyen
@@ -461,20 +429,17 @@ async def Insert_TableMPPT():
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def monitoring_device_AllDevice(host, port,topic, username, password):
+async def processFeedbackStatusLogDeviceSentMqttAllDevice(host, port,serialNumber, username, password):
     global QUERY_SELECT_TOPIC 
-    global result_list
-    global result_topic
+    global gArrayListDeviceLogDBFromMQTT
+    global gArrayResultSerialNumberInDB
     
-    topic = result_topic[0]["serial_number"]
-    topic = topic + "/LogDevice"  
+    topic = serialNumber + "/LogDevice"  
     tasks = []
-    
-    for item in result_list:
+    for item in gArrayListDeviceLogDBFromMQTT:
         sql_id = item["id"]
-        task = monitoring_device(sql_id,host, port,topic, username, password)
+        task = processFeedbackStatusLogDeviceSentMqttEachDevice(sql_id,host, port,topic, username, password)
         tasks.append(task)
-    
     await asyncio.gather(*tasks)
 # Describe functions before writing code
 # /**
@@ -484,63 +449,58 @@ async def monitoring_device_AllDevice(host, port,topic, username, password):
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(sql_id,host, port,topic, username, password):
+async def processFeedbackStatusLogDeviceSentMqttEachDevice(IdDeviceGetListMQTT,host, port,topic, username, password):
     
-    global status_device 
-    global status_file
-    global result_list
-    global status 
-    global time_interval
-    global result_list
+    global gStrStatusEachOfDevice 
+    global gArrayListDeviceLogDBFromMQTT
+    global gStrStatusLogEachDevice 
+    global gStrTimeIntervalLogDeviceInDB
+    global gArrayListDeviceLogDBFromMQTT
     
-    current_time = ""
-    data = []
-    sql_id_str = ""
-    device_name = ""
+    timeCurrent = get_utc()
+    arrayDataOfDevice = []
+    strSqlID = ""
+    gStrNameOfDevice = ""
     
-    current_time = get_utc()
-    DictID = [item for item in result_list if item["id"] == sql_id]
+    DictID = [item for item in gArrayListDeviceLogDBFromMQTT if item["id"] == IdDeviceGetListMQTT]
     if DictID:
-        data = DictID[0]["data"]
-                
+        arrayDataOfDevice = DictID[0]["data"]
     try:
-        data_mqtt={
-            "id_device":sql_id,
-            "status_chanel":status,
-            "time_stamp" :current_time,
-            "time_log": time_interval ,
-            "data_log":data,
+        gJsonFeedbackStatusLogFileSentMqtt={
+            "id_device":IdDeviceGetListMQTT,
+            "status_chanel":gStrStatusLogEachDevice,
+            "time_stamp" :timeCurrent,
+            "time_log": gStrTimeIntervalLogDeviceInDB ,
+            "data_log":arrayDataOfDevice,
             }
         
         # File creation time 
-        sql_id_str = str(sql_id)
-        device_name = [item['device_name'] for item in result_list if item['id'] == sql_id][0] 
+        strSqlID = str(IdDeviceGetListMQTT)
+        gStrNameOfDevice = [item['device_name'] for item in gArrayListDeviceLogDBFromMQTT if item['id'] == IdDeviceGetListMQTT][0] 
         
         mqtt_public_paho_zip(host,
                 port,
-                topic + f"/"+sql_id_str+"|"+device_name,
+                topic + f"/"+strSqlID+"|"+gStrNameOfDevice,
                 username,
                 password,
-                data_mqtt)
+                gJsonFeedbackStatusLogFileSentMqtt)
     except Exception as err:
-        print('Error monitoring_device : ',err)
+        print('Error processFeedbackStatusLogDeviceSentMqttEachDevice : ',err)
 
 async def main():
     
     global QUERY_TIME_CREATE_FILE
     global QUERY_TIME_SYNC_DATA
     global QUERY_SELECT_TOPIC
-    
     global MQTT_BROKER
     global MQTT_PORT
     global MQTT_TOPIC_SUB
     global MQTT_USERNAME
     global MQTT_PASSWORD
     
-    global time_interval
-    global result_topic
-    topic = ""
-    result_all = []
+    global gStrTimeIntervalLogDeviceInDB
+    global gArrayResultSerialNumberInDB
+    gArrayListDeviceLogDBFromTableDeviceList = []
     
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
@@ -548,56 +508,49 @@ async def main():
         QUERY_ALL_DEVICES = result_mybatis["QUERY_ALL_DEVICES"]
         QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
         QUERY_SELECT_TOPIC = result_mybatis["QUERY_SELECT_TOPIC"]
-        
     except Exception as e:
             print('An exception occurred',e)
-    
     if not QUERY_TIME_CREATE_FILE or not QUERY_ALL_DEVICES  or not QUERY_TIME_SYNC_DATA or not QUERY_SELECT_TOPIC:
         print("Error not found data in file mybatis") 
         return -1
     #------------------------------------------------------------------------
-    time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
-    result_all = await MySQL_Select_v1(QUERY_ALL_DEVICES)
-    
-    result_topic = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
-    if result_topic != None :
-        topic = result_topic[0]["serial_number"]
-        MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
-        
-        item = time_create_file_insert_data_table_dev[0]
-        time_interval = item["time_log_interval"]
-        position = time_interval.rfind("minute")
-        number = time_interval[:position]
+    timeCycleSaveDataInTableDevice = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    gArrayListDeviceLogDBFromTableDeviceList = await MySQL_Select_v1(QUERY_ALL_DEVICES)
+    gArrayResultSerialNumberInDB = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
+    # Get Serial Number
+    if gArrayResultSerialNumberInDB != None :
+        serialNumber = gArrayResultSerialNumberInDB[0]["serial_number"]
+        MQTT_TOPIC_SUB = str(serialNumber) + "/Devices/#"
+        # Get Time Log data in table 
+        item = timeCycleSaveDataInTableDevice[0]
+        gStrTimeIntervalLogDeviceInDB = item["time_log_interval"]
+        position = gStrTimeIntervalLogDeviceInDB.rfind("minute")
+        number = gStrTimeIntervalLogDeviceInDB[:position]
         int_number = int(number)
-
-        if not result_all :
+        if not gArrayListDeviceLogDBFromTableDeviceList :
             print("None of the devices have been selected in the database")
             return -1
-        if not time_create_file_insert_data_table_dev :
+        if not timeCycleSaveDataInTableDevice :
             print("Unable to select synchronization time for data in the database.")
             return -1
-        
-        
+        # Task execute
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(Insert_TableDevice_AllDevice, 'cron', minute = f'*/{int_number}')
-        scheduler.add_job(Insert_TableMPPT, 'cron', minute = f'*/{int_number}')
-        scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
+        scheduler.add_job(processInsertListDeviceFromMQTT, 'cron', minute = f'*/{int_number}')
+        scheduler.add_job(processInsertDeviceMPTTFromListMQTT, 'cron', minute = f'*/{int_number}')
+        scheduler.add_job(processFeedbackStatusLogDeviceSentMqttAllDevice, 'cron',  second = f'*/10' , args=[MQTT_BROKER,
                                                                                 MQTT_PORT,
-                                                                                MQTT_TOPIC_PUB,
+                                                                                serialNumber,
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
         scheduler.start()
-        
         tasks = []
-        tasks.append(sub_mqtt(MQTT_BROKER,
+        tasks.append(processSudAllMessageFromMQTT(MQTT_BROKER,
                             MQTT_PORT,
                             MQTT_USERNAME,
                             MQTT_PASSWORD,
-                            topic,
+                            serialNumber,
                             ))
         await asyncio.gather(*tasks, return_exceptions=False)
-    else:
-        pass
     #-------------------------------------
     await asyncio.sleep(0.05)
 if __name__ == "__main__":

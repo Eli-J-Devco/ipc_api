@@ -23,6 +23,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from configs.config import Config
 from utils.libMySQL import *
+from utils.libTime import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
@@ -34,31 +35,21 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 arr = sys.argv
 # print(f'arr: {arr}')
 # ------------------------------------
-result_list =[]
-value_many = []
-value_dict = []
-result_all = []
-
-# Flag MQTT
-flag_mqtt = False
-
-count_mqtt = 0
+gArrayListDeviceLogFile =[]
+gArrayListValueInsertDataInTableSync = []
+gArrayListDeviceNeedLogFile = []
 countMonitor = 0
 
 # Declare Variable 
-first_call = True
-status_device = ""     
-msg_device = ""
-status_register = ""
-status_file = "Success"
-data_mqtt = ""
-sql_id_str = ""
-device_name = ""
-file_name = ""
-data_in_file = ""
-formatted_time1 = ""
-time_interval = ""
-time_create_file_insert_data_table_dev = ""
+gStrStatusEachOfDevice = ""     
+gStrStatusOfRegister = ""
+gStrStatusOfFile = "Success"
+gJsonFeedbackStatusLogFileSentMqtt = ""
+gStrNameOfFile = ""
+strDataUsingLogFile = ""
+gStrTimeCreateNameFile = ""
+gStrCycleTimeLogFile = ""
+gArrayResultCycleTimeLogFileInDB = ""
 
 # Information Query
 QUERY_TIME_SYNC_DATA=""
@@ -71,10 +62,7 @@ QUERY_SELECT_TOPIC = ""
 # Information MQTT
 MQTT_BROKER = Config.MQTT_BROKER
 MQTT_PORT = Config.MQTT_PORT
-# MQTT_TOPIC_SUB = Config.MQTT_TOPIC + "/Devices/#"
-MQTT_TOPIC_SUB = ""
-# MQTT_TOPIC_PUB = Config.MQTT_TOPIC + "/LogFile" 
-MQTT_TOPIC_PUB = ""
+MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE = ""
 MQTT_USERNAME = Config.MQTT_USERNAME 
 MQTT_PASSWORD = Config.MQTT_PASSWORD
 
@@ -129,74 +117,50 @@ def get_mybatis(file_name):
             result[key]=value[key]   
 
     return result  
-#----------------------------------------
-# /**
-# 	 * @description take time 
-# 	 * @author bnguyen
-# 	 * @since 13-12-2023
-# 	 * @param {}
-# 	 * @return datetime
-# 	 */
-def get_utc():
-    now=None
-    try:
-        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-        if now:
-            return now
-    except Exception as err:
-        return None
 #--------------------------------------------------------------------
 # /**
-# Describe process_message_result_list 
-# 	 * @description process_message_result_list
+# Describe processGetMessageAllDeviceCreateListDeviceLogFile 
+# 	 * @description processGetMessageAllDeviceCreateListDeviceLogFile
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param { message}
 # 	 * @return result_list
 # 	 */ 
-async def process_message_result_list(message):
-    global status_device    
-    global msg_device 
-    global status_register
-    global result_list
-    global status_file
-
-    device_dict = {}
-    
+async def processGetMessageAllDeviceCreateListDeviceLogFile(messageAllDevice):
+    global gStrStatusEachOfDevice    
+    global gStrStatusOfRegister
+    global gArrayListDeviceLogFile
+    global gStrStatusOfFile
+    dictionaryInforEachOfDevice = {}
     try:
-        current_time = get_utc()
+        currentTime = get_utc()
         # create list data device from topic ALL devices 
-        for items in message:
-            device_id = items["id_device"]
-            status_device = items["status_device"]
-            message = items["message"]
-            status_register = items["status_register"]
-            fields = items["fields"]
-            type_device_type = items["type_device_type"]
-            
-            if device_id not in device_dict:
-                device_dict[device_id] = {
-                    "id": int(device_id),
+        for items in messageAllDevice:
+            deviceId = items["id_device"]
+            gStrStatusEachOfDevice = items["status_device"]
+            gStrStatusOfRegister = items["status_register"]
+            listFieldsOfDevice = items["fields"]
+            typeOfDevice = items["type_device_type"]
+            if deviceId not in dictionaryInforEachOfDevice:
+                dictionaryInforEachOfDevice[deviceId] = {
+                    "id": int(deviceId),
                     "point_id": [],
                     "data": [],
-                    "time": current_time,
-                    "status_device": status_device,
-                    "msg_device": msg_device,
-                    "status_register": status_register
+                    "time": currentTime,
+                    "status_device": gStrStatusEachOfDevice,
+                    "status_register": gStrStatusOfRegister
                 }
-            
             # Condition log device 
-            if type_device_type != 1:      
-                for field in fields:
+            if typeOfDevice != 1:      
+                for field in listFieldsOfDevice:
                     if field['config'] != 'MPPT':
-                        device_dict[device_id]["point_id"].append(str(field["id"]))
-                        data_value = str(field["value"]) if field["value"] is not None else ""
-                        device_dict[device_id]["data"].append(data_value)
-        
+                        dictionaryInforEachOfDevice[deviceId]["point_id"].append(str(field["id"]))
+                        dataCorrespondingfield = str(field["value"]) if field["value"] is not None else ""
+                        dictionaryInforEachOfDevice[deviceId]["data"].append(dataCorrespondingfield)
         # Convert dictionary to list
-        result_list = list(device_dict.values())
+        gArrayListDeviceLogFile = list(dictionaryInforEachOfDevice.values())
     except Exception as err:
-        print(f"process_message_result_list : '{err}'")
+        print(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
 # Describe gzip_decompress 
 # 	 * @description gzip_decompress
 # 	 * @author bnguyen
@@ -211,13 +175,13 @@ def gzip_decompress(message):
         return json.loads(result_decompress)
     except Exception as err:
         print(f"decompress: '{err}'")
-# 	 * @description handle_messages_driver
+# 	 * @description handleMessageDriver
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {client}
 # 	 * @return all topic , all message
 # 	 */ 
-async def handle_messages_driver(client):
+async def handleMessageDriver(client):
     while True:
         try:
             message = await client.messages.get()
@@ -226,17 +190,17 @@ async def handle_messages_driver(client):
                 break
             # payload = json.loads(message.message.decode())
             payload = gzip_decompress(message.message)
-            await process_message_result_list(payload)
+            await processGetMessageAllDeviceCreateListDeviceLogFile(payload)
         except Exception as err:
-            print(f"Error handle_messages_driver: '{err}'")
-# Describe sub_mqtt 
-# 	 * @description sub_mqtt
+            print(f"Error handleMessageDriver: '{err}'")
+# Describe processSudAllMessageFromMQTT 
+# 	 * @description processSudAllMessageFromMQTT
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
 # 	 * @param {}
 # 	 * @return all topic , all message
 # 	 */ 
-async def sub_mqtt(host, port, username, password, serial_number_project):
+async def processSudAllMessageFromMQTT(host, port, username, password, serial_number_project):
     topics = [serial_number_project + "/Devices/All"]
     try:
         client = mqttools.Client(
@@ -249,10 +213,10 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
         )
         while True:
             await client.start()
-            await handle_messages_driver(client)
+            await handleMessageDriver(client)
             await client.stop()
     except Exception as err:
-        print(f"Error MQTT sub_mqtt: '{err}'")
+        print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 #--------------------------------------------------------------------
 # /**
 # 	 * @description 
@@ -263,109 +227,101 @@ async def sub_mqtt(host, port, username, password, serial_number_project):
 # 	 * @param {host, port, topic, username, password}
 # 	 * @return result_list 
 # 	 */ 
-async def create_filelog(base_path,id_device,head_file):
+async def processCreateFileCycle(base_path,arrayIdChanel,head_file):
     # Query Global
     global QUERY_TIME_SYNC_DATA
     global QUERY_SELECT_COUNT_POINT_LIST
     global QUERY_INSERT_SYNC_DATA
     
     # Variable Global
-    global status_device    
-    global msg_device 
-    global status_register
-    global result_list
-    global status_file
-    global type_file
-    global value_many
-    global flag_mqtt
-    global data_in_file
-    global file_name
-    global formatted_time1
+    global gStrStatusEachOfDevice    
+    global gStrStatusOfRegister
+    global gArrayListDeviceLogFile
+    global gStrStatusOfFile
+    global gArrayListValueInsertDataInTableSync
+    global strDataUsingLogFile
+    global gStrNameOfFile
+    global gStrTimeCreateNameFile
     global countMonitor 
     
     # Get information from SQL
-    id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    intIdChanel = arrayIdChanel[1]
+    gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(intIdChanel,))
     
     # Take time to create file 
-    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
-    current_time = get_utc()
-    current_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-    year,month, day = current_datetime.year , current_datetime.month,current_datetime.day
+    informationTableUploadChannel = MySQL_Select(QUERY_TIME_SYNC_DATA,(intIdChanel,))
+    currentTime = get_utc()
+    currentDateTime = datetime.datetime.strptime(currentTime, "%Y-%m-%d %H:%M:%S")
+    year,month, day = currentDateTime.year , currentDateTime.month,currentDateTime.day
     
     # Declare Variable
-    time_online = current_time
-    data_insert =""
-    data_to_write =""
-    #-----------------------------------------------------
+    timeMessageAll = currentTime
+    valueInsertTable =""
+    dataOfDevice =""
+    typeOfFile = ""
+    #----------------------------------------------------------------------------
         
-    for item in time_sync_data:
-        type_file = item["type_protocol"]
+    for item in informationTableUploadChannel:
+        typeOfFile = item["type_protocol"]
         
-    for item in result_all:
-        sql_id = item["id"]
-        # File creation time 
-        modbus_device = [item['rtu_bus_address'] for item in result_all if item['id'] == sql_id][0]
-        array_count_point = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(sql_id,))
-        count = array_count_point[0]['COUNT(*)']
-        DictID = [item for item in result_list if item["id"] == sql_id]
-        
-        print("result_list",result_list)
-        
-        if DictID:
-            data = DictID[0]["data"]
-            data_to_write = data
-            time_online = DictID[0]["time"]
-            
-        date_folder_path = os.path.join(base_path, f"{id_device_fr_sys}\\{type_file}\\{sql_id}\\{year}\\{month}\\{day}")
+    for item in gArrayListDeviceNeedLogFile:
+        idDevice = item["id"]
+        # Get information create file in DB 
+        modbus_device = [item['rtu_bus_address'] for item in gArrayListDeviceNeedLogFile if item['id'] == idDevice][0]
+        arrayNumberPointList = MySQL_Select(QUERY_SELECT_COUNT_POINT_LIST,(idDevice,))
+        NumberPointList = arrayNumberPointList[0]['COUNT(*)']
+        dictInformationFolowIDdevice = [item for item in gArrayListDeviceLogFile if item["id"] == idDevice]
+        # get information about device folow id device
+        if dictInformationFolowIDdevice:
+            data = dictInformationFolowIDdevice[0]["data"]
+            dataOfDevice = data
+            timeMessageAll = dictInformationFolowIDdevice[0]["time"]
+        # Create file create path
+        fileCreationPath = os.path.join(base_path, f"{intIdChanel}\\{typeOfFile}\\{idDevice}\\{year}\\{month}\\{day}")
         try:
-            os.makedirs(date_folder_path, exist_ok=True)
+            #Create file path 
+            os.makedirs(fileCreationPath, exist_ok=True)
             time_file = get_utc()
-            time_file_datetime = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S")
-            formatted_time1 = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
-            file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.log'
-            file_path = os.path.join(date_folder_path, file_name)
-            source_file = date_folder_path + "/" + file_name
-        
-            if not data_to_write:
-                data_in_file = ["" for i in range(count)]
+            time_file_datetime = datetime.datetime.strptime(currentTime, "%Y-%m-%d %H:%M:%S")
+            gStrTimeCreateNameFile = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
+            gStrNameOfFile = f'{head_file}-{idDevice:03d}.{gStrTimeCreateNameFile}.log'
+            file_path = os.path.join(fileCreationPath, gStrNameOfFile)
+            source_file = fileCreationPath + "/" + gStrNameOfFile
+            # Create data in file 
+            if not dataOfDevice:
+                strDataUsingLogFile = ["" for i in range(NumberPointList)]
             else:
-                data_in_file = [str(val) for val in data_to_write]
-                
+                strDataUsingLogFile = [str(val) for val in dataOfDevice]
+            # write data in file  
             with open(file_path, 'w') as file:
                 formatted_time2 = "'" + time_file + "'"
-                file.write(f'{formatted_time2},0,0,0,{",".join(data_in_file)}')
+                file.write(f'{formatted_time2},0,0,0,{",".join(strDataUsingLogFile)}')
                 if countMonitor < 2 :
                     countMonitor += 1 
-                else :
-                    pass
-                # code write data in table sync data ------------------------------------------------------------------
-                time_insert = get_utc()
-                data_insert = (time_insert, sql_id, modbus_device, date_folder_path, source_file, file_name, time_insert,f'{formatted_time2},0,0,0,{",".join(data_in_file)}', id_device_fr_sys)
-                
-                for index, item in enumerate(value_many):
-                    if item[1] == sql_id:
+                # create data in DB ------------------------------------------------------------------
+                realTime = get_utc()
+                valueInsertTable = (realTime, idDevice, modbus_device, fileCreationPath, source_file, gStrNameOfFile, realTime,f'{formatted_time2},0,0,0,{",".join(strDataUsingLogFile)}', intIdChanel)
+                for index, item in enumerate(gArrayListValueInsertDataInTableSync):
+                    if item[1] == idDevice:
                         # Update the SQL query
-                        value_many[index] = data_insert
+                        gArrayListValueInsertDataInTableSync[index] = valueInsertTable
                         break
                 else:
                     # Add a new entry to the list
-                    value_many.append(data_insert)
-                    
+                    gArrayListValueInsertDataInTableSync.append(valueInsertTable)
                 # code pud data MQTT ----------------------------------------------------------------- 
-                status_file = "Success"
-                ts_timestamp = datetime.datetime.strptime(current_time, "%Y-%m-%d %H:%M:%S").timestamp()
-                ts_online = datetime.datetime.strptime(time_online, "%Y-%m-%d %H:%M:%S").timestamp()
-                if ts_timestamp - ts_online < 10 :
-                    status_device ="NEW"
+                gStrStatusOfFile = "Success"
+                currentTimeConvert = datetime.datetime.strptime(currentTime, "%Y-%m-%d %H:%M:%S").timestamp()
+                timeMessageAllConvert = datetime.datetime.strptime(timeMessageAll, "%Y-%m-%d %H:%M:%S").timestamp()
+                if currentTimeConvert - timeMessageAllConvert < 10 :
+                    gStrStatusEachOfDevice ="NEW"
                 else :
-                    status_device ="OLD"
-                    pass
+                    gStrStatusEachOfDevice ="OLD"
                 #----------------------------------------------------------------- 
         except Exception as e:
-            status_file = "Fault"
+            gStrStatusOfFile = "Fault"
             print(f"Error during file creation is : {e}")
-# Describe monitoring_device_AllDevice
+# Describe processFeedbackStatusLogFileSentMqttAllDevice
 # /**
 # 	 * @description Multi-threaded running of devices in the database
 # 	 * @author bnguyen
@@ -373,26 +329,17 @@ async def create_filelog(base_path,id_device,head_file):
 # 	 * @param {}
 # 	 * @return 
 # 	 */
-async def monitoring_device_AllDevice(id_device,head_file,host, port,topic, username, password):
+async def processFeedbackStatusLogFileSentMqttAllDevice(arrayIdChanel,serialNumber,head_file,host, port, username, password):
     global QUERY_ALL_DEVICES_SYNCDATA
-    global QUERY_SELECT_TOPIC 
-    result_topic = ""
-    
-    id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
-    
-    result_topic = await MySQL_Select_v1 (QUERY_SELECT_TOPIC)
-    topic = result_topic[0]["serial_number"]
-    topic = topic + "/LogFile" 
-    
+    intIdChanel = arrayIdChanel[1]
+    gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (intIdChanel,))
+    topic = serialNumber + "/LogFile" 
     tasks = []
-    for item in result_all:
+    for item in gArrayListDeviceNeedLogFile:
         sql_id = item["id"]
-        task = monitoring_device(sql_id,id_device,head_file,host, port,topic, username, password)
+        task = processFeedbackStatusLogFileSentMqttEachDevice(sql_id,arrayIdChanel,head_file,host, port,topic, username, password)
         tasks.append(task)
-    
     await asyncio.gather(*tasks)
-    
 # Describe functions before writing code
 # /**
 # 	 * @description MQTT public status of device
@@ -401,80 +348,74 @@ async def monitoring_device_AllDevice(id_device,head_file,host, port,topic, user
 # 	 * @param {host, port,topic, username, password, device_name}
 # 	 * @return data ()
 # 	 */
-async def monitoring_device(sql_id,id_device,head_file,host, port,topic, username, password):
-    global flag_mqtt
-    global data_mqtt
-    global count_mqtt
-    global status_device 
-    global status_file
-    global data_in_file
-    global file_name
-    global result_list
-    global formatted_time1
-    global time_interval
+async def processFeedbackStatusLogFileSentMqttEachDevice(IdDeviceGetListMQTT,arrayIdChanel,head_file,host, port,topic, username, password):
+    global gJsonFeedbackStatusLogFileSentMqtt
+    global gStrStatusEachOfDevice 
+    global gStrStatusOfFile
+    global strDataUsingLogFile
+    global gStrNameOfFile
+    global gArrayListDeviceLogFile
+    global gStrTimeCreateNameFile
+    global gStrCycleTimeLogFile
     global countMonitor
     
-    sql_id_str = ""
-    device_name = ""
-    
-    current_time = get_utc()
-    data = []
-    time_online = current_time
+    strSqlID = ""
+    strNameDevice = ""
+    arrayDataOfDevice = []
+    currentTime = get_utc()
+    timeGetMessageAllDevice = get_utc()
 
-    id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
+    intIdChanel = arrayIdChanel[1]
+    gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (intIdChanel,))
+    informationTableUploadChannel = MySQL_Select(QUERY_TIME_SYNC_DATA,(intIdChanel,))
     
-    id_device_fr_sys = id_device[1]
-    time_sync_data = MySQL_Select(QUERY_TIME_SYNC_DATA,(id_device_fr_sys,))
+    for item in informationTableUploadChannel:
+        typeOfFile = item["type_protocol"]
     
-    for item in time_sync_data:
-        type_file = item["type_protocol"]
-    
-    if sql_id :
-        file_name = f'{head_file}-{sql_id:03d}.{formatted_time1}.txt'
-        DictID = [item for item in result_list if item["id"] == sql_id]
+    if IdDeviceGetListMQTT :
+        gStrNameOfFile = f'{head_file}-{IdDeviceGetListMQTT:03d}.{gStrTimeCreateNameFile}.txt'
+        DictID = [item for item in gArrayListDeviceLogFile if item["id"] == IdDeviceGetListMQTT]
         if DictID:
-            time_online = DictID[0]["time"]
-            data = DictID[0]["data"]  
+            timeGetMessageAllDevice = DictID[0]["time"]
+            arrayDataOfDevice = DictID[0]["data"]  
         try: 
-            if formatted_time1 :
-                data_mqtt={
-                    "id_device":sql_id,
-                    "status_data":status_device,
-                    "status_chanel":status_file,
-                    "file_name":file_name,
-                    "time_stamp" :current_time,
-                    "time_online" :time_online,
-                    "time_log": time_interval,
-                    "data_log":data,
+            if gStrTimeCreateNameFile :
+                gJsonFeedbackStatusLogFileSentMqtt={
+                    "id_device":IdDeviceGetListMQTT,
+                    "status_data":gStrStatusEachOfDevice,
+                    "status_chanel":gStrStatusOfFile,
+                    "file_name":gStrNameOfFile,
+                    "time_stamp" :currentTime,
+                    "time_online" :timeGetMessageAllDevice,
+                    "time_log": gStrCycleTimeLogFile,
+                    "data_log":arrayDataOfDevice,
                     }
             else :
-                status_file = "fault"
-                data_mqtt={
-                    "id_device":sql_id,
+                gStrStatusOfFile = "fault"
+                gJsonFeedbackStatusLogFileSentMqtt={
+                    "id_device":IdDeviceGetListMQTT,
                     "status_data":"old",
                     "status_chanel":"no_files_yet",
                     "file_name":"No files yet",
-                    "time_stamp" :current_time,
-                    "time_online" :time_online,
-                    "time_log": time_interval,
+                    "time_stamp" :currentTime,
+                    "time_online" :timeGetMessageAllDevice,
+                    "time_log": gStrCycleTimeLogFile,
                     "data_log":"No files yet",
                     }
 
             # File creation time 
-            sql_id_str = str(sql_id)
-            device_name = [item['name'] for item in result_all if item['id'] == sql_id][0] 
+            strSqlID = str(IdDeviceGetListMQTT)
+            strNameDevice = [item['name'] for item in gArrayListDeviceNeedLogFile if item['id'] == IdDeviceGetListMQTT][0] 
             mqtt_public_paho_zip(host,
                     port,
-                    topic + f"/Channel{id_device_fr_sys}|{type_file}/"+sql_id_str+"|"+device_name,
+                    topic + f"/Channel{intIdChanel}|{typeOfFile}/"+strSqlID+"|"+strNameDevice,
                     username,
                     password,
-                    data_mqtt)
+                    gJsonFeedbackStatusLogFileSentMqtt)
         except Exception as err:
-            print('Error monitoring_device : ',err)
+            print('Error processFeedbackStatusLogFileSentMqttEachDevice : ',err)
     else:
         pass
-        
 #--------------------------------------------------------------------
 # /**
 # 	 * @description Insert data to Database
@@ -483,17 +424,17 @@ async def monitoring_device(sql_id,id_device,head_file,host, port,topic, usernam
 # 	 * @param {}
 # 	 * @return  
 # 	 */ 
-async def insert_sync(id_device):
+async def processInsertDataInTableSyncData(arrayIdChanel):
     # Variable Global
     global QUERY_INSERT_SYNC_DATA_EXECUTEMANY
-    global value_many
-    global status_file 
-    id_device_fr_sys = id_device[1]
-    result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    global gArrayListValueInsertDataInTableSync
+    global gStrStatusOfFile 
+    intIdChanel = arrayIdChanel[1]
+    gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(intIdChanel,))
     # File creation time 
     
-    if len(result_all) == len(value_many):
-        MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,value_many)
+    if len(gArrayListDeviceNeedLogFile) == len(gArrayListValueInsertDataInTableSync):
+        MySQL_Insert_v4(QUERY_INSERT_SYNC_DATA_EXECUTEMANY,gArrayListValueInsertDataInTableSync)
     else :
         pass
 # /**
@@ -503,14 +444,14 @@ async def insert_sync(id_device):
 # 	 * @param {}
 # 	 * @return  
 # 	 */ 
-async def delete_data_when_sync():
+async def processDeleteDataInTableSyncDataFolowCycle():
     try:
         # Delete rows from project_setup table where synced = 1
         query = "DELETE FROM sync_data WHERE synced = 1;"
-        result_delete = MySQL_Delete(query)
-        print(f"Deleted {result_delete.rowcount} rows from sync_data table")
+        resultDeleteData = MySQL_Delete(query)
+        print(f"Deleted {resultDeleteData.rowcount} rows from sync_data table")
     except Exception as err:
-        print(f"Error MQTT subscribe delete_data_when_sync: '{err}'")
+        print(f"Error MQTT subscribe processDeleteDataInTableSyncDataFolowCycle: '{err}'")
         
 async def main():
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
@@ -525,16 +466,16 @@ async def main():
     
     global MQTT_BROKER
     global MQTT_PORT
-    global MQTT_TOPIC_SUB
+    global MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE
     global MQTT_USERNAME
     global MQTT_PASSWORD
 
     # Variable global
-    global time_interval
+    global gStrCycleTimeLogFile
     
-    topic = ""
-    result_all = []
-    result_topic = []
+    strSerialNumber = ""
+    gArrayListDeviceNeedLogFile = []
+    arrayResultSerialNumber = []
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
         QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
@@ -551,52 +492,49 @@ async def main():
         print("Error not found data in file mybatis")
         return -1
     if len(arr) > 1 :
-        result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
-        time_create_file_insert_data_table_dev = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
-    else:
-        pass
-    
-    result_topic = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
-    if result_topic != None :
-        topic = result_topic[0]["serial_number"]
-        MQTT_TOPIC_SUB = str(topic) + "/Devices/#"
+        gArrayListDeviceNeedLogFile = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(arr[1],))
+        gArrayResultCycleTimeLogFileInDB = await MySQL_Select_v1(QUERY_TIME_CREATE_FILE)
+    # Get serial number from DB
+    arrayResultSerialNumber = await MySQL_Select_v1(QUERY_SELECT_TOPIC)
+    if arrayResultSerialNumber != None :
+        strSerialNumber = arrayResultSerialNumber[0]["serial_number"]
+        MQTT_TOPIC_SUB_MESSAGE_ALL_DEVICE = str(strSerialNumber) + "/Devices/#"
         
-        if not result_all :
+        if not gArrayListDeviceNeedLogFile :
             print("None of the devices have been selected in the database (check table upload_channel_device_map , divice_list)")
             return -1
-        if not time_create_file_insert_data_table_dev :
+        if not gArrayResultCycleTimeLogFileInDB :
             print("Unable to select synchronization time for data in the database.")
             return -1
-        
-        item = time_create_file_insert_data_table_dev[0]
-        time_interval = item["time_log_interval"]
-        position = time_interval.rfind("minute")
-        number = time_interval[:position]
+        #  Get time log file from DB
+        item = gArrayResultCycleTimeLogFileInDB[0]
+        gStrCycleTimeLogFile = item["time_log_interval"]
+        position = gStrCycleTimeLogFile.rfind("minute")
+        number = gStrCycleTimeLogFile[:position]
         int_number = int(number)
-
         #-------------------------------------------------------
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(create_filelog, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
+        scheduler.add_job(processCreateFileCycle, 'cron',  minute = f'*/{int_number}', args=[FOLDER_PATH,
                                                                                     arr,
                                                                                     HEAD_FILE_LOG,
                                                                                     ])
-        scheduler.add_job(monitoring_device_AllDevice, 'cron',  second = f'*/13' , args=[arr,
+        scheduler.add_job(processFeedbackStatusLogFileSentMqttAllDevice, 'cron',  second = f'*/13' , args=[arr,
+                                                                                strSerialNumber,
                                                                                 HEAD_FILE_LOG,
                                                                                 MQTT_BROKER,
                                                                                 MQTT_PORT,
-                                                                                MQTT_TOPIC_PUB,
                                                                                 MQTT_USERNAME,
                                                                                 MQTT_PASSWORD])
-        scheduler.add_job(insert_sync, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
-        scheduler.add_job(delete_data_when_sync, 'interval', hours=1, args=[])
+        scheduler.add_job(processInsertDataInTableSyncData, 'cron',  minute = f'*/{int_number}', second=1, args=[arr])
+        scheduler.add_job(processDeleteDataInTableSyncDataFolowCycle, 'interval', hours=1, args=[])
         scheduler.start()
         #-------------------------------------------------------
         tasks = []
-        tasks.append(asyncio.create_task(sub_mqtt(MQTT_BROKER,
+        tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(MQTT_BROKER,
                                                 MQTT_PORT,
                                                 MQTT_USERNAME,
                                                 MQTT_PASSWORD,
-                                                topic
+                                                strSerialNumber
                                                 )))
         
         # Move the gather outside the loop to wait for all tasks to complete
