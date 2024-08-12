@@ -88,26 +88,21 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
         gListMovingAverageConsumption.append(ValueConsump)
     else:
         gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
-
+    print("gListMovingAverageConsumption",gListMovingAverageConsumption)
     if ValueConsump > ValueTotalPowerInInvInManMode:
         intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
     else:
         intAvgValueComsumtion = 0
-
     if not hasattr(calculate_setpoint, 'last_setpoint'):
         calculate_setpoint.last_setpoint = intAvgValueComsumtion
-
     new_setpoint = intAvgValueComsumtion
     setpointCalculatorPowerForEachInv = max(
         calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
         min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
     )
     calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
-
+    ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
+    
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
-        ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
-        print("ConsumptionAfterSudOfset",ConsumptionAfterSudOfset)
-        print("ValueConsump",ValueConsump)
-        print("ValueOffetConsump",ValueOffetConsump)
     return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset
