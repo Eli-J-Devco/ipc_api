@@ -687,7 +687,6 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
     topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
     
     global gArrayMessageAllDevice
-    global gBitManWrite
     
     topics = [
             StringSerialNumerInTableProjectSetup + topic1,
