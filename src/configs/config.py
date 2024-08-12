@@ -24,9 +24,6 @@ from async_db.config import MySqlConfigFactory, OrmProvider
 # from pydantic import BaseModel
 # from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
-
-
-
 # print(f'{VERSION = }-202402')
 
 # env_file = find_dotenv(f'.env.{os.getenv("ENV", "development")}')
