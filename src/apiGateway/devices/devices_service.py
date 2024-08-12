@@ -19,6 +19,8 @@ from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
 # from database.db import get_db
 from database.sql.device import all_query
+# from .devices_entity import Devices as DevicesEntity
+from entity.devices.devices_entity import Devices as DevicesEntity
 from utils.mqttManager import (mqtt_public_common, mqtt_public_paho,
                                mqtt_public_paho_zip, mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,
@@ -26,8 +28,6 @@ from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               delete_program_pm2_many, find_program_pm2, path,
                               restart_pm2_change_template, restart_program_pm2,
                               restart_program_pm2_many)
-
-from .devices_entity import Devices as DevicesEntity
 
 
 class DevicesService:
