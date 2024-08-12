@@ -104,7 +104,7 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
 
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
-        ConsumptionAfterSudOfset = ValueConsump * ValueOffetConsump / 100
+        ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
         print("ValueConsump",ValueConsump)
         print("ValueOffetConsump",ValueOffetConsump)
         print("ConsumptionAfterSudOfset",ConsumptionAfterSudOfset)
