@@ -552,30 +552,24 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
-    ValueThresholdTemp = 0
-    ValueOffsetZeroTemp = 0
-    ValuePowerLimitTemp = 0
-    ValueOffsetPowerLimitTemp = 0
+    # ValueThresholdTemp = 0
+    # ValueOffsetZeroTemp = 0
+    # ValuePowerLimitTemp = 0
+    # ValueOffsetPowerLimitTemp = 0
     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
-                ValueOffsetZeroTemp,ValueThresholdTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
+                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
-                ValueOffsetPowerLimitTemp,ValuePowerLimitTemp,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
                 intComment = 400 
-                MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (gIntValueOffsetZeroExport, gIntValueThresholdZeroExport))
-                MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (gIntValuePowerLimit, gIntValueOffsetPowerLimit))
             else:
                 intComment = 200 
-                gIntValueOffsetZeroExport = ValueOffsetZeroTemp
-                gIntValueThresholdZeroExport = ValueThresholdTemp
-                gIntValueOffsetPowerLimit = ValueOffsetPowerLimitTemp
-                gIntValuePowerLimit = ValuePowerLimitTemp
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,
