@@ -188,7 +188,7 @@ def getDiskIoInformation(disk_io_counters_prev):
     disk_io_counters = psutil.disk_io_counters()
     current_time = datetime.datetime.now()
     time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()
-    if time_diff < 1:
+    if time_diff < 2:
         return None
     else:
         speed_read = convertBytesToReadable((disk_io_counters.read_bytes - disk_io_counters_prev["ReadBytes"]) / time_diff, unit="KB")
