@@ -32,8 +32,6 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 
 async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,Setpoint):
     if ModeSystemp != 0 :
-        print("Setpoint",Setpoint)
-        print("ValueProductionSystemp",ValueProductionSystemp)
         if Setpoint > 0 and ValueProductionSystemp > 0:
             ValueSystemPerformance = (ValueProductionSystemp / Setpoint) * 100
         elif Setpoint <= 0 and ValueProductionSystemp > 0:
@@ -88,7 +86,6 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
         gListMovingAverageConsumption.append(ValueConsump)
     else:
         gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
-    print("gListMovingAverageConsumption",gListMovingAverageConsumption)
     if ValueConsump > ValueTotalPowerInInvInManMode:
         intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
     else:
@@ -102,7 +99,6 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
     )
     calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
     ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
-    
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
     return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset

@@ -418,11 +418,11 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
                 if result_type_meter:
                     IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
                     IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
-    # Update the global values ​​of total production and total consumption
-    gIntValueProductionSystemp = IntTotalValueProduction
-    gIntValueConsumptionSystemp = IntTotalValueConsumtion
+        # Update the global values ​​of total production and total consumption
+        gIntValueProductionSystemp = IntTotalValueProduction
+        gIntValueConsumptionSystemp = IntTotalValueConsumtion
     try:
-        ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
+        ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
         mqtt_public_paho_zip(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, mqtt_username, mqtt_password, ValueProductionAndConsumtion)
         push_data_to_mqtt(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
@@ -506,10 +506,8 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
-        print("intPracticalConsumptionValue",intPracticalConsumptionValue)
         gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,intPracticalConsumptionValue)
-        print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
     if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
@@ -554,20 +552,30 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
+    ValueThresholdTemp = 0
+    ValueOffsetZeroTemp = 0
+    ValuePowerLimitTemp = 0
+    ValueOffsetPowerLimitTemp = 0
     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
-                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
+                ValueOffsetZeroTemp,ValueThresholdTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
-                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+                ValueOffsetPowerLimitTemp,ValuePowerLimitTemp,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv):
                 intComment = 400 
+                MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffsetZeroTemp, ValueThresholdTemp))
+                MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (gIntValuePowerLimit, gIntValueOffsetPowerLimit))
             else:
                 intComment = 200 
+                gIntValueOffsetZeroExport = ValueOffsetZeroTemp
+                gIntValueThresholdZeroExport = ValueThresholdTemp
+                gIntValueOffsetPowerLimit = ValueOffsetPowerLimitTemp
+                gIntValuePowerLimit = ValuePowerLimitTemp
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,
@@ -621,9 +629,6 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
                     mqtt_username,
                     mqtt_password,
                     objectSend)
-        else:
-            pass
-            
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateModeDetail: '{err}'")
 # Describe initializeValueControlAuto 

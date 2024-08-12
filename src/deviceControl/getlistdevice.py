@@ -170,7 +170,7 @@ def calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntI
             last_update_time_comsumption = current_time
     return IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption
 
-def messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
+def messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
     timeStampGetValueProductionAndConsumtion = get_utc()
     gFloatValueMaxPredictProductionInstant_temp = 0
 
