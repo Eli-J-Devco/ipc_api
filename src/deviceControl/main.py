@@ -347,7 +347,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
                     'slope': slope,
                 })
     # Caculator Power Device In Auto Mode
-    gIntValueTotalPowerInInvInAutoMode = sum(device['p_max'] for device in ArayyDeviceList)
+    gIntValueTotalPowerInInvInAutoMode = sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None)
     return ArayyDeviceList
 ############################################################################ List Device Systemp ############################################################################
 # Describe getListALLInvInProject 
@@ -369,6 +369,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
     gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
+    print("gIntValueTotalPowerInInvInManMode",gIntValueTotalPowerInInvInManMode)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
@@ -552,10 +553,6 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
-    # ValueThresholdTemp = 0
-    # ValueOffsetZeroTemp = 0
-    # ValuePowerLimitTemp = 0
-    # ValueOffsetPowerLimitTemp = 0
     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
     try:
