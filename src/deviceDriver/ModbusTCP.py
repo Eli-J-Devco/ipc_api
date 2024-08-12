@@ -16,15 +16,22 @@ import mqttools
 import psutil
 from pymodbus.client.sync import ModbusTcpClient
 from pymodbus.constants import Endian
-from pymodbus.exceptions import ConnectionException, ModbusException
+from pymodbus.exceptions import (ConnectionException, ModbusException,
+                                 ModbusIOException)
 from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
 
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
+from sqlalchemy import select, update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
+
 from configs.config import Config
+# from configs.config import orm_provider as db_config
 from database.sql.device import all_query as device_query
+from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
+# from entity.devices.devices_entity import Devices as DevicesEntity
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
@@ -209,37 +216,6 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
     result_rb=None
     while True:
         try:
-            
-            # match FUNCTION:
-            #     case 0:# not used           
-            #         return []
-            #     case 1:# Read Coils
-            #         ADDR = ADDRs                        
-            #         result_rb = client.read_coils(
-            #                         ADDR, COUNT, unit=slave_ID)
-
-                        
-            #         return result_rb
-
-            #     case 2:# Read Discrete Inputs      
-            #         ADDR = ADDRs
-            #         result_rb = client.read_discrete_inputs(
-            #                             ADDR, COUNT, unit=slave_ID)
-            #         return result_rb
-                
-            #     case 3:# Read Holding Registers
-            #         ADDR = ADDRs
-            #         result_rb = client.read_holding_registers(
-            #                             ADDR, COUNT, unit=slave_ID)
-            #         return result_rb
-
-            #     case 4:# Read Input Registers
-            #         ADDR = ADDRs
-            #         result_rb = client.read_input_registers(
-            #                             ADDR, COUNT, unit=slave_ID)
-            #         return result_rb
-            #     case _:
-            #         return []
             match FUNCTION:
                 case 0:# not used           
                     result_rb = None
@@ -248,10 +224,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                     ADDR = ADDRs                        
                     result_rb = client.read_coils(
                                     ADDR, COUNT, unit=slave_ID)
-
-                        
                     # return result_rb
-
                 case 2:# Read Discrete Inputs
                     #  1x 
                     ADDR = ADDRs #-10000
@@ -274,16 +247,15 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                     # return result_rb
                 case _:
                     result_rb = None
-            # 
-            # print(f'result_rb: {result_rb}')
-            if result_rb==None:
+            #
+            if isinstance(result_rb, ModbusIOException):
                 return {
-                    "code":None,
+                    "code":404,
                     "data":[],
-                    "exception_code":""
+                    "exception_code":result_rb,
+                    "address":ADDR
                 }
             elif hasattr(result_rb, "function_code"): 
-                
                 if hasattr(result_rb, "exception_code"):
                     desc=""
                     match result_rb.exception_code:
@@ -318,7 +290,7 @@ def select_function(client, FUNCTION, ADDRs, COUNT, slave_ID):
                         "exception_code":"",
                         "address":ADDR
                     }
-            
+        
         except Exception as err:
             print(f'Error select_function {err}')
             return {
@@ -1237,17 +1209,21 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
-                            # print(f'result_rb: {result_rb}')
+                            print(f'result_rb: {result_rb}')
                             match result_rb["code"]:
                                 case None:
                                     status_device="offline"
                                 case 404:
                                     status_device="offline"
+                                    status_rb.append({"ADDR":ADDR,
+                                                    "ERROR_CODE":404,
+                                                    "Timestamp": getUTC(),
+                                                    })
+                                    break
                                 case 131:
                                     exception_code=result_rb["exception_code"]
                                     if exception_code=="GatewayNoResponse":
-                                        status_device="offline"
-                                        
+                                        status_device="offline"                                     
                                         status_rb.append({"ADDR":ADDR,
                                                         "ERROR_CODE":139,
                                                         "Timestamp": getUTC(),
@@ -1258,10 +1234,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                         "ERROR_CODE":exception_code,
                                                         "Timestamp": getUTC(),
                                                         })
-                                    # print(f'ERROR CODE: {result_rb["exception_code"]}')
-                                    print(f"Error reading from {slave_ip}: {result_rb}")
-                                    # status_register_block=status_rb
-                                    
+                                    print(f"Error reading from {slave_ip}: {result_rb}")                                  
                                 case 100:
                                     status_device="online"
                                     INC = ADDR-1
@@ -1269,30 +1242,13 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                         INC = INC+1
                                         Data.append({"MRA": INC, "Value": itemR,"func":FUNCTION })
                         new_Data = [x for i, x in enumerate(Data) if x['MRA'] not in {y['MRA'] for y in Data[:i]}]
-                        # 
-                        # for item_rb in status_rb:
-                        #     for item_rbs in status_register_block:
-                        #         if status_register_block:
-                        #             if 'ERROR_CODE' in status_register_block[0].keys():
-                        #                 error_code=status_register_block[0]["ERROR_CODE"]
-                        #                 if error_code==139:
-                        #                     status_register_block[0]={"ADDR":ADDR,
-                        #                                     "ERROR_CODE":exception_code,
-                        #                                     "Timestamp": getUTC(),
-                        #                         }
-                                            
-                                        
-                        # 
                         point_list = []
                         for itemP in results_Plist:
                             result= convert_register_to_point_list(itemP,new_Data)
                             if result:
                                 point_list.append(result)
-                            else:
-                                pass
                         #    
                         point_list_device=point_list
-                        
                         # 
                         await asyncio.sleep(5)
                         # 
@@ -1301,10 +1257,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                     status_device="offline"
                     print(f"Modbus error from {slave_ip}: {e}")
                     msg_device=f"{slave_ip}: {e}"
-                    point_list_error=[]
-                    # if point_list_device:
-                    #     print(point_list_device[0])
-                    
+                    point_list_error=[]                  
                     if point_list_device:
                         for item in point_list_device:
                             point_list_error.append(point_object(
@@ -1335,7 +1288,6 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                                                 slope=item['slope'],
                                                 ))
                     else:
-                        
                         for item in results_Plist:
                             point_list_error.append(
                                 point_object(
@@ -2178,7 +2130,10 @@ async def sub_mqtt(host, port, username, password, serial_number_project, topic1
 # 	 */ 
 async def handle_messages_device(client,serial_number_project, host, port, username, password):
     try:
+        device_service_init=device_service.DeviceService()
         while True:
+            global rated_power,rated_power_custom,min_watt_in_percent
+            global maximum_DC_input_current,rated_DC_input_voltage
             message = await client.messages.get()
             if message is None:
                 print('Broker connection lost!')
@@ -2189,11 +2144,13 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
                 topic=f'{serial_number_project}/{topic_parent}'
                 if message.topic==topic:
                     result = gzipDecompress(message.message)
-                    # if 'CODE' in result.keys() and 'PAYLOAD' in result.keys():
-                    #     id_device=result['PAYLOAD']['id']
-                    #     if result['CODE']=="UpdateDev":
-                    #         pass
-                    # print(payload)
+                    output= await device_service_init.update_device(result)
+                    if output:
+                        rated_power=output["rated_power"]
+                        rated_power_custom=output["rated_power_custom"]
+                        min_watt_in_percent=output["min_watt_in_percent"]
+                        maximum_DC_input_current=output["maximum_DC_input_current"]
+                        rated_DC_input_voltage=output["rated_DC_input_voltage"]     
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 """
@@ -2216,7 +2173,6 @@ async def mqtt_update_device(host, port, username, password, serial_number_proje
         subscriptions=["#"],
         connect_delays=[1, 2, 4, 8]
         )
-        
         while True:
             await client.start()
             await handle_messages_device(client, serial_number_project,host, port, username, password)

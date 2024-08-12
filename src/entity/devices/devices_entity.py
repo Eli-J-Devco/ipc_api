@@ -15,6 +15,7 @@ class Devices(config.Base):
     __tablename__ = "device_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    parent: Mapped[int] = mapped_column(Integer, nullable=True)
     table_name: Mapped[str] = mapped_column(String, unique=True)
     view_table: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[str] = mapped_column(String, unique=True)
@@ -58,7 +59,7 @@ class Devices(config.Base):
 
     point: Mapped[int] = mapped_column(Integer, nullable=True)
     pv: Mapped[int] = mapped_column(Integer, nullable=True)
-    mode: Mapped[int] = mapped_column(Integer, nullable=True)
+    mode: Mapped[int] = mapped_column(Integer, nullable=True, default=0)
     model: Mapped[int] = mapped_column(Integer, nullable=True)
     function: Mapped[int] = mapped_column(Integer, nullable=True)
     point_p: Mapped[int] = mapped_column(Integer,
@@ -90,26 +91,27 @@ class Devices(config.Base):
     allow_error: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     enable_poweroff: Mapped[int] = mapped_column(Integer, nullable=True)
     inverter_shutdown: Mapped[datetime.date] = mapped_column(Date, nullable=True)
-    meter_type: Mapped[int] = mapped_column(Integer, nullable=True)
+    meter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
+    creation_state: Mapped[int] = mapped_column(Integer, nullable=True, default=-1)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     # communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
     # device_type = relationship("DeviceType", foreign_keys=[id_device_type], lazy="immediate")
     # project_setup = relationship("ProjectSetup", foreign_keys=[id_project_setup])
-    # template_library = relationship("Template", foreign_keys=[id_template])
+    # template = relationship("Template", foreign_keys=[id_template], lazy="immediate")
     # point_list_p = relationship("Point", foreign_keys=[point_p])
     # point_list_q = relationship("Point", foreign_keys=[point_q])
     # point_list_pf = relationship("Point", foreign_keys=[point_pf])
-    DC_voltage: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    DC_current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
-    inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=2)
-    creation_state: Mapped[int] = mapped_column(Integer, nullable=True, default=-1)
+
+
 class DeviceType(config.Base):
     __tablename__ = "device_type"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
+    type: Mapped[int] = mapped_column(Integer, nullable=True)
 
 
 class DeviceGroup(config.Base):
@@ -126,3 +128,23 @@ class DeviceGroup(config.Base):
     type: Mapped[bool] = mapped_column(Integer, nullable=True)
 
     device_type = relationship("DeviceType", foreign_keys=[id_device_type])
+
+
+class DeviceComponent(config.Base):
+    __tablename__ = "device_component"
+    main_type: Mapped[int] = mapped_column(Integer,
+                                           ForeignKey("device_type.id",
+                                                               ondelete="RESTRICT",
+                                                               onupdate="RESTRICT"),
+                                           primary_key=True,
+                                           nullable=False)
+    sub_type: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    component: Mapped[int] = mapped_column(Integer, ForeignKey("device_type.id",
+                                                               ondelete="RESTRICT",
+                                                               onupdate="RESTRICT"),
+                                           primary_key=True,
+                                           nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=True)
+
+    main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
+    component_type = relationship("DeviceType", foreign_keys=[component], lazy="immediate")
