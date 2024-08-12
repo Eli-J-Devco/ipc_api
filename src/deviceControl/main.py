@@ -568,7 +568,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             # Feedback to MQTT
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv):
                 intComment = 400 
-                MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffsetZeroTemp, ValueThresholdTemp))
+                MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (gIntValueOffsetZeroExport, gIntValueThresholdZeroExport))
                 MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (gIntValuePowerLimit, gIntValueOffsetPowerLimit))
             else:
                 intComment = 200 
