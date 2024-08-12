@@ -79,15 +79,15 @@ def create_control_item(device, PowerForEachInv,Setpoint,TotalPowerInInvInManMod
         ])
     
     return ItemlistInvControlPowerLimitMode
-async def calculate_setpoint(modeSystem ,ValueConsumptionSystemp,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
-    gMaxValueChangeSetpoint,ValueConsump,ValueOffetConsump):
+async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
+    gMaxValueChangeSetpoint,ValueOffetConsump):
     ConsumptionAfterSudOfset = 0.0
     if modeSystem == 1:
-        gListMovingAverageConsumption.append(ValueConsumptionSystemp)
+        gListMovingAverageConsumption.append(ValueConsump)
     else:
-        gListMovingAverageConsumption.append(ValueConsumptionSystemp - ValueTotalPowerInInvInManMode)
+        gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
 
-    if ValueConsumptionSystemp > ValueTotalPowerInInvInManMode:
+    if ValueConsump > ValueTotalPowerInInvInManMode:
         intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
     else:
         intAvgValueComsumtion = 0

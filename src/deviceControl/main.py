@@ -500,7 +500,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
-        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueConsumptionSystemp,gIntValueOffsetZeroExport)
+        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueOffsetZeroExport)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
