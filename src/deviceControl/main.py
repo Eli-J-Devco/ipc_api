@@ -383,6 +383,8 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         "ModeSystempCurrent": gStringModeSystempCurrent,
         "devices": ArrayDeviceList,
         "total_max_power": gIntValueTotalPowerInALLInv,
+        "total_max_power_man": gIntValueTotalPowerInInvInManMode,
+        "total_max_power_auto": gIntValueTotalPowerInInvInAutoMode,
         "system_performance": {
             "performance": gFloatValueSystemPerformance,
             "message": StringMessageStatusSystemPerformance,
@@ -685,9 +687,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
     topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
-    
     global gArrayMessageAllDevice
-    
     topics = [
             StringSerialNumerInTableProjectSetup + topic1,
             StringSerialNumerInTableProjectSetup + topic2,
