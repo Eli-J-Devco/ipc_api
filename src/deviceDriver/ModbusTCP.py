@@ -1809,7 +1809,8 @@ async def extract_device_control_params():
 # 	 * @return comment,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr,device_mode,gStrModeAutoControl,total_wmax_man_temp,value_power_limit,value_zero_export,rated_power,rated_power_custom
+    global arr,device_mode,gStrModeAutoControl,total_wmax_man_temp,value_power_limit,value_zero_export,\
+        rated_power,rated_power_custom,rated_power_custom_calculator
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1835,7 +1836,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-                
     return comment,watt,custom_watt
 # Describe process_gettoken
 # /**
@@ -2003,6 +2003,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 rated_power = watt
                 rated_power_custom = custom_watt
                 power_limit_percent = power_limit_percent_temp
+                print("rated_power_custom_calculator",rated_power_custom_calculator)
                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                 MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation
