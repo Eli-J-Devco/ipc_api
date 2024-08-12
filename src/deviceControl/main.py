@@ -499,7 +499,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     setpointCalculatorPowerForEachInv = 0 
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
-        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
+        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
         gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueConsumptionSystemp,gIntValueOffsetZeroExport)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
