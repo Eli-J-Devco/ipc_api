@@ -30,11 +30,13 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
-async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,gIntValuePowerLimit):
+async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,Setpoint):
     if ModeSystemp != 0 :
-        if gIntValuePowerLimit > 0 and ValueProductionSystemp > 0:
-            ValueSystemPerformance = (ValueProductionSystemp / gIntValuePowerLimit) * 100
-        elif gIntValuePowerLimit <= 0 and ValueProductionSystemp > 0:
+        print("Setpoint",Setpoint)
+        print("ValueProductionSystemp",ValueProductionSystemp)
+        if Setpoint > 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = (ValueProductionSystemp / Setpoint) * 100
+        elif Setpoint <= 0 and ValueProductionSystemp > 0:
             ValueSystemPerformance = 101
         else:
             ValueSystemPerformance = 0
@@ -105,7 +107,4 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
         ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
-        print("ValueConsump",ValueConsump)
-        print("ValueOffetConsump",ValueOffetConsump)
-        print("ConsumptionAfterSudOfset",ConsumptionAfterSudOfset)
     return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset

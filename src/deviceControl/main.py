@@ -506,6 +506,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
+        print("intPracticalConsumptionValue",intPracticalConsumptionValue)
         gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,intPracticalConsumptionValue)
         print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
