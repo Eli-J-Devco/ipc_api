@@ -18,11 +18,12 @@ sys.path.append(path)
 # print(f'SCRIPT_DIR: {SCRIPT_DIR}')
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 # from pydantic import BaseModel
-from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+# from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+from pydantic import BaseSettings
 
 from async_db.config import MySqlConfigFactory, OrmProvider
 
-print(f'{VERSION = }-202402')
+# print(f'{VERSION = }-202402')
 
 # env_file = find_dotenv(f'.env.{os.getenv("ENV", "development")}')
 # print(f'env_file: {env_file}')
