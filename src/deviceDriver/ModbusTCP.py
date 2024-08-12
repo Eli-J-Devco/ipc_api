@@ -1390,7 +1390,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 id_device_type=ID_DEVICE_TYPE,
                 device_mode=device_mode,
                 rated_power=rated_power,
-                rated_power_custom=rated_power_custom_calculator,
+                # rated_power_custom=rated_power_custom_calculator,
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
@@ -1826,8 +1826,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
-                
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
                 # Check status when saving device control parameters to the system 
                 if (gStrModeSysTem in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
@@ -2003,7 +2001,6 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
                 rated_power = watt
                 rated_power_custom = custom_watt
                 power_limit_percent = power_limit_percent_temp
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
                 MySQL_Update_V1('update `device_list` set `rated_power_custom` = %s, `rated_power` = %s where `id` = %s', (custom_watt, watt, id_systemp))
                 MySQL_Update_V1("UPDATE device_point_list_map dplm JOIN point_list pl ON dplm.id_point_list = pl.id SET dplm.control_max = %s WHERE pl.id_pointkey = 'Wmax' AND dplm.id_device_list = %s", (rated_power_custom_calculator, id_systemp))
         # reset global value to avoid accumulation

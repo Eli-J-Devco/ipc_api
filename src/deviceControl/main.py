@@ -33,6 +33,15 @@ from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                 mqtt_public_paho, mqtt_public_paho_zip,
                                 mqttService)
+from configs.config import orm_provider as db_config
+from database.sql.device import all_query
+from dataclasses import asdict, dataclass
+
+from apiGateway.devices import devices_service
+from apiGateway.project_setup import project_service
+from apiGateway.rs485 import rs485_service
+from apiGateway.template import template_service
+from apiGateway.upload_channel import upload_channel_service
 
 arr = sys.argv # Variables Array System
 gStringModeSystempCurrent = ""
@@ -834,6 +843,10 @@ async def main():
                                                 Topic_Control_Setup_Auto_Feedback
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
+    # db_new=await db_config.get_db()
+    # project_init=project_service.ProjectService()
+    # result1=await project_init.project_inform(db_new)
+    # print("result",result1)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(

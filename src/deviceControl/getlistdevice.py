@@ -36,7 +36,9 @@ def extract_device_auto_info(item):
         mode = item['mode']
         status_device = item['status_device']
         p_max = item['rated_power']
-        p_max_custom = item.get('rated_power_custom', p_max)
+        p_max_custom = item.get('rated_power_custom')
+        if p_max_custom is None:
+            p_max_custom = p_max
         p_min_percent = item['min_watt_in_percent']
         p_min = (p_max * p_min_percent) / 100 if p_max and p_min_percent else 0
         value = get_device_value(item, "ControlINV")
@@ -70,7 +72,10 @@ def extract_device_all_info(item):
         id_device = item['id_device']
         mode = item['mode']
         status_device = item['status_device']
-        p_max_custom = item.get('rated_power_custom', item['rated_power'])
+        p_max = item['rated_power']
+        p_max_custom = item.get('rated_power_custom')
+        if p_max_custom is None:
+            p_max_custom = p_max
         p_min_percent = item['min_watt_in_percent']
         device_name = item['device_name']
         results_device_type = item['name_device_type']
