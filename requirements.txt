@@ -22,6 +22,7 @@ jwt
 python-jose
 passlib
 pydantic
+pydantic-settings==2.1.0
 pydantic[email]
 python-multipart
 mysql-connector-python
