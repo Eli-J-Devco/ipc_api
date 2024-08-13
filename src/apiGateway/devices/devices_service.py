@@ -123,8 +123,14 @@ class DevicesService:
         finally:
             if device_list:
                 print('create_dev_tcp send mqtt modify ')
-                await self.mqtt_init.sendZIP("Control/Modify",
-                            device_list)
+                mqtt_public_paho_zip(self.mqtt_host,
+                    self.mqtt_port,
+                    f"{self.serial_number}/Control/Modify",
+                    self.mqtt_username,
+                    self.mqtt_password,
+                   device_list)
+                # await self.mqtt_init.sendZIP("Control/Modify",
+                #             device_list)
     @async_db_request_handler
     async def create_dev_rs485(self, create_devices,session: AsyncSession):
         try:

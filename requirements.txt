@@ -36,7 +36,6 @@ pyuac
 passlib
 APScheduler
 pyinstaller
-tk
 pycryptodomex
 pycryptodome
 netifaces
