@@ -29,6 +29,76 @@ from utils.libTime import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
+
+
+# ============================================================== Mode Systemp ================================
+async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password):
+    if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
+        gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
+        if gStringModeSysTemp in [0, 1, 2]:
+            await updateDatabase(gStringModeSysTemp)
+        else:
+            print("Failed to insert data")
+        if gStringModeSysTemp in [0, 1]:
+            await updateDeviceMode(gStringModeSysTemp)
+        current_time = get_utc()
+        if gStringModeSysTemp in [0, 1, 2]:
+            objectSend = {
+                "status": 200,
+                "confirm_mode": gStringModeSysTemp,
+                "time_stamp": current_time,
+            }
+        else:
+            objectSend = {
+                "status": 400,
+                "time_stamp": current_time,
+            }
+        # Push system_info to MQTT 
+        mqtt_public_paho_zip(host, port, topicFeedbackModeSystemp, username, password, objectSend)
+        return gStringModeSysTemp
+async def updateDatabase(mode):
+    querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+    result = MySQL_Insert_v5(querysystemp, (mode,))
+    return result
+
+async def updateDeviceMode(mode):
+    querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
+    result = MySQL_Insert_v5(querydevice, (mode,))
+    return result
+
+async def handle_zero_export_mode(message):
+    ValueOffsetTemp = 0
+    ValueThresholdTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValueThreshold From Message
+    ValueThresholdTemp = message.get("threshold")
+    if ValueThresholdTemp is not None:
+        ValueThreshold = ValueThresholdTemp
+    # Result Query 
+    ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffset, ValueThreshold))
+    return ValueOffset,ValueThreshold,ResultQuery
+
+async def handle_power_limit_mode(message,TotalPower):
+    ValueOffsetTemp = 0
+    ValuePowerLimitTemp = 0
+    ResultQuery = []
+    # Get ValueOffset From Message
+    ValueOffsetTemp = message.get("offset")
+    if ValueOffsetTemp is not None:
+        ValueOffset = ValueOffsetTemp
+    # Get ValuePowerLimit From Message
+    ValuePowerLimitTemp = message.get("value")
+    if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+        ValuePowerLimit = ValuePowerLimitTemp
+        ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
+        # Result Query 
+        ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
+    return ValueOffset,ValuePowerLimit,ResultQuery
+
 # ==================================================== Auto Device  ==================================================================
 def extract_device_auto_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:
@@ -198,3 +268,77 @@ def messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValu
     ValueProductionAndConsumtion["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant_temp, 4)
 
     return ValueProductionAndConsumtion
+
+# ==================================================== Caculator ==================================================================
+async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,Setpoint):
+    if ModeSystemp != 0 :
+        if Setpoint > 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = (ValueProductionSystemp / Setpoint) * 100
+        elif Setpoint <= 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = 101
+        else:
+            ValueSystemPerformance = 0
+        return ValueSystemPerformance
+def process_device_powerlimit_info(device):
+    id_device = device["id_device"]
+    mode = device["mode"]
+    intPowerMaxOfInv = float(device["p_max"])
+    return id_device, mode, intPowerMaxOfInv
+def calculate_power_value(intPowerMaxOfInv,modeSystem,TotalPowerInInvInManMode,TotalPowerInInvInAutoMode,Setpoint):
+    # Calulator peformance for device 
+    if modeSystem == 1:
+        floatEfficiencySystemp = (Setpoint / TotalPowerInInvInAutoMode)
+    else:
+        floatEfficiencySystemp = (Setpoint - TotalPowerInInvInManMode) / TotalPowerInInvInAutoMode
+    # The power of the device is equal to the efficiency multiplied by the maximum power.
+    if 0 <= floatEfficiencySystemp <= 1:
+        return floatEfficiencySystemp * intPowerMaxOfInv
+    elif floatEfficiencySystemp < 0:
+        return 0
+    else:
+        return intPowerMaxOfInv
+def create_control_item(device, PowerForEachInv,Setpoint,TotalPowerInInvInManMode,ValueProductionSystemp):
+    id_device = device["id_device"]
+    mode = device["mode"]
+    ItemlistInvControlPowerLimitMode = {
+        "id_device": id_device,
+        "mode": mode,
+        "time": get_utc(),
+        "status": "power limit",
+        "setpoint": Setpoint - TotalPowerInInvInManMode,
+        "feedback": ValueProductionSystemp,
+        "parameter": []
+    }
+    # Create item for device
+    if device['controlinv'] == 1:
+        ItemlistInvControlPowerLimitMode["parameter"].append({"id_pointkey": "WMax", "value": PowerForEachInv})
+    elif device['controlinv'] == 0:
+        ItemlistInvControlPowerLimitMode["parameter"].extend([
+            {"id_pointkey": "ControlINV", "value": 1},
+            {"id_pointkey": "WMax", "value": PowerForEachInv}
+        ])
+    
+    return ItemlistInvControlPowerLimitMode
+async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
+    gMaxValueChangeSetpoint,ValueOffetConsump):
+    ConsumptionAfterSudOfset = 0.0
+    if modeSystem == 1:
+        gListMovingAverageConsumption.append(ValueConsump)
+    else:
+        gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
+    if ValueConsump > ValueTotalPowerInInvInManMode:
+        intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
+    else:
+        intAvgValueComsumtion = 0
+    if not hasattr(calculate_setpoint, 'last_setpoint'):
+        calculate_setpoint.last_setpoint = intAvgValueComsumtion
+    new_setpoint = intAvgValueComsumtion
+    setpointCalculatorPowerForEachInv = max(
+        calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
+        min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
+    )
+    calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
+    ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
+    if setpointCalculatorPowerForEachInv:
+        setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
+    return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset

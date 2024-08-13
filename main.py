@@ -266,11 +266,11 @@ def init_mqtt_control():
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/deviceControl/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/deviceControl/device_control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/deviceControl/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/deviceControl/device_control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API_NEW of web
