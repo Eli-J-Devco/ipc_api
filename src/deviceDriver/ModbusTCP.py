@@ -1390,7 +1390,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 id_device_type=ID_DEVICE_TYPE,
                 device_mode=device_mode,
                 rated_power=rated_power,
-                rated_power_custom=rated_power_custom_calculator,
+                # rated_power_custom=rated_power_custom_calculator,
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
@@ -1632,7 +1632,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "combiner_box":combiner_box,
                 "control_group":new_control_group,
                 "rated_power":rated_power,# realtime
-                "rated_power_custom":rated_power_custom_calculator,# realtime
+                "rated_power_custom":rated_power_custom,# realtime
                 "min_watt_in_percent":min_watt_in_percent,# realtime
                 # "rated_reactive_custom":rated_reactive_custom, # realtime
                 "emergency_stop":emergency_stop,# realtime
@@ -1809,7 +1809,8 @@ async def extract_device_control_params():
 # 	 * @return comment,watt,custom_watt
 # 	 */
 async def updates_ratedpower_from_message(result_topic1,power_limit):
-    global arr,device_mode,gStrModeAutoControl,total_wmax_man_temp,value_power_limit,value_zero_export,rated_power,rated_power_custom
+    global arr,device_mode,gStrModeAutoControl,total_wmax_man_temp,value_power_limit,value_zero_export,\
+        rated_power,rated_power_custom,rated_power_custom_calculator
     id_systemp = int(arr[1])
     comment = 200
     custom_watt = 0 
@@ -1833,7 +1834,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     comment = 400 
                 else:
                     comment = 200 
-                
     return comment,watt,custom_watt
 # Describe process_gettoken
 # /**

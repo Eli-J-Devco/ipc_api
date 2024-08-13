@@ -36,7 +36,9 @@ def extract_device_auto_info(item):
         mode = item['mode']
         status_device = item['status_device']
         p_max = item['rated_power']
-        p_max_custom = item.get('rated_power_custom', p_max)
+        p_max_custom = item.get('rated_power_custom')
+        if p_max_custom is None:
+            p_max_custom = p_max
         p_min_percent = item['min_watt_in_percent']
         p_min = (p_max * p_min_percent) / 100 if p_max and p_min_percent else 0
         value = get_device_value(item, "ControlINV")
@@ -70,7 +72,10 @@ def extract_device_all_info(item):
         id_device = item['id_device']
         mode = item['mode']
         status_device = item['status_device']
-        p_max_custom = item.get('rated_power_custom', item['rated_power'])
+        p_max = item['rated_power']
+        p_max_custom = item.get('rated_power_custom')
+        if p_max_custom is None:
+            p_max_custom = p_max
         p_min_percent = item['min_watt_in_percent']
         device_name = item['device_name']
         results_device_type = item['name_device_type']
@@ -122,7 +127,7 @@ def get_device_parameters(item):
 def calculate_total_wmax(device_list,power_auto):
     total_power_write_inv = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None), 2)
     total_power_manual = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None and device['mode'] == 0), 2)
-    total_power = total_power_manual + power_auto
+    total_power = round((total_power_manual + power_auto),2)
     return total_power, total_power_manual
 
 def calculate_p_min(p_max_custom, p_min_percent):
@@ -170,7 +175,7 @@ def calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntI
             last_update_time_comsumption = current_time
     return IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption
 
-def messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
+def messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
     timeStampGetValueProductionAndConsumtion = get_utc()
     gFloatValueMaxPredictProductionInstant_temp = 0
 

@@ -30,11 +30,11 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                mqtt_public_paho, mqtt_public_paho_zip,
                                mqttService)
 
-async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,gIntValuePowerLimit):
+async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,Setpoint):
     if ModeSystemp != 0 :
-        if gIntValuePowerLimit > 0 and ValueProductionSystemp > 0:
-            ValueSystemPerformance = (ValueProductionSystemp / gIntValuePowerLimit) * 100
-        elif gIntValuePowerLimit <= 0 and ValueProductionSystemp > 0:
+        if Setpoint > 0 and ValueProductionSystemp > 0:
+            ValueSystemPerformance = (ValueProductionSystemp / Setpoint) * 100
+        elif Setpoint <= 0 and ValueProductionSystemp > 0:
             ValueSystemPerformance = 101
         else:
             ValueSystemPerformance = 0
@@ -79,30 +79,26 @@ def create_control_item(device, PowerForEachInv,Setpoint,TotalPowerInInvInManMod
         ])
     
     return ItemlistInvControlPowerLimitMode
-async def calculate_setpoint(modeSystem ,ValueConsumptionSystemp,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
-    gMaxValueChangeSetpoint,ValueConsump,ValueOffetConsump):
+async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManMode,gListMovingAverageConsumption,\
+    gMaxValueChangeSetpoint,ValueOffetConsump):
+    ConsumptionAfterSudOfset = 0.0
     if modeSystem == 1:
-        gListMovingAverageConsumption.append(ValueConsumptionSystemp)
+        gListMovingAverageConsumption.append(ValueConsump)
     else:
-        gListMovingAverageConsumption.append(ValueConsumptionSystemp - ValueTotalPowerInInvInManMode)
-
-    if ValueConsumptionSystemp > ValueTotalPowerInInvInManMode:
+        gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
+    if ValueConsump > ValueTotalPowerInInvInManMode:
         intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
     else:
         intAvgValueComsumtion = 0
-
     if not hasattr(calculate_setpoint, 'last_setpoint'):
         calculate_setpoint.last_setpoint = intAvgValueComsumtion
-
     new_setpoint = intAvgValueComsumtion
     setpointCalculatorPowerForEachInv = max(
         calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
         min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
     )
     calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
-
+    ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
-        intPracticalConsumptionValue = ValueConsump * ValueOffetConsump / 100
-
-    return setpointCalculatorPowerForEachInv, intPracticalConsumptionValue
+    return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset

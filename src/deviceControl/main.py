@@ -33,6 +33,15 @@ from getcpu import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                 mqtt_public_paho, mqtt_public_paho_zip,
                                 mqttService)
+from configs.config import orm_provider as db_config
+from database.sql.device import all_query
+from dataclasses import asdict, dataclass
+
+from apiGateway.devices import devices_service
+from apiGateway.project_setup import project_service
+from apiGateway.rs485 import rs485_service
+from apiGateway.template import template_service
+from apiGateway.upload_channel import upload_channel_service
 
 arr = sys.argv # Variables Array System
 gStringModeSystempCurrent = ""
@@ -347,7 +356,7 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
                     'slope': slope,
                 })
     # Caculator Power Device In Auto Mode
-    gIntValueTotalPowerInInvInAutoMode = sum(device['p_max'] for device in ArayyDeviceList)
+    gIntValueTotalPowerInInvInAutoMode = round(sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None),2)
     return ArayyDeviceList
 ############################################################################ List Device Systemp ############################################################################
 # Describe getListALLInvInProject 
@@ -369,6 +378,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
     gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
+    print("gIntValueTotalPowerInInvInManMode",gIntValueTotalPowerInInvInManMode)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
@@ -383,6 +393,8 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         "ModeSystempCurrent": gStringModeSystempCurrent,
         "devices": ArrayDeviceList,
         "total_max_power": gIntValueTotalPowerInALLInv,
+        "total_max_power_man": gIntValueTotalPowerInInvInManMode,
+        "total_max_power_auto": gIntValueTotalPowerInInvInAutoMode,
         "system_performance": {
             "performance": gFloatValueSystemPerformance,
             "message": StringMessageStatusSystemPerformance,
@@ -418,11 +430,11 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
                 if result_type_meter:
                     IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
                     IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
-    # Update the global values ​​of total production and total consumption
-    gIntValueProductionSystemp = IntTotalValueProduction
-    gIntValueConsumptionSystemp = IntTotalValueConsumtion
+        # Update the global values ​​of total production and total consumption
+        gIntValueProductionSystemp = IntTotalValueProduction
+        gIntValueConsumptionSystemp = IntTotalValueConsumtion
     try:
-        ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, current_time, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
+        ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
         mqtt_public_paho_zip(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, mqtt_username, mqtt_password, ValueProductionAndConsumtion)
         push_data_to_mqtt(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
@@ -495,12 +507,12 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     gArraydevices = []
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     gIntValuePowerForEachInvInModeZeroExport = 0
-    intPracticalConsumptionValue = 0
+    intPracticalConsumptionValue = 0.0
     setpointCalculatorPowerForEachInv = 0 
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
-        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueConsumptionSystemp,gIntValueOffsetZeroExport)
+        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueOffsetZeroExport)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
@@ -508,7 +520,6 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     if gStringModeSystempCurrent != 0:
         gFloatValueSystemPerformance = await calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,intPracticalConsumptionValue)
-        print("gFloatValueSystemPerformance",gFloatValueSystemPerformance)
     if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
@@ -563,7 +574,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
-            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv):
+            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
                 intComment = 400 
             else:
                 intComment = 200 
@@ -620,9 +631,6 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
                     mqtt_username,
                     mqtt_password,
                     objectSend)
-        else:
-            pass
-            
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateModeDetail: '{err}'")
 # Describe initializeValueControlAuto 
@@ -685,9 +693,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
     topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
-    
     global gArrayMessageAllDevice
-    
     topics = [
             StringSerialNumerInTableProjectSetup + topic1,
             StringSerialNumerInTableProjectSetup + topic2,
@@ -837,6 +843,10 @@ async def main():
                                                 Topic_Control_Setup_Auto_Feedback
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
+    # db_new=await db_config.get_db()
+    # project_init=project_service.ProjectService()
+    # result1=await project_init.project_inform(db_new)
+    # print("result",result1)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
