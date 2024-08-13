@@ -122,6 +122,7 @@ class DevicesService:
             print("Error create_dev_tcp: ", e)
         finally:
             if device_list:
+                print('create_dev_tcp send mqtt modify ')
                 await self.mqtt_init.sendZIP("Control/Modify",
                             device_list)
     @async_db_request_handler
