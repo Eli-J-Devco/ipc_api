@@ -80,6 +80,7 @@ class UpdateNetworkInterfaceConfig(NetworkInterfaceConfig):
             config_data = load(open(output_path, 'r'), Loader=Loader)
         except FileNotFoundError:
             config_data = load(open(self.get_network_config_sample(), 'r'), Loader=Loader)
+            output_path = self.get_network_config_sample()
         except Exception as e:
             raise e
 
