@@ -24,10 +24,12 @@ passlib
 pydantic==1.10.15
 python-multipart
 mysql-connector-python
+mybatis-mapper2sql
 async-paho-mqtt-client
 hbmqtt
 mqttools
 backports.pbkdf2
+gmqtt
 async-timeout
 pyroute2
 pyuac
