@@ -36,7 +36,7 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
         gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
         if gStringModeSysTemp in [0, 1, 2]:
-            await updateDatabase(gStringModeSysTemp)
+            await updateSystemMode(gStringModeSysTemp)
         else:
             print("Failed to insert data")
         if gStringModeSysTemp in [0, 1]:
@@ -56,7 +56,7 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
         # Push system_info to MQTT 
         mqtt_public_paho_zip(host, port, topicFeedbackModeSystemp, username, password, objectSend)
         return gStringModeSysTemp
-async def updateDatabase(mode):
+async def updateSystemMode(mode):
     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
     result = MySQL_Insert_v5(querysystemp, (mode,))
     return result
@@ -248,27 +248,22 @@ def calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntI
 def messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
     timeStampGetValueProductionAndConsumtion = get_utc()
     gFloatValueMaxPredictProductionInstant_temp = 0
-
     ValueProductionAndConsumtion = {
         "Timestamp": timeStampGetValueProductionAndConsumtion,
         "instant": {},
     }
-
     if gArrayMessageAllDevice:
         for device in gArrayMessageAllDevice:
             if "mppt" in device:
                 for mppt in device["mppt"]:
                     if "power" in mppt:
                         gFloatValueMaxPredictProductionInstant_temp += mppt["power"]
-
     # instant power
     ValueProductionAndConsumtion["instant"]["production"] = round(gIntValueProductionSystemp, 4)
     ValueProductionAndConsumtion["instant"]["consumption"] = round(gIntValueConsumptionSystemp, 4)
     ValueProductionAndConsumtion["instant"]["grid_feed"] = round((gIntValueProductionSystemp - gIntValueConsumptionSystemp), 4)
     ValueProductionAndConsumtion["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant_temp, 4)
-
     return ValueProductionAndConsumtion
-
 # ==================================================== Caculator ==================================================================
 async def calculate_system_performance(ModeSystemp,ValueSystemPerformance,ValueProductionSystemp,Setpoint):
     if ModeSystemp != 0 :
