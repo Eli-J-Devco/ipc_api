@@ -121,6 +121,7 @@ class DevicesService:
         except Exception as e:
             print("Error create_dev_tcp: ", e)
         finally:
+            await session.close()
             if device_list:
                 print('create_dev_tcp send mqtt modify ')
                 mqtt_public_paho_zip(self.mqtt_host,
@@ -274,8 +275,9 @@ class DevicesService:
                             communication_list.append(item['id_communication'])
                         elif item["connect_type"]=="Modbus/TCP":
                             device_tcp.append(f'Dev|{item["id_communication"]}|Modbus/TCP|{item["id"]}')
+            delete_device_list=[]
             if id_device:
-                delete_device_list=[]
+                
                 for item in id_device:
                     delete_device_list.append(
                         {
@@ -327,7 +329,15 @@ class DevicesService:
             print("Error delete_dev: ", e)
         finally:
             print('delete_dev end')
-            await session.close() 
+            await session.close()
+            if delete_device_list:
+                print('create_dev_tcp send mqtt modify ')
+                mqtt_public_paho_zip(self.mqtt_host,
+                    self.mqtt_port,
+                    f"{self.serial_number}/Control/Modify",
+                    self.mqtt_username,
+                    self.mqtt_password,
+                    delete_device_list)
     @async_db_request_handler
     async def update_dev(self, update_devices,session: AsyncSession):
         try:
