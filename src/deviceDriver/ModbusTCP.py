@@ -1632,7 +1632,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "combiner_box":combiner_box,
                 "control_group":new_control_group,
                 "rated_power":rated_power,# realtime
-                "rated_power_custom":rated_power_custom_calculator,# realtime
+                "rated_power_custom":rated_power_custom,# realtime
                 "min_watt_in_percent":min_watt_in_percent,# realtime
                 # "rated_reactive_custom":rated_reactive_custom, # realtime
                 "emergency_stop":emergency_stop,# realtime
