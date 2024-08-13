@@ -801,6 +801,7 @@ async def main():
     db_new=await db_config.get_db()
     project_init=project_service.ProjectService()
     results_project=await project_init.project_inform(db_new)
+    print("results_project",results_project)
     # Run Task
     if results_project != None :
         StringSerialNumerInTableProjectSetup=results_project["serial_number"]
