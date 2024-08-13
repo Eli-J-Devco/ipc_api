@@ -270,7 +270,7 @@ def init_mqtt_control():
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/deviceControl/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/deviceControl/device_control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API_NEW of web
