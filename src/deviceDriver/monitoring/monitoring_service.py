@@ -21,7 +21,10 @@ class MonitorService:
                 name_device_type=None,
                 id_device_type=None,
                 device_mode =None,
-                rated_power=None,rated_power_custom=None,min_watt_in_percent=None,
+                rated_power=None,
+                rated_power_custom=None,
+                rated_power_custom_calculator=None,
+                min_watt_in_percent=None,
                 # rated_reactive_custom,
                 meter_type=None,inverter_type=None,
                 emergency_stop=None
@@ -53,6 +56,7 @@ class MonitorService:
             self.inverter_type=inverter_type
             self.emergency_stop=emergency_stop
             self.rated_reactive_custom=None
+            self.rated_power_custom_calculator=rated_power_custom_calculator
             # 
     def device_type(self):
         if self.name_device_type in ["PV System Inverter"]:
@@ -110,8 +114,8 @@ class MonitorService:
                         })
                 case "WMax":
                     control_max=None
-                    if self.rated_power_custom not in [None, "null"]:
-                        control_max=self.rated_power_custom
+                    if self.rated_power_custom_calculator not in [None, "null"]:
+                        control_max=self.rated_power_custom_calculator
                     else:
                         control_max=self.rated_power
                     new_point_list_device.append({
@@ -124,8 +128,8 @@ class MonitorService:
                     control_max=None
                     sinPhi=math.sqrt(1-cosPhi**2)
                     tanPhi=sinPhi/cosPhi
-                    if self.rated_power_custom not in [None, "null"]:
-                        control_max=round(self.rated_power_custom*tanPhi,2)
+                    if self.rated_power_custom_calculator not in [None, "null"]:
+                        control_max=round(self.rated_power_custom_calculator*tanPhi,2)
                     else:
                         control_max=round(self.rated_power*tanPhi,2)
                     new_point_list_device.append({

@@ -1390,7 +1390,8 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 id_device_type=ID_DEVICE_TYPE,
                 device_mode=device_mode,
                 rated_power=rated_power,
-                # rated_power_custom=rated_power_custom_calculator,
+                rated_power_custom=rated_power_custom_calculator,
+                rated_power_custom_calculator=rated_power_custom_calculator,
                 min_watt_in_percent=min_watt_in_percent,
                 # rated_reactive_custom=rated_reactive_custom,
                 meter_type=meter_type,inverter_type=inverter_type)
