@@ -21,7 +21,7 @@ uvicorn
 jwt
 python-jose
 passlib
-pydantic==1.10.15
+pydantic==2.7.1
 python-multipart
 mysql-connector-python
 mybatis-mapper2sql

@@ -11,11 +11,13 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 
 from dotenv import dotenv_values, find_dotenv, load_dotenv
-from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+from pydantic import BaseSettings
 
 from async_db.config import MySqlConfigFactory, OrmProvider
 
-# from pydantic import BaseSettings
+# from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+
+
 
 if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
