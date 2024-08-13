@@ -378,7 +378,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
     gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
-    print("gIntValueTotalPowerInInvInManMode",gIntValueTotalPowerInInvInManMode)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
@@ -798,29 +797,15 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 
 async def main():
-    StringSerialNumerInTableProjectSetup = ""
-    tasks = []
     # Initialize values ​​for global variables
     await initializeValueControlAuto()
-    results_project = MySQL_Select('SELECT serial_number FROM `project_setup`', ())
+    # Get Serial number From DB
+    db_new=await db_config.get_db()
+    project_init=project_service.ProjectService()
+    results_project=await project_init.project_inform(db_new)
+    # Run Task
     if results_project != None :
-        StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
-        # Cycle
-        # scheduler = AsyncIOScheduler()
-        # scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Topic_CPU_Information,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
-        # scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Topic_Control_WriteAuto,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
-        # scheduler.start()
-        # Listenner 
+        StringSerialNumerInTableProjectSetup=results_project["serial_number"]
         tasks = []
         tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
                                                 Mqtt_Broker,
@@ -847,10 +832,6 @@ async def main():
                                                 Topic_Control_WriteAuto
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
-    # db_new=await db_config.get_db()
-    # project_init=project_service.ProjectService()
-    # result1=await project_init.project_inform(db_new)
-    # print("result",result1)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(
