@@ -162,7 +162,6 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
         system_info["NetworkInformation"] = cpu_init.getNetworkInformation() or {}
         system_info["NetworkSpeed"] = cpu_init.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = cpu_init.getDiskIoInformation(disk_io_counters_prev) or {}
-        print("system_info",system_info)
         # Check that all fields are not None
         if all(system_info.values()):
             # Push system_info to MQTT 
