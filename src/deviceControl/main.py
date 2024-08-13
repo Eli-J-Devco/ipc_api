@@ -692,7 +692,7 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
 # 	 * @return each topic , each message
 # 	 */ 
 async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
-    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
+    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password):
     global gArrayMessageAllDevice
     topics = [
             StringSerialNumerInTableProjectSetup + topic1,
@@ -717,6 +717,8 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
             gArrayMessageAllDevice = message
             await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topic14, host, port, username, password)
             await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
+            await getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,topic16, host, port, username, password)
+            await automatedParameterManagement(StringSerialNumerInTableProjectSetup,topic17, host, port, username, password)
         elif topic == topics[4]:  # topic5
             pass
         elif topic == topics[5]:  # topic6
@@ -749,7 +751,7 @@ def gzip_decompress(message):
 # 	 * @return all topic , all message
 # 	 */ 
 async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password):
+    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password):
     
     try:
         while True:
@@ -759,8 +761,8 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
                 break
             topic = message.topic
             payload = gzip_decompress(message.message)
-            await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host,port,username,password)
+            await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
+                topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password)
     except Exception as err:
         print(f"Error processHandleMessagesDriver: '{err}'")
 # Describe processSudAllMessageFromMQTT 
@@ -771,7 +773,7 @@ async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetu
 # 	 * @return all topic , all message
 # 	 */ 
 async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15):
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17):
     
     arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
                 StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
@@ -789,8 +791,8 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         )
         while True:
             await client.start()
-            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,\
-                topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,host, port, username, password)
+            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
+                topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host, port, username, password)
             await client.stop()
     except Exception as err:
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
@@ -804,20 +806,20 @@ async def main():
     if results_project != None :
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         # Cycle
-        scheduler = AsyncIOScheduler()
-        scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Topic_CPU_Information,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
-        scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Topic_Control_WriteAuto,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
-        scheduler.start()
+        # scheduler = AsyncIOScheduler()
+        # scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+        #                                                                     Topic_CPU_Information,
+        #                                                                     Mqtt_Broker,
+        #                                                                     Mqtt_Port,
+        #                                                                     Mqtt_UserName,
+        #                                                                     Mqtt_Password])
+        # scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
+        #                                                                     Topic_Control_WriteAuto,
+        #                                                                     Mqtt_Broker,
+        #                                                                     Mqtt_Port,
+        #                                                                     Mqtt_UserName,
+        #                                                                     Mqtt_Password])
+        # scheduler.start()
         # Listenner 
         tasks = []
         tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
@@ -840,7 +842,9 @@ async def main():
                                                 Topic_Control_Setup_Mode_Feedback,
                                                 Topic_Control_Setup_Mode_Write,
                                                 Topic_Control_Process,
-                                                Topic_Control_Setup_Auto_Feedback
+                                                Topic_Control_Setup_Auto_Feedback,
+                                                Topic_CPU_Information,
+                                                Topic_Control_WriteAuto
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
     # db_new=await db_config.get_db()
