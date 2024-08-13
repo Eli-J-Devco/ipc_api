@@ -28,7 +28,6 @@ async-paho-mqtt-client
 hbmqtt
 mqttools
 backports.pbkdf2
-gmqtt
 async-timeout
 pyroute2
 pyuac
