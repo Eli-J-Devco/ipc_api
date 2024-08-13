@@ -31,7 +31,6 @@ mqttools
 backports.pbkdf2
 gmqtt
 async-timeout
-WMI
 pyroute2
 pyuac
 passlib
