@@ -26,10 +26,8 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-from modesystem import *
-from getlistdevice import *
-from caculatorauto import *
-from getcpu import *
+from cpu.cpu_service import *
+from control.control_service import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                 mqtt_public_paho, mqtt_public_paho_zip,
                                 mqttService)
@@ -126,7 +124,7 @@ arr = sys.argv
 # 	 * @description get cpu information
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return 
 #      system_info = {
 #     "Timestamp": timestamp,
@@ -138,7 +136,7 @@ arr = sys.argv
 #     "NetworkInformation": {}
 #      }
 # 	 */ 
-async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_CPU_Information, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_CPU_Information, host, port, username, password):
     global net_io_counters_prev, disk_io_counters_prev
     topicPublicInformationCpu = StringSerialNumerInTableProjectSetup + Topic_CPU_Information
     timeStampPudCpuInformation = get_utc()
@@ -167,7 +165,7 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
         # Check that all fields are not None
         if all(system_info.values()):
             # Push system_info to MQTT 
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationCpu, mqtt_username, mqtt_password, system_info)
+            mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
@@ -219,10 +217,10 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
 # 	 * @description pudFeedBackProjectSetup
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @param {host, port, topicPublic, username, password}
 # 	 * @return data_send
 # 	 */ 
-async def pudFeedBackProjectSetup(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password):
+async def pudFeedBackProjectSetup(host, port, topicPublic, username, password):
     queryAllTableProjectSetup = "SELECT * FROM `project_setup`"
     # Get information from database
     resultAllInformationTableProjectSetup = await MySQL_Select_v1(queryAllTableProjectSetup)
@@ -234,17 +232,17 @@ async def pudFeedBackProjectSetup(mqtt_host, mqtt_port, topicPublic, mqtt_userna
                 {"time_stamp": get_utc()},
                 {"status": 200}
             ]
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password, dataSendTopicProjectInformation )
+            mqtt_public_paho_zip(host, port, topicPublic, username, password, dataSendTopicProjectInformation )
         except Exception as err:
             print(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
 # Describe insertInformationProjectSetup 
 # 	 * @description insertInformationProjectSetup
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {mqtt_result, mqtt_host, mqtt_port, topicPublic, mqtt_username, mqtt_password}
+# 	 * @param {mqtt_result, host, port, topicPublic, username, password}
 # 	 * @return data_send
 # 	 */ 
-async def insertInformationProjectSetup(messageInsertInformationProjectSetup, mqtt_host, mqtt_port, topicPublicInformationProjectSetup, mqtt_username, mqtt_password):
+async def insertInformationProjectSetup(messageInsertInformationProjectSetup, host, port, topicPublicInformationProjectSetup, username, password):
     try:
         # separate mqtt information on sent infromation
         resultSet = messageInsertInformationProjectSetup.get('parameter', {})
@@ -267,14 +265,14 @@ async def insertInformationProjectSetup(messageInsertInformationProjectSetup, mq
                     "status": status,
                     "time_stamp": current_time
                 }
-                mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationProjectSetup, mqtt_username, mqtt_password, data_send)
+                mqtt_public_paho_zip(host, port, topicPublicInformationProjectSetup, username, password, data_send)
         else:
             current_time = get_utc()
             data_send = {
                 "status": 200,
                 "time_stamp": current_time
             }
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublicInformationProjectSetup, mqtt_username, mqtt_password, data_send)
+            mqtt_public_paho_zip(host, port, topicPublicInformationProjectSetup, username, password, data_send)
     except Exception as err:
         print(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")
 # Describe pudInformationProjectSetupWhenRequest 
@@ -378,7 +376,6 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
     gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
-    print("gIntValueTotalPowerInInvInManMode",gIntValueTotalPowerInInvInManMode)
     # Call the update_system_performance function and get the return value
     gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = update_system_performance(
         gStringModeSystempCurrent,
@@ -413,7 +410,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
 # 	 * @return value_production ,value_consumption
 # 	 */ 
 ############################################################################ Get Value Metter ############################################################################
-async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, Topic_Meter_Monitor, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup, Topic_Meter_Monitor, host, port, username, password):
     global gIntValueProductionSystemp, gIntValueConsumptionSystemp,start_time_minutely
     # Local variables
     current_time = time.time()
@@ -436,8 +433,8 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
     try:
         ValueProductionAndConsumtion = messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
-        mqtt_public_paho_zip(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, mqtt_username, mqtt_password, ValueProductionAndConsumtion)
-        push_data_to_mqtt(mqtt_host, mqtt_port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", mqtt_username, mqtt_password, ValueProductionAndConsumtion)
+        mqtt_public_paho_zip(host, port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, username, password, ValueProductionAndConsumtion)
+        push_data_to_mqtt(host, port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", username, password, ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
 ############################################################################ Power Limit Control  ############################################################################
@@ -445,10 +442,10 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
 # 	 * @description processCaculatorPowerForInvInPowerLimitMode
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return gIntValuePowerForEachInvInModePowerLimit
 # 	 */ 
-async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, host, port, username, password):
     global gArrayMessageAllDevice, gIntValuePowerLimit, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
     gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode
     # Local variables
@@ -489,17 +486,17 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             listInvControlPowerLimitMode.append(item)
         # Push MQTT
         if len(gArraydevices) == len(listInvControlPowerLimitMode):
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode, mqtt_username, mqtt_password, listInvControlPowerLimitMode)
-            push_data_to_mqtt(mqtt_host, mqtt_port, processCaculatorPowerForInvInPowerLimitMode + "Binh", mqtt_username, mqtt_password, listInvControlPowerLimitMode)
+            mqtt_public_paho_zip(host, port, processCaculatorPowerForInvInPowerLimitMode, username, password, listInvControlPowerLimitMode)
+            push_data_to_mqtt(host, port, processCaculatorPowerForInvInPowerLimitMode + "Binh", username, password, listInvControlPowerLimitMode)
 ############################################################################ Zero Export Control ############################################################################
 # Describe processCaculatorPowerForInvInZeroExportMode 
 # 	 * @description processCaculatorPowerForInvInZeroExportMode
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {StringSerialNumerInTableProjectSetup, mqtt_host, mqtt_port, mqtt_username, mqtt_password}
+# 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return gIntValuePowerForEachInvInModeZeroExport
 # 	 */ 
-async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, host, port, username, password):
     global gArrayMessageAllDevice, gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValueConsumptionSystemp,\
         gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,gListMovingAverageConsumption, gIntValueTotalPowerInInvInManMode, \
         gStringModeSystempCurrent, gFloatValueSystemPerformance
@@ -546,17 +543,17 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             listInvControlZeroExportMode.append(item)
         # Push MQTT
         if len(gArraydevices) == len(listInvControlZeroExportMode):
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode, mqtt_username, mqtt_password, listInvControlZeroExportMode)
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", mqtt_username, mqtt_password, listInvControlZeroExportMode)
+            mqtt_public_paho_zip(host, port, topicPudCaculatorPowerForInvInZeroExportMode, username, password, listInvControlZeroExportMode)
+            push_data_to_mqtt(host, port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", username, password, listInvControlZeroExportMode)
 ############################################################################ Setup Parameter Control ############################################################################
 # Describe processUpdateParameterModeDetail 
 # 	 * @description processUpdateParameterModeDetail
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
+# 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, host ,port ,username ,password}
 # 	 * @return MySQL_Update gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit
 # 	 */ 
-async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSerialNumerInTableProjectSetup,Topic_Control_Setup_Auto_Feedback, mqtt_host, mqtt_port, mqtt_username, mqtt_password):
+async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSerialNumerInTableProjectSetup,Topic_Control_Setup_Auto_Feedback, host, port, username, password):
     # Global variables
     global gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValuePowerLimit, gIntValueOffsetPowerLimit, gIntValueTotalPowerInALLInv
     # Local variables
@@ -584,18 +581,18 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
                 "status": intComment,
             }
             # Push MQTT
-            mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPudUpdateParameterModeDetail, mqtt_username, mqtt_password, objectSend)
-            push_data_to_mqtt(mqtt_host, mqtt_port, topicPudUpdateParameterModeDetail + "Binh", mqtt_username, mqtt_password, objectSend)
+            mqtt_public_paho_zip(host, port, topicPudUpdateParameterModeDetail, username, password, objectSend)
+            push_data_to_mqtt(host, port, topicPudUpdateParameterModeDetail + "Binh", username, password, objectSend)
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
 # Describe processUpdateModeDetail 
 # 	 * @description processUpdateModeDetail
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password}
+# 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, host ,port ,username ,password}
 # 	 * @return MySQL_Update enable_zero_export ,enable_power_limit
 # 	 */ 
-async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTableProjectSetup, mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password ):
+async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTableProjectSetup, host ,port ,username ,password ):
     # Global variables
     global gIntControlModeDetail,Topic_Control_Setup_Mode_Write_Detail_Feedback
     # Local variables
@@ -625,11 +622,11 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
                         "time_stamp" :timeStamp,
                         "status":intComment, 
                         }
-            mqtt_public_paho_zip(mqtt_host,
-                    mqtt_port,
+            mqtt_public_paho_zip(host,
+                    port,
                     topicPudModeDetail ,
-                    mqtt_username,
-                    mqtt_password,
+                    username,
+                    password,
                     objectSend)
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateModeDetail: '{err}'")
@@ -673,16 +670,16 @@ async def initializeValueControlAuto():
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 # 	 */ 
-async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password):
+async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,host ,port ,username ,password):
     # Global variables 
     global gIntControlModeDetail
     # Select the auto run process
     if gIntControlModeDetail == 1 :
         print("==============================zero_export==============================")
-        await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        await processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,host ,port ,username ,password)
     else:
         print("==============================power_limit==============================")
-        await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,mqtt_host ,mqtt_port ,mqtt_username ,mqtt_password)
+        await processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto,host ,port ,username ,password)
 ############################################################################ Sud MQTT ############################################################################
 # Describe processMessage 
 # 	 * @description pudSystempModeTrigerEachDeviceChange
@@ -798,13 +795,15 @@ async def processSudAllMessageFromMQTT(host, port, username, password, StringSer
         print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 
 async def main():
-    StringSerialNumerInTableProjectSetup = ""
-    tasks = []
     # Initialize values ​​for global variables
     await initializeValueControlAuto()
-    results_project = MySQL_Select('SELECT serial_number FROM `project_setup`', ())
+    # Get Serial number From DB
+    db_new=await db_config.get_db()
+    project_init=project_service.ProjectService()
+    results_project=await project_init.project_inform(db_new)
+    # Run Task
     if results_project != None :
-        StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
+        StringSerialNumerInTableProjectSetup=results_project["serial_number"]
         # Cycle
         scheduler = AsyncIOScheduler()
         scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
@@ -820,7 +819,6 @@ async def main():
                                                                             Mqtt_UserName,
                                                                             Mqtt_Password])
         scheduler.start()
-        # Listenner 
         tasks = []
         tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
                                                 Mqtt_Broker,
@@ -847,10 +845,6 @@ async def main():
                                                 Topic_Control_WriteAuto
                                                 )))
         await asyncio.gather(*tasks, return_exceptions=False)
-    # db_new=await db_config.get_db()
-    # project_init=project_service.ProjectService()
-    # result1=await project_init.project_inform(db_new)
-    # print("result",result1)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(

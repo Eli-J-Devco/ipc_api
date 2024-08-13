@@ -116,12 +116,21 @@ class DevicesService:
                     .values(creation_state=0))
                 await session.execute(query)    
                 await session.commit()
-            if device_list:
-                await self.mqtt_init.sendZIP("Control/Modify",
-                               device_list)
+            
                 
         except Exception as e:
             print("Error create_dev_tcp: ", e)
+        finally:
+            if device_list:
+                print('create_dev_tcp send mqtt modify ')
+                mqtt_public_paho_zip(self.mqtt_host,
+                    self.mqtt_port,
+                    f"{self.serial_number}/Control/Modify",
+                    self.mqtt_username,
+                    self.mqtt_password,
+                   device_list)
+                # await self.mqtt_init.sendZIP("Control/Modify",
+                #             device_list)
     @async_db_request_handler
     async def create_dev_rs485(self, create_devices,session: AsyncSession):
         try:
