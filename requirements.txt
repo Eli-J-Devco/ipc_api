@@ -24,7 +24,6 @@ passlib
 pydantic==1.10.15
 python-multipart
 mysql-connector-python
-mybatis-mapper2sql
 async-paho-mqtt-client
 hbmqtt
 mqttools
@@ -36,7 +35,6 @@ pyuac
 passlib
 APScheduler
 pyinstaller
-tk
 pycryptodomex
 pycryptodome
 netifaces
