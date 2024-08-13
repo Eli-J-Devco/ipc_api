@@ -717,8 +717,8 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
             gArrayMessageAllDevice = message
             await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topic14, host, port, username, password)
             await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
-            await getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,topic16, host, port, username, password)
-            await automatedParameterManagement(StringSerialNumerInTableProjectSetup,topic17, host, port, username, password)
+            # await getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,topic16, host, port, username, password)
+            # await automatedParameterManagement(StringSerialNumerInTableProjectSetup,topic17, host, port, username, password)
         elif topic == topics[4]:  # topic5
             pass
         elif topic == topics[5]:  # topic6
@@ -806,20 +806,20 @@ async def main():
     if results_project != None :
         StringSerialNumerInTableProjectSetup=results_project[0]["serial_number"]
         # Cycle
-        # scheduler = AsyncIOScheduler()
-        # scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Topic_CPU_Information,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
-        # scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-        #                                                                     Topic_Control_WriteAuto,
-        #                                                                     Mqtt_Broker,
-        #                                                                     Mqtt_Port,
-        #                                                                     Mqtt_UserName,
-        #                                                                     Mqtt_Password])
-        # scheduler.start()
+        scheduler = AsyncIOScheduler()
+        scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Topic_CPU_Information,
+                                                                            Mqtt_Broker,
+                                                                            Mqtt_Port,
+                                                                            Mqtt_UserName,
+                                                                            Mqtt_Password])
+        scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
+                                                                            Topic_Control_WriteAuto,
+                                                                            Mqtt_Broker,
+                                                                            Mqtt_Port,
+                                                                            Mqtt_UserName,
+                                                                            Mqtt_Password])
+        scheduler.start()
         # Listenner 
         tasks = []
         tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
