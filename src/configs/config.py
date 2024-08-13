@@ -7,48 +7,16 @@ import os
 import platform
 import sys
 
-# from pathlib import Path
-# from typing import Optional, Union, get_type_hints
-
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 
-# SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# sys.path.append(os.path.dirname(SCRIPT_DIR))
-# print(f'SCRIPT_DIR: {SCRIPT_DIR}')
 from dotenv import dotenv_values, find_dotenv, load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
 from async_db.config import MySqlConfigFactory, OrmProvider
 
-# from pydantic import BaseModel
-# from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
+# from pydantic import BaseSettings
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# print(f'{VERSION = }-202402')
-
-# env_file = find_dotenv(f'.env.{os.getenv("ENV", "development")}')
-# print(f'env_file: {env_file}')
-# load_dotenv(env_file)
-# load_dotenv(find_dotenv(".env"))
-# test="dev"
-# print(platform.system())
-# load_dotenv(find_dotenv(".env.development"))
 if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
 else:
