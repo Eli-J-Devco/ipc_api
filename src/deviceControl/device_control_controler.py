@@ -26,7 +26,8 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-import cpu.cpu_service as cpu_init
+from deviceControl.cpu import cpu_service as cpu_init
+from deviceControl.control import control_service as control_init
 import control.control_service as control_init
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                 mqtt_public_paho, mqtt_public_paho_zip,
@@ -163,9 +164,9 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
         system_info["NetworkSpeed"] = cpu_init.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = cpu_init.getDiskIoInformation(disk_io_counters_prev) or {}
         # Check that all fields are not None
-        if all(system_info.values()):
+        # if all(system_info.values()):
             # Push system_info to MQTT 
-            mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
+        mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
@@ -400,7 +401,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
     }
     # Public MQTT
     mqtt_public_paho_zip(host, port, StringSerialNumerInTableProjectSetup + Topic_Control_Process, username, password, result)
-    push_data_to_mqtt(host, port, StringSerialNumerInTableProjectSetup + Topic_Control_Process + "Binh", username, password, result)
+    # MQTTService.push_data(Topic_Control_Process + "Binh", result)
     return ArrayDeviceList
 # Describe getValueProductionAndConsumtion 
 # 	 * @description getValueProductionAndConsumtion
@@ -433,8 +434,8 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
     try:
         ValueProductionAndConsumtion = control_init.messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
-        mqtt_public_paho_zip(host, port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor, username, password, ValueProductionAndConsumtion)
-        push_data_to_mqtt(host, port, StringSerialNumerInTableProjectSetup + Topic_Meter_Monitor + "Binh", username, password, ValueProductionAndConsumtion)
+        mqtt_public_paho_zip(host, port, Topic_Meter_Monitor, username, password, ValueProductionAndConsumtion)
+        # MQTTService.push_data(Topic_Meter_Monitor + "Binh", ValueProductionAndConsumtion)
     except Exception as err:
         print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
 ############################################################################ Power Limit Control  ############################################################################
@@ -451,7 +452,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     # Local variables
     gArraydevices = []
     gIntValuePowerForEachInvInModePowerLimit = 0 
-    processCaculatorPowerForInvInPowerLimitMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
+    topicWriteAutoPowerLimit = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
@@ -486,8 +487,8 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             listInvControlPowerLimitMode.append(item)
         # Push MQTT
         if len(gArraydevices) == len(listInvControlPowerLimitMode):
-            mqtt_public_paho_zip(host, port, processCaculatorPowerForInvInPowerLimitMode, username, password, listInvControlPowerLimitMode)
-            push_data_to_mqtt(host, port, processCaculatorPowerForInvInPowerLimitMode + "Binh", username, password, listInvControlPowerLimitMode)
+            mqtt_public_paho_zip(host, port, topicWriteAutoPowerLimit, username, password, listInvControlPowerLimitMode)
+            # MQTTService.push_data(topicWriteAutoPowerLimit + "Binh", listInvControlPowerLimitMode)
 ############################################################################ Zero Export Control ############################################################################
 # Describe processCaculatorPowerForInvInZeroExportMode 
 # 	 * @description processCaculatorPowerForInvInZeroExportMode
@@ -544,7 +545,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         # Push MQTT
         if len(gArraydevices) == len(listInvControlZeroExportMode):
             mqtt_public_paho_zip(host, port, topicPudCaculatorPowerForInvInZeroExportMode, username, password, listInvControlZeroExportMode)
-            push_data_to_mqtt(host, port, topicPudCaculatorPowerForInvInZeroExportMode + "Binh", username, password, listInvControlZeroExportMode)
+            # MQTTService.push_data(Topic_Control_WriteAuto + "Binh", listInvControlZeroExportMode)
 ############################################################################ Setup Parameter Control ############################################################################
 # Describe processUpdateParameterModeDetail 
 # 	 * @description processUpdateParameterModeDetail
@@ -582,7 +583,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             }
             # Push MQTT
             mqtt_public_paho_zip(host, port, topicPudUpdateParameterModeDetail, username, password, objectSend)
-            push_data_to_mqtt(host, port, topicPudUpdateParameterModeDetail + "Binh", username, password, objectSend)
+            # MQTTService.push_data(Topic_Control_Setup_Auto_Feedback + "Binh", objectSend)
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
 # Describe processUpdateModeDetail 
@@ -688,34 +689,19 @@ async def automatedParameterManagement(StringSerialNumerInTableProjectSetup,Topi
 # 	 * @param {topic, message,StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return each topic , each message
 # 	 */ 
-async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,\
-    topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password):
+async def processMessage(topic, message,topics,StringSerialNumerInTableProjectSetup,host,port,username,password):
     global gArrayMessageAllDevice
-    topics = [
-            StringSerialNumerInTableProjectSetup + topic1,
-            StringSerialNumerInTableProjectSetup + topic2,
-            StringSerialNumerInTableProjectSetup + topic3,
-            StringSerialNumerInTableProjectSetup + topic4,
-            StringSerialNumerInTableProjectSetup + topic5,
-            StringSerialNumerInTableProjectSetup + topic6,
-            StringSerialNumerInTableProjectSetup + topic7,
-            StringSerialNumerInTableProjectSetup + topic8,
-            StringSerialNumerInTableProjectSetup + topic9,
-            StringSerialNumerInTableProjectSetup + topic10
-        ]
     try:
         if topic == topics[0]:  # topic1
-            await subSystempModeWhenUserChangeModeSystemp(message,StringSerialNumerInTableProjectSetup,topic12, host, port, username, password)
+            await subSystempModeWhenUserChangeModeSystemp(message,StringSerialNumerInTableProjectSetup,topics[11], host, port, username, password)
         elif topic == topics[1]:  # topic2
             await pudInformationProjectSetupWhenRequest(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic == topics[2]:  # topic3
-            await processUpdateParameterModeDetail(message, StringSerialNumerInTableProjectSetup,topic15, host, port, username, password)
+            await processUpdateParameterModeDetail(message, StringSerialNumerInTableProjectSetup,topics[14], host, port, username, password)
         elif topic == topics[3]:  # topic4
             gArrayMessageAllDevice = message
-            await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topic14, host, port, username, password)
-            await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topic11,host,port,username,password)
-            # await getIPCHardwareInformation(StringSerialNumerInTableProjectSetup,topic16, host, port, username, password)
-            # await automatedParameterManagement(StringSerialNumerInTableProjectSetup,topic17, host, port, username, password)
+            await getListALLInvInProject(gArrayMessageAllDevice, StringSerialNumerInTableProjectSetup,topics[13], host, port, username, password)
+            await getValueProductionAndConsumtion(gArrayMessageAllDevice,StringSerialNumerInTableProjectSetup,topics[10],host,port,username,password)
         elif topic == topics[4]:  # topic5
             pass
         elif topic == topics[5]:  # topic6
@@ -723,130 +709,57 @@ async def processMessage(topic, message,StringSerialNumerInTableProjectSetup,top
         elif topic == topics[6]:  # topic7
             await processUpdateModeDetail(message, StringSerialNumerInTableProjectSetup, host, port, username, password)
         elif topic in topics[7:]:  # topic8, topic9, topic10
-            await pudSystempModeTrigerEachDeviceChange(message, StringSerialNumerInTableProjectSetup,topic13, host, port, username, password)
+            await pudSystempModeTrigerEachDeviceChange(message, StringSerialNumerInTableProjectSetup,topics[12], host, port, username, password)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
-# Describe gzip_decompress 
-# 	 * @description gzip_decompress 
-# 	 * @author bnguyen 
-# 	 * @since 2-05-2024 
-# 	 * @param {message} 
-# 	 * @return result_list 
-# 	 */ 
-def gzip_decompress(message):
-    try:
-        result_decode=base64.b64decode(message.decode('ascii'))
-        result_decompress=gzip.decompress(result_decode)
-        return json.loads(result_decompress)
-    except Exception as err:
-        print(f"decompress: '{err}'")
-# Describe processSudAllMessageFromMQTT 
-# 	 * @description processSudAllMessageFromMQTT
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {}
-# 	 * @return all topic , all message
-# 	 */ 
-async def processHandleMessagesDriver(client,StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-    topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password):
-    
-    try:
-        while True:
-            message = await client.messages.get()
-            if message is None:
-                print('Broker connection lost!')
-                break
-            topic = message.topic
-            payload = gzip_decompress(message.message)
-            await processMessage(topic, payload, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-                topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host,port,username,password)
-    except Exception as err:
-        print(f"Error processHandleMessagesDriver: '{err}'")
-# Describe processSudAllMessageFromMQTT 
-# 	 * @description processSudAllMessageFromMQTT
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {}
-# 	 * @return all topic , all message
-# 	 */ 
-async def processSudAllMessageFromMQTT(host, port, username, password, StringSerialNumerInTableProjectSetup,topic1,\
-    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17):
-    
-    arrayTopic = [StringSerialNumerInTableProjectSetup + topic1, StringSerialNumerInTableProjectSetup + topic2,\
-                StringSerialNumerInTableProjectSetup +topic3, StringSerialNumerInTableProjectSetup +topic4, \
-                StringSerialNumerInTableProjectSetup +topic5, StringSerialNumerInTableProjectSetup +topic6, \
-                StringSerialNumerInTableProjectSetup +topic7, StringSerialNumerInTableProjectSetup +topic8, \
-                StringSerialNumerInTableProjectSetup +topic9, StringSerialNumerInTableProjectSetup +topic10]
-    try:
-        client = mqttools.Client(
-            host=host,
-            port=port,
-            username=username,
-            password=bytes(password, 'utf-8'),
-            subscriptions=arrayTopic,
-            connect_delays=[1, 2, 4, 8]
-        )
-        while True:
-            await client.start()
-            await processHandleMessagesDriver(client, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
-                topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,host, port, username, password)
-            await client.stop()
-    except Exception as err:
-        print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 
 async def main():
-    # Initialize values ​​for global variables
+    # Initialize values for global variables
     await initializeValueControlAuto()
     # Get Serial number From DB
-    db_new=await db_config.get_db()
-    project_init=project_service.ProjectService()
-    results_project=await project_init.project_inform(db_new)
-    # Run Task
-    if results_project != None :
-        StringSerialNumerInTableProjectSetup=results_project["serial_number"]
+    db_new = await db_config.get_db()
+    project_init = project_service.ProjectService()
+    results_project = await project_init.project_inform(db_new)
+    if results_project is not None:
+        StringSerialNumerInTableProjectSetup = results_project["serial_number"]
         # Cycle
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(getIPCHardwareInformation, 'cron',  second = f'*/1' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Topic_CPU_Information,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
-        scheduler.add_job(automatedParameterManagement, 'cron',  second = f'*/5' , args=[StringSerialNumerInTableProjectSetup,
-                                                                            Topic_Control_WriteAuto,
-                                                                            Mqtt_Broker,
-                                                                            Mqtt_Port,
-                                                                            Mqtt_UserName,
-                                                                            Mqtt_Password])
+        scheduler.add_job(getIPCHardwareInformation, 'cron', second='*/1', args=[StringSerialNumerInTableProjectSetup,
+                                                                                Topic_CPU_Information,
+                                                                                Mqtt_Broker,
+                                                                                Mqtt_Port,
+                                                                                Mqtt_UserName,
+                                                                                Mqtt_Password])
+        scheduler.add_job(automatedParameterManagement, 'cron', second='*/5', args=[StringSerialNumerInTableProjectSetup,
+                                                                                Topic_Control_WriteAuto,
+                                                                                Mqtt_Broker,
+                                                                                Mqtt_Port,
+                                                                                Mqtt_UserName,
+                                                                                Mqtt_Password])
         scheduler.start()
-        tasks = []
-        tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
-                                                Mqtt_Broker,
-                                                Mqtt_Port,
-                                                Mqtt_UserName,
-                                                Mqtt_Password,
-                                                StringSerialNumerInTableProjectSetup,
-                                                Topic_Control_Setup_Mode_Write,
-                                                Topic_Project_Get,
-                                                Topic_Control_Setup_Auto,
-                                                Topic_Devices_All,
-                                                Topic_CPU_Get,
-                                                Topic_Project_Set,
-                                                Topic_Control_Setup_Mode_Write_Detail,
-                                                Topic_Control_Feedback ,
-                                                Topic_Control_Modify,
-                                                Topic_Control_FeedbackSetup,
-                                                Topic_Meter_Monitor,
-                                                Topic_Control_Setup_Mode_Feedback,
-                                                Topic_Control_Setup_Mode_Write,
-                                                Topic_Control_Process,
-                                                Topic_Control_Setup_Auto_Feedback,
-                                                Topic_CPU_Information,
-                                                Topic_Control_WriteAuto
-                                                )))
-        await asyncio.gather(*tasks, return_exceptions=False)
+        mqtt_service = MQTTService(Mqtt_Broker, Mqtt_Port, Mqtt_UserName, Mqtt_Password, StringSerialNumerInTableProjectSetup)
+        mqtt_service.set_topics(
+            Topic_Control_Setup_Mode_Write,
+            Topic_Project_Get,
+            Topic_Control_Setup_Auto,
+            Topic_Devices_All,
+            Topic_CPU_Get,
+            Topic_Project_Set,
+            Topic_Control_Setup_Mode_Write_Detail,
+            Topic_Control_Feedback,
+            Topic_Control_Modify,
+            Topic_Control_FeedbackSetup,
+            Topic_Meter_Monitor,
+            Topic_Control_Setup_Mode_Feedback,
+            Topic_Control_Setup_Mode_Write,
+            Topic_Control_Process,
+            Topic_Control_Setup_Auto_Feedback,
+            Topic_CPU_Information,
+            Topic_Control_WriteAuto
+        )
+        # Start listening to the message
+        await mqtt_service.start_mqtt_client(processMessage)
 if __name__ == '__main__':
     if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(
-        asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
     asyncio.run(main())

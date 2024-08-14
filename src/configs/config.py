@@ -11,7 +11,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 
 from dotenv import dotenv_values, find_dotenv, load_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 
 from async_db.config import MySqlConfigFactory, OrmProvider
 
