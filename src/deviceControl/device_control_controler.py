@@ -163,9 +163,9 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
         system_info["NetworkSpeed"] = cpu_init.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = cpu_init.getDiskIoInformation(disk_io_counters_prev) or {}
         # Check that all fields are not None
-        if all(system_info.values()):
+        # if all(system_info.values()):
             # Push system_info to MQTT 
-            mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
+        mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
