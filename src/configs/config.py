@@ -17,8 +17,6 @@ from async_db.config import MySqlConfigFactory, OrmProvider
 
 # from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
 
-
-
 if platform.system() == 'Linux':
     load_dotenv(find_dotenv(".env.production"))
 else:
