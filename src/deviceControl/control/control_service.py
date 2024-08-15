@@ -32,7 +32,7 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 
 
 # ============================================================== Mode Systemp ================================
-async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password):
+async def processModeChange(mqtt_service,gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp):
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
         gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
         if gStringModeSysTemp in [0, 1, 2]:
@@ -54,7 +54,7 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
                 "time_stamp": current_time,
             }
         # Push system_info to MQTT 
-        mqtt_public_paho_zip(host, port, topicFeedbackModeSystemp, username, password, objectSend)
+        MQTTService.push_data_zip(mqtt_service,topicFeedbackModeSystemp,objectSend)
         return gStringModeSysTemp
 async def updateSystemMode(mode):
     querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
