@@ -26,8 +26,8 @@ from configs.config import Config
 from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
-import cpu.cpu_service as cpu_init
-import control.control_service as control_init
+from cpu.cpu_service import *
+from control.control_service import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
                                 mqtt_public_paho, mqtt_public_paho_zip,
                                 mqttService)
@@ -154,14 +154,14 @@ async def getIPCHardwareInformation(mqtt_service,Topic_CPU_Information):
     }
     try:
         # Get system information
-        system_info["SystemInformation"] = cpu_init.getSystemInformation()
-        system_info["BootTime"] = cpu_init.getBootTime() or {}
-        system_info["CPUInfo"] = cpu_init.getCpuInformation() or {}
-        system_info["MemoryInformation"] = cpu_init.getMemoryInformation() or {}
-        system_info["DiskInformation"] = cpu_init.getDiskInformation() or {}
-        system_info["NetworkInformation"] = cpu_init.getNetworkInformation() or {}
-        system_info["NetworkSpeed"] = cpu_init.getNetworkSpeedInformation(net_io_counters_prev) or {}
-        system_info["DiskIO"] = cpu_init.getDiskIoInformation(disk_io_counters_prev) or {}
+        system_info["SystemInformation"] = CPUInfo.getSystemInformation()
+        system_info["BootTime"] = CPUInfo.getBootTime() or {}
+        system_info["CPUInfo"] = CPUInfo.getCpuInformation() or {}
+        system_info["MemoryInformation"] = CPUInfo.getMemoryInformation() or {}
+        system_info["DiskInformation"] = CPUInfo.getDiskInformation() or {}
+        system_info["NetworkInformation"] = CPUInfo.getNetworkInformation() or {}
+        system_info["NetworkSpeed"] = CPUInfo.getNetworkSpeedInformation(net_io_counters_prev) or {}
+        system_info["DiskIO"] = CPUInfo.getDiskIoInformation(disk_io_counters_prev) or {}
         # Check that all fields are not None
         # if all(system_info.values()):
             # Push system_info to MQTT 
@@ -182,7 +182,8 @@ async def subSystempModeWhenUserChangeModeSystemp(mqtt_service,gArrayMessageChan
     global gStringModeSystempCurrent
     try:
         if gArrayMessageChangeModeSystemp:
-            gStringModeSystempCurrent = await control_init.processModeChange(mqtt_service,gArrayMessageChangeModeSystemp, Topic_Control_Setup_Mode_Feedback)
+            modeSystem = ModeSystem()
+            gStringModeSystempCurrent = await modeSystem.processModeChange(mqtt_service,gArrayMessageChangeModeSystemp, Topic_Control_Setup_Mode_Feedback)
     except Exception as err:
         print(f"Error MQTT subscribe subSystempModeWhenUserChangeModeSystemp: '{err}'")
 # Describe pudSystempModeTrigerEachDeviceChange
@@ -316,13 +317,14 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
     ArayyDeviceList = []
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            device_info = control_init.extract_device_auto_info(item)
+            listAutoDevice = GetListAutoDevice()
+            device_info = listAutoDevice.extract_device_auto_info(item)
             if not device_info:
                 continue
             # Get Information Each Device 
             id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type = device_info
             # Check Device Auto 
-            if control_init.is_device_controlable(results_device_type, status_device, mode, operator):
+            if listAutoDevice.is_device_controlable(results_device_type, status_device, mode, operator):
                 ArayyDeviceList.append({
                     'id_device': id_device,
                     'mode': mode,
@@ -351,13 +353,14 @@ async def getListALLInvInProject( mqtt_service ,messageAllDevice,Topic_Control_P
     # Get Informatio about the device
     if messageAllDevice and isinstance(messageAllDevice, list):
         for item in messageAllDevice:
-            device_info = control_init.extract_device_all_info(item)
+            ListAllDevice = GetListAllDevice()
+            device_info = ListAllDevice.extract_device_all_info(item)
             if device_info:
                 ArrayDeviceList.append(device_info)
     # Calculate the sum of wmax values ​​of all inv in the system
-    gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = control_init.calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
+    gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = ListAllDevice.calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
     # Call the update_system_performance function and get the return value
-    gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = control_init.update_system_performance(
+    gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = ListAllDevice.update_system_performance(
         gStringModeSystempCurrent,
         gFloatValueSystemPerformance,
         gIntValueTotalPowerInALLInv,
@@ -402,15 +405,15 @@ async def getValueProductionAndConsumtion(mqtt_service , gArrayMessageAllDevice,
         for item in gArrayMessageAllDevice:
             if 'id_device' in item:
                 id_device = item['id_device']
-                result_type_meter = control_init.get_device_type(id_device)
+                result_type_meter = ValueEnergySystem.get_device_type(id_device)
                 if result_type_meter:
-                    IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = control_init.calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
-                    IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = control_init.calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
+                    IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = ValueEnergySystem.calculate_production(item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time)
+                    IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = ValueEnergySystem.calculate_consumption(item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time)
         # Update the global values ​​of total production and total consumption
         gIntValueProductionSystemp = IntTotalValueProduction
         gIntValueConsumptionSystemp = IntTotalValueConsumtion
     try:
-        ValueProductionAndConsumtion = control_init.messageSentMQTT(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
+        ValueProductionAndConsumtion = ValueEnergySystem.message_value_metter(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
         # Push system_info to MQTT
         MQTTService.push_data_zip(mqtt_service,Topic_Meter_Monitor,ValueProductionAndConsumtion)
     except Exception as err:
@@ -429,23 +432,24 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
     # Local variables
     gArraydevices = []
     gIntValuePowerForEachInvInModePowerLimit = 0 
+    ProcessCaculatorPower = FuntionCaculatorPower()
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
-        gFloatValueSystemPerformance = await control_init.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+        gFloatValueSystemPerformance = await ProcessCaculatorPower.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,gIntValuePowerLimit)
     # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
-            id_device, mode, intPowerMaxOfInv = control_init.process_device_powerlimit_info(device)
-            gIntValuePowerForEachInvInModePowerLimit = control_init.calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,\
+            id_device, mode, intPowerMaxOfInv = ProcessCaculatorPower.process_device_powerlimit_info(device)
+            gIntValuePowerForEachInvInModePowerLimit = ProcessCaculatorPower.calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,\
                 gIntValueTotalPowerInInvInAutoMode,gIntValuePowerLimit)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < gIntValuePowerLimit:
-                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntValuePowerLimit,\
+                item = ProcessCaculatorPower.create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntValuePowerLimit,\
                     gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
                 item = {
@@ -481,27 +485,28 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control
     gIntValuePowerForEachInvInModeZeroExport = 0
     intPracticalConsumptionValue = 0.0
     setpointCalculatorPowerForEachInv = 0 
+    ProcessCaculatorPower = FuntionCaculatorPower()
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
-        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await control_init.calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
+        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await ProcessCaculatorPower.calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
         gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueOffsetZeroExport)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
-        gFloatValueSystemPerformance = await control_init.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
+        gFloatValueSystemPerformance = await ProcessCaculatorPower.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,intPracticalConsumptionValue)
     if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
-            id_device, mode, intPowerMaxOfInv = control_init.process_device_powerlimit_info(device)
-            gIntValuePowerForEachInvInModeZeroExport = control_init.calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
+            id_device, mode, intPowerMaxOfInv = ProcessCaculatorPower.process_device_powerlimit_info(device)
+            gIntValuePowerForEachInvInModeZeroExport = ProcessCaculatorPower.calculate_power_value(intPowerMaxOfInv, gStringModeSystempCurrent, 
                 gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
                 gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
-                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
+                item = ProcessCaculatorPower.create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                 gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
                 item = {
@@ -541,9 +546,9 @@ async def processUpdateParameterModeDetail(mqtt_service,messageParameterControlA
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
-                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
+                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await ModeDetailHandler.handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
-                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await ModeDetailHandler.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
                 intComment = 400 
