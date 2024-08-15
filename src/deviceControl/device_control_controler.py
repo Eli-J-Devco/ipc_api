@@ -180,10 +180,10 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
 async def subSystempModeWhenUserChangeModeSystemp(gArrayMessageChangeModeSystemp, StringSerialNumerInTableProjectSetup, Topic_Control_Setup_Mode_Feedback, host, port, username, password):
     # Global variables
     global gStringModeSystempCurrent
-    topicFeedbackModeSystemp = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Feedback
     try:
         if gArrayMessageChangeModeSystemp:
-            gStringModeSystempCurrent = await control_init.processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password)
+            print("gArrayMessageChangeModeSystemp",gArrayMessageChangeModeSystemp)
+            gStringModeSystempCurrent = await control_init.processModeChange(gArrayMessageChangeModeSystemp, Topic_Control_Setup_Mode_Feedback, host, port, username, password)
     except Exception as err:
         print(f"Error MQTT subscribe subSystempModeWhenUserChangeModeSystemp: '{err}'")
 # Describe pudSystempModeTrigerEachDeviceChange
@@ -196,8 +196,6 @@ async def subSystempModeWhenUserChangeModeSystemp(gArrayMessageChangeModeSystemp
 # 	 */
 async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSerialNumerInTableProjectSetup,Topic_Control_Setup_Mode_Write,\
     host, port, username, password):
-    # Local variables
-    topicpud = StringSerialNumerInTableProjectSetup + Topic_Control_Setup_Mode_Write
     # Switch to user mode that is both man and auto
     if MessageCheckModeSystemp:
         try:
@@ -210,7 +208,7 @@ async def pudSystempModeTrigerEachDeviceChange(MessageCheckModeSystemp, StringSe
                     data_send = {"id_device": "Systemp", "mode": 1}
             else:
                 data_send = {"id_device": "Systemp", "mode": 2}
-            mqtt_public_paho_zip(host, port, topicpud, username, password, data_send)
+            mqtt_public_paho_zip(host, port, Topic_Control_Setup_Mode_Write, username, password, data_send)
         except asyncio.TimeoutError:
             print("Timeout waiting for data from MySQL")
 ############################################################################ Config SiteInfo ############################################################################
@@ -284,14 +282,12 @@ async def insertInformationProjectSetup(messageInsertInformationProjectSetup, ho
 # 	 * @return call pudFeedBackProjectSetup
 # 	 */ 
 async def pudInformationProjectSetupWhenRequest(messageGetInformation ,StringSerialNumerInTableProjectSetup,host, port, username, password):
-    global Topic_Project_Information
-    topicPudAllInformationTableProjectSetup = StringSerialNumerInTableProjectSetup + Topic_Project_Information
     timeStampPudInformationProjectSetup = get_utc()
     try:
         if messageGetInformation and 'get_information' in messageGetInformation:
             await pudFeedBackProjectSetup(host,
                                             port,
-                                            topicPudAllInformationTableProjectSetup,
+                                            Topic_Project_Information,
                                             username,
                                             password)                       
     except Exception as err:
@@ -300,7 +296,7 @@ async def pudInformationProjectSetupWhenRequest(messageGetInformation ,StringSer
                     {"time_stamp" : timeStampPudInformationProjectSetup},
                     {"status":400}]
                     }
-        mqtt_public_paho_zip(host, port, topicPudAllInformationTableProjectSetup, username, password, data_send)
+        mqtt_public_paho_zip(host, port, Topic_Project_Information, username, password, data_send)
 # Describe insertInformationProjectSetupWhenRequest 
 # 	 * @description insertInformationProjectSetupWhenRequest
 # 	 * @author bnguyen
@@ -316,7 +312,7 @@ async def insertInformationProjectSetupWhenRequest(messageInsertInformationProje
             await insertInformationProjectSetup(messageInsertInformationProjectSetup,
                                             host,
                                             port,
-                                            topicPudInsertInformationProjectSetupWhenRequest,
+                                            Topic_Project_Set_Feedback,
                                             username,
                                             password)     
             await initializeValueControlAuto()
@@ -400,7 +396,7 @@ async def getListALLInvInProject(messageAllDevice, StringSerialNumerInTableProje
         }
     }
     # Public MQTT
-    mqtt_public_paho_zip(host, port, StringSerialNumerInTableProjectSetup + Topic_Control_Process, username, password, result)
+    mqtt_public_paho_zip(host, port,Topic_Control_Process, username, password, result)
     # MQTTService.push_data(Topic_Control_Process + "Binh", result)
     return ArrayDeviceList
 # Describe getValueProductionAndConsumtion 
@@ -487,7 +483,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
             listInvControlPowerLimitMode.append(item)
         # Push MQTT
         if len(gArraydevices) == len(listInvControlPowerLimitMode):
-            mqtt_public_paho_zip(host, port, topicWriteAutoPowerLimit, username, password, listInvControlPowerLimitMode)
+            mqtt_public_paho_zip(host, port, Topic_Control_WriteAuto, username, password, listInvControlPowerLimitMode)
             # MQTTService.push_data(topicWriteAutoPowerLimit + "Binh", listInvControlPowerLimitMode)
 ############################################################################ Zero Export Control ############################################################################
 # Describe processCaculatorPowerForInvInZeroExportMode 
@@ -544,7 +540,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             listInvControlZeroExportMode.append(item)
         # Push MQTT
         if len(gArraydevices) == len(listInvControlZeroExportMode):
-            mqtt_public_paho_zip(host, port, topicPudCaculatorPowerForInvInZeroExportMode, username, password, listInvControlZeroExportMode)
+            mqtt_public_paho_zip(host, port, Topic_Control_WriteAuto, username, password, listInvControlZeroExportMode)
             # MQTTService.push_data(Topic_Control_WriteAuto + "Binh", listInvControlZeroExportMode)
 ############################################################################ Setup Parameter Control ############################################################################
 # Describe processUpdateParameterModeDetail 
@@ -582,7 +578,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
                 "status": intComment,
             }
             # Push MQTT
-            mqtt_public_paho_zip(host, port, topicPudUpdateParameterModeDetail, username, password, objectSend)
+            mqtt_public_paho_zip(host, port, Topic_Control_Setup_Auto_Feedback, username, password, objectSend)
             # MQTTService.push_data(Topic_Control_Setup_Auto_Feedback + "Binh", objectSend)
     except Exception as err:
         print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
@@ -625,7 +621,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
                         }
             mqtt_public_paho_zip(host,
                     port,
-                    topicPudModeDetail ,
+                    Topic_Control_Setup_Mode_Write_Detail_Feedback ,
                     username,
                     password,
                     objectSend)
@@ -711,8 +707,40 @@ async def processMessage(topic, message,topics,StringSerialNumerInTableProjectSe
         elif topic in topics[7:]:  # topic8, topic9, topic10
             await pudSystempModeTrigerEachDeviceChange(message, StringSerialNumerInTableProjectSetup,topics[12], host, port, username, password)
     except Exception as err:
-        print(f"Error MQTT subscribe processMessage: '{err}'") 
-
+        print(f"Error MQTT subscribe processMessage: '{err}'")
+        
+async def processSudAllMessageFromMQTT(Mqtt_Broker, Mqtt_Port, Mqtt_UserName, Mqtt_Password, StringSerialNumerInTableProjectSetup,topic1,\
+    topic2,topic3,topic4,topic5,topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17):
+    try:
+        while True:
+            print("dda vao day")
+            mqtt_service = MQTTService(Mqtt_Broker, Mqtt_Port, Mqtt_UserName, Mqtt_Password, StringSerialNumerInTableProjectSetup)
+            mqtt_service.set_topics(
+                topic1,
+                topic2,
+                topic3,
+                topic4,
+                topic5,
+                topic6,
+                topic7,
+                topic8,
+                topic9,
+                topic10,
+                topic11,
+                topic12,
+                topic13,
+                topic14,
+                topic15,
+                topic16,
+                topic17
+            )
+            topic, mesage = await mqtt_service.sud_data()
+            print("topic",topic)
+            print("message",mesage)
+            await processMessage(topic, mesage, StringSerialNumerInTableProjectSetup,topic1,topic2,topic3,topic4,topic5,\
+                topic6,topic7,topic8,topic9,topic10,topic11,topic12,topic13,topic14,topic15,topic16,topic17,Mqtt_Broker,Mqtt_Port,Mqtt_UserName,Mqtt_Password)
+    except Exception as err:
+        print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
 async def main():
     # Initialize values for global variables
     await initializeValueControlAuto()
@@ -737,28 +765,33 @@ async def main():
                                                                                 Mqtt_UserName,
                                                                                 Mqtt_Password])
         scheduler.start()
-        mqtt_service = MQTTService(Mqtt_Broker, Mqtt_Port, Mqtt_UserName, Mqtt_Password, StringSerialNumerInTableProjectSetup)
-        mqtt_service.set_topics(
-            Topic_Control_Setup_Mode_Write,
-            Topic_Project_Get,
-            Topic_Control_Setup_Auto,
-            Topic_Devices_All,
-            Topic_CPU_Get,
-            Topic_Project_Set,
-            Topic_Control_Setup_Mode_Write_Detail,
-            Topic_Control_Feedback,
-            Topic_Control_Modify,
-            Topic_Control_FeedbackSetup,
-            Topic_Meter_Monitor,
-            Topic_Control_Setup_Mode_Feedback,
-            Topic_Control_Setup_Mode_Write,
-            Topic_Control_Process,
-            Topic_Control_Setup_Auto_Feedback,
-            Topic_CPU_Information,
-            Topic_Control_WriteAuto
-        )
-        # Start listening to the message
-        await mqtt_service.start_mqtt_client(processMessage)
+        tasks = []
+        tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
+                                                Mqtt_Broker,
+                                                Mqtt_Port,
+                                                Mqtt_UserName,
+                                                Mqtt_Password,
+                                                StringSerialNumerInTableProjectSetup,
+                                                Topic_Control_Setup_Mode_Write,
+                                                Topic_Project_Get,
+                                                Topic_Control_Setup_Auto,
+                                                Topic_Devices_All,
+                                                Topic_CPU_Get,
+                                                Topic_Project_Set,
+                                                Topic_Control_Setup_Mode_Write_Detail,
+                                                Topic_Control_Feedback ,
+                                                Topic_Control_Modify,
+                                                Topic_Control_FeedbackSetup,
+                                                Topic_Meter_Monitor,
+                                                Topic_Control_Setup_Mode_Feedback,
+                                                Topic_Control_Setup_Mode_Write,
+                                                Topic_Control_Process,
+                                                Topic_Control_Setup_Auto_Feedback,
+                                                Topic_CPU_Information,
+                                                Topic_Control_WriteAuto
+                                                )))
+        await asyncio.gather(*tasks, return_exceptions=False)
+        
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # use for windows

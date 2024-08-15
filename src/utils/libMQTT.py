@@ -20,8 +20,9 @@ class MQTTService:
 
     def set_topics(self, *args):
         self.topics = [self.serial_number + topic for topic in args]
-
-    async def process_handle_messages(self, client, process_message_func):
+    def stop(self):
+        self.running = False  # Đặt cờ dừng
+    async def process_handle_messages(self, client):
         try:
             while True:
                 message = await client.messages.get()
@@ -31,26 +32,29 @@ class MQTTService:
                 topic = message.topic
                 payload = self.gzip_decompress(message.message)
                 # Gọi hàm processMessage
-                await process_message_func(topic, payload, self.topics, self.serial_number, self.host, self.port, self.username, self.password)
+                return topic, payload
         except Exception as err:
             print(f"Error processing messages: '{err}'")
 
-    async def start_mqtt_client(self, process_message_func):
-        client = mqttools.Client(
-            host=self.host,
-            port=self.port,
-            username=self.username,
-            password=bytes(self.password, 'utf-8'),
-            subscriptions=self.topics,
-            connect_delays=[1, 2, 4, 8]
-        )
-        await client.start()
-
+    async def sud_data(self):
         try:
-            await self.process_handle_messages(client, process_message_func)
+            client = mqttools.Client(
+                host=self.host,
+                port=self.port,
+                username=self.username,
+                password=bytes(self.password, 'utf-8'),
+                subscriptions=self.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True:
+                await client.start()
+                topic , message = await self.process_handle_messages(client)
+                if topic and message: 
+                    return topic, message
+        except Exception as err:
+            print(f"Error MQTT processSudAllMessageFromMQTT: '{err}'")
         finally:
-            await client.stop()  # Đảm bảo dừng client khi kết thúc
-
+            await client.stop()
     def gzip_decompress(self, message):
         try:
             result_decode = base64.b64decode(message.decode('ascii'))
