@@ -163,9 +163,9 @@ async def getIPCHardwareInformation(StringSerialNumerInTableProjectSetup, Topic_
         system_info["NetworkSpeed"] = cpu_init.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = cpu_init.getDiskIoInformation(disk_io_counters_prev) or {}
         # Check that all fields are not None
-        # if all(system_info.values()):
+        if all(system_info.values()):
             # Push system_info to MQTT 
-        mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
+            mqtt_public_paho_zip(host, port, topicPublicInformationCpu, username, password, system_info)
     except Exception as err:
         print(f"Error MQTT subscribe getCpuInformation: '{err}'")
 ############################################################################ Mode Systemp ############################################################################
@@ -571,10 +571,16 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
-            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
+            if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
+                arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
+                gIntValueOffsetZeroExport is None or 
+                gIntValueThresholdZeroExport is None or 
+                gIntValueOffsetPowerLimit is None or 
+                gIntValuePowerLimit is None or 
+                (gIntValuePowerLimit is not None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2)):
                 intComment = 400 
             else:
-                intComment = 200 
+                intComment = 200
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,

@@ -982,7 +982,7 @@ async def write_device(
                                             if id_pointkey in [ "WMax", "WMaxPercent","WMaxPercentEnable","VarMax","VarMaxPercent","VarMaxPercentEnable","PFSet","PFSetEnable"]:
                                                 MySQL_Update_V1('update `device_point_list_map` set `output_values` = %s where `id_device_list` = %s AND `name` = %s', (value, device_control, name_device_points_list_map))
                                                 if slope is not None and slope != 0:
-                                                    value /= slope
+                                                    value = round(value / slope)
                                             # Write down the inv value after conversion
                                             results_write_modbus = write_modbus_tcp(client, slave_ID, datatype,modbus_func, register, value=value)
                             
@@ -1827,6 +1827,14 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                     rated_power_custom_calculator = watt
                 else:
                     rated_power_custom_calculator = custom_watt
+                print("gStrModeSysTem",gStrModeSysTem)
+                print("power_limit",power_limit)
+                print("rated_power_custom_calculator",rated_power_custom_calculator)
+                print("watt",watt)
+                print("gStrModeAutoControl",gStrModeAutoControl)
+                print("total_wmax_man_temp",total_wmax_man_temp)
+                print("value_power_limit",value_power_limit)
+                print("value_zero_export",value_zero_export)
                 # Check status when saving device control parameters to the system 
                 if (gStrModeSysTem in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
