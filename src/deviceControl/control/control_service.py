@@ -83,7 +83,7 @@ async def handle_zero_export_mode(message):
     else:
         ValueThreshold = None
     # Result Query 
-    if ValueOffset is None or ValueThreshold is None :
+    if ValueOffset != None and ValueThreshold != None :
         ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffset, ValueThreshold))
     return ValueOffset,ValueThreshold,ResultQuery
 
@@ -105,7 +105,7 @@ async def handle_power_limit_mode(message,TotalPower):
     else:
         ValuePowerLimit = None 
         # Result Query 
-    if ValueOffset is None or ValuePowerLimit is None :
+    if ValueOffset != None and ValuePowerLimit != None :
         ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
     return ValueOffset,ValuePowerLimit,ResultQuery
 
