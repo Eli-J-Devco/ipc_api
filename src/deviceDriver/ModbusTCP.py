@@ -1828,15 +1828,6 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
                 else:
                     rated_power_custom_calculator = custom_watt
                 # Check status when saving device control parameters to the system
-                print("gStrModeSysTem",gStrModeSysTem)
-                print("power_limit",power_limit)
-                print("rated_power_custom_calculator",rated_power_custom_calculator)
-                print("watt",watt)
-                print("gStrModeAutoControl",gStrModeAutoControl)
-                print("total_wmax_man_temp",total_wmax_man_temp)
-                print("value_power_limit",value_power_limit)
-                print("value_zero_export",value_zero_export)
-                
                 if (gStrModeSysTem in [0,2] and power_limit > rated_power_custom_calculator) or \
                 (power_limit > watt) or \
                 (gStrModeSysTem in [1,2] and gStrModeAutoControl == 2 and total_wmax_man_temp > value_power_limit) or \

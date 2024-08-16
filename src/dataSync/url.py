@@ -22,7 +22,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from configs.config import Config
 from utils.libMySQL import *
-from utils.mqttManager import (gzip_decompress, mqtt_public,
+from utils.mqttManager import (gzip_decompress,
                                mqtt_public_common, mqtt_public_paho,
                                mqtt_public_paho_zip, mqttService)
 # Information DB
