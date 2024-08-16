@@ -571,10 +571,16 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
-            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
+            if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
+                arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
+                gIntValueOffsetZeroExport is None or 
+                gIntValueThresholdZeroExport is None or 
+                gIntValueOffsetPowerLimit is None or 
+                gIntValuePowerLimit is None or 
+                (gIntValuePowerLimit is not None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2)):
                 intComment = 400 
             else:
-                intComment = 200 
+                intComment = 200
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,
