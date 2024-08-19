@@ -343,7 +343,10 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
         min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
     )
     calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
-    ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
+    if ValueOffetConsump != None :
+        ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
+    else:
+        ConsumptionAfterSudOfset = ValueConsump
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
     return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset
