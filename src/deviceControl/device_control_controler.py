@@ -452,34 +452,38 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
     gArraydevices = []
     gIntValuePowerForEachInvInModePowerLimit = 0 
     processCaculatorPowerForInvInPowerLimitMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
+    if gIntValuePowerLimit != None:
+        ValuePowerLimitCaculator = gIntValuePowerLimit
+    else:
+        ValuePowerLimitCaculator = 0.0
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
     if gStringModeSystempCurrent != 0:
         gFloatValueSystemPerformance = await control_init.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
-        gIntValueProductionSystemp,gIntValuePowerLimit)
+        gIntValueProductionSystemp,ValuePowerLimitCaculator)
     # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
             id_device, mode, intPowerMaxOfInv = control_init.process_device_powerlimit_info(device)
             gIntValuePowerForEachInvInModePowerLimit = control_init.calculate_power_value(intPowerMaxOfInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,\
-                gIntValueTotalPowerInInvInAutoMode,gIntValuePowerLimit)
+                gIntValueTotalPowerInInvInAutoMode,ValuePowerLimitCaculator)
             # Create Infor Device Publish MQTT
-            if gIntValueProductionSystemp < gIntValuePowerLimit:
-                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,gIntValuePowerLimit,\
+            if gIntValueProductionSystemp < ValuePowerLimitCaculator:
+                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,ValuePowerLimitCaculator,\
                     gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
                 item = {
                     "id_device": id_device,
                     "mode": mode,
                     "status": "power limit",
-                    "setpoint": gIntValuePowerLimit - gIntValueTotalPowerInInvInManMode,
+                    "setpoint": ValuePowerLimitCaculator - gIntValueTotalPowerInInvInManMode,
                     "feedback": gIntValueProductionSystemp,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - gIntValuePowerLimit))}
+                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - ValuePowerLimitCaculator))}
                     ]
                 }
             # Create List Device 
@@ -506,6 +510,10 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     gIntValuePowerForEachInvInModeZeroExport = 0
     intPracticalConsumptionValue = 0.0
     setpointCalculatorPowerForEachInv = 0 
+    if gIntValueThresholdZeroExport != None :
+        ValueThresholdZeroExportCaculator = gIntValueThresholdZeroExport
+    else:
+        ValueThresholdZeroExportCaculator = 0.0
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await control_init.calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
@@ -525,7 +533,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                 gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
-                gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+                gIntValueConsumptionSystemp >= ValueThresholdZeroExportCaculator and gIntValueConsumptionSystemp >= 0:
                 item = control_init.create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                 gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
@@ -572,11 +580,11 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
             if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
-                arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
-                gIntValueOffsetZeroExport is None or 
-                gIntValueThresholdZeroExport is None or 
-                gIntValueOffsetPowerLimit is None or 
-                gIntValuePowerLimit is None or 
+                # arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
+                # gIntValueOffsetZeroExport is None or 
+                # gIntValueThresholdZeroExport is None or 
+                # gIntValueOffsetPowerLimit is None or 
+                # gIntValuePowerLimit is None or 
                 (gIntValuePowerLimit is not None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2)):
                 intComment = 400 
             else:
