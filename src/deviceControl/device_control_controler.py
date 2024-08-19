@@ -678,8 +678,6 @@ async def processMessage(mqtt_service,topic, message,StringSerialNumerInTablePro
     # print("topics",topics)
     try:
         if topic == topics[0]:  # topic1
-            print("topic",topic)
-            print("message",message)
             await subSystempModeWhenUserChangeModeSystemp(mqtt_service,message,topic12)
         elif topic == topics[1]:  # topic2
             await pudInformationProjectSetupWhenRequest(mqtt_service,message,topic15)
