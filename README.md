@@ -471,7 +471,7 @@ gateway 192.168.0.1
 <!-- netplan -->
 https://www.mondoze.com/guide/kb/how-to-configure-static-ip-address-on-ubuntu-18-04
 sudo nano /etc/netplan/01-network-manager-all.yaml
-
+///
 <!-- use it -->
 sudo nano /etc/netplan/01-netcfg.yaml
 network:
