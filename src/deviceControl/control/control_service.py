@@ -69,15 +69,20 @@ async def updateDeviceMode(mode):
 async def handle_zero_export_mode(message):
     ValueOffsetTemp = 0
     ValueThresholdTemp = 0
-    ResultQuery = []
+    ResultQuery = None
     # Get ValueOffset From Message
     ValueOffsetTemp = message.get("offset")
     if ValueOffsetTemp is not None:
         ValueOffset = ValueOffsetTemp
+    else:
+        ValueOffset = None
     # Get ValueThreshold From Message
     ValueThresholdTemp = message.get("threshold")
     if ValueThresholdTemp is not None:
         ValueThreshold = ValueThresholdTemp
+    else:
+        ValueThreshold = None
+    # Result Query 
     if ValueOffset != None and ValueThreshold != None :
         ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffset, ValueThreshold))
     return ValueOffset,ValueThreshold,ResultQuery
@@ -85,20 +90,24 @@ async def handle_zero_export_mode(message):
 async def handle_power_limit_mode(message,TotalPower):
     ValueOffsetTemp = 0
     ValuePowerLimitTemp = 0
-    ResultQuery = []
+    ResultQuery = None
     # Get ValueOffset From Message
     ValueOffsetTemp = message.get("offset")
     if ValueOffsetTemp is not None:
         ValueOffset = ValueOffsetTemp
+    else:
+        ValueOffset = None 
     # Get ValuePowerLimit From Message
     ValuePowerLimitTemp = message.get("value")
     if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
         ValuePowerLimit = ValuePowerLimitTemp
         ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
+    else:
+        ValuePowerLimit = None 
+        # Result Query 
     if ValueOffset != None and ValuePowerLimit != None :
         ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
     return ValueOffset,ValuePowerLimit,ResultQuery
-
 
 # ==================================================== Auto Device  ==================================================================
 def extract_device_auto_info(item):
@@ -334,10 +343,7 @@ async def calculate_setpoint(modeSystem ,ValueConsump,ValueTotalPowerInInvInManM
         min(calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
     )
     calculate_setpoint.last_setpoint = setpointCalculatorPowerForEachInv
-    if ValueOffetConsump != None :
-        ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
-    else:
-        ConsumptionAfterSudOfset = ValueConsump
+    ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump)/ 100)
     if setpointCalculatorPowerForEachInv:
         setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
     return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset
