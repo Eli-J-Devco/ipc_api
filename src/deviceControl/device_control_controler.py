@@ -514,10 +514,14 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
         ValueThresholdZeroExportCaculator = gIntValueThresholdZeroExport
     else:
         ValueThresholdZeroExportCaculator = 0.0
+    if gIntValueOffsetZeroExport != None :
+        ValueOffetZeroExportCaculator = gIntValueOffsetZeroExport
+    else:
+        ValueOffetZeroExportCaculator = 0.0
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await control_init.calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
-        gListMovingAverageConsumption,gMaxValueChangeSetpoint,gIntValueOffsetZeroExport)
+        gListMovingAverageConsumption,gMaxValueChangeSetpoint,ValueOffetZeroExportCaculator)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
@@ -576,8 +580,12 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
                 gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
+                print("gIntValueOffsetZeroExport",gIntValueOffsetZeroExport)
+                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+                print("gIntValueOffsetPowerLimit",gIntValueOffsetPowerLimit)
+                print("gIntValuePowerLimit",gIntValuePowerLimit)
             # Feedback to MQTT
             if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
                 arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None ):
