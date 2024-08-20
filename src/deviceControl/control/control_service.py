@@ -67,48 +67,35 @@ async def updateDeviceMode(mode):
     return result
 
 async def handle_zero_export_mode(message):
-    ValueOffsetTemp = 0
-    ValueThresholdTemp = 0
     ResultQuery = None
-    # Get ValueOffset From Message
-    ValueOffsetTemp = message.get("offset")
-    if ValueOffsetTemp is not None:
-        ValueOffset = ValueOffsetTemp
-    else:
-        ValueOffset = None
-    # Get ValueThreshold From Message
-    ValueThresholdTemp = message.get("threshold")
-    if ValueThresholdTemp is not None:
-        ValueThreshold = ValueThresholdTemp
-    else:
-        ValueThreshold = None
-    # Result Query 
-    if ValueOffset != None and ValueThreshold != None :
+    ValueOffset = None
+    ValueThreshold = None
+    if "offset" not in message and "threshold" not in message:
+        # Get ValueOffset From Message
+        ValueOffset = message.get("offset")
+        # Get ValueThreshold From Message
+        ValueThreshold = message.get("threshold")
+        # Result Query 
         ResultQuery = MySQL_Update_V1("update project_setup set value_offset_zero_export = %s, threshold_zero_export = %s", (ValueOffset, ValueThreshold))
     return ValueOffset,ValueThreshold,ResultQuery
 
 async def handle_power_limit_mode(message,TotalPower):
-    ValueOffsetTemp = 0
-    ValuePowerLimitTemp = 0
     ResultQuery = None
-    # Get ValueOffset From Message
-    ValueOffsetTemp = message.get("offset")
-    if ValueOffsetTemp is not None:
-        ValueOffset = ValueOffsetTemp
-    else:
-        ValueOffset = None 
-    # Get ValuePowerLimit From Message
-    ValuePowerLimitTemp = message.get("value")
-    if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
-        ValuePowerLimit = ValuePowerLimitTemp
-        ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
-    else:
-        ValuePowerLimit = None 
+    ValueOffset = None
+    ValuePowerLimit = None
+    if "offset" not in message and "value" not in message:
+        # Get ValueOffset From Message
+        ValueOffset = message.get("offset")
+        # Get ValuePowerLimit From Message
+        ValuePowerLimitTemp = message.get("value")
+        if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+            ValuePowerLimit = ValuePowerLimitTemp
+            ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
+        else:
+            ValuePowerLimit = None 
         # Result Query 
-    if ValueOffset != None and ValuePowerLimit != None :
         ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
     return ValueOffset,ValuePowerLimit,ResultQuery
-
 # ==================================================== Auto Device  ==================================================================
 def extract_device_auto_info(item):
     if 'id_device' in item and 'mode' in item and 'status_device' in item:

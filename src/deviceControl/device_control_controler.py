@@ -576,15 +576,15 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
                 gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
+                print("gIntValueOffsetZeroExport",gIntValueOffsetZeroExport)
+                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
             elif stringAutoMode == 2:
                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+                print("gIntValueOffsetPowerLimit",gIntValueOffsetPowerLimit)
+                print("gIntValuePowerLimit",gIntValuePowerLimit)
             # Feedback to MQTT
             if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
                 arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
-                gIntValueOffsetZeroExport is None or 
-                gIntValueThresholdZeroExport is None or 
-                gIntValueOffsetPowerLimit is None or 
-                gIntValuePowerLimit is None or 
                 (gIntValuePowerLimit is not None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2)):
                 intComment = 400 
             else:
