@@ -127,7 +127,7 @@ class MQTTSubscriber(Subscriber):
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             data = MessageModel(**decoded_message)
-            await self.handle_error(e, data, self.retry_publisher, self.dead_letter_publisher)
+            await self.handle_error(e, data, self.retry_publisher, self.dead_letter_publisher, isZip=True)
 
 
 async def reconector():
