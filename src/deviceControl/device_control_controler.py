@@ -506,6 +506,10 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
     gIntValuePowerForEachInvInModeZeroExport = 0
     intPracticalConsumptionValue = 0.0
     setpointCalculatorPowerForEachInv = 0 
+    if gIntValueThresholdZeroExport != None :
+        ValueThresholdZeroExportCaculator = gIntValueThresholdZeroExport
+    else:
+        ValueThresholdZeroExportCaculator = 0.0
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await control_init.calculate_setpoint(gStringModeSystempCurrent,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
@@ -525,7 +529,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
                 gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
-                gIntValueConsumptionSystemp >= gIntValueThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+                gIntValueConsumptionSystemp >= ValueThresholdZeroExportCaculator and gIntValueConsumptionSystemp >= 0:
                 item = control_init.create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                 gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
