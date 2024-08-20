@@ -89,7 +89,10 @@ async def handle_power_limit_mode(message,TotalPower):
         # Get ValuePowerLimit From Message
         ValuePowerLimitTemp = message.get("value")
         if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
-            ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffset) / 100
+            if ValueOffset != None :
+                ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffset) / 100
+            else:
+                ValuePowerLimit = ValuePowerLimitTemp
             # Result Query 
             ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
     return ValueOffset,ValuePowerLimit,ResultQuery
