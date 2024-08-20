@@ -70,7 +70,7 @@ async def handle_zero_export_mode(message):
     ResultQuery = None
     ValueOffset = None
     ValueThreshold = None
-    if "offset" not in message and "threshold" not in message:
+    if "offset" in message and "threshold" in message:
         # Get ValueOffset From Message
         ValueOffset = message.get("offset")
         # Get ValueThreshold From Message
@@ -83,7 +83,7 @@ async def handle_power_limit_mode(message,TotalPower):
     ResultQuery = None
     ValueOffset = None
     ValuePowerLimit = None
-    if "offset" not in message and "value" not in message:
+    if "offset" in message and "value" in message:
         # Get ValueOffset From Message
         ValueOffset = message.get("offset")
         # Get ValuePowerLimit From Message
