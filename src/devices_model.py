@@ -112,7 +112,7 @@ class DeviceMpptString(BaseModel):
     id: Optional[int] = None
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
-    id_device_mppt: Optional[int] = None
+    parent: Optional[int] = None
     name: Optional[str] = None
     namekey: Optional[str] = None
     panel: Optional[int] = None
@@ -122,7 +122,7 @@ class DevicePanel(BaseModel):
     id: Optional[int] = None
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
-    id_device_string: Optional[int] = None
+    parent: Optional[int] = None
     name: Optional[str] = None
 
 

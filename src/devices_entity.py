@@ -116,7 +116,7 @@ class DeviceMpptString(config.Base):
                                                                    ondelete="CASCADE",
                                                                    onupdate="CASCADE"),
                                                nullable=False)
-    id_device_mppt: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_mppt.id",
+    parent: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_mppt.id",
                                                                     ondelete="CASCADE",
                                                                     onupdate="CASCADE"),
                                                 nullable=False)
@@ -137,7 +137,7 @@ class DevicePanel(config.Base):
                                                                    ondelete="CASCADE",
                                                                    onupdate="CASCADE"),
                                                nullable=False)
-    id_device_string: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_mppt_string.id",
+    parent: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_mppt_string.id",
                                                                       ondelete="CASCADE",
                                                                       onupdate="CASCADE"),
                                                   nullable=False)
