@@ -147,8 +147,9 @@ class CreateTableService:
                                                                                id_point_list=point.id,
                                                                                namekey=point.id_pointkey,
                                                                                id_device_list=device.id,
-                                                                               parent=id_device_mppt,
-                                                                               panel=count).dict(exclude={"id"}))
+                                                                               panel=count).
+                                                            dict(exclude={"id", "parent"}),
+                                                            parent=id_device_mppt,)
             session.add(new_device_mppt_string)
             await session.flush()
             await self.add_device_panel(device, point.id, new_device_mppt_string.id, session=session)
@@ -174,8 +175,9 @@ class CreateTableService:
         for point in points:
             session.add(DevicePanelEntity(**DevicePanel(**point.__dict__,
                                                         id_point_list=point.id,
-                                                        id_device_list=device.id,
-                                                        parent=id_device_string).dict(exclude={"id"})))
+                                                        id_device_list=device.id,)
+                                          .dict(exclude={"id", "parent"}),
+                                          parent=id_device_string))
 
         logging.info(f"Device panel of {device.table_name} added")
 
