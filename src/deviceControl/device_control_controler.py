@@ -447,7 +447,7 @@ async def getValueProductionAndConsumtion(gArrayMessageAllDevice, StringSerialNu
 # 	 */ 
 async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, host, port, username, password):
     global gArrayMessageAllDevice, gIntValuePowerLimit, gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,\
-    gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode
+    gStringModeSystempCurrent, gFloatValueSystemPerformance,gIntValueTotalPowerInInvInManMode , gIntControlModeDetail
     # Local variables
     gArraydevices = []
     gIntValuePowerForEachInvInModePowerLimit = 0 
@@ -472,7 +472,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                 gIntValueTotalPowerInInvInAutoMode,ValuePowerLimitCaculator)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < ValuePowerLimitCaculator:
-                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModePowerLimit,ValuePowerLimitCaculator,\
+                item = control_init.create_control_item(gIntControlModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,ValuePowerLimitCaculator,\
                     gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
                 item = {
@@ -503,7 +503,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
 async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTableProjectSetup,Topic_Control_WriteAuto, host, port, username, password):
     global gArrayMessageAllDevice, gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValueConsumptionSystemp,\
         gIntValueProductionSystemp, gIntValueTotalPowerInInvInAutoMode,gListMovingAverageConsumption, gIntValueTotalPowerInInvInManMode, \
-        gStringModeSystempCurrent, gFloatValueSystemPerformance
+        gStringModeSystempCurrent, gFloatValueSystemPerformance , gIntControlModeDetail
     # Local variables
     gArraydevices = []
     topicPudCaculatorPowerForInvInZeroExportMode = StringSerialNumerInTableProjectSetup + Topic_Control_WriteAuto
@@ -534,7 +534,7 @@ async def processCaculatorPowerForInvInZeroExportMode(StringSerialNumerInTablePr
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
                 gIntValueConsumptionSystemp >= ValueThresholdZeroExportCaculator and gIntValueConsumptionSystemp >= 0:
-                item = control_init.create_control_item(device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
+                item = control_init.create_control_item(gIntControlModeDetail,device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                 gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
                 item = {

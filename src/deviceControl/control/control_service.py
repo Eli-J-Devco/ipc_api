@@ -289,14 +289,18 @@ def calculate_power_value(intPowerMaxOfInv,modeSystem,TotalPowerInInvInManMode,T
         return 0
     else:
         return intPowerMaxOfInv
-def create_control_item(device, PowerForEachInv,Setpoint,TotalPowerInInvInManMode,ValueProductionSystemp):
+def create_control_item(statusMode , device, PowerForEachInv,Setpoint,TotalPowerInInvInManMode,ValueProductionSystemp):
+    if statusMode == 1 :
+        status = "zero export"
+    else:
+        status = "power limit"
     id_device = device["id_device"]
     mode = device["mode"]
     ItemlistInvControlPowerLimitMode = {
         "id_device": id_device,
         "mode": mode,
         "time": get_utc(),
-        "status": "power limit",
+        "status": status,
         "setpoint": Setpoint - TotalPowerInInvInManMode,
         "feedback": ValueProductionSystemp,
         "parameter": []
