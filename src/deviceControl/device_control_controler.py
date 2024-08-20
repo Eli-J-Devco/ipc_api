@@ -676,7 +676,10 @@ async def initializeValueControlAuto():
             gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
             gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
             gIntValueOffsetPowerLimit = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_power_limit"]
-            gIntValuePowerLimit = (gIntValuePowerLimit_temp - (gIntValuePowerLimit_temp*gIntValueOffsetPowerLimit)/100)
+            if gIntValueOffsetPowerLimit != None and gIntValuePowerLimit_temp != None :
+                gIntValuePowerLimit = (gIntValuePowerLimit_temp - (gIntValuePowerLimit_temp*gIntValueOffsetPowerLimit)/100)
+            else:
+                gIntValuePowerLimit = 0.0
             gIntValueThresholdZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["threshold_zero_export"]
             Kp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["kp_zero_export"]
             Ki = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["ki_zero_export"]
