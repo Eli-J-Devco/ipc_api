@@ -594,6 +594,10 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
                 gIntValueThresholdZeroExport = ValueThresholdZeroExportTemp
                 gIntValuePowerLimit = ValuePowerLimitTemp
                 gIntValueOffsetPowerLimit = ValueOffsetPowerLimitTemp
+                print("gIntValueOffsetZeroExport",gIntValueOffsetZeroExport)
+                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
+                print("gIntValuePowerLimit",gIntValuePowerLimit)
+                print("gIntValueOffsetPowerLimit",gIntValueOffsetPowerLimit)
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,
