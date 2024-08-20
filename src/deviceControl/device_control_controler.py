@@ -483,7 +483,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(StringSerialNumerInTablePr
                     "feedback": gIntValueProductionSystemp,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - gIntValuePowerLimit))}
+                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - ValuePowerLimitCaculator))}
                     ]
                 }
             # Create List Device 
@@ -569,19 +569,20 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
+    ValueOffsetZeroExportTemp = 0.0
+    ValueThresholdZeroExportTemp = 0.0
+    ValueOffsetPowerLimitTemp = 0.0
+    ValuePowerLimitTemp = 0.0
+    
     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
             if stringAutoMode == 1:
-                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
-                print("gIntValueOffsetZeroExport",gIntValueOffsetZeroExport)
-                print("gIntValueThresholdZeroExport",gIntValueThresholdZeroExport)
+                ValueOffsetZeroExportTemp,ValueThresholdZeroExportTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
-                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
-                print("gIntValueOffsetPowerLimit",gIntValueOffsetPowerLimit)
-                print("gIntValuePowerLimit",gIntValuePowerLimit)
+                ValueOffsetPowerLimitTemp,ValuePowerLimitTemp,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await control_init.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
             # Feedback to MQTT
             if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
                 arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
@@ -589,6 +590,10 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
                 intComment = 400 
             else:
                 intComment = 200
+                gIntValueOffsetZeroExport = ValueOffsetZeroExportTemp
+                gIntValueThresholdZeroExport = ValueThresholdZeroExportTemp
+                gIntValuePowerLimit = ValuePowerLimitTemp
+                gIntValueOffsetPowerLimit = ValueOffsetPowerLimitTemp
             # Object Sent MQTT
             objectSend = {
                 "time_stamp": timeStamp,

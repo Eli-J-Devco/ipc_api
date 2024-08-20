@@ -89,12 +89,9 @@ async def handle_power_limit_mode(message,TotalPower):
         # Get ValuePowerLimit From Message
         ValuePowerLimitTemp = message.get("value")
         if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
-            ValuePowerLimit = ValuePowerLimitTemp
-            ValuePowerLimit = ValuePowerLimit - (ValuePowerLimit * ValueOffset) / 100
-        else:
-            ValuePowerLimit = None 
-        # Result Query 
-        ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
+            ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffset) / 100
+            # Result Query 
+            ResultQuery =  MySQL_Update_V1("update project_setup set value_power_limit = %s, value_offset_power_limit = %s", (ValuePowerLimitTemp, ValueOffset))
     return ValueOffset,ValuePowerLimit,ResultQuery
 # ==================================================== Auto Device  ==================================================================
 def extract_device_auto_info(item):
