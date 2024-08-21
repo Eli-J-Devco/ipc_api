@@ -24,8 +24,6 @@ from utils.pm2Manager import (create_device_group_rs485_run_pm2,
                               restart_all_program_pm2,
                               restart_pm2_change_template, restart_program_pm2,
                               restart_program_pm2_many)
-
-
 class ProjectService:
     def __init__(self, command=""):
         self.command=command
