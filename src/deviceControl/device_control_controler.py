@@ -579,6 +579,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
+            token = messageParameterControlAuto['token']
             if stringAutoMode == 1:
                 ValueOffsetZeroExportTemp,ValueThresholdZeroExportTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
@@ -598,6 +599,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
             objectSend = {
                 "time_stamp": timeStamp,
                 "status": intComment,
+                "token" : token
             }
             # Push MQTT
             mqtt_public_paho_zip(host, port, topicPudUpdateParameterModeDetail, username, password, objectSend)
@@ -624,6 +626,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
     try:
         if messageModeControlAuto and 'control_mode' in messageModeControlAuto :
             stringAutoMode = messageModeControlAuto['control_mode'] 
+            token = messageModeControlAuto["token"]
             stringAutoMode = int(stringAutoMode)
             # Compare get information update database 
             if stringAutoMode == 1:
@@ -640,6 +643,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
             objectSend = {
                         "time_stamp" :timeStamp,
                         "status":intComment, 
+                        "token":token
                         }
             mqtt_public_paho_zip(host,
                     port,

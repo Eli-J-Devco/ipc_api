@@ -35,6 +35,7 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp, host, port, username, password):
     if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
         gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
+        token = gArrayMessageChangeModeSystemp.get('token')
         if gStringModeSysTemp in [0, 1, 2]:
             await updateSystemMode(gStringModeSysTemp)
         else:
@@ -47,11 +48,13 @@ async def processModeChange(gArrayMessageChangeModeSystemp, topicFeedbackModeSys
                 "status": 200,
                 "confirm_mode": gStringModeSysTemp,
                 "time_stamp": current_time,
+                "token":token
             }
         else:
             objectSend = {
                 "status": 400,
                 "time_stamp": current_time,
+                "token":token
             }
         # Push system_info to MQTT 
         mqtt_public_paho_zip(host, port, topicFeedbackModeSystemp, username, password, objectSend)
