@@ -486,8 +486,6 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             ,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gIntValueProductionSystemp,gStringModeSystempCurrent,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
             
             gIntValueProductionSystemp, gIntValueConsumptionSystemp, last_update_time_production, last_update_time_comsumption = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER,last_update_time_comsumption,last_update_time_production)
-            print("gIntValueProductionSystemp",gIntValueProductionSystemp)
-            print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # topic6
             await insertInformationProjectSetupWhenRequest(mqtt_service,message)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # topic7

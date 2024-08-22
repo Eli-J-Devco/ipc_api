@@ -423,6 +423,7 @@ class ValueEnergySystem:
         # Local variables
         IntTotalValueProduction, IntTotalValueConsumtion = 0.0 , 0.0
         IntIntegralValueProduction, IntIntegralValueConsumtion = 0.0 , 0.0
+        current_time = time.time()
         print("last_update_time_comsumption",last_update_time_comsumption)
         print("last_update_time_production",last_update_time_production)
         # Get Value Production And Consumption From message All
@@ -433,14 +434,16 @@ class ValueEnergySystem:
                     result_type_meter = ValueEnergySystem.get_device_type(id_device)
                     if result_type_meter:
                         IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = ValueEnergySystem.calculate_production(
-                            item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, last_update_time_production
+                            item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time
                         )
                         IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = ValueEnergySystem.calculate_consumption(
-                            item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, last_update_time_comsumption
+                            item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time
                         )
             # Update the global values of total production and total consumption
             gIntValueProductionSystemp = IntTotalValueProduction
             gIntValueConsumptionSystemp = IntTotalValueConsumtion
+            print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+            print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
         try:
             ValueProductionAndConsumtion = ValueEnergySystem.message_value_metter(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
             # Push system_info to MQTT
