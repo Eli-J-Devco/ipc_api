@@ -485,7 +485,7 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance = await device_manager.getListALLInvInProject(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
             ,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gIntValueProductionSystemp,gStringModeSystempCurrent,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
             
-            gIntValueProductionSystemp, gIntValueConsumptionSystemp, last_update_time_production, last_update_time_comsumption = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER,last_update_time_comsumption,last_update_time_production)
+            gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # topic6
             await insertInformationProjectSetupWhenRequest(mqtt_service,message)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # topic7

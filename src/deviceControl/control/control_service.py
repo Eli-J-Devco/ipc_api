@@ -369,7 +369,7 @@ class ValueEnergySystem:
             (id_device,)
         )
 
-    def calculate_production( item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time):
+    def calculate_production( item, result_type_meter, IntTotalValueProduction):
         if result_type_meter[0]["name"] == "PV System Inverter":
             ArrayValueProduction = [
                 field["value"] for param in item.get("parameters", [])
@@ -377,14 +377,13 @@ class ValueEnergySystem:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
+            print("ArrayValueProduction",ArrayValueProduction)
             if ArrayValueProduction and ArrayValueProduction[0] is not None:
                 IntTotalValueProduction += ArrayValueProduction[0]
-                dt = current_time - last_update_time_production
-                IntIntegralValueProduction += IntTotalValueProduction * dt / 3600
-                last_update_time_production = current_time
-        return IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production
+                print('IntTotalValueProduction',IntTotalValueProduction)
+            return IntTotalValueProduction
 
-    def calculate_consumption(item, result_type_meter, IntTotalValueConsumption, IntIntegralValueConsumption, last_update_time_consumption, current_time):
+    def calculate_consumption(item, result_type_meter, IntTotalValueConsumption):
         if result_type_meter[0]["name"] == "Consumption meter":
             ArrayValueConsumption = [
                 field["value"] for param in item.get("parameters", [])
@@ -392,12 +391,11 @@ class ValueEnergySystem:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
+            print("ArrayValueConsumption",ArrayValueConsumption)
             if ArrayValueConsumption and ArrayValueConsumption[0] is not None:
                 IntTotalValueConsumption += ArrayValueConsumption[0]
-                dt = current_time - last_update_time_consumption
-                IntIntegralValueConsumption += IntTotalValueConsumption * dt / 3600
-                last_update_time_consumption = current_time
-        return IntTotalValueConsumption, IntIntegralValueConsumption, last_update_time_consumption
+                print("IntTotalValueConsumption",IntTotalValueConsumption)
+            return IntTotalValueConsumption
 
     def message_value_metter(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
         timeStampGetValueProductionAndConsumption = get_utc()
@@ -419,25 +417,23 @@ class ValueEnergySystem:
         ValueProductionAndConsumption["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant_temp, 4)
         return ValueProductionAndConsumption
     @staticmethod
-    async def getValueProductionAndConsumption(mqtt_service, gArrayMessageAllDevice, Topic_Meter_Monitor,last_update_time_comsumption,last_update_time_production):
-        # Local variables
-        IntTotalValueProduction, IntTotalValueConsumtion = 0.0 , 0.0
-        IntIntegralValueProduction, IntIntegralValueConsumtion = 0.0 , 0.0
-        current_time = time.time()
-        print("last_update_time_comsumption",last_update_time_comsumption)
-        print("last_update_time_production",last_update_time_production)
+    async def getValueProductionAndConsumption(mqtt_service, gArrayMessageAllDevice, Topic_Meter_Monitor):
         # Get Value Production And Consumption From message All
+        IntTotalValueProduction = 0.0 
+        IntTotalValueConsumtion = 0.0
         if gArrayMessageAllDevice:
             for item in gArrayMessageAllDevice:
                 if 'id_device' in item:
                     id_device = item['id_device']
                     result_type_meter = ValueEnergySystem.get_device_type(id_device)
+                    print("id_device",id_device)
+                    print("result_type_meter",result_type_meter)
                     if result_type_meter:
-                        IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = ValueEnergySystem.calculate_production(
-                            item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time
+                        IntTotalValueProduction= ValueEnergySystem.calculate_production(
+                            item, result_type_meter, IntTotalValueProduction
                         )
-                        IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = ValueEnergySystem.calculate_consumption(
-                            item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time
+                        IntTotalValueConsumtion = ValueEnergySystem.calculate_consumption(
+                            item, result_type_meter, IntTotalValueConsumtion,
                         )
             # Update the global values of total production and total consumption
             gIntValueProductionSystemp = IntTotalValueProduction
@@ -452,7 +448,7 @@ class ValueEnergySystem:
             print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
         
         # Return the relevant global variables
-        return gIntValueProductionSystemp, gIntValueConsumptionSystemp, last_update_time_production, last_update_time_comsumption
+        return gIntValueProductionSystemp, gIntValueConsumptionSystemp
 
 # ==================================================== Caculator PowerLit And ZeroExport  ==================================================================
 class FuntionCaculatorPower:
