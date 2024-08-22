@@ -32,7 +32,7 @@ from database.sql.device import all_query as device_query
 from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
 # from entity.devices.devices_entity import Devices as DevicesEntity
-from utils.libMQTT import *
+from utils.MQTTService import *
 from utils.libMySQL import *
 from utils.libTime import *
 from utils.mqttManager import gzip_decompress as gzipDecompress

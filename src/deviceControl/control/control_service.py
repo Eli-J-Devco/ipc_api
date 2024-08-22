@@ -4,26 +4,17 @@
 # *
 # *********************************************************/
 import asyncio
-import base64
-import collections
-import datetime
-import gzip
-import json
-import logging
 import os
-import platform
 import sys
 from datetime import datetime
 
-import mqttools
-import psutil
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from configs.config import Config
-from utils.libMQTT import *
+from utils.MQTTService import *
 from utils.libMySQL import *
 from utils.libTime import *
 from utils.mqttManager import (gzip_decompress, mqtt_public_common,
@@ -35,16 +26,40 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 class ModeSystem:
     def __init__(self):
         pass
-
-    async def processModeChange(self,mqtt_service, gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp):
+    @staticmethod
+    async def pudSystempModeTrigerEachDeviceChange(Topic_Control_Setup_Mode_Write):
+        # Chuyển sang chế độ người dùng bao gồm cả chế độ thủ công và tự động
+            try:
+                result_checkmode_control = await MySQL_Select_v1(
+                    "SELECT device_list.mode, device_list.id FROM device_list "
+                    "JOIN device_type ON device_list.id_device_type = device_type.id "
+                    "WHERE device_type.name = 'PV System Inverter' AND device_list.status = 1;"
+                )
+                modes = set([item['mode'] for item in result_checkmode_control])
+                
+                if len(modes) == 1:
+                    if 0 in modes:
+                        data_send = {"id_device": "Systemp", "mode": 0}
+                    elif 1 in modes:
+                        data_send = {"id_device": "Systemp", "mode": 1}
+                else:
+                    data_send = {"id_device": "Systemp", "mode": 2}
+                
+                MQTTService.push_data_zip(Topic_Control_Setup_Mode_Write, data_send)
+            except asyncio.TimeoutError:
+                print("Timeout waiting for data from MySQL")
+    @staticmethod
+    async def processModeSystemChange(mqtt_service, gArrayMessageChangeModeSystemp, topicFeedbackModeSystemp):
         if gArrayMessageChangeModeSystemp.get('id_device') == 'Systemp':
             gStringModeSysTemp = gArrayMessageChangeModeSystemp.get('mode')
             if gStringModeSysTemp in [0, 1, 2]:
-                await self.update_system_mode(gStringModeSysTemp)
+                querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
+                MySQL_Insert_v5(querysystemp, (gStringModeSysTemp,))
             else:
                 print("Failed to insert data")
             if gStringModeSysTemp in [0, 1]:
-                await self.update_device_mode(gStringModeSysTemp)
+                querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
+                MySQL_Insert_v5(querydevice, (gStringModeSysTemp,))
             current_time = get_utc()
             objectSend = {
                 "status": 200,
@@ -57,18 +72,44 @@ class ModeSystem:
             MQTTService.push_data_zip(mqtt_service, topicFeedbackModeSystemp, objectSend)
             return gStringModeSysTemp
 
-    async def update_system_mode(self, mode):
-        querysystemp = "UPDATE `project_setup` SET `project_setup`.`mode` = %s;"
-        return MySQL_Insert_v5(querysystemp, (mode,))
-
-    async def update_device_mode(self, mode):
-        querydevice = "UPDATE device_list JOIN device_type ON device_list.id_device_type = device_type.id SET device_list.mode = %s WHERE device_type.name = 'PV System Inverter';"
-        return MySQL_Insert_v5(querydevice, (mode,))
 # ============================================================== Parametter Mode Detail Systemp ================================
 class ModeDetailHandler:
     def __init__(self):
         pass
-    
+    async def processUpdateModeControlDetail(self, mqtt_service, messageModeControlAuto, Topic_Control_Setup_Mode_Write_Detail_Feedback):
+        # Biến cục bộ
+        stringAutoMode = ""
+        intComment = 0
+        arrayResultUpdateModeDetailInTableProjectSetUp = []
+        
+        # Nhận dữ liệu từ MQTT
+        try:
+            if messageModeControlAuto and 'control_mode' in messageModeControlAuto:
+                stringAutoMode = messageModeControlAuto['control_mode'] 
+                stringAutoMode = int(stringAutoMode)
+                # So sánh và cập nhật thông tin vào cơ sở dữ liệu 
+                if stringAutoMode == 1:
+                    gIntControlModeDetail = 1
+                elif stringAutoMode == 2:
+                    gIntControlModeDetail = 2 
+                # Cập nhật chế độ trong cơ sở dữ liệu
+                arrayResultUpdateModeDetailInTableProjectSetUp = await MySQL_Update_V1("UPDATE project_setup SET control_mode = %s", (gIntControlModeDetail,))
+                # Gửi phản hồi đến MQTT
+                if arrayResultUpdateModeDetailInTableProjectSetUp is None:
+                    intComment = 400 
+                else:
+                    intComment = 200 
+                objectSend = {
+                    "time_stamp": get_utc(),
+                    "status": intComment, 
+                }
+                MQTTService.push_data_zip(mqtt_service, Topic_Control_Setup_Mode_Write_Detail_Feedback, objectSend)
+                # Trả về biến toàn cục
+                return gIntControlModeDetail
+        except Exception as err:
+            print(f"Error MQTT subscribe processUpdateModeControlDetail: '{err}'")
+            return None  # Trả về None nếu có lỗi
+
     async def handle_zero_export_mode( message):
         ValueOffsetTemp = message.get("offset", 0)
         ValueThresholdTemp = message.get("threshold", 0)
@@ -141,7 +182,6 @@ class GetListAutoDevice:
 class GetListAllDevice:
     def __init__(self):
         pass
-
     def extract_device_all_info(self, item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
             id_device = item['id_device']
@@ -173,11 +213,11 @@ class GetListAllDevice:
                     'p_min': p_min,
                     'wmax': wmax,
                     'realpower': real_power,
-                    'timestamp': self.get_utc(),
+                    'timestamp': get_utc(),
                 }
         return None
-
-    def get_device_parameters(self, item):
+    @staticmethod
+    def get_device_parameters(item):
         stringOperatorText = {
             0: "shutting down",
             1: "shutting down",
@@ -200,17 +240,17 @@ class GetListAllDevice:
                             for field in param.get("fields", []) if field["point_key"] == "ACActivePower"), 0)
 
         return operator, wmax, capacity_power, real_power
-
-    def calculate_total_wmax(self, device_list, power_auto):
+    @staticmethod
+    def calculate_total_wmax(device_list, power_auto):
         total_power_write_inv = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None), 2)
         total_power_manual = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None and device['mode'] == 0), 2)
         total_power = round((total_power_manual + power_auto), 2)
         return total_power, total_power_manual
-
-    def calculate_p_min(self, p_max_custom, p_min_percent):
+    @staticmethod
+    def calculate_p_min(p_max_custom, p_min_percent):
         return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
-
-    def update_system_performance(self, current_mode, systemPerformance, total_power_in_all_inv, production_system, low_performance_threshold, high_performance_threshold):
+    @staticmethod
+    def update_system_performance(current_mode, systemPerformance, total_power_in_all_inv, production_system, low_performance_threshold, high_performance_threshold):
         if current_mode == 0:
             systemPerformance = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
         
@@ -295,8 +335,8 @@ class ValueEnergySystem:
 class FuntionCaculatorPower:
     def __init__(self):
         pass
-
-    async def calculate_system_performance(self, ModeSystemp, ValueSystemPerformance, ValueProductionSystemp, Setpoint):
+    @staticmethod
+    async def calculate_system_performance(ModeSystemp, ValueSystemPerformance, ValueProductionSystemp, Setpoint):
         if ModeSystemp != 0:
             if Setpoint > 0 and ValueProductionSystemp > 0:
                 ValueSystemPerformance = (ValueProductionSystemp / Setpoint) * 100
@@ -305,14 +345,14 @@ class FuntionCaculatorPower:
             else:
                 ValueSystemPerformance = 0
         return ValueSystemPerformance
-
-    def process_device_powerlimit_info(self, device):
+    @staticmethod
+    def process_device_powerlimit_info(device):
         id_device = device["id_device"]
         mode = device["mode"]
         intPowerMaxOfInv = float(device["p_max"])
         return id_device, mode, intPowerMaxOfInv
-
-    def calculate_power_value(self, intPowerMaxOfInv, modeSystem, TotalPowerInInvInManMode, TotalPowerInInvInAutoMode, Setpoint):
+    @staticmethod
+    def calculate_power_value(intPowerMaxOfInv, modeSystem, TotalPowerInInvInManMode, TotalPowerInInvInAutoMode, Setpoint):
         # Tính toán hiệu suất cho thiết bị
         if modeSystem == 1:
             floatEfficiencySystemp = (Setpoint / TotalPowerInInvInAutoMode)
@@ -326,15 +366,19 @@ class FuntionCaculatorPower:
             return 0
         else:
             return intPowerMaxOfInv
-
-    def create_control_item(self, device, PowerForEachInv, Setpoint, TotalPowerInInvInManMode, ValueProductionSystemp):
+    @staticmethod
+    def create_control_item(ModeSystemDetail ,device, PowerForEachInv, Setpoint, TotalPowerInInvInManMode, ValueProductionSystemp):
+        if ModeSystemDetail == 1 :
+            status = "Zero Export"
+        else:
+            status = " Power Limit "
         id_device = device["id_device"]
         mode = device["mode"]
         ItemlistInvControlPowerLimitMode = {
             "id_device": id_device,
             "mode": mode,
             "time": get_utc(),
-            "status": "power limit",
+            "status": status,
             "setpoint": Setpoint - TotalPowerInInvInManMode,
             "feedback": ValueProductionSystemp,
             "parameter": []
@@ -348,7 +392,6 @@ class FuntionCaculatorPower:
                 {"id_pointkey": "WMax", "value": PowerForEachInv}
             ])
         return ItemlistInvControlPowerLimitMode
-
     async def calculate_setpoint(self, modeSystem, ValueConsump, ValueTotalPowerInInvInManMode,
                                     gListMovingAverageConsumption, gMaxValueChangeSetpoint, ValueOffetConsump):
         ConsumptionAfterSudOfset = 0.0
@@ -375,3 +418,74 @@ class FuntionCaculatorPower:
         if setpointCalculatorPowerForEachInv:
             setpointCalculatorPowerForEachInv -= setpointCalculatorPowerForEachInv * ValueOffetConsump / 100
         return setpointCalculatorPowerForEachInv, ConsumptionAfterSudOfset
+class ProjectSetupService:
+    def __init__(self):
+        pass
+    @staticmethod
+    async def initializeValueControlAuto():
+        # Biến cục bộ
+        gIntValueOffsetZeroExport = 0
+        gIntValuePowerLimit = 0
+        gIntValueOffsetPowerLimit = 0
+        gIntValueThresholdZeroExport = 0
+        gIntValueSettingArlamLowPerformance = 0
+        gIntValueSettingArlamHighPerformance = 0
+        gStringModeSystempCurrent = ""
+        serialNumber = ""
+        # Biến tạm
+        gIntValuePowerLimit_temp = 0
+        # Lấy thông tin từ cơ sở dữ liệu lần đầu
+        try:
+            arrayResultInitializeParameterZeroExportInTableProjectSetUp = await MySQL_Select_v1("SELECT * FROM project_setup")
+            if arrayResultInitializeParameterZeroExportInTableProjectSetUp:
+                serialNumber = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["serial_number"]
+                gStringModeSystempCurrent = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["mode"]
+                gIntControlModeDetail = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["control_mode"]
+                gIntValueOffsetZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_zero_export"]
+                gIntValuePowerLimit_temp = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_power_limit"]
+                gIntValueOffsetPowerLimit = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["value_offset_power_limit"]
+                gIntValuePowerLimit = (gIntValuePowerLimit_temp - (gIntValuePowerLimit_temp * gIntValueOffsetPowerLimit) / 100)
+                gIntValueThresholdZeroExport = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["threshold_zero_export"]
+                gIntValueSettingArlamLowPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["low_performance"]
+                gIntValueSettingArlamHighPerformance = arrayResultInitializeParameterZeroExportInTableProjectSetUp[0]["high_performance"]
+                
+                # Trả về các giá trị đã khởi tạo
+                return {
+                    "serial_number": serialNumber,
+                    "mode": gStringModeSystempCurrent,
+                    "control_mode": gIntControlModeDetail,
+                    "value_offset_zero_export": gIntValueOffsetZeroExport,
+                    "value_power_limit": gIntValuePowerLimit,
+                    "value_offset_power_limit": gIntValueOffsetPowerLimit,
+                    "threshold_zero_export": gIntValueThresholdZeroExport,
+                    "low_performance": gIntValueSettingArlamLowPerformance,
+                    "high_performance": gIntValueSettingArlamHighPerformance,
+                }
+        except Exception as err:
+            print(f"Error MQTT subscribe initializeValueControlAuto: '{err}'")
+            return None  # Trả về None nếu có lỗi
+    @staticmethod
+    async def pudFeedBackProjectSetup(mqtt_service,topic_project_information):
+        query_all_table_project_setup = "SELECT * FROM `project_setup`"
+        try :
+            # Lấy thông tin từ cơ sở dữ liệu
+            result_all_information_table_project_setup = await MySQL_Select_v1(query_all_table_project_setup)
+            
+            if result_all_information_table_project_setup:
+                try:
+                    # Gửi thông tin đến MQTT
+                    data_send_topic_project_information = result_all_information_table_project_setup[0]
+                    data_send_topic_project_information['mqtt'] = [
+                        {"time_stamp": get_utc()},
+                        {"status": 200}
+                    ]
+                    MQTTService.push_data_zip(mqtt_service,topic_project_information, data_send_topic_project_information)
+                except Exception as err:
+                    print(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
+        except Exception as err:
+            data_send = {
+                "mqtt": [
+                        {"time_stamp" : get_utc()},
+                        {"status":400}]
+                        }
+            MQTTService.push_data_zip(mqtt_service,topic_project_information,data_send)
