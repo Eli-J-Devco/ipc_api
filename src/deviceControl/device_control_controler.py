@@ -40,7 +40,8 @@ gIntValueSettingArlamHighPerformance = 0
 # Parameters Value Production and Consumtion 
 gIntValueProductionSystemp = 0
 gIntValueConsumptionSystemp = 0
-start_time_minutely = time.time()
+last_update_time_production = time.time()
+last_update_time_comsumption = time.time()
 # Parameters Value Power In Inv Each Mode 
 gIntValueTotalPowerInInvInManMode = 0
 gIntValueTotalPowerInInvInAutoMode = 0
@@ -241,51 +242,6 @@ async def getListDeviceAutoModeInALLInv(messageAllDevice):
     gIntValueTotalPowerInInvInAutoMode = round(sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None),2)
     return ArayyDeviceList
 ############################################################################ List Device Systemp ############################################################################
-# Describe getListALLInvInProject 
-# 	 * @description getListALLInvInProject
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_result }
-# 	 * @return device_list 
-# 	 */ 
-async def getListALLInvInProject( mqtt_service ,messageAllDevice,Topic_Control_Process):
-    global gIntValueProductionSystemp, gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,\
-        gIntValueTotalPowerInALLInv,gStringModeSystempCurrent,gIntValueTotalPowerInInvInManMode,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance
-    ArrayDeviceList = []
-    # Get Informatio about the device
-    if messageAllDevice and isinstance(messageAllDevice, list):
-        for item in messageAllDevice:
-            ListAllDevice = GetListAllDevice()
-            device_info = ListAllDevice.extract_device_all_info(item)
-            if device_info:
-                ArrayDeviceList.append(device_info)
-    # Calculate the sum of wmax values ​​of all inv in the system
-    gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode = ListAllDevice.calculate_total_wmax(ArrayDeviceList,gIntValueTotalPowerInInvInAutoMode)
-    # Call the update_system_performance function and get the return value
-    gFloatValueSystemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance = ListAllDevice.update_system_performance(
-        gStringModeSystempCurrent,
-        gFloatValueSystemPerformance,
-        gIntValueTotalPowerInALLInv,
-        gIntValueProductionSystemp,
-        gIntValueSettingArlamLowPerformance,
-        gIntValueSettingArlamHighPerformance
-    )
-    # Message Public MQTT
-    result = {
-        "ModeSystempCurrent": gStringModeSystempCurrent,
-        "devices": ArrayDeviceList,
-        "total_max_power": gIntValueTotalPowerInALLInv,
-        "total_max_power_man": gIntValueTotalPowerInInvInManMode,
-        "total_max_power_auto": gIntValueTotalPowerInInvInAutoMode,
-        "system_performance": {
-            "performance": gFloatValueSystemPerformance,
-            "message": StringMessageStatusSystemPerformance,
-            "status": intStatusSystemPerformance
-        }
-    }
-    # Public MQTT
-    MQTTService.push_data_zip(mqtt_service,Topic_Control_Process,result)
-    return ArrayDeviceList
 # Describe getValueProductionAndConsumtion 
 # 	 * @description getValueProductionAndConsumtion
 # 	 * @author bnguyen
@@ -338,7 +294,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
     # Caculator System Performance 
-    if gStringModeSystempCurrent != 0:
+    if gStringModeSystempCurrent != 0 and gIntValuePowerLimit:
         gFloatValueSystemPerformance = await FuntionCaculatorPower.calculate_system_performance(gStringModeSystempCurrent,gFloatValueSystemPerformance,\
         gIntValueProductionSystemp,gIntValuePowerLimit)
     # Get Infor Device Control 
@@ -434,36 +390,36 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control
 # 	 * @param {mqtt_result,StringSerialNumerInTableProjectSetup, host ,port ,username ,password}
 # 	 * @return MySQL_Update gIntValueOffsetZeroExport,gIntValuePowerLimit,gIntValueOffsetPowerLimit
 # 	 */ 
-async def processUpdateParameterModeDetail(mqtt_service,messageParameterControlAuto,Topic_Control_Setup_Auto_Feedback):
-    # Global variables
-    global gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValuePowerLimit, gIntValueOffsetPowerLimit, gIntValueTotalPowerInALLInv
-    # Local variables
-    timeStamp = get_utc()
-    stringAutoMode = ""
-    intComment = 0
-    arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
-    arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
-    try:
-        if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
-            stringAutoMode = int(messageParameterControlAuto['mode'])
-            if stringAutoMode == 1:
-                gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await ModeDetailHandler.handle_zero_export_mode(messageParameterControlAuto)
-            elif stringAutoMode == 2:
-                gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await ModeDetailHandler.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
-            # Feedback to MQTT
-            if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
-                intComment = 400 
-            else:
-                intComment = 200 
-            # Object Sent MQTT
-            objectSend = {
-                "time_stamp": timeStamp,
-                "status": intComment,
-            }
-            # Push MQTT
-            MQTTService.push_data_zip(mqtt_service,Topic_Control_Setup_Auto_Feedback,objectSend)
-    except Exception as err:
-        print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'") 
+# async def processUpdateParameterModeDetail(mqtt_service,messageParameterControlAuto,Topic_Control_Setup_Auto_Feedback):
+#     # Global variables
+#     global gIntValueThresholdZeroExport, gIntValueOffsetZeroExport, gIntValuePowerLimit, gIntValueOffsetPowerLimit, gIntValueTotalPowerInALLInv
+#     # Local variables
+#     timeStamp = get_utc()
+#     stringAutoMode = ""
+#     intComment = 0
+#     arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
+#     arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
+#     try:
+#         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
+#             stringAutoMode = int(messageParameterControlAuto['mode'])
+#             if stringAutoMode == 1:
+#                 gIntValueOffsetZeroExport,gIntValueThresholdZeroExport,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await ModeDetailHandler.handle_zero_export_mode(messageParameterControlAuto)
+#             elif stringAutoMode == 2:
+#                 gIntValueOffsetPowerLimit,gIntValuePowerLimit,arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await ModeDetailHandler.handle_power_limit_mode(messageParameterControlAuto,gIntValueTotalPowerInALLInv)
+#             # Feedback to MQTT
+#             if arrayResultUpdateParameterZeroExportInTableProjectSetUp == None or arrayResultUpdateParameterPowerLimitInTableProjectSetUp == None or (gIntValuePowerLimit != None and gIntValuePowerLimit > gIntValueTotalPowerInALLInv and stringAutoMode == 2):
+#                 intComment = 400 
+#             else:
+#                 intComment = 200 
+#             # Object Sent MQTT
+#             objectSend = {
+#                 "time_stamp": timeStamp,
+#                 "status": intComment,
+#             }
+#             # Push MQTT
+#             MQTTService.push_data_zip(mqtt_service,Topic_Control_Setup_Auto_Feedback,objectSend)
+#     except Exception as err:
+#         print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'") 
 # Describe process_zero_export_power_limit 
 # 	 * @description process_zero_export_power_limit
 # 	 * @author bnguyen
@@ -493,20 +449,45 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
     global gArrayMessageAllDevice
     global gStringModeSystempCurrent
     global gIntControlModeDetail
+    global gIntValueTotalPowerInALLInv
+    global gIntValueThresholdZeroExport
+    global gIntValueOffsetZeroExport
+    global gIntValuePowerLimit
+    global gIntValueOffsetPowerLimit
+    global gIntValueSettingArlamLowPerformance
+    global gIntValueSettingArlamHighPerformance
+    global gIntValueProductionSystemp
+    global gIntValueConsumptionSystemp
+    global gIntValueTotalPowerInInvInManMode
+    global gIntValueTotalPowerInInvInAutoMode
+    global gFloatValueSystemPerformance
+    global last_update_time_comsumption
+    global last_update_time_production
+    
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
+    parametterDetailControl = {}
     try:
         if topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:  # ok 
             gStringModeSystempCurrent = await ModeSystem.processModeSystemChange(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION:   # topic2
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION:   # ok
             await ProjectSetupService.pudFeedBackProjectSetup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO:   # topic3
-            await processUpdateParameterModeDetail(mqtt_service,message)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:   # topic4
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO:   # ok
+            parametterDetailControl = await ModeDetailHandler.processUpdateParameterModeDetail(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO ,gIntValueTotalPowerInALLInv)
+            gIntValueThresholdZeroExport = parametterDetailControl["threshold_zero_export"]
+            gIntValueOffsetZeroExport = parametterDetailControl["value_offset_zero_export"]
+            gIntValuePowerLimit = parametterDetailControl["value_power_limit"]
+            gIntValueOffsetPowerLimit = parametterDetailControl["value_offset_power_limit"]
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:   # ok
             gArrayMessageAllDevice = message
-            # print("message",message)
-            await getListALLInvInProject(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS)
-            await getValueProductionAndConsumtion(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
+            # Tạo một thể hiện của lớp GetListAllDevice
+            device_manager = GetListAllDevice()
+            gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance = await device_manager.getListALLInvInProject(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
+            ,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gIntValueProductionSystemp,gStringModeSystempCurrent,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
+            
+            gIntValueProductionSystemp, gIntValueConsumptionSystemp, last_update_time_production, last_update_time_comsumption = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER,last_update_time_comsumption,last_update_time_production)
+            print("gIntValueProductionSystemp",gIntValueProductionSystemp)
+            print("gIntValueConsumptionSystemp",gIntValueConsumptionSystemp)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # topic6
             await insertInformationProjectSetupWhenRequest(mqtt_service,message)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # topic7

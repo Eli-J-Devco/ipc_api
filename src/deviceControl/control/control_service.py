@@ -109,32 +109,77 @@ class ModeDetailHandler:
         except Exception as err:
             print(f"Error MQTT subscribe processUpdateModeControlDetail: '{err}'")
             return None  # Trả về None nếu có lỗi
-
-    async def handle_zero_export_mode( message):
-        ValueOffsetTemp = message.get("offset", 0)
-        ValueThresholdTemp = message.get("threshold", 0)
+    @staticmethod
+    async def processUpdateParameterModeDetail( mqtt_service, messageParameterControlAuto, Topic_Control_Setup_Auto_Feedback ,totalPowerINV):
+        stringAutoMode = ""
+        intComment = 0
+        arrayResultUpdateParameterZeroExportInTableProjectSetUp = []
+        arrayResultUpdateParameterPowerLimitInTableProjectSetUp = []
+        query = "SELECT * FROM `project_setup`"
+        result = await MySQL_Select_v1(query)
+        print("messageParameter", messageParameterControlAuto)
+        try:
+            if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto :
+                stringAutoMode = int(messageParameterControlAuto['mode'])
+                if stringAutoMode == 1:
+                    gIntValueOffsetZeroExport, gIntValueThresholdZeroExport, arrayResultUpdateParameterZeroExportInTableProjectSetUp = await handle_zero_export_mode(messageParameterControlAuto)
+                    gIntValueOffsetPowerLimit = result[0]["value_offset_power_limit"]
+                    gIntValuePowerLimit = result[0]["value_power_limit"]
+                elif stringAutoMode == 2:
+                    gIntValueOffsetPowerLimit, gIntValuePowerLimit, arrayResultUpdateParameterPowerLimitInTableProjectSetUp = await handle_power_limit_mode(messageParameterControlAuto, totalPowerINV)
+                    gIntValueOffsetZeroExport = result[0]["value_offset_zero_export"]
+                    gIntValueThresholdZeroExport = result[0]["threshold_zero_export"]
+                # Feedback to MQTT
+                if (arrayResultUpdateParameterZeroExportInTableProjectSetUp is None or 
+                    arrayResultUpdateParameterPowerLimitInTableProjectSetUp is None or 
+                    (gIntValuePowerLimit is not None and gIntValuePowerLimit > totalPowerINV and stringAutoMode == 2)):
+                    intComment = 400 
+                else:
+                    intComment = 200 
+                
+                # Object Sent MQTT
+                objectSend = {
+                    "time_stamp": get_utc(),
+                    "status": intComment,
+                }
+                
+                # Push MQTT
+                MQTTService.push_data_zip(mqtt_service, Topic_Control_Setup_Auto_Feedback, objectSend)
+                return {
+                    "value_offset_zero_export": gIntValueOffsetZeroExport,
+                    "value_power_limit": gIntValuePowerLimit,
+                    "value_offset_power_limit": gIntValueOffsetPowerLimit,
+                    "threshold_zero_export": gIntValueThresholdZeroExport,
+                }
+        except Exception as err:
+            print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
+            return None
         
+async def handle_zero_export_mode( message):
+    ValueOffsetTemp = message.get("offset", 0)
+    ValueThresholdTemp = message.get("threshold", 0)
+    
+    # Result Query 
+    ResultQuery = MySQL_Update_V1(
+        "UPDATE project_setup SET value_offset_zero_export = %s, threshold_zero_export = %s",
+        (ValueOffsetTemp, ValueThresholdTemp)
+    )
+    return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
+
+async def handle_power_limit_mode( message, TotalPower):
+    ValueOffsetTemp = message.get("offset", 0)
+    ValuePowerLimitTemp = message.get("value", 0)
+    
+    if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+        ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffsetTemp) / 100
         # Result Query 
-        ResultQuery = await MySQL_Update_V1(
-            "UPDATE project_setup SET value_offset_zero_export = %s, threshold_zero_export = %s",
-            (ValueOffsetTemp, ValueThresholdTemp)
+        ResultQuery = MySQL_Update_V1(
+            "UPDATE project_setup SET value_power_limit = %s, value_offset_power_limit = %s",
+            (ValuePowerLimitTemp, ValueOffsetTemp)
         )
-        return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
-
-    async def handle_power_limit_mode( message, TotalPower):
-        ValueOffsetTemp = message.get("offset", 0)
-        ValuePowerLimitTemp = message.get("value", 0)
-        
-        if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
-            ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffsetTemp) / 100
-            # Result Query 
-            ResultQuery = await MySQL_Update_V1(
-                "UPDATE project_setup SET value_power_limit = %s, value_offset_power_limit = %s",
-                (ValuePowerLimitTemp, ValueOffsetTemp)
-            )
-            return ValueOffsetTemp, ValuePowerLimit, ResultQuery
-        
-        return ValueOffsetTemp, None, None
+        return ValueOffsetTemp, ValuePowerLimit, ResultQuery
+    
+    return ValueOffsetTemp, None, None
 
 # ==================================================== Get List Auto Device  ==================================================================
 class GetListAutoDevice:
@@ -267,6 +312,49 @@ class GetListAllDevice:
             intStatusSystemPerformance = 2
 
         return systemPerformance, StringMessageStatusSystemPerformance, intStatusSystemPerformance
+    async def getListALLInvInProject(self,mqtt_service, messageAllDevice, Topic_Control_Process , ArlamLow , ArlamHigh,TotalPoductionINV , ModeSystem , TotalPowerINVAuto,SystemPerformance):
+        
+        ArrayDeviceList = []
+        TotalPowerINV = 0.0
+        TotalPowerINVMan = 0.0
+        # Get Information about the device
+        if messageAllDevice and isinstance(messageAllDevice, list):
+            for item in messageAllDevice:
+                device_info = self.extract_device_all_info(item)
+                if device_info:
+                    ArrayDeviceList.append(device_info)
+        
+        # Calculate the sum of wmax values of all inv in the system
+        TotalPowerINV, TotalPowerINVMan = self.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+        
+        # Call the update_system_performance function and get the return value
+        SystemPerformance, Message, intStatusSystemPerformance = self.update_system_performance(
+            ModeSystem,
+            SystemPerformance,
+            TotalPowerINV,
+            TotalPoductionINV,
+            ArlamLow,
+            ArlamHigh
+        )
+        
+        # Message Public MQTT
+        result = {
+            "ModeSystempCurrent": ModeSystem,
+            "devices": ArrayDeviceList,
+            "total_max_power": TotalPowerINV,
+            "total_max_power_man": TotalPowerINVMan,
+            "total_max_power_auto": TotalPowerINVAuto,
+            "system_performance": {
+                "performance": SystemPerformance,
+                "message": Message,
+                "status": intStatusSystemPerformance
+            }
+        }
+        
+        # Public MQTT
+        MQTTService.push_data_zip(mqtt_service, Topic_Control_Process, result)
+        return TotalPowerINV,TotalPowerINVMan,SystemPerformance
+    
     
 # ==================================================== Get Value Metter  ==================================================================
 class ValueEnergySystem:
@@ -330,6 +418,39 @@ class ValueEnergySystem:
         ValueProductionAndConsumption["instant"]["grid_feed"] = round((gIntValueProductionSystemp - gIntValueConsumptionSystemp), 4)
         ValueProductionAndConsumption["instant"]["max_production"] = round(gFloatValueMaxPredictProductionInstant_temp, 4)
         return ValueProductionAndConsumption
+    @staticmethod
+    async def getValueProductionAndConsumption(mqtt_service, gArrayMessageAllDevice, Topic_Meter_Monitor,last_update_time_comsumption,last_update_time_production):
+        # Local variables
+        current_time = time.time()
+        IntTotalValueProduction, IntTotalValueConsumtion = 0, 0
+        IntIntegralValueProduction, IntIntegralValueConsumtion = 0, 0
+        
+        # Get Value Production And Consumption From message All
+        if gArrayMessageAllDevice:
+            for item in gArrayMessageAllDevice:
+                if 'id_device' in item:
+                    id_device = item['id_device']
+                    result_type_meter = ValueEnergySystem.get_device_type(id_device)
+                    if result_type_meter:
+                        IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production = ValueEnergySystem.calculate_production(
+                            item, result_type_meter, IntTotalValueProduction, IntIntegralValueProduction, last_update_time_production, current_time
+                        )
+                        IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption = ValueEnergySystem.calculate_consumption(
+                            item, result_type_meter, IntTotalValueConsumtion, IntIntegralValueConsumtion, last_update_time_comsumption, current_time
+                        )
+            # Update the global values of total production and total consumption
+            gIntValueProductionSystemp = IntTotalValueProduction
+            gIntValueConsumptionSystemp = IntTotalValueConsumtion
+        
+        try:
+            ValueProductionAndConsumtion = ValueEnergySystem.message_value_metter(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp)
+            # Push system_info to MQTT
+            MQTTService.push_data_zip(mqtt_service, Topic_Meter_Monitor, ValueProductionAndConsumtion)
+        except Exception as err:
+            print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
+        
+        # Return the relevant global variables
+        return gIntValueProductionSystemp, gIntValueConsumptionSystemp, last_update_time_production, last_update_time_comsumption
 
 # ==================================================== Caculator PowerLit And ZeroExport  ==================================================================
 class FuntionCaculatorPower:
