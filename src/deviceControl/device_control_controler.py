@@ -569,7 +569,6 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
-    token = ""
     ValueOffsetZeroExportTemp = 0.0
     ValueThresholdZeroExportTemp = 0.0
     ValueOffsetPowerLimitTemp = 0.0
@@ -580,8 +579,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
-            if messageParameterControlAuto['token'] :
-                token = messageParameterControlAuto['token']
+            token = messageParameterControlAuto.get("token", "")
             if stringAutoMode == 1:
                 ValueOffsetZeroExportTemp,ValueThresholdZeroExportTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
@@ -623,14 +621,12 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
-    token = ""
     arrayResultUpdateModeDetailInTableProjectSetUp = []
     # Receve data from mqtt
     try:
         if messageModeControlAuto and 'control_mode' in messageModeControlAuto :
             stringAutoMode = messageModeControlAuto['control_mode'] 
-            if messageModeControlAuto["token"]:
-                token = messageModeControlAuto["token"]
+            token = messageModeControlAuto.get("token", "")
             stringAutoMode = int(stringAutoMode)
             # Compare get information update database 
             if stringAutoMode == 1:
