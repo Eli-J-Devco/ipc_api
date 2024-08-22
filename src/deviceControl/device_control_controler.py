@@ -38,8 +38,8 @@ gMaxValueChangeSetpoint = 10  # Maximum allowed change per second
 gIntValueSettingArlamLowPerformance = 0
 gIntValueSettingArlamHighPerformance = 0
 # Parameters Value Production and Consumtion 
-gIntValueProductionSystemp = 0
-gIntValueConsumptionSystemp = 0
+gIntValueProductionSystemp = 0.0
+gIntValueConsumptionSystemp = 0.0
 last_update_time_production = time.time()
 last_update_time_comsumption = time.time()
 # Parameters Value Power In Inv Each Mode 
