@@ -1906,7 +1906,7 @@ async def caculator_total_wmaxman_fault(mqtt_result,id_systemp,wmax,device_mode)
 # 	 * @return device_mode ,gIntModeConfirmOfDevice
 # 	 */
 async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, password):
-    global device_list,device_mode,gIntModeConfirmOfDevice
+    global device_list,device_mode,gIntModeConfirmOfDevice,token
     
     current_time = get_utc()
     for item in mqtt_result:
@@ -1918,6 +1918,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
                 data_send = {
                             "time_stamp": current_time,
                             "status": 200,
+                            "token" : token
                         }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedbacksetup", username, password, data_send)
         # Just change mode and don't do anything else 
@@ -1938,6 +1939,7 @@ async def update_para_auto_mode(mqtt_result,topicPublic, host, port, username, p
                 data_send = {
                             "time_stamp": current_time,
                             "status": 200,
+                            "token":token
                         }
                 mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
 # Describe process_sud_control_auto_man
