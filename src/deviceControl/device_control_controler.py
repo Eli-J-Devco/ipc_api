@@ -580,7 +580,8 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     try:
         if messageParameterControlAuto and 'mode' in messageParameterControlAuto and 'offset' in messageParameterControlAuto:
             stringAutoMode = int(messageParameterControlAuto['mode'])
-            token = messageParameterControlAuto['token']
+            if messageParameterControlAuto['token'] :
+                token = messageParameterControlAuto['token']
             if stringAutoMode == 1:
                 ValueOffsetZeroExportTemp,ValueThresholdZeroExportTemp,arrayResultUpdateParameterZeroExportInTableProjectSetUp = await control_init.handle_zero_export_mode(messageParameterControlAuto)
             elif stringAutoMode == 2:
@@ -628,7 +629,8 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
     try:
         if messageModeControlAuto and 'control_mode' in messageModeControlAuto :
             stringAutoMode = messageModeControlAuto['control_mode'] 
-            token = messageModeControlAuto["token"]
+            if messageModeControlAuto["token"]:
+                token = messageModeControlAuto["token"]
             stringAutoMode = int(stringAutoMode)
             # Compare get information update database 
             if stringAutoMode == 1:
