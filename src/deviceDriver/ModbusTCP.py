@@ -872,6 +872,7 @@ async def write_device(
     global result_topic1 # result topic 
     global result_topic3 
     global gIntModeConfirmOfDevice
+    global token
     # Local Variables
     
     # Get Id_Systemp
@@ -999,6 +1000,7 @@ async def write_device(
                             data_send = {
                                 "time_stamp": current_time,
                                 "status": comment,
+                                "token":token
                             }
                             mqtt_public_paho_zip(mqtt_host, mqtt_port, topicPublic + "/" + addtopic, mqtt_username, mqtt_password, data_send)
                             result_topic1 = []
@@ -1853,13 +1855,14 @@ async def updates_ratedpower_from_message(result_topic1,power_limit):
 # 	 * @return token
 # 	 */
 async def process_gettoken(mqtt_result):
-    global arr,token
+    global arr
     id_systemp = int(arr[1])
     if mqtt_result:
         for item in mqtt_result:
             if int(item["id_device"]) == id_systemp :
                 # Get rated_power , rated_power_custom from message
                 token = item.get("token")
+    return token
 # Describe caculator_total_wmaxman_fault
 # /**
 # 	 * @description caculator_total_wmaxman_fault
@@ -1968,6 +1971,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     global bitcheck_topic1
     global value_zero_export
     global total_wmax_man_temp
+    global token
 
     topicPublic = f"{serial_number_project}{MQTT_TOPIC_PUB_CONTROL}"
     id_systemp = int(arr[1])
@@ -1980,6 +1984,8 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
     
     if mqtt_result and any(int(item.get('id_device')) == int(id_systemp) for item in mqtt_result) and bitcheck_topic1 == 1:
         result_topic1 = mqtt_result
+        # Get Token 
+        token = await process_gettoken(mqtt_result)
         # Get value_zero_export and value_power_limit in DB 
         await Get_value_Power_Limit()
         # Update mode temp for Device 
@@ -1994,6 +2000,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
         # Update rated power to the device and check status when saving the device's control parameters to the system
         comment,watt,custom_watt = await updates_ratedpower_from_message(mqtt_result,wmax)
         if comment == 400 :
+            
             # If the update fails, return the mode value and print an error without doing anything else
             result_topic1 = []
             device_mode = gIntModeConfirmOfDevice
@@ -2002,6 +2009,7 @@ async def process_sud_control_man(mqtt_result, serial_number_project, host, port
             data_send = {
                     "time_stamp": current_time,
                     "status": comment,
+                    "token" :token
                 }
             mqtt_public_paho_zip(host, port, topicPublic + "/Feedback", username, password, data_send)
         else:
