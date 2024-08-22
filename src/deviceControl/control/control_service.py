@@ -610,3 +610,32 @@ class ProjectSetupService:
                         {"status":400}]
                         }
             MQTTService.push_data_zip(mqtt_service,topic_project_information,data_send)
+    @staticmethod
+    async def insertInformationProjectSetup(mqtt_service, messageInsertInformationProjectSetup, Topic_Project_Set_Feedback):
+        try:
+            # Tách thông tin mqtt từ thông tin được gửi
+            resultSet = messageInsertInformationProjectSetup.get('parameter', {})
+            resultSet.pop('mqtt', None)
+            # Lọc các kết quả nhận được để tạo truy vấn cập nhật thông tin cơ sở dữ liệu
+            if resultSet:
+                update_fields = ", ".join([f"{field} = %s" for field in resultSet.keys()])
+                update_values = list(resultSet.values())
+                query = f"UPDATE project_setup SET {update_fields}"
+                print("query",query)
+                print("update_values",update_values)
+                if query and update_values:
+                    result = await MySQL_Update_v2(query, tuple(update_values))
+                    current_time = get_utc()
+                    if result is not None:
+                        data_send = {
+                            "status": 400,
+                            "time_stamp": current_time
+                        }
+                    else:
+                        data_send = {
+                            "status": 200,
+                            "time_stamp": current_time
+                        }
+                    MQTTService.push_data_zip(mqtt_service, Topic_Project_Set_Feedback, data_send)
+        except Exception as err:
+            print(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")

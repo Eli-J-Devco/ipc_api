@@ -40,8 +40,6 @@ gIntValueSettingArlamHighPerformance = 0
 # Parameters Value Production and Consumtion 
 gIntValueProductionSystemp = 0.0
 gIntValueConsumptionSystemp = 0.0
-last_update_time_production = time.time()
-last_update_time_comsumption = time.time()
 # Parameters Value Power In Inv Each Mode 
 gIntValueTotalPowerInInvInManMode = 0
 gIntValueTotalPowerInInvInAutoMode = 0
@@ -192,21 +190,6 @@ async def insertInformationProjectSetup(mqtt_service,messageInsertInformationPro
         MQTTService.push_data_zip(mqtt_service,Topic_Project_Set_Feedback,data_send)
     except Exception as err:
         print(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")
-# Describe insertInformationProjectSetupWhenRequest 
-# 	 * @description insertInformationProjectSetupWhenRequest
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_result ,StringSerialNumerInTableProjectSetup,host, port, username, password}
-# 	 * @return call insertInformationProjectSetup
-# 	 */ 
-async def insertInformationProjectSetupWhenRequest(mqtt_service , messageInsertInformationProjectSetup, Topic_Project_Set_Feedback):
-    try:
-        if messageInsertInformationProjectSetup and 'set_information' in messageInsertInformationProjectSetup:
-            await insertInformationProjectSetup(mqtt_service,messageInsertInformationProjectSetup,Topic_Project_Set_Feedback)    
-        else:
-            pass
-    except Exception as err:
-        print(f"Error MQTT subscribe insertInformationProjectSetupWhenRequest: '{err}'") 
 # Describe getListDeviceAutoModeInALLInv 
 # 	 * @description getListDeviceAutoModeInALLInv
 # 	 * @author bnguyen
@@ -461,8 +444,6 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
     global gIntValueTotalPowerInInvInManMode
     global gIntValueTotalPowerInInvInAutoMode
     global gFloatValueSystemPerformance
-    global last_update_time_comsumption
-    global last_update_time_production
     
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
@@ -484,9 +465,9 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             device_manager = GetListAllDevice()
             gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance = await device_manager.getListALLInvInProject(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
             ,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gIntValueProductionSystemp,gStringModeSystempCurrent,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
-            gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
+            # gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # topic6
-            await insertInformationProjectSetupWhenRequest(mqtt_service,message)
+            await ProjectSetupService.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # topic7
             gIntControlModeDetail = await ModeDetailHandler.processUpdateModeControlDetail(mqtt_service,message)
         elif topic in serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:   # topic8, topic9, topic10
