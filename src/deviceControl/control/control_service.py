@@ -377,7 +377,11 @@ class ValueEnergySystem:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
-            print("ArrayValueProduction",ArrayValueProduction)
+            for param in item.get("parameters", []):
+                if param["name"] == "Basic":
+                    for field in param.get("fields", []):
+                        if field["point_key"] == "ACActivePower":
+                            print("Found ACActivePower value:", field["value"])
             if ArrayValueProduction and ArrayValueProduction[0] is not None:
                 IntTotalValueProduction += ArrayValueProduction[0]
                 print('IntTotalValueProduction',IntTotalValueProduction)
@@ -391,10 +395,8 @@ class ValueEnergySystem:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
-            print("ArrayValueConsumption",ArrayValueConsumption)
             if ArrayValueConsumption and ArrayValueConsumption[0] is not None:
                 IntTotalValueConsumption += ArrayValueConsumption[0]
-                print("IntTotalValueConsumption",IntTotalValueConsumption)
             return IntTotalValueConsumption
 
     def message_value_metter(gArrayMessageAllDevice, gIntValueProductionSystemp, gIntValueConsumptionSystemp):
