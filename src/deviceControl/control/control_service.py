@@ -27,7 +27,7 @@ class ModeSystem:
     def __init__(self):
         pass
     @staticmethod
-    async def pudSystempModeTrigerEachDeviceChange(Topic_Control_Setup_Mode_Write):
+    async def pudSystempModeTrigerEachDeviceChange(mqtt_service,Topic_Control_Setup_Mode_Write):
         # Chuyển sang chế độ người dùng bao gồm cả chế độ thủ công và tự động
             try:
                 result_checkmode_control = await MySQL_Select_v1(
@@ -45,7 +45,7 @@ class ModeSystem:
                 else:
                     data_send = {"id_device": "Systemp", "mode": 2}
                 
-                MQTTService.push_data_zip(Topic_Control_Setup_Mode_Write, data_send)
+                MQTTService.push_data_zip(mqtt_service,Topic_Control_Setup_Mode_Write, data_send)
             except asyncio.TimeoutError:
                 print("Timeout waiting for data from MySQL")
     @staticmethod
@@ -76,7 +76,8 @@ class ModeSystem:
 class ModeDetailHandler:
     def __init__(self):
         pass
-    async def processUpdateModeControlDetail(self, mqtt_service, messageModeControlAuto, Topic_Control_Setup_Mode_Write_Detail_Feedback):
+    @staticmethod
+    async def processUpdateModeControlDetail(mqtt_service, messageModeControlAuto, Topic_Control_Setup_Mode_Write_Detail_Feedback):
         # Biến cục bộ
         stringAutoMode = ""
         intComment = 0
@@ -93,7 +94,7 @@ class ModeDetailHandler:
                 elif stringAutoMode == 2:
                     gIntControlModeDetail = 2 
                 # Cập nhật chế độ trong cơ sở dữ liệu
-                arrayResultUpdateModeDetailInTableProjectSetUp = await MySQL_Update_V1("UPDATE project_setup SET control_mode = %s", (gIntControlModeDetail,))
+                arrayResultUpdateModeDetailInTableProjectSetUp = MySQL_Update_V1("UPDATE project_setup SET control_mode = %s", (gIntControlModeDetail,))
                 # Gửi phản hồi đến MQTT
                 if arrayResultUpdateModeDetailInTableProjectSetUp is None:
                     intComment = 400 
@@ -618,24 +619,22 @@ class ProjectSetupService:
             resultSet.pop('mqtt', None)
             # Lọc các kết quả nhận được để tạo truy vấn cập nhật thông tin cơ sở dữ liệu
             if resultSet:
-                update_fields = ", ".join([f"{field} = %s" for field in resultSet.keys()])
-                update_values = list(resultSet.values())
+                update_fields = ", ".join([f"{field} = %s" for field, value in resultSet.items()])
+                update_values = [value for field, value in resultSet.items()]
+                values = [tuple(update_values)]
                 query = f"UPDATE project_setup SET {update_fields}"
-                print("query",query)
-                print("update_values",update_values)
                 if query and update_values:
-                    result = await MySQL_Update_v2(query, tuple(update_values))
-                    current_time = get_utc()
-                    if result is not None:
-                        data_send = {
-                            "status": 400,
-                            "time_stamp": current_time
-                        }
-                    else:
-                        data_send = {
-                            "status": 200,
-                            "time_stamp": current_time
-                        }
-                    MQTTService.push_data_zip(mqtt_service, Topic_Project_Set_Feedback, data_send)
+                    result = MySQL_Update_v2(query, values)
+                if result is not None:
+                    status = 200
+                else:
+                    status = 400
+                # return of execution results to the end user
+                current_time = get_utc()
+                data_send = {
+                    "status": status,
+                    "time_stamp": current_time
+                }
+                MQTTService.push_data_zip(mqtt_service, Topic_Project_Set_Feedback, data_send)
         except Exception as err:
             print(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")

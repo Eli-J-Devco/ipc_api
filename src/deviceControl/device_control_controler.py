@@ -466,10 +466,10 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance = await device_manager.getListALLInvInProject(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
             ,gIntValueSettingArlamLowPerformance,gIntValueSettingArlamHighPerformance,gIntValueProductionSystemp,gStringModeSystempCurrent,gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
             # gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystem.getValueProductionAndConsumption(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # topic6
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # ok
             await ProjectSetupService.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # topic7
-            gIntControlModeDetail = await ModeDetailHandler.processUpdateModeControlDetail(mqtt_service,message)
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # ok
+            gIntControlModeDetail = await ModeDetailHandler.processUpdateModeControlDetail(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
         elif topic in serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:   # topic8, topic9, topic10
             await ModeSystem.pudSystempModeTrigerEachDeviceChange(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
     except Exception as err:
