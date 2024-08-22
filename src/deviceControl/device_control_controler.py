@@ -569,6 +569,7 @@ async def processUpdateParameterModeDetail(messageParameterControlAuto, StringSe
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
+    token = ""
     ValueOffsetZeroExportTemp = 0.0
     ValueThresholdZeroExportTemp = 0.0
     ValueOffsetPowerLimitTemp = 0.0
@@ -621,6 +622,7 @@ async def processUpdateModeDetail(messageModeControlAuto,StringSerialNumerInTabl
     timeStamp = get_utc()
     stringAutoMode = ""
     intComment = 0
+    token = ""
     arrayResultUpdateModeDetailInTableProjectSetUp = []
     # Receve data from mqtt
     try:
