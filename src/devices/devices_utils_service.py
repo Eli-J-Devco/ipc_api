@@ -95,7 +95,7 @@ class UtilsService:
         device_group = result.scalars().all()
 
         if not device_group:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device group not found")
+            return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device group not found")
 
         return device_group
 

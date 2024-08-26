@@ -257,7 +257,7 @@ class DevicesService:
                     devices = await self.components_service.add_components_parent(new_devices.id,
                                                                                   body.components, session)
                     if isinstance(devices, HTTPException):
-                        raise devices
+                        return devices
                     symbolic_devices += devices
                 devices.append(new_devices.id)
             await session.commit()

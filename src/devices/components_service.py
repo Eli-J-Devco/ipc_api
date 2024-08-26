@@ -31,7 +31,7 @@ class ComponentsService:
                                     parent: int,
                                     components: list[DeviceComponentFilter],
                                     session: AsyncSession,
-                                    is_add: bool = True) -> Sequence[SymbolicDevice]:
+                                    is_add: bool = True) -> Sequence[SymbolicDevice] | HTTPException:
         """
         Add parent to components
         :author: nhan.tran
@@ -40,7 +40,7 @@ class ComponentsService:
         :param components:
         :param session:
         :param is_add:
-        :return: Sequence[SymbolicDevice]
+        :return: Sequence[SymbolicDevice] | HTTPException
         """
         symbolic_devices = []
         query = update(DevicesEntity).where(DevicesEntity.parent == parent).values(parent=None)
@@ -71,7 +71,7 @@ class ComponentsService:
             if is_add:
                 device_group = await self.utils_service.get_device_group_by_type(component.id_device_type, session)
                 if isinstance(device_group, HTTPException):
-                    raise device_group
+                    return device_group
                 id_device_group = device_group[0].id
 
             query = (select(Template)
