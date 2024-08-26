@@ -67,8 +67,15 @@ class ComponentsService:
                 await session.execute(query)
                 continue
 
+            id_device_group = component.id_device_group
+            if is_add:
+                device_group = await self.utils_service.get_device_group_by_type(component.id_device_type, session)
+                if isinstance(device_group, HTTPException):
+                    raise device_group
+                id_device_group = device_group[0].id
+
             query = (select(Template)
-                     .where(Template.id_device_group == component.id_device_group))
+                     .where(Template.id_device_group == id_device_group))
             result = await session.execute(query)
             template = result.scalars().first()
             if not template:
@@ -97,20 +104,20 @@ class ComponentsService:
         :return: Sequence[DeviceComponent]
         """
         query = (select(DeviceComponentEntity)
-        .where(DeviceComponentEntity.main_type == device_type.main_type)
-        .where(
-            DeviceComponentEntity.sub_type == device_type.sub_type
-            if device_type.sub_type else text("1=1")))
+                 .where(DeviceComponentEntity.main_type == device_type.main_type)
+                 .where(DeviceComponentEntity.sub_type == device_type.sub_type
+                        if device_type.sub_type else text("1=1")))
 
         result = await session.execute(query)
-        components = result.scalars().all()
+        groups = result.scalars().all()
         output = []
-        for component in components:
-            logging.info(f"Component: {component.__dict__}")
-            base_component = DeviceComponentBase(**component.__dict__)
+        for group in groups:
+            base_component = DeviceComponentBase(**group.__dict__)
+            components = await self.utils_service.get_device_type_by_group(base_component.group, session)
             output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
-                                          name=component.component_type.name,
-                                          type=component.component_type.type))
+                                          name=group.component_type.name,
+                                          type=group.component_type.type,
+                                          components=components))
         return output
 
     @async_db_request_handler
@@ -164,9 +171,9 @@ class ComponentsService:
         if not component_types:
             return False
 
-        component_types = [component.component for component in component_types]
+        component_types = [component.group for component in component_types]
         for component in components:
-            if component.id_device_type not in component_types:
+            if component.group not in component_types:
                 return False
         return True
 
@@ -211,7 +218,8 @@ class ComponentsService:
         output = []
 
         for component in components:
-            component = Component(**jsonable_encoder(component))
+            component_dict = jsonable_encoder(component)
+            component = Component(**component_dict, template_library=component_dict.get("template"))
             if not component.template_library:
                 output.append(component)
                 continue
@@ -234,7 +242,7 @@ class ComponentsService:
         :return: dict
         """
         query = (select(DevicesEntity.id_device_type, DeviceComponentEntity.quantity, func.count())
-                 .join(DeviceComponentEntity, DevicesEntity.id_device_type == DeviceComponentEntity.component)
+                 .join(DeviceComponentEntity, DevicesEntity.id_device_type == DeviceComponentEntity.group)
                  .where(DevicesEntity.parent == parent)
                  .group_by(DevicesEntity.id_device_type))
         result = await session.execute(query)
@@ -243,6 +251,7 @@ class ComponentsService:
         output = {}
         if components:
             for component in components:
+                logging.info(f"Component: {component}")
                 output[component[0]] = {"limit": component[1],
                                         "actual": component[2]}
 
@@ -279,7 +288,7 @@ class ComponentsService:
 
         query = (select(DeviceComponentEntity.quantity)
                  .where(DeviceComponentEntity.main_type == main_type)
-                 .where(DeviceComponentEntity.component == component)
+                 .where(DeviceComponentEntity.group == component)
                  .where(or_(DeviceComponentEntity.sub_type == sub_type if sub_type else text("1=1"),
                             DeviceComponentEntity.sub_type.is_(None))))
         result = await session.execute(query)

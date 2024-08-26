@@ -80,6 +80,26 @@ class UtilsService:
         return device_group
 
     @async_db_request_handler
+    async def get_device_group_by_type(self, id_device_type: int,
+                                       session: AsyncSession) -> Sequence[DeviceGroup] | HTTPException:
+        """
+        Get device group by device type
+        :author: nhan.tran
+        :date: 26-08-2024
+        :param id_device_type:
+        :param session:
+        :return: Sequence[DeviceGroup] | HTTPException
+        """
+        query = select(DeviceGroupEntity).filter(DeviceGroupEntity.id_device_type == id_device_type)
+        result = await session.execute(query)
+        device_group = result.scalars().all()
+
+        if not device_group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device group not found")
+
+        return device_group
+
+    @async_db_request_handler
     async def get_device_type(self, session: AsyncSession) -> Sequence[DeviceType]:
         """
         Get device type
@@ -106,6 +126,26 @@ class UtilsService:
         query = select(DeviceTypeEntity).filter(DeviceTypeEntity.id == id_device_type)
         result = await session.execute(query)
         device_type = result.scalars().first()
+
+        if not device_type:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
+
+        return device_type
+
+    @async_db_request_handler
+    async def get_device_type_by_group(self, id_device_type_group: int,
+                                       session: AsyncSession) -> Sequence[DeviceType] | HTTPException:
+        """
+        Get device type by device group
+        :author: nhan.tran
+        :date: 22-08-2024
+        :param id_device_type_group:
+        :param session:
+        :return:
+        """
+        query = select(DeviceTypeEntity).filter(DeviceTypeEntity.group == id_device_type_group)
+        result = await session.execute(query)
+        device_type = result.scalars().all()
 
         if not device_type:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")

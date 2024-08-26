@@ -61,3 +61,10 @@ class PointMpptController:
                       .async_wrapper(self.point_mppt_service
                                      .delete_point)(session,
                                                     point, ))
+
+    @Post("/get/")
+    async def get_point(self,
+                        template_id: int,
+                        session: AsyncSession = Depends(config.get_db),
+                        user: Authentication = Depends(get_current_user)):
+        return await (ServiceWrapper.async_wrapper(self.point_mppt_service.get_mppt_point)(template_id, session))

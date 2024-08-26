@@ -16,6 +16,7 @@ class DeviceType(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
     type: Optional[int] = None
+    image: Optional[str] = None
 
     class Config:
         orm_mode = True
@@ -120,13 +121,16 @@ class DeviceConfigOutput(BaseModel):
 
 class DeviceComponentBase(BaseModel):
     sub_type: Optional[int] = None
-    component: Optional[int] = None
+    group: Optional[int] = None
     quantity: Optional[int] = None
+    required: Optional[bool] = False
+    plug_point: Optional[str] = None
 
 
 class DeviceComponent(DeviceComponentBase):
     name: Optional[str] = None
     type: Optional[int] = None
+    components: Optional[list[DeviceType]] = None
 
     class Config:
         orm_mode = True
@@ -143,6 +147,7 @@ class Component(BaseModel):
     device_type: Optional[DeviceType] = None
     device_group: Optional[DeviceGroup] = None
     template_library: Optional[TemplateBase] = None
+    mppt_id: Optional[int] = None
 
     class Config:
         orm_mode = True

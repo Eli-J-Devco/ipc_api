@@ -16,7 +16,7 @@ from sqlalchemy import select, update, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .components_service import ComponentsService
-from .devices_entity import (Devices as DevicesEntity,
+from .devices_entity import (Devices as DevicesEntity, DeviceComponent, DeviceType,
                              )
 from .devices_filter import AddDevicesFilter, IncreaseMode, CodeEnum, GetDeviceFilter, UpdateDeviceFilter, \
     DeleteDeviceFilter, SymbolicDevice, ListDeviceFilter, ActionEnum
@@ -103,9 +103,12 @@ class DevicesService:
             driver_type = device.communication.__dict__.get("name") if device.communication is not None else None
             device_type = device.device_type
             query = (select(DevicesEntity)
-                     .where(DevicesEntity.parent == device.id))
+                     .join(DeviceType, DevicesEntity.id_device_type == DeviceType.id)
+                     .join(DeviceComponent, DeviceType.group == DeviceComponent.group)
+                     .where(DevicesEntity.parent == device.id)
+                     .where(DeviceComponent.require.__ne__(True)))
             result = await session.execute(query)
-            components = result.scalars().all()
+            components = result.scalars().first()
             device = device.__dict__
 
             if components:

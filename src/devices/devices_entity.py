@@ -105,6 +105,15 @@ class Devices(config.Base):
     point_list_pf = relationship("Point", foreign_keys=[point_pf])
 
 
+class DeviceTypeGroup(config.Base):
+    __tablename__ = "device_type_group"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
+    type: Mapped[int] = mapped_column(Integer, nullable=True)
+    status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
+
+
 class DeviceType(config.Base):
     __tablename__ = "device_type"
 
@@ -112,6 +121,13 @@ class DeviceType(config.Base):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
     type: Mapped[int] = mapped_column(Integer, nullable=True)
+    group: Mapped[int] = mapped_column(Integer, ForeignKey("device_type_group.id",
+                                                           ondelete="CASCADE",
+                                                           onupdate="CASCADE"),
+                                       nullable=True)
+    image: Mapped[str] = mapped_column(String, nullable=True)
+
+    device_type_group = relationship("DeviceTypeGroup", foreign_keys=[group])
 
 
 class DeviceGroup(config.Base):
@@ -134,17 +150,19 @@ class DeviceComponent(config.Base):
     __tablename__ = "device_component"
     main_type: Mapped[int] = mapped_column(Integer,
                                            ForeignKey("device_type.id",
-                                                               ondelete="RESTRICT",
-                                                               onupdate="RESTRICT"),
+                                                      ondelete="RESTRICT",
+                                                      onupdate="RESTRICT"),
                                            primary_key=True,
                                            nullable=False)
     sub_type: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
-    component: Mapped[int] = mapped_column(Integer, ForeignKey("device_type.id",
-                                                               ondelete="RESTRICT",
-                                                               onupdate="RESTRICT"),
-                                           primary_key=True,
-                                           nullable=False)
+    group: Mapped[int] = mapped_column(Integer, ForeignKey("device_type_group.id",
+                                                           ondelete="RESTRICT",
+                                                           onupdate="RESTRICT"),
+                                       primary_key=True,
+                                       nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=True)
+    require: Mapped[bool] = mapped_column(Integer, nullable=True)
+    plug_point: Mapped[str] = mapped_column(String, nullable=True)
 
     main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
-    component_type = relationship("DeviceType", foreign_keys=[component], lazy="immediate")
+    component_type = relationship("DeviceTypeGroup", foreign_keys=[group], lazy="immediate")

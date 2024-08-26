@@ -50,8 +50,10 @@ class AddMeterFilter(BaseModel):
 class DeviceComponentFilter(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+    group: Optional[int] = None
     id_device_type: Optional[int] = None
     id_device_group: Optional[int] = None
+    id_mppt: Optional[int] = None
     type: Optional[int] = None
 
 
