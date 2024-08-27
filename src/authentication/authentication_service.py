@@ -96,8 +96,7 @@ class AuthenticationService:
 
         return response
 
-    @async_db_request_handler
-    async def refresh(self, refresh_token: str) -> JSONResponse | HTTPException:
+    def refresh(self, refresh_token: str) -> JSONResponse | HTTPException:
         """
         Refresh the access token with the refresh token
         :author: nhan.tran
@@ -105,8 +104,14 @@ class AuthenticationService:
         :param refresh_token:
         :return: JSONResponse | HTTPException
         """
+        credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                              detail="Could not validate credentials",
+                                              headers={"WWW-Authenticate": "Bearer"})
         if not refresh_token:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+            raise credentials_exception
+
+        self.authentication.verify_refresh_token(refresh_token, credentials_exception)
+
         access_token = self.authentication.refresh_access_token(refresh_token)
         return JSONResponse(status_code=status.HTTP_200_OK, content={"access_token": access_token})
 

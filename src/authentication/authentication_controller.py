@@ -39,5 +39,5 @@ class AuthenticationController:
         return await ServiceWrapper.async_wrapper(self.authentication_service.forgot_password)(user.username, session)
 
     @Post("/refresh")
-    async def refresh(self, refresh_token: str = Body(embed=True), session: AsyncSession = Depends(config.get_db)):
-        return await ServiceWrapper.async_wrapper(self.authentication_service.refresh)(refresh_token)
+    async def refresh(self, refresh_token: str = Body(embed=True)):
+        return ServiceWrapper.sync_wrapper(self.authentication_service.refresh)(refresh_token)

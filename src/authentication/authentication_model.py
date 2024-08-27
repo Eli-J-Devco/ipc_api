@@ -132,7 +132,7 @@ class AuthenticationConfig:
 
         return encoded_jwt
 
-    def verify_refresh_token(self, token, credentials_exception) -> TokenData | HTTPException:
+    def verify_refresh_token(self, token, credentials_exception: HTTPException) -> TokenData | HTTPException:
         """
         Verify the refresh token
         :author nhan.tran:
@@ -153,8 +153,10 @@ class AuthenticationConfig:
             token_data = TokenData(id=str(user_id))
             return token_data
         except jwt.ExpiredSignatureError:
+            credentials_exception.detail = "Refresh token is expired"
             raise credentials_exception
         except jwt.JWTError:
+            credentials_exception.detail = "Invalid refresh token"
             raise credentials_exception
         except Exception:
             raise credentials_exception
