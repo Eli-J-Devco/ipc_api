@@ -59,15 +59,19 @@ class DeviceService:
             send_device = []
             for device in devices_info:
                 result[device.id] = await self.action[action_type](device, retry, code, meta_code)
+                msg = PM2DeviceModel(id=device.id,
+                                     name=device.name,
+                                     id_communication=device.communication.id
+                                     if device.communication else None,
+                                     connect_type=device.communication.name
+                                     if device.communication else None,
+                                     mode=0,
+                                     device_type_value=device.device_type.type, )
                 if result[device.id] == 200:
-                    send_device.append(PM2DeviceModel(id=device.id,
-                                                      name=device.name,
-                                                      id_communication=device.communication.id
-                                                      if device.communication else None,
-                                                      connect_type=device.communication.name
-                                                      if device.communication else None,
-                                                      mode=0,
-                                                      device_type_value=device.device_type.type, ))
+                    send_device.append(msg)
+                elif isinstance(result[device.id], list):
+                    send_device.append(msg)
+                    send_device.extend(result[device.id])
 
             if len(send_device) > 0:
                 if action_type != Action.UPDATE.value:
@@ -174,6 +178,7 @@ class DeviceService:
 
     async def delete_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
+            output = []
             if device.device_type.type == 0:
                 logger.info(f"Deleting table for device: {device.table_name}")
                 result = await self.delete_table_service.delete_table(device.table_name, self.session)
@@ -190,12 +195,19 @@ class DeviceService:
                 if isinstance(result, Exception):
                     raise result
 
+                logger.info(f"Deleting device component for device: {device.table_name}")
+                result = await self.delete_table_service.delete_device_component(device.id, self.session)
+                if isinstance(result, Exception):
+                    raise result
+                if isinstance(result, list):
+                    output.extend(result)
+
             logger.info(f"Deleting device")
             result = await self.delete_table_service.delete_device(device.id, self.session)
             if isinstance(result, Exception):
                 raise result
 
-            return 200
+            return 200 if len(output) == 0 else output
         except Exception as e:
             logger.error(f"Error deleting table: {e}")
             await self.handle_error(e,

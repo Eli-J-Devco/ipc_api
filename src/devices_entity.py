@@ -56,6 +56,9 @@ class DeviceType(config.Base):
 
     id: Mapped[int] = mapped_column(INTEGER, primary_key=True, nullable=False)
     type: Mapped[int] = mapped_column(INTEGER, nullable=True)
+    group: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_type_group.id",
+                                                           ondelete="CASCADE",
+                                                           onupdate="CASCADE"),)
 
 
 class Devices(config.Base):
@@ -157,3 +160,25 @@ class DevicePointListMap(config.Base):
                                                                    onupdate="CASCADE"),
                                                nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=True)
+
+
+class DeviceComponent(config.Base):
+    __tablename__ = "device_component"
+    main_type: Mapped[int] = mapped_column(INTEGER,
+                                           ForeignKey("device_type.id",
+                                                      ondelete="RESTRICT",
+                                                      onupdate="RESTRICT"),
+                                           primary_key=True,
+                                           nullable=False)
+    group: Mapped[int] = mapped_column(INTEGER, ForeignKey("device_type_group.id",
+                                                           ondelete="RESTRICT",
+                                                           onupdate="RESTRICT"),
+                                       primary_key=True,
+                                       nullable=False)
+    require: Mapped[bool] = mapped_column(INTEGER, nullable=True)
+
+
+class DeviceTypeGroup(config.Base):
+    __tablename__ = "device_type_group"
+
+    id: Mapped[int] = mapped_column(INTEGER, primary_key=True, autoincrement=True)

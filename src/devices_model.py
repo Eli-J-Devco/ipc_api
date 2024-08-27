@@ -131,3 +131,13 @@ class DevicePointListMap(BaseModel):
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
     name: Optional[str] = None
+
+
+class DeviceTypeGroup(BaseModel):
+    id: Optional[int] = None
+
+
+class DeviceComponent(BaseModel):
+    main_type: Optional[int] = None
+    group: Optional[int] = None
+    require: Optional[bool] = None
