@@ -140,7 +140,7 @@ class DeviceService:
                                                   "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher,
-                                    True)
+                                    is_zip=True)
             if retry == 0:
                 await self.update_table_service.update_device_status(device.id,
                                                                      DeviceState.Error.value,
@@ -170,7 +170,7 @@ class DeviceService:
                                                   "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher,
-                                    True)
+                                    is_zip=True)
 
     async def delete_table(self, device: DeviceModel, retry: int, code: str, meta_code: str):
         try:
@@ -209,4 +209,4 @@ class DeviceService:
                                                   "code": meta_code}),
                                     self.retry_publisher,
                                     self.dead_letter_publisher,
-                                    True)
+                                    is_zip=True)

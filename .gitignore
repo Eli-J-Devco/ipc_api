@@ -5,3 +5,6 @@ test/log
 src/log
 .env
 test
+node_modules
+package.json
+package-lock.json
