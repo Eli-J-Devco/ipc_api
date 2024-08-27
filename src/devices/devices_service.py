@@ -254,11 +254,11 @@ class DevicesService:
                     symbolic_devices.append(SymbolicDevice(id=new_devices.id, name=new_devices.name))
 
                 if body.components:
-                    devices = await self.components_service.add_components_parent(new_devices.id,
+                    component_devices = await self.components_service.add_components_parent(new_devices.id,
                                                                                   body.components, session)
-                    if isinstance(devices, HTTPException):
-                        return devices
-                    symbolic_devices += devices
+                    if isinstance(component_devices, HTTPException):
+                        return component_devices
+                    symbolic_devices += component_devices
                 devices.append(new_devices.id)
             await session.commit()
         else:
@@ -335,10 +335,10 @@ class DevicesService:
             device = await self.get_device_by_id(i, session)
             if device:
                 deleted_devices.append(device.id)
-                query = (update(DevicesEntity)
-                         .where(DevicesEntity.parent == device.id)
-                         .values(parent=None))
-                await session.execute(query)
+            #     query = (update(DevicesEntity)
+            #              .where(DevicesEntity.parent == device.id)
+            #              .values(parent=None))
+            #     await session.execute(query)
 
         if len(deleted_devices) > 0:
             serial_number = await ProjectSetupService().get_project_serial_number(session)

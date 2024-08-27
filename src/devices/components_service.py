@@ -81,7 +81,12 @@ class ComponentsService:
             if not template:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
-            new_component = DevicesEntity(name=f"{component.name} {count}",
+            component_name = component.name
+            if not component_name:
+                device_type = await (self.utils_service
+                                     .get_device_type_by_id(component.id_device_type, session))
+                component_name = device_type.name
+            new_component = DevicesEntity(name=f"{component_name} {count}",
                                           parent=parent,
                                           id_device_type=component.id_device_type,
                                           id_template=template.id, )
