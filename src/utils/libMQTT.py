@@ -35,4 +35,3 @@ def push_data_to_mqtt(host,port,topic,username, password, data_send):
     # except:
         
         print(f"Error MQTT public: '{err}'")
-        pass
