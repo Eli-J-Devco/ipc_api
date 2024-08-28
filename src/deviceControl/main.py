@@ -236,14 +236,14 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 # 	 */ 
-async def automatedParameterManagement(mqtt_service,Topic_Control_WriteAuto,resultDB):
+async def automatedParameterManagement(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
     # Select the auto run process
     if resultDB["control_mode"] == 1 :
         print("==============================zero_export==============================")
-        await processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control_WriteAuto,resultDB)
+        await processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB)
     else:
         print("==============================power_limit==============================")
-        await processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control_WriteAuto,resultDB)
+        await processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB)
 ############################################################################ Sud MQTT ############################################################################
 # Describe processMessage 
 # 	 * @description pudSystempModeTrigerEachDeviceChange
