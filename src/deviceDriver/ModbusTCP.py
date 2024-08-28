@@ -1259,6 +1259,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         #    
                         point_list_device=point_list
                         # 
+                        status_register_block=status_rb
                         await asyncio.sleep(5)
                         # 
                         client.close()
