@@ -28,6 +28,29 @@ from dbService.deviceType import deviceTypeService
 class GetListAutoDeviceClass:
     def __init__(self):
         pass
+    @staticmethod
+    async def getListDeviceAutoModeInALLInv(messageAllDevice):
+        ArayyDeviceList = []
+        if messageAllDevice and isinstance(messageAllDevice, list):
+            for item in messageAllDevice:
+                device_info = GetListAutoDeviceClass.extract_device_auto_info(item)
+                if not device_info:
+                    continue
+                # Get Information Each Device 
+                id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type = device_info
+                # Check Device Auto 
+                if GetListAutoDeviceClass.is_device_controlable(results_device_type, status_device, mode, operator):
+                    ArayyDeviceList.append({
+                        'id_device': id_device,
+                        'mode': mode,
+                        'status_device': status_device,
+                        'p_max': p_max_custom,
+                        'p_min': p_min,
+                        'controlinv': value,
+                        'operator': operator,
+                        'slope': slope,
+                    })
+        return ArayyDeviceList
     def extract_device_auto_info(messageMQTT):
         if 'id_device' in messageMQTT and 'mode' in messageMQTT and 'status_device' in messageMQTT:
             id_device = messageMQTT['id_device']
@@ -65,6 +88,12 @@ class GetListAutoDeviceClass:
                 status_device == 'online' and 
                 mode == 1 and 
                 operator not in [7, 8])
+    @staticmethod
+    def calculate_total_power_inv_auto(ArayyDeviceList):
+        if ArayyDeviceList:
+            total_power = round(sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None), 2)
+            return total_power
+        return 0
     
 # ==================================================== Caculator PowerLit And ZeroExport  ==================================================================
 class caculatorPowerClass:

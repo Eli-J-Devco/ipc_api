@@ -24,16 +24,22 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
+from deviceControl.control_service import *
 # ==================================================== Get List All Device ==================================================================
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback , ArlamLow , ArlamHigh,TotalPoductionINV , ModeSystem , TotalPowerINVAuto,SystemPerformance):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,SystemPerformance,resultDB):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
+        ModeSystem = resultDB["mode"] 
+        ArlamLow = resultDB["low_performance"] 
+        ArlamHigh = resultDB["high_performance"] 
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
+            device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageAllDevice)
+            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
                 device_info = GetListAllDeviceClass.extract_device_all_info(item)
                 if device_info:
@@ -65,7 +71,7 @@ class GetListAllDeviceClass:
         # Public MQTT
         MQTTService.push_data_zip(mqtt_service, topicFeedback, result)
         MQTTService.push_data(mqtt_service, topicFeedback + "Binh", result)
-        return TotalPowerINV,TotalPowerINVMan,SystemPerformance
+        return TotalPowerINV,SystemPerformance
     
     def extract_device_all_info(item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
