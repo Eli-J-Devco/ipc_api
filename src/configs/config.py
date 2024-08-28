@@ -97,3 +97,14 @@ db_config = MySqlConfigFactory(
 )
 
 orm_provider = OrmProvider(db_config)
+
+# Tạo cấu hình kết nối DB mysql+aiomysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}
+GetDBConfig = MySqlConfigFactory(
+    user=Config.DATABASE_USERNAME,
+    password=Config.DATABASE_PASSWORD,
+    host=Config.DATABASE_HOSTNAME,
+    port=int(Config.DATABASE_PORT),
+    db_name=Config.DATABASE_NAME,
+)
+# quản lý kết nối và phiên làm việc (session) với cơ sở dữ liệu.
+DBSessionManager = OrmProvider(GetDBConfig)
