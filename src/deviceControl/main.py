@@ -115,6 +115,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
+        print("gArraydevices",gArraydevices)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
         print("total power in power limit",TotalPowerINVAuto)
     # Caculator System Performance 
