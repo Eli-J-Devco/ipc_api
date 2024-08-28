@@ -50,6 +50,7 @@ class ModeSystemClass:
         db_new=await DBSessionManager.get_db()
         if messageMQTT.get('id_device') == 'Systemp':
             modeSysTemp = messageMQTT.get('mode')
+            token = messageMQTT.get('token')
             if modeSysTemp in [0, 1, 2]:
                 updates = {
                         'mode': modeSysTemp,
@@ -65,9 +66,11 @@ class ModeSystemClass:
                 "status": 200,
                 "confirm_mode": modeSysTemp,
                 "time_stamp": current_time,
+                "token":token
             } if modeSysTemp in [0, 1, 2] else {
                 "status": 400,
                 "time_stamp": current_time,
+                "token":token
             }
             MQTTService.push_data_zip(mqtt_service, topicFeedback, objectSend)
             return modeSysTemp

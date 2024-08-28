@@ -38,6 +38,7 @@ class ModeDetailClass:
         try:
             if messageMQTT and 'control_mode' in messageMQTT:
                 ModeDetail = messageMQTT['control_mode'] 
+                token = messageMQTT.get("token", "")
                 updateModeDetail = {
                         'control_mode': ModeDetail,
                         # Thêm các trường khác nếu cần
@@ -52,6 +53,7 @@ class ModeDetailClass:
                 objectSend = {
                     "time_stamp": get_utc(),
                     "status": intComment, 
+                    "token" : token
                 }
                 MQTTService.push_data_zip(mqtt_service, topicFeedback, objectSend)
                 # Trả về biến toàn cục
@@ -70,6 +72,7 @@ class ModeDetailClass:
         try:
             if messageMQTT and 'mode' in messageMQTT and 'offset' in messageMQTT :
                 ModeDetail = int(messageMQTT['mode'])
+                token = messageMQTT.get("token", "")
                 if ModeDetail == 1:
                     OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await ModeDetailClass.handle_zero_export_mode(messageMQTT)
                     OffsetPowerLimit = result[0]["value_offset_power_limit"]
@@ -90,6 +93,7 @@ class ModeDetailClass:
                 objectSend = {
                     "time_stamp": get_utc(),
                     "status": intComment,
+                    "token":token
                 }
                 
                 # Push MQTT
