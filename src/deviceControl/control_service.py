@@ -97,6 +97,7 @@ class caculatorPowerClass:
         print("TotalPowerInInvInManMode",TotalPowerInInvInManMode)
         # Công suất của thiết bị bằng hiệu suất nhân với công suất tối đa.
         if 0 <= Efficiency <= 1:
+            print("PowerlimitCaculator",Efficiency * intPowerMaxOfInv)
             return Efficiency * intPowerMaxOfInv
         elif Efficiency < 0:
             return 0
