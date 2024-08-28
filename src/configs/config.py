@@ -12,7 +12,6 @@ sys.path.append(path)
 
 from dotenv import dotenv_values, find_dotenv, load_dotenv
 from pydantic import BaseSettings
-
 from async_db.config import MySqlConfigFactory, OrmProvider
 
 # from pydantic_settings import VERSION, BaseSettings, SettingsConfigDict
@@ -55,28 +54,38 @@ class Settings(BaseSettings):
     FTPSERVER_PORT : int
     FTPSERVER_USERNAME : str
     FTPSERVER_PASSWORD : str
-    MQTT_TOPIC_SUD_MODECONTROL_DEVICE : str
-    MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL : str
-    MQTT_TOPIC_PUD_PROJECT_SETUP : str
-    MQTT_TOPIC_PUD_CPU_SETUP : str
-    MQTT_TOPIC_SUD_MODEGET_INFORMATION : str
-    MQTT_TOPIC_SUD_MODEGET_CPU : str
-    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL : str
-    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK : str
-    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO : str
-    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO : str
-    MQTT_TOPIC_SUD_DEVICES_ALL : str
-    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN : str
-    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP : str
-    MQTT_TOPIC_PUD_CONTROL_AUTO : str
-    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE : str
-    MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE : str
-    MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS : str
-    MQTT_TOPIC_PUD_MONIT_METER : str
-    MQTT_TOPIC_SUD_SETTING_ARLAM : str
-    MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK : str
-    MQTT_TOPIC_SUD_MODIFY_DEVICE : str
 
+class MQTTSettings(BaseSettings):
+    MQTT_USERNAME: str
+    MQTT_PASSWORD: str
+    MQTT_BROKER: str
+    MQTT_PORT: int
+    
+class MQTTTopicSUD(BaseSettings):
+    MQTT_TOPIC_SUD_MODECONTROL_DEVICE: str
+    MQTT_TOPIC_SUD_MODEGET_INFORMATION: str
+    MQTT_TOPIC_SUD_MODEGET_CPU: str
+    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL: str
+    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO: str
+    MQTT_TOPIC_SUD_DEVICES_ALL: str
+    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN: str
+    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP: str
+    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE: str
+    MQTT_TOPIC_SUD_SETTING_ARLAM: str
+    MQTT_TOPIC_SUD_MODIFY_DEVICE: str
+
+class MQTTTopicPUSH(BaseSettings):
+    MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL: str
+    MQTT_TOPIC_PUD_PROJECT_SETUP: str
+    MQTT_TOPIC_PUD_CPU_SETUP: str
+    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK: str
+    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO: str
+    MQTT_TOPIC_PUD_CONTROL_AUTO: str
+    MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE: str
+    MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS: str
+    MQTT_TOPIC_PUD_MONIT_METER: str
+    MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK: str
+    MQTT_TOPIC_SUD_MODECONTROL_DEVICE : str
 Config = Settings()
 
 db_config = MySqlConfigFactory(
@@ -88,3 +97,14 @@ db_config = MySqlConfigFactory(
 )
 
 orm_provider = OrmProvider(db_config)
+
+# Tạo cấu hình kết nối DB mysql+aiomysql://{self.user}:{self.password}@{self.host}:{self.port}/{self.db_name}
+GetDBConfig = MySqlConfigFactory(
+    user=Config.DATABASE_USERNAME,
+    password=Config.DATABASE_PASSWORD,
+    host=Config.DATABASE_HOSTNAME,
+    port=int(Config.DATABASE_PORT),
+    db_name=Config.DATABASE_NAME,
+)
+# quản lý kết nối và phiên làm việc (session) với cơ sở dữ liệu.
+DBSessionManager = OrmProvider(GetDBConfig)
