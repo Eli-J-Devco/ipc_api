@@ -93,8 +93,8 @@ class caculatorPowerClass:
             Efficiency = (Setpoint / TotalPowerInInvInAutoMode)
         else:
             Efficiency = (Setpoint - TotalPowerInInvInManMode) / TotalPowerInInvInAutoMode
-        print("PowerlimitCaculator",Setpoint)
-        print("TotalPowerInInvInManMode",TotalPowerInInvInManMode)
+        print("intPowerMaxOfInv",intPowerMaxOfInv)
+        print("Efficiency",Efficiency)
         # Công suất của thiết bị bằng hiệu suất nhân với công suất tối đa.
         if 0 <= Efficiency <= 1:
             print("PowerlimitCaculator",Efficiency * intPowerMaxOfInv)
