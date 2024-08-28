@@ -35,7 +35,7 @@ class GetListAllDeviceClass:
         TotalPowerINVMan = 0.0
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
-            device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
+            device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageAllDevice)
             TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
                 device_info = GetListAllDeviceClass.extract_device_all_info(item)
