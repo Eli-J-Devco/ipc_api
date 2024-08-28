@@ -81,15 +81,12 @@ class ModeDetailClass:
                     OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeDetailClass.handle_power_limit_mode(messageMQTT)
                     OffsetZeroExport = result[0]["value_offset_zero_export"]
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
-                print("resultDBZeroExport",resultDBZeroExport)
-                print("resultDBPowerLimit",resultDBPowerLimit)
-                print("ValuePowerLimit",ValuePowerLimit)
-                print("ModeDetail",ModeDetail)
                 # Feedback to MQTT
                 if ((resultDBZeroExport is None and ModeDetail == 1) or 
                     (resultDBPowerLimit is None and ModeDetail == 2) or 
                     ValuePowerLimit is not None ):
                     intComment = 400 
+                    await db_new.rollback()
                 else:
                     intComment = 200 
                 
@@ -136,9 +133,7 @@ class ModeDetailClass:
                     'value_offset_power_limit': ValueOffsetTemp,
                     # Thêm các trường khác nếu cần
                 }
-            print("updatePowerLimit",updatePowerLimit)
             ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updatePowerLimit)
-            print("ResultQuery",)
             return ValueOffsetTemp, ValuePowerLimit, ResultQuery
         
         return ValueOffsetTemp, None, None

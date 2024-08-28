@@ -107,10 +107,10 @@ class ProjectSetupService:
 
             # Lưu thay đổi vào cơ sở dữ liệu
             await session.commit()
-            print("data insert")
             return project.__dict__  # Trả về thông tin đã cập nhật
         except Exception as e:
             print("Error in updateProjectSetup: ", e)
+            await session.rollback() 
             return None
         finally:
             await session.close()
