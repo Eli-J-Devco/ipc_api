@@ -35,11 +35,10 @@ class GetListAllDeviceClass:
         TotalPowerINVMan = 0.0
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
+            device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
+            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
                 device_info = GetListAllDeviceClass.extract_device_all_info(item)
-                device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
-                TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
-                print("total power in process",TotalPowerINVAuto)
                 if device_info:
                     ArrayDeviceList.append(device_info)
         # Calculate the sum of wmax values of all inv in the system
