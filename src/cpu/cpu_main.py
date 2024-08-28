@@ -59,10 +59,10 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         system_info["NetworkInformation"] = CPUInfo.getNetworkInformation() or {}
         system_info["NetworkSpeed"] = CPUInfo.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = CPUInfo.getDiskIoInformation(disk_io_counters_prev) or {}
-        
-        # Gửi dữ liệu đến MQTT
-        MQTTService.push_data(mqtt_service, Topic_CPU_Information + "Binh", system_info)
-        MQTTService.push_data_zip(mqtt_service, Topic_CPU_Information, system_info)
+        if all(system_info.values()):
+            # Gửi dữ liệu đến MQTT
+            MQTTService.push_data(mqtt_service, Topic_CPU_Information + "Binh", system_info)
+            MQTTService.push_data_zip(mqtt_service, Topic_CPU_Information, system_info)
     except Exception as err:
         print(f"Error in getIPCHardwareInformation: '{err}'")
 

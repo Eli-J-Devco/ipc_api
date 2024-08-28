@@ -21,7 +21,7 @@ from utils.libMySQL import *
 from utils.libTime import *
 from cpu.cpu_service import *
 from deviceControl.control_service import *
-from deviceControl.metter_service import *
+from deviceControl.enegy_service import *
 from deviceControl.modedetail_service import *
 from deviceControl.modesystem_service import *
 from deviceControl.processdevice_service import *
