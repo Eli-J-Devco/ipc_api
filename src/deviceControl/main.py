@@ -37,7 +37,6 @@ gIntValueProductionSystemp = 0.0
 gIntValueConsumptionSystemp = 0.0
 # Parameters Value Power In Inv Each Mode 
 gIntValueTotalPowerInInvInManMode = 0
-gIntValueTotalPowerInInvInAutoMode = 0
 gIntValueTotalPowerInALLInv = 0
 # message device all 
 gArrayMessageAllDevice = []
@@ -248,7 +247,6 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
     global gIntValueProductionSystemp
     global gIntValueConsumptionSystemp
     global gIntValueTotalPowerInInvInManMode
-    global gIntValueTotalPowerInInvInAutoMode
     global gFloatValueSystemPerformance
     
     topicSudMQTT = MQTTTopicSUD()
@@ -276,7 +274,7 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             if gArrayMessageAllDevice:
                 # process all inv 
                 gIntValueTotalPowerInALLInv,gIntValueTotalPowerInInvInManMode,gFloatValueSystemPerformance = await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
-                ,resultDB["low_performance"],resultDB["high_performance"],gIntValueProductionSystemp,resultDB["mode"],gIntValueTotalPowerInInvInAutoMode,gFloatValueSystemPerformance)
+                ,resultDB["low_performance"],resultDB["high_performance"],gIntValueProductionSystemp,resultDB["mode"],gFloatValueSystemPerformance)
                 # value energy
                 gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
                 # parametter power auto 
