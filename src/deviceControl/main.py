@@ -169,10 +169,18 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control
     OffsetZeroExport = resultDB["value_offset_zero_export"]
     ModeSystem = resultDB["mode"]
     ModeDetail = resultDB["control_mode"]
+    if ThresholdZeroExport != None :
+        ThresholdZeroExportCaculator = ThresholdZeroExport
+    else :
+        ThresholdZeroExportCaculator = 0.0
+    if OffsetZeroExport != None :
+        OffsetZeroExportCaculator = OffsetZeroExport
+    else :
+        OffsetZeroExportCaculator = 0.0
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,gIntValueConsumptionSystemp,gIntValueTotalPowerInInvInManMode,\
-        gListMovingAverageConsumption,gMaxValueChangeSetpoint,OffsetZeroExport)
+        gListMovingAverageConsumption,gMaxValueChangeSetpoint,OffsetZeroExportCaculator)
     # Get List Device Can Control 
     if gArrayMessageAllDevice:
         gArraydevices = await getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
@@ -188,7 +196,7 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control
                 gIntValueTotalPowerInInvInManMode, gIntValueTotalPowerInInvInAutoMode, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
             if gIntValueProductionSystemp < intPracticalConsumptionValue and \
-                gIntValueConsumptionSystemp >= ThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+                gIntValueConsumptionSystemp >= ThresholdZeroExportCaculator and gIntValueConsumptionSystemp >= 0:
                 item = caculatorPowerClass.create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
                 gIntValueTotalPowerInInvInManMode,gIntValueProductionSystemp)
             else:
