@@ -84,9 +84,8 @@ class ModeDetailClass:
                 # Feedback to MQTT
                 if ((resultDBZeroExport is None and ModeDetail == 1) or 
                     (resultDBPowerLimit is None and ModeDetail == 2) or 
-                    ValuePowerLimit is not None ):
+                    ValuePowerLimit is None ):
                     intComment = 400 
-                    await db_new.rollback()
                 else:
                     intComment = 200 
                 

@@ -51,6 +51,7 @@ class deviceListService:
             return result.rowcount  # Trả về số hàng đã cập nhật
         except Exception as e:
             print("Error in queryUpdateRatedPowerInID: ", e)
+            await session.rollback()
             return None
         finally:
             await session.close()
@@ -68,6 +69,7 @@ class deviceListService:
             return result.rowcount  # Trả về số hàng đã cập nhật
         except Exception as e:
             print("Error in updateDeviceModeByType: ", e)
+            await session.rollback()
             return None
         finally:
             await session.close()
