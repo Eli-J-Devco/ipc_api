@@ -24,7 +24,7 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
-from deviceControl.control_service import *
+from deviceControl.serviceDeviceControl.control_service import *
 # ==================================================== Get List All Device ==================================================================
 class GetListAllDeviceClass:
     def __init__(self):
@@ -71,7 +71,7 @@ class GetListAllDeviceClass:
         # Public MQTT
         MQTTService.push_data_zip(mqtt_service, topicFeedback, result)
         MQTTService.push_data(mqtt_service, topicFeedback + "Binh", result)
-        return TotalPowerINV,SystemPerformance
+        return SystemPerformance
     
     def extract_device_all_info(item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:

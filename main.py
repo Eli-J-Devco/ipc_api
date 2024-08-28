@@ -330,7 +330,7 @@ def init_virtual_device():
         LOGGER.error(f'{e}')
 def init_get_cpuinfor():
     absDirname=path
-    pid=f'MQTTControl'
+    pid=f'CPUInformation'
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(

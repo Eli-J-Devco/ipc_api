@@ -65,7 +65,6 @@ class deviceListService:
             )
             result = await session.execute(query)  # Thực hiện câu lệnh cập nhật
             await session.commit()  # Cam kết thay đổi
-            print("data insert")
             return result.rowcount  # Trả về số hàng đã cập nhật
         except Exception as e:
             print("Error in updateDeviceModeByType: ", e)

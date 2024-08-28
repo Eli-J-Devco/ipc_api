@@ -62,7 +62,7 @@ class ModeDetailClass:
             print(f"Error MQTT subscribe processUpdateModeControlDetail: '{err}'")
             return None  # Trả về None nếu có lỗi
     @staticmethod
-    async def handleParametterDetailChange( mqtt_service, messageMQTT, topicFeedBack ,totalPowerINV):
+    async def handleParametterDetailChange( mqtt_service, messageMQTT, topicFeedBack):
         ModeDetail = ""
         intComment = 0
         resultDBZeroExport = []
@@ -78,13 +78,13 @@ class ModeDetailClass:
                     OffsetPowerLimit = result[0]["value_offset_power_limit"]
                     ValuePowerLimit = result[0]["value_power_limit"]
                 elif ModeDetail == 2:
-                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeDetailClass.handle_power_limit_mode(messageMQTT, totalPowerINV)
+                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeDetailClass.handle_power_limit_mode(messageMQTT)
                     OffsetZeroExport = result[0]["value_offset_zero_export"]
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
                 # Feedback to MQTT
                 if (resultDBZeroExport is None or 
                     resultDBPowerLimit is None or 
-                    (ValuePowerLimit is not None and ValuePowerLimit > totalPowerINV and ModeDetail == 2)):
+                    ValuePowerLimit is not None ):
                     intComment = 400 
                 else:
                     intComment = 200 
@@ -120,12 +120,12 @@ class ModeDetailClass:
         ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updateZeroExport)
         return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
 
-    async def handle_power_limit_mode( message, TotalPower):
+    async def handle_power_limit_mode( message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
         ValuePowerLimitTemp = message.get("value", 0)
         
-        if ValuePowerLimitTemp is not None and ValuePowerLimitTemp <= TotalPower:
+        if ValuePowerLimitTemp is not None:
             ValuePowerLimit = ValuePowerLimitTemp - (ValuePowerLimitTemp * ValueOffsetTemp) / 100
             updatePowerLimit = {
                     'value_power_limit': ValuePowerLimitTemp,
