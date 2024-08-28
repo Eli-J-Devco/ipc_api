@@ -81,6 +81,9 @@ class ModeDetailClass:
                     OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeDetailClass.handle_power_limit_mode(messageMQTT)
                     OffsetZeroExport = result[0]["value_offset_zero_export"]
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
+                print("resultDBZeroExport",resultDBZeroExport)
+                print("resultDBPowerLimit",resultDBPowerLimit)
+                print("ValuePowerLimit",ValuePowerLimit)
                 # Feedback to MQTT
                 if (resultDBZeroExport is None or 
                     resultDBPowerLimit is None or 
