@@ -125,7 +125,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
             id_device, mode, intPowerMaxOfInv = caculatorPowerClass.process_device_powerlimit_info(device)
-            print("gIntValueTotalPowerInInvInManMode 0 ", gIntValueTotalPowerInInvInManMode)
             gIntValuePowerForEachInvInModePowerLimit = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv,ModeSystem,gIntValueTotalPowerInInvInManMode,\
                 gIntValueTotalPowerInInvInAutoMode,PowerlimitCaculator)
             # Create Infor Device Publish MQTT
@@ -250,26 +249,18 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             print("topic", topic)
             print("message",message)
             await ModeSystemClass.handleModeSystemChange(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
-        elif topic in [serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE]:   # topic8, topic9, topic10
+        elif topic in [serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE]:   # topic8, topic9, topic10
             await ModeSystemClass.triggerDeviceModeChange(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
         # Process Mode Control
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # ok
-            print("topic", topic)
-            print("message",message)
             await ModeDetailClass.handleModeDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO:   # ok
             await ModeDetailClass.handleParametterDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO ,gIntValueTotalPowerInALLInv)
-            print("topic", topic)
-            print("message",message)
         # Process Table Project setup
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION:   # ok
             await ProjectSetupClass.pudFeedBackProjectSetup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
-            print("topic", topic)
-            print("message",message)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # ok
             await ProjectSetupClass.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
-            print("topic", topic)
-            print("message",message)
         # Process List INV + Value Power
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:   # ok
             gArrayMessageAllDevice = message
