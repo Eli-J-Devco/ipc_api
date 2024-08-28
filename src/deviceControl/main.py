@@ -125,6 +125,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
         listInvControlPowerLimitMode = []
         for device in gArraydevices:
             id_device, mode, intPowerMaxOfInv = caculatorPowerClass.process_device_powerlimit_info(device)
+            print("gIntValueTotalPowerInInvInManMode 0 ", gIntValueTotalPowerInInvInManMode)
             gIntValuePowerForEachInvInModePowerLimit = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv,ModeSystem,gIntValueTotalPowerInInvInManMode,\
                 gIntValueTotalPowerInInvInAutoMode,PowerlimitCaculator)
             # Create Infor Device Publish MQTT
