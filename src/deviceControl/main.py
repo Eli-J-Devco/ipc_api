@@ -116,6 +116,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,Topic_Control
     if gArrayMessageAllDevice:
         gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
+        print("total power in power limit",TotalPowerINVAuto)
     # Caculator System Performance 
     if ModeSystem != 0 and PowerlimitCaculator:
         gFloatValueSystemPerformance = await caculatorPowerClass.calculate_system_performance(ModeSystem,gFloatValueSystemPerformance,\
@@ -185,6 +186,7 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,Topic_Control
     if gArrayMessageAllDevice:
         gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
+        print("total power in zero export",TotalPowerINVAuto)
     # Caculator System Performance 
     if ModeSystem != 0:
         gFloatValueSystemPerformance = await caculatorPowerClass.calculate_system_performance(ModeSystem,gFloatValueSystemPerformance,\
