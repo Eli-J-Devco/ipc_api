@@ -37,7 +37,7 @@ class GetListAllDeviceClass:
         if messageAllDevice and isinstance(messageAllDevice, list):
             for item in messageAllDevice:
                 device_info = GetListAllDeviceClass.extract_device_all_info(item)
-                device_auto_info = GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
+                device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
                 TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
                 if device_info:
                     ArrayDeviceList.append(device_info)
