@@ -1205,6 +1205,13 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                         Data = []
                         status_rb=[]
                         status_register_block=[]
+                        if len(results_RBlock) <1:
+                            status_device="offline"
+                            status_rb.append({
+                                            "ERROR_CODE":6,
+                                            "Timestamp": getUTC(),
+                                            "MSG":"No such device or address"
+                                            })
                         for itemRB in results_RBlock:
                             # await asyncio.sleep(0.5)
                             FUNCTION = itemRB["Functions"]
