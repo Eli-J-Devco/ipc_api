@@ -24,11 +24,12 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
+from deviceControl.control_service import *
 # ==================================================== Get List All Device ==================================================================
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback , ArlamLow , ArlamHigh,TotalPoductionINV , ModeSystem , TotalPowerINVAuto,SystemPerformance):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback , ArlamLow , ArlamHigh,TotalPoductionINV , ModeSystem ,SystemPerformance):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
@@ -36,6 +37,8 @@ class GetListAllDeviceClass:
         if messageAllDevice and isinstance(messageAllDevice, list):
             for item in messageAllDevice:
                 device_info = GetListAllDeviceClass.extract_device_all_info(item)
+                device_auto_info = GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(item)
+                TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
                 if device_info:
                     ArrayDeviceList.append(device_info)
         # Calculate the sum of wmax values of all inv in the system
