@@ -83,7 +83,7 @@ class ModeDetailClass:
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
                 # Feedback to MQTT
                 if ((resultDBZeroExport is None and ModeDetail == 1) or 
-                    (resultDBPowerLimit is None  and ModeDetail == 2 ) or 
+                    (resultDBPowerLimit is None and ModeDetail == 2 ) or 
                     ValuePowerLimit is not None ):
                     intComment = 400 
                 else:
