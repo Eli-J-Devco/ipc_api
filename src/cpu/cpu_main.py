@@ -11,6 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
+from deviceControl.serviceDeviceControl.siteinfor_service import *
 
 # Khởi tạo biến toàn cục
 net_io_counters_prev = {
@@ -67,23 +68,23 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         print(f"Error in getIPCHardwareInformation: '{err}'")
 
 async def main():
+    initialized_values = await ProjectSetupClass.initializeValueControlAuto()
     parameterMQTT = MQTTSettings()
     topicPushMQTT = MQTTTopicPUSH()
-    # Khởi tạo dịch vụ MQTT
+    # Create Service MQTT
     mqtt_service = MQTTService(
         host=parameterMQTT.MQTT_BROKER,
         port=parameterMQTT.MQTT_PORT,
         username=parameterMQTT.MQTT_USERNAME,
         password=parameterMQTT.MQTT_PASSWORD,
-        serial_number="G83VZT33"  # Thay thế bằng serial number thực tế
+        serial_number=initialized_values["serial_number"] 
     )
-    # Khởi tạo scheduler
+    # create scheduler
     scheduler = AsyncIOScheduler()
     scheduler.add_job(getIPCHardwareInformation, 'cron', second='*/3', args=[mqtt_service, topicPushMQTT.MQTT_TOPIC_PUD_CPU_SETUP])
     scheduler.start()
-    # Không cần tạo task rỗng, chỉ cần giữ vòng lặp chạy
     while True:
-        await asyncio.sleep(1)  # Để vòng lặp không bị treo
+        await asyncio.sleep(1)
 if __name__ == '__main__':
     if sys.platform == 'win32':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
