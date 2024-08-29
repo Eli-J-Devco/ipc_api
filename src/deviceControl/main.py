@@ -75,7 +75,7 @@ async def automatedParameterManagement(mqtt_service,gArrayMessageAllDevice,Topic
 # 	 * @return gIntValuePowerForEachInvInModePowerLimit
 # 	 */ 
 async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
-    global gIntValueProductionSystemp,gFloatValueSystemPerformance
+    global gIntValueProductionSystemp
     # Local variables
     gArraydevices = []
     ArrayDeviceList = []
@@ -95,10 +95,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessage
         ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in gArrayMessageAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
         # Calculate the sum of wmax values of all inv in the system
         TotalPowerINVAll, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
-    # Caculator System Performance 
-    if ModeSystem != 0 and PowerlimitCaculator:
-        gFloatValueSystemPerformance = await caculatorPowerClass.calculate_system_performance(ModeSystem,gFloatValueSystemPerformance,\
-        gIntValueProductionSystemp,PowerlimitCaculator)
     # Get Infor Device Control 
     if gArraydevices:
         listInvControlPowerLimitMode = []
@@ -138,7 +134,7 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessage
 # 	 */ 
 async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
     global gIntValueConsumptionSystemp,gIntValueProductionSystemp,\
-            gListMovingAverageConsumption, gFloatValueSystemPerformance
+            gListMovingAverageConsumption
     # Local variables
     gArraydevices = []
     ArrayDeviceList = []
@@ -162,10 +158,6 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,gIntValueConsumptionSystemp,TotalPowerINVMan,\
         gListMovingAverageConsumption,gMaxValueChangeSetpoint,OffsetZeroExport)
-    # Caculator System Performance 
-    if ModeSystem != 0:
-        gFloatValueSystemPerformance = await caculatorPowerClass.calculate_system_performance(ModeSystem,gFloatValueSystemPerformance,\
-        gIntValueProductionSystemp,intPracticalConsumptionValue)
     if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
@@ -232,7 +224,7 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             if gArrayMessageAllDevice:
                 # process all inv 
                 gFloatValueSystemPerformance = await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
-                ,gIntValueProductionSystemp,gFloatValueSystemPerformance,resultDB)
+                ,gIntValueProductionSystemp,gFloatValueSystemPerformance,resultDB,gIntValueConsumptionSystemp)
                 # value energy
                 gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
                 # parametter power auto 

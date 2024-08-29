@@ -29,13 +29,11 @@ from deviceControl.serviceDeviceControl.control_service import *
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,SystemPerformance,resultDB):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,SystemPerformance,resultDB,ValueConsumtion):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
         ModeSystem = resultDB["mode"] 
-        ArlamLow = resultDB["low_performance"] 
-        ArlamHigh = resultDB["high_performance"] 
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
             device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageAllDevice)
@@ -48,12 +46,11 @@ class GetListAllDeviceClass:
         TotalPowerINV, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Call the update_system_performance function and get the return value
         SystemPerformance, statusString, statusInt = GetListAllDeviceClass.update_system_performance(
-            ModeSystem,
+            resultDB,
             SystemPerformance,
-            TotalPowerINV,
             TotalPoductionINV,
-            ArlamLow,
-            ArlamHigh
+            TotalPowerINV,
+            ValueConsumtion
         )
         # Message Public MQTT
         result = {
@@ -145,12 +142,25 @@ class GetListAllDeviceClass:
     def calculate_p_min(p_max_custom, p_min_percent):
         return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
     @staticmethod
-    def update_system_performance(current_mode, systemPerformance, total_power_in_all_inv, production_system, low_performance_threshold, high_performance_threshold):
-        if current_mode == 0:
+    def update_system_performance(resultDB,systemPerformance, production_system, total_power_in_all_inv ,ValueConsumtion):
+        current_mode = resultDB["mode"] 
+        mode_detail = resultDB["control_mode"] 
+        low_performance_threshold = resultDB["low_performance"] 
+        high_performance_threshold = resultDB["high_performance"] 
+        Powerlimit = resultDB["value_power_limit"]
+        PowerLimitOffset = resultDB["value_offset_power_limit"]
+
+        # Calculate Power Limit
+        ValuePowerLimit = Powerlimit - (Powerlimit * PowerLimitOffset / 100) if PowerLimitOffset is not None else Powerlimit
+        if current_mode == 0: # Man
             systemPerformance = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
-        
+        else:
+            if mode_detail == 1: # Zero export
+                systemPerformance = (production_system / ValueConsumtion) * 100 if ValueConsumtion > 0 else (101 if production_system > 0 else 0)
+            else: # Power Limit 
+                systemPerformance = (production_system / ValuePowerLimit) * 100 if ValuePowerLimit > 0 else (101 if production_system > 0 else 0)
+        # Rounded results
         systemPerformance = round(systemPerformance, 1)
-        
         if systemPerformance < low_performance_threshold:
             statusString = "System performance is below expectations."
             statusInt = 0

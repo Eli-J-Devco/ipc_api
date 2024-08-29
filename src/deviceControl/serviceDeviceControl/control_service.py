@@ -100,16 +100,6 @@ class caculatorPowerClass:
     def __init__(self):
         pass
     @staticmethod
-    async def calculate_system_performance(ModeSystemp, SystemPerformance, ValueProduction, Setpoint):
-        if ModeSystemp != 0:
-            if Setpoint > 0 and ValueProduction > 0:
-                SystemPerformance = (ValueProduction / Setpoint) * 100
-            elif Setpoint <= 0 and ValueProduction > 0:
-                SystemPerformance = 101
-            else:
-                SystemPerformance = 0
-        return SystemPerformance
-    @staticmethod
     def process_device_powerlimit_info(device):
         id_device = device["id_device"]
         mode = device["mode"]
