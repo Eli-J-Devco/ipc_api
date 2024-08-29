@@ -102,6 +102,7 @@ class ProjectSetupClass:
             # Tách thông tin mqtt từ thông tin được gửi
             resultSet = messageMQTT.get('parameter', {})
             resultSet.pop('mqtt', None)
+            token = messageMQTT.get('token', "")
             # Lọc các kết quả nhận được để tạo truy vấn cập nhật thông tin cơ sở dữ liệu
             if resultSet:
                 update_fields = ", ".join([f"{field} = %s" for field, value in resultSet.items()])
@@ -118,7 +119,8 @@ class ProjectSetupClass:
                 current_time = get_utc()
                 data_send = {
                     "status": status,
-                    "time_stamp": current_time
+                    "time_stamp": current_time,
+                    "token": token,
                 }
                 MQTTService.push_data_zip(mqtt_service, topicFeedBack, data_send)
         except Exception as err:
