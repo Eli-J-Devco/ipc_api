@@ -3,11 +3,10 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import asyncio
 import os
 import sys
 from datetime import datetime
-
+from collections import deque
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -145,11 +144,11 @@ class caculatorPowerClass:
                 {"id_pointkey": "WMax", "value": PowerForEachInv}
             ])
         return ItemlistInvControlPowerLimitMode
-    async def calculate_setpoint( modeSystem, ValueConsump, ValueTotalPowerInInvInManMode,
-                                    gListMovingAverageConsumption, ValueOffetConsump):
-        print("gListMovingAverageConsumption",gListMovingAverageConsumption)
+    async def calculate_setpoint( modeSystem, ValueConsump, ValueTotalPowerInInvInManMode, ValueOffetConsump):
         ConsumptionAfterSudOfset = 0.0
         gMaxValueChangeSetpoint = 10 
+        gListMovingAverageConsumption = deque(maxlen=10)
+        print("gListMovingAverageConsumption",gListMovingAverageConsumption)
         if modeSystem == 1:
             gListMovingAverageConsumption.append(ValueConsump)
         else:
