@@ -47,7 +47,6 @@ class GetListAllDeviceClass:
         # Call the update_system_performance function and get the return value
         SystemPerformance, statusString, statusInt = GetListAllDeviceClass.update_system_performance(
             resultDB,
-            SystemPerformance,
             TotalPoductionINV,
             TotalPowerINV,
             ValueConsumtion
@@ -141,7 +140,7 @@ class GetListAllDeviceClass:
     def calculate_p_min(p_max_custom, p_min_percent):
         return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
     @staticmethod
-    def update_system_performance(resultDB,systemPerformance, production_system, total_power_in_all_inv ,ValueConsumtion):
+    def update_system_performance(resultDB, production_system, total_power_in_all_inv ,ValueConsumtion):
         current_mode = resultDB["mode"] 
         mode_detail = resultDB["control_mode"] 
         low_performance_threshold = resultDB["low_performance"] 
