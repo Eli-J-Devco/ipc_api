@@ -87,7 +87,6 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAl
     if messageMQTTAllDevice:
         # Calculate Total Power 
         totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
-        print("totalProduction",totalProduction)
         # Calculate Power Of INV AutoMode
         gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
@@ -148,7 +147,6 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAl
     if messageMQTTAllDevice:
         # Calculate Total Power 
         totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
-        print("totalConsumption",totalConsumption)
         # Calculate Power Of INV AutoMode
         gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)

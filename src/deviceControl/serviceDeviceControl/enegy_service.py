@@ -30,9 +30,12 @@ class ValueEnergySystemClass:
     @staticmethod
     async def ValueEnergySystemMain(mqtt_service, messageMQTT, topicFeedBack):
         totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTT)
+        print("totalProduction",totalProduction)
+        print("totalConsumption",totalConsumption)
         try:
             ObjectSendMQTT = ValueEnergySystemClass.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
             # Push system_info to MQTT
+            print("push dataa metter")
             MQTTService.push_data_zip(mqtt_service, topicFeedBack, ObjectSendMQTT)
             MQTTService.push_data(mqtt_service, topicFeedBack + "Binh", ObjectSendMQTT)
         except Exception as err:
