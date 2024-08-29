@@ -151,7 +151,10 @@ class GetListAllDeviceClass:
         PowerLimitOffset = resultDB["value_offset_power_limit"]
         ValueOffetConsump = resultDB["value_offset_zero_export"]
         # Calculate Power Limit
-        ValuePowerLimit = Powerlimit - (Powerlimit * PowerLimitOffset / 100) if PowerLimitOffset is not None else Powerlimit 
+        print("Powerlimit",Powerlimit)
+        print("PowerLimitOffset",PowerLimitOffset)
+        ValuePowerLimit = (Powerlimit - (Powerlimit * PowerLimitOffset)/ 100) if PowerLimitOffset is not None else Powerlimit 
+        print("ValuePowerLimit",ValuePowerLimit)
         ConsumptionAfterSudOfset = ValueConsumtion - (ValueConsumtion * ValueOffetConsump / 100) if ValueOffetConsump is not None else ValueConsumtion 
         
         if current_mode == 0: # Man
@@ -159,14 +162,8 @@ class GetListAllDeviceClass:
         else:
             if mode_detail == 1: # Zero export
                 systemPerformance = (production_system / ConsumptionAfterSudOfset) * 100 if ConsumptionAfterSudOfset > 0 else (101 if production_system > 0 else 0)
-                print("ConsumptionAfterSudOfset",ConsumptionAfterSudOfset)
-                print("production_system",production_system)
-                print("systemPerformance",systemPerformance)
             else: # Power Limit 
                 systemPerformance = (production_system / ValuePowerLimit) * 100 if ValuePowerLimit > 0 else (101 if production_system > 0 else 0)
-                print("ValuePowerLimit",ValuePowerLimit)
-                print("production_system",production_system)
-                print("systemPerformance",systemPerformance)
         # Rounded results
         systemPerformance = round(systemPerformance, 1)
         if systemPerformance < low_performance_threshold:
