@@ -24,6 +24,7 @@ from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
 from deviceControl.serviceDeviceControl.enegy_service import *
 from deviceControl.serviceDeviceControl.processdevice_service import *
+from deviceControl.serviceDeviceControl.control_service import *
 # ==================================================== Get List Auto Device  ==================================================================
 class GetListAutoDeviceClass:
     def __init__(self):
@@ -117,7 +118,6 @@ class caculatorPowerClass:
     # 	 */ 
     async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Local variables
-        GetListAllDevice = GetListAutoDeviceClass()
         Arraydevices = []
         ArrayDeviceList = []
         gIntValuePowerForEachInvInModePowerLimit = 0 
@@ -132,8 +132,8 @@ class caculatorPowerClass:
             # Calculate Total Power 
             totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await GetListAllDevice.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
-            TotalPowerINVAuto = GetListAllDevice.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
+            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
             ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
             # Calculate the sum of wmax values of all inv in the system
@@ -182,7 +182,6 @@ class caculatorPowerClass:
         PowerForEachInvInModeZeroExport = 0
         PracticalConsumptionValue = 0.0
         Setpoint = 0 
-        GetListAllDevice = GetListAutoDeviceClass()
         ModeSystem = resultDB["mode"]
         ModeDetail = resultDB["control_mode"]
         ThresholdZeroExport = resultDB.get("threshold_zero_export") or 0.0
@@ -192,8 +191,8 @@ class caculatorPowerClass:
             # Calculate Total Power 
             totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await GetListAllDevice.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
-            TotalPowerINVAuto = GetListAllDevice.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
+            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
             ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
             # Calculate the sum of wmax values of all inv in the system
