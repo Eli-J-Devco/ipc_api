@@ -28,7 +28,6 @@ from deviceControl.serviceDeviceControl.processdevice_service import *
 from deviceControl.serviceDeviceControl.siteinfor_service import *
 
 arr = sys.argv # Variables Array System
-gFloatValueSystemPerformance = 0
 # Parameters values PowerLimit and ZeroExport
 gListMovingAverageConsumption = collections.deque(maxlen=10)
 gMaxValueChangeSetpoint = 10  # Maximum allowed change per second
@@ -197,7 +196,6 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
 async def processMessage(mqtt_service,serial_number ,topic, message):
     global gIntValueProductionSystemp
     global gIntValueConsumptionSystemp
-    global gFloatValueSystemPerformance
     
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
@@ -223,8 +221,8 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             resultDB = await ProjectSetupClass.initializeValueControlAuto()
             if gArrayMessageAllDevice:
                 # process all inv 
-                gFloatValueSystemPerformance = await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
-                ,gIntValueProductionSystemp,gFloatValueSystemPerformance,resultDB,gIntValueConsumptionSystemp)
+                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
+                ,gIntValueProductionSystemp,resultDB,gIntValueConsumptionSystemp)
                 # value energy
                 gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
                 # parametter power auto 

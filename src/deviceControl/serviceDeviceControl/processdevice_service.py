@@ -29,7 +29,7 @@ from deviceControl.serviceDeviceControl.control_service import *
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,SystemPerformance,resultDB,ValueConsumtion):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,resultDB,ValueConsumtion):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
@@ -68,7 +68,6 @@ class GetListAllDeviceClass:
         # Public MQTT
         MQTTService.push_data_zip(mqtt_service, topicFeedback, result)
         MQTTService.push_data(mqtt_service, topicFeedback + "Binh", result)
-        return SystemPerformance
     
     def extract_device_all_info(item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
@@ -148,7 +147,6 @@ class GetListAllDeviceClass:
         low_performance_threshold = resultDB["low_performance"] 
         high_performance_threshold = resultDB["high_performance"] 
         Powerlimit = resultDB["value_power_limit"]
-        PowerLimitOffset = resultDB["value_offset_power_limit"]
         ValueOffetConsump = resultDB["value_offset_zero_export"]
         # Calculate Power Limit
         ConsumptionAfterSudOfset = ValueConsumtion - (ValueConsumtion * ValueOffetConsump / 100) if ValueOffetConsump is not None else ValueConsumtion 

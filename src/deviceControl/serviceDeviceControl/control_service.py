@@ -147,6 +147,8 @@ class caculatorPowerClass:
         return ItemlistInvControlPowerLimitMode
     async def calculate_setpoint( modeSystem, ValueConsump, ValueTotalPowerInInvInManMode,
                                     gListMovingAverageConsumption, gMaxValueChangeSetpoint, ValueOffetConsump):
+        print("gListMovingAverageConsumption",gListMovingAverageConsumption)
+        print("gMaxValueChangeSetpoint",gMaxValueChangeSetpoint)
         ConsumptionAfterSudOfset = 0.0
         if modeSystem == 1:
             gListMovingAverageConsumption.append(ValueConsump)
