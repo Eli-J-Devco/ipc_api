@@ -22,53 +22,46 @@ from deviceControl.serviceDeviceControl.processdevice_service import *
 from deviceControl.serviceDeviceControl.siteinfor_service import *
 
 ############################################################################ Sud MQTT ############################################################################
-# Describe processMessage 
-# 	 * @description pudSystempModeTrigerEachDeviceChange
+# Describe handle_mqtt_message 
+# 	 * @description handle_mqtt_message
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {topic, message,StringSerialNumerInTableProjectSetup, host, port, username, password}
-# 	 * @return each topic , each message
+# 	 * @param {mqtt_service,serial_number ,topic, message}
+# 	 * @return 
 # 	 */ 
-async def processMessage(mqtt_service,serial_number ,topic, message):
+async def handle_mqtt_message(mqtt_service,serial_number ,topic, message):
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
     try:
-        # Process About ModeSystem
-        if topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:  # ok 
+        if topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:
             await ModeSystemClass.handleModeSystemChange(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
         elif topic in [serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE]:   # topic8, topic9, topic10
             await ModeSystemClass.triggerDeviceModeChange(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
-        # Process Mode Control
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:   # ok
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:
             await ModeDetailClass.handleModeDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO:   # ok
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO: 
             await ModeDetailClass.handleParametterDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO )
-        # Process Table Project setup
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION:   # ok
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION: 
             await ProjectSetupClass.pudFeedBackProjectSetup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:   # ok
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:
             await ProjectSetupClass.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
-        # Process List INV + Value Power
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:   # ok
+        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:
             messageMQTTAllDevice = message
             resultDB = await ProjectSetupClass.initializeValueControlAuto()
             if messageMQTTAllDevice:
-                # process all inv 
                 await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,resultDB)
-                # value energy
                 await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
-                # parametter power auto 
                 await caculatorPowerClass.automatedParameterManagement(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
-# Describe processSudAllMessageFromMQTT 
-# 	 * @description processSudAllMessageFromMQTT
+# Describe consume_mqtt_messages 
+# 	 * @description consume_mqtt_messages
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {}
+# 	 * @param {mqtt_service, client, serial_number}
 # 	 * @return all topic , all message
 # 	 */ 
-async def processHandleMessagesDriver(mqtt_service,client, SerialNumer):
+async def consume_mqtt_messages(mqtt_service, client, serial_number):
     try:
         while True:
             message = await client.messages.get()
@@ -76,19 +69,18 @@ async def processHandleMessagesDriver(mqtt_service,client, SerialNumer):
                 print('Broker connection lost!')
                 break
             topic = message.topic
-            payload = MQTTService.gzip_decompress(mqtt_service,message.message)
-            await processMessage(mqtt_service,SerialNumer, topic, payload)
+            payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+            await handle_mqtt_message(mqtt_service, serial_number, topic, payload)
     except Exception as err:
-        print(f"Error processHandleMessagesDriver: '{err}'")
-# Describe processSudAllMessageFromMQTT 
-# 	 * @description processSudAllMessageFromMQTT
+        print(f"Error handle_mqtt_messages: '{err}'")
+# Describe subscribe_to_mqtt_topics 
+# 	 * @description subscribe_to_mqtt_topics
 # 	 * @author bnguyen
 # 	 * @since 2-05-2024
-# 	 * @param {}
+# 	 * @param {mqtt_service, serial_number}
 # 	 * @return all topic , all message
 # 	 */ 
-async def processSudAllMessageFromMQTT(mqtt_service,SerialNumer):
-    # global mqtt_service
+async def subscribe_to_mqtt_topics(mqtt_service, serial_number):
     try:
         client = mqttools.Client(
             host=mqtt_service.host,
@@ -99,47 +91,47 @@ async def processSudAllMessageFromMQTT(mqtt_service,SerialNumer):
             connect_delays=[1, 2, 4, 8]
         )
         await client.start()
-        await processHandleMessagesDriver(mqtt_service,client, SerialNumer)
+        await consume_mqtt_messages(mqtt_service, client, serial_number)
     except Exception as err:
-        print(f"Error in processSudAllMessageFromMQTT: '{err}'")
+        print(f"Error subscribe_to_mqtt_topics: '{err}'")
     finally:
         await client.stop()
-async def main():
-    # Initialize values ​​for global variables
-    initialized_values = await ProjectSetupClass.initializeValueControlAuto()
-    # Run Task
-    if initialized_values["serial_number"] != None :
-        parameterMQTT = MQTTSettings()
-        topicSudMQTT = MQTTTopicSUD()
-        # Khởi tạo dịch vụ MQTT
+# Describe start_mqtt_service 
+# 	 * @description start_mqtt_service
+# 	 * @author bnguyen
+# 	 * @since 2-05-2024
+# 	 * @param {}
+# 	 * @return 
+# 	 */ 
+async def start_mqtt_service():
+    project_setup_config = await ProjectSetupClass.initializeValueControlAuto()
+    if project_setup_config["serial_number"] is not None:
+        mqtt_settings = MQTTSettings()
+        mqtt_topics = MQTTTopicSUD()
         mqtt_service = MQTTService(
-            host=parameterMQTT.MQTT_BROKER,
-            port=parameterMQTT.MQTT_PORT,
-            username=parameterMQTT.MQTT_USERNAME,
-            password=parameterMQTT.MQTT_PASSWORD,
-            serial_number=initialized_values["serial_number"]  # Thay thế bằng serial number thực tế
+            host=mqtt_settings.MQTT_BROKER,
+            port=mqtt_settings.MQTT_PORT,
+            username=mqtt_settings.MQTT_USERNAME,
+            password=mqtt_settings.MQTT_PASSWORD,
+            serial_number=project_setup_config["serial_number"]
         )
-        # Đặt các topic SUD
         mqtt_service.set_topics(
-            topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-            topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-            topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
-            topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-            topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL,
-            topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,
-            topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,
-            topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-            topicSudMQTT.MQTT_TOPIC_SUD_SETTING_ARLAM,
-            topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE
+            mqtt_topics.MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
+            mqtt_topics.MQTT_TOPIC_SUD_MODEGET_INFORMATION,
+            mqtt_topics.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
+            mqtt_topics.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
+            mqtt_topics.MQTT_TOPIC_SUD_DEVICES_ALL,
+            mqtt_topics.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,
+            mqtt_topics.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,
+            mqtt_topics.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
+            mqtt_topics.MQTT_TOPIC_SUD_SETTING_ARLAM,
+            mqtt_topics.MQTT_TOPIC_SUD_MODIFY_DEVICE
         )
         tasks = []
-        tasks.append(asyncio.create_task(processSudAllMessageFromMQTT(
-                                        mqtt_service,
-                                        initialized_values["serial_number"]
-                                        )))
+        tasks.append(asyncio.create_task(subscribe_to_mqtt_topics(mqtt_service, project_setup_config["serial_number"])))
         await asyncio.gather(*tasks, return_exceptions=False)
+
 if __name__ == '__main__':
     if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(
-        asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
-    asyncio.run(main())
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())  # use for windows
+    asyncio.run(start_mqtt_service())

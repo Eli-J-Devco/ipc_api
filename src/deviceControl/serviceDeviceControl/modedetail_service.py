@@ -3,27 +3,15 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import asyncio
 import os
 import sys
-from datetime import datetime
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from configs.config import Config , DBSessionManager
+from configs.config import DBSessionManager
 from utils.MQTTService import *
-from utils.libMySQL import *
 from utils.libTime import *
-from utils.mqttManager import (gzip_decompress, mqtt_public_common,
-                               mqtt_public_paho, mqtt_public_paho_zip,
-                               mqttService)
-from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
-from dbService.deviceType import deviceTypeService
-
 # ============================================================== Parametter Mode Detail Systemp ================================
 class ModeDetailClass:
     def __init__(self):
