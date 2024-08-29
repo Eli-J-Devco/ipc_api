@@ -56,14 +56,14 @@ arr = sys.argv
 # 	 * @param {}
 # 	 * @return chosse process zero_export ,power_limit ,zero_export + power_limit , Auto - Full P
 # 	 */ 
-async def automatedParameterManagement(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
+async def automatedParameterManagement(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
     # Select the auto run process
     if resultDB["control_mode"] == 1 :
         print("==============================zero_export==============================")
-        await processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB)
+        await processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
     else:
         print("==============================power_limit==============================")
-        await processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB)
+        await processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
 ############################################################################ Power Limit Control  ############################################################################
 # Describe processCaculatorPowerForInvInPowerLimitMode 
 # 	 * @description processCaculatorPowerForInvInPowerLimitMode
@@ -72,8 +72,7 @@ async def automatedParameterManagement(mqtt_service,gArrayMessageAllDevice,Topic
 # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return gIntValuePowerForEachInvInModePowerLimit
 # 	 */ 
-async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
-    global gIntValueProductionSystemp
+async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
     # Local variables
     gArraydevices = []
     ArrayDeviceList = []
@@ -85,12 +84,15 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessage
     # Calculate Power Limit
     PowerlimitCaculator = Powerlimit - (Powerlimit * PowerLimitOffset / 100) if PowerLimitOffset is not None else Powerlimit
     # Get List Device Can Control 
-    if gArrayMessageAllDevice:
+    if messageMQTTAllDevice:
+        # Calculate Total Power 
+        totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
+        print("totalProduction",totalProduction)
         # Calculate Power Of INV AutoMode
-        gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
+        gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
         # Extract device info
-        ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in gArrayMessageAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
+        ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
         # Calculate the sum of wmax values of all inv in the system
         TotalPowerINVAll, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
     # Get Infor Device Control 
@@ -101,19 +103,19 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessage
             gIntValuePowerForEachInvInModePowerLimit = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv,ModeSystem,TotalPowerINVMan,\
                 TotalPowerINVAuto,PowerlimitCaculator)
             # Create Infor Device Publish MQTT
-            if gIntValueProductionSystemp < PowerlimitCaculator:
+            if totalProduction < PowerlimitCaculator:
                 item = caculatorPowerClass.create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,PowerlimitCaculator,\
-                    TotalPowerINVMan,gIntValueProductionSystemp)
+                    TotalPowerINVMan,totalProduction)
             else:
                 item = {
                     "id_device": id_device,
                     "mode": mode,
                     "status": "power limit",
                     "setpoint": PowerlimitCaculator - TotalPowerINVMan,
-                    "feedback": gIntValueProductionSystemp,
+                    "feedback": totalProduction,
                     "parameter": [
                         {"id_pointkey": "ControlINV", "value": 1},
-                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (gIntValueProductionSystemp - PowerlimitCaculator))}
+                        {"id_pointkey": "WMax", "value": max(0, gIntValuePowerForEachInvInModePowerLimit - (totalProduction - PowerlimitCaculator))}
                     ]
                 }
             # Create List Device 
@@ -130,9 +132,8 @@ async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,gArrayMessage
 # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
 # 	 * @return gIntValuePowerForEachInvInModeZeroExport
 # 	 */ 
-async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessageAllDevice,Topic_Control_WriteAuto,resultDB):
-    global gIntValueConsumptionSystemp,gIntValueProductionSystemp,\
-            gListMovingAverageConsumption
+async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    global gListMovingAverageConsumption
     # Local variables
     gArraydevices = []
     ArrayDeviceList = []
@@ -144,17 +145,20 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
     ThresholdZeroExport = resultDB.get("threshold_zero_export") or 0.0
     OffsetZeroExport = resultDB.get("value_offset_zero_export") or 0.0
     # Get List Device Can Control 
-    if gArrayMessageAllDevice:
+    if messageMQTTAllDevice:
+        # Calculate Total Power 
+        totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
+        print("totalConsumption",totalConsumption)
         # Calculate Power Of INV AutoMode
-        gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(gArrayMessageAllDevice)
+        gArraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
         TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(gArraydevices)
         # Extract device info
-        ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in gArrayMessageAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
+        ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
         # Calculate the sum of wmax values of all inv in the system
         TotalPowerINVAll, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
     # Get Setpoint ,Value Consumption System 
-    if gIntValueConsumptionSystemp:
-        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,gIntValueConsumptionSystemp,TotalPowerINVMan,\
+    if totalConsumption:
+        setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,\
         gListMovingAverageConsumption,OffsetZeroExport)
     if gArraydevices:
         listInvControlZeroExportMode = []
@@ -163,10 +167,10 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
             gIntValuePowerForEachInvInModeZeroExport = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv, ModeSystem, 
                 TotalPowerINVMan, TotalPowerINVAuto, setpointCalculatorPowerForEachInv)
             # Create Infor Device Publish MQTT
-            if gIntValueProductionSystemp < intPracticalConsumptionValue and \
-                gIntValueConsumptionSystemp >= ThresholdZeroExport and gIntValueConsumptionSystemp >= 0:
+            if totalProduction < intPracticalConsumptionValue and \
+                totalConsumption >= ThresholdZeroExport and totalConsumption >= 0:
                 item = caculatorPowerClass.create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModeZeroExport,setpointCalculatorPowerForEachInv,\
-                TotalPowerINVMan,gIntValueProductionSystemp)
+                TotalPowerINVMan,totalProduction)
             else:
                 item = {
                     "id_device": id_device,
@@ -193,9 +197,7 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
 # 	 * @return each topic , each message
 # 	 */ 
 async def processMessage(mqtt_service,serial_number ,topic, message):
-    global gIntValueProductionSystemp
-    global gIntValueConsumptionSystemp
-    
+
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
     try:
@@ -216,16 +218,16 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             await ProjectSetupClass.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
         # Process List INV + Value Power
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:   # ok
-            gArrayMessageAllDevice = message
+            messageMQTTAllDevice = message
             resultDB = await ProjectSetupClass.initializeValueControlAuto()
-            if gArrayMessageAllDevice:
+            if messageMQTTAllDevice:
                 # process all inv 
-                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
-                ,gIntValueProductionSystemp,resultDB,gIntValueConsumptionSystemp)
+                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
+                ,resultDB,gIntValueConsumptionSystemp)
                 # value energy
-                gIntValueProductionSystemp, gIntValueConsumptionSystemp = await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
+                ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
                 # parametter power auto 
-                await automatedParameterManagement(mqtt_service,gArrayMessageAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
+                await automatedParameterManagement(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
 # Describe processSudAllMessageFromMQTT 

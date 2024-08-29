@@ -25,17 +25,20 @@ from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
 from deviceControl.serviceDeviceControl.control_service import *
+from deviceControl.serviceDeviceControl.enegy_service import *
 # ==================================================== Get List All Device ==================================================================
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,TotalPoductionINV ,resultDB,ValueConsumtion):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,resultDB,ValueConsumtion):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
         ModeSystem = resultDB["mode"] 
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
+            # Calculate Total Power 
+            totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageAllDevice)
             device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageAllDevice)
             TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
@@ -47,7 +50,7 @@ class GetListAllDeviceClass:
         # Call the update_system_performance function and get the return value
         SystemPerformance, statusString, statusInt = GetListAllDeviceClass.update_system_performance(
             resultDB,
-            TotalPoductionINV,
+            totalProduction,
             TotalPowerINV,
             ValueConsumtion
         )

@@ -38,7 +38,6 @@ class ValueEnergySystemClass:
         except Exception as err:
             print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
         # Return the relevant global variables
-        return totalProduction, totalConsumption
     @staticmethod
     async def calculate_production_and_consumption(messageMQTT):
         totalProductionTemp = 0.0 
