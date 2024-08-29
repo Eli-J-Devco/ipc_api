@@ -51,7 +51,7 @@ class ProjectSetupClass:
                 OffsetZeroExport = resultDB[0]["value_offset_zero_export"]
                 PowerLimit_temp = resultDB[0]["value_power_limit"]
                 OffsetPowerLimit = resultDB[0]["value_offset_power_limit"]
-                PowerLimit = (PowerLimit_temp - (PowerLimit_temp * OffsetPowerLimit) / 100)
+                PowerLimit = (PowerLimit_temp - (PowerLimit_temp * OffsetPowerLimit) / 100) if OffsetPowerLimit is not None else PowerLimit_temp 
                 ThresholdZeroExport = resultDB[0]["threshold_zero_export"]
                 LowPerformance = resultDB[0]["low_performance"]
                 ArlamHighPerformance = resultDB[0]["high_performance"]
