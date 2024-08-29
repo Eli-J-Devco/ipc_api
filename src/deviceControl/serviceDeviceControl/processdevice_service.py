@@ -16,6 +16,23 @@ from deviceControl.serviceDeviceControl.enegy_service import *
 class GetListAllDeviceClass:
     def __init__(self):
         pass
+        # Describe GetListAllDeviceMain 
+    # 	 * @description GetListAllDeviceMain
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service, messageAllDevice, topicFeedback ,resultDB}
+    # 	 * @return result = {
+    #     "ModeSystempCurrent": ModeSystem,
+    #     "devices": ArrayDeviceList,
+    #     "total_max_power": TotalPowerINV,
+    #     "total_max_power_man": TotalPowerINVMan,
+    #     "total_max_power_auto": TotalPowerINVAuto,
+    #     "system_performance": {
+    #         "performance": SystemPerformance,
+    #         "message": statusString,
+    #         "status": statusInt
+    #     }
+    # 	 */ 
     async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,resultDB):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
@@ -56,7 +73,25 @@ class GetListAllDeviceClass:
         # Public MQTT
         MQTTService.push_data_zip(mqtt_service, topicFeedback, result)
         MQTTService.push_data(mqtt_service, topicFeedback + "Binh", result)
-    
+    # Describe extract_device_all_info 
+    # 	 * @description extract_device_all_info
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {item}
+    # 	 * @return return {
+                #     'id_device': id_device,
+                #     'device_name': device_name,
+                #     'mode': mode,
+                #     'status_device': status_device,
+                #     'operator': operator,
+                #     'capacitypower': capacity_power,
+                #     'p_max': p_max_custom,
+                #     'p_min': p_min,
+                #     'wmax': wmax,
+                #     'realpower': real_power,
+                #     'timestamp': get_utc(),
+                # }
+    # 	 */ 
     def extract_device_all_info(item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
             id_device = item['id_device']
@@ -71,16 +106,12 @@ class GetListAllDeviceClass:
             p_min_percent = item['min_watt_in_percent']
             device_name = item['device_name']
             results_device_type = item['name_device_type']
-            
             if results_device_type == "PV System Inverter":
                 operator, wmax, capacity_power, real_power = GetListAllDeviceClass.get_device_parameters(item)
-                
                 if status_device == 'offline':
                     real_power = 0.0
                     operator = "off"
-                    
                 p_min = GetListAllDeviceClass.calculate_p_min(p_max_custom, p_min_percent)
-                
                 return {
                     'id_device': id_device,
                     'device_name': device_name,
@@ -95,6 +126,13 @@ class GetListAllDeviceClass:
                     'timestamp': get_utc(),
                 }
         return None
+    # Describe get_device_parameters 
+    # 	 * @description get_device_parameters
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {item}
+    # 	 * @return operator, wmax, capacity_power, real_power
+    # 	 */ 
     @staticmethod
     def get_device_parameters(item):
         stringOperatorText = {
@@ -105,29 +143,47 @@ class GetListAllDeviceClass:
             6: "shutting down",
             7: "fault",
         }
-        
         ArrayOperator = [field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" 
                         for field in param.get("fields", []) if field["point_key"] == "OperatingState"]
         intOperator = ArrayOperator[0] if ArrayOperator else 0
         operator = stringOperatorText.get(intOperator, "off")
-        
         wmax = next((field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" 
                         for field in param.get("fields", []) if field["point_key"] == "WMax"), 0)
         capacity_power = next((field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" 
                                 for field in param.get("fields", []) if field["point_key"] == "PowerOutputCapability"), 0)
         real_power = next((field["value"] for param in item.get("parameters", []) if param["name"] == "Basic" 
                             for field in param.get("fields", []) if field["point_key"] == "ACActivePower"), 0)
-
         return operator, wmax, capacity_power, real_power
+    # Describe calculate_total_wmax 
+    # 	 * @description calculate_total_wmax
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {device_list, power_auto}
+    # 	 * @return total_power, total_power_manual
+    # 	 */ 
     @staticmethod
     def calculate_total_wmax(device_list, power_auto):
         total_power_write_inv = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None), 2)
         total_power_manual = round(sum(device['wmax'] for device in device_list if device['wmax'] is not None and device['mode'] == 0), 2)
         total_power = round((total_power_manual + power_auto), 2)
         return total_power, total_power_manual
+    # Describe calculate_p_min 
+    # 	 * @description calculate_p_min
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {p_max_custom, p_min_percent}
+    # 	 * @return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
+    # 	 */ 
     @staticmethod
     def calculate_p_min(p_max_custom, p_min_percent):
         return round((p_max_custom * p_min_percent) / 100, 4) if p_max_custom and p_min_percent else 0.0
+    # Describe update_system_performance 
+    # 	 * @description update_system_performance
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {resultDB, production_system, total_power_in_all_inv ,ValueConsumtion}
+    # 	 * @return systemPerformance, statusString, statusInt
+    # 	 */ 
     @staticmethod
     def update_system_performance(resultDB, production_system, total_power_in_all_inv ,ValueConsumtion):
         current_mode = resultDB["mode"] 
@@ -138,7 +194,6 @@ class GetListAllDeviceClass:
         ValueOffetConsump = resultDB["value_offset_zero_export"]
         # Calculate Power Limit
         ConsumptionAfterSudOfset = ValueConsumtion - (ValueConsumtion * ValueOffetConsump / 100) if ValueOffetConsump is not None else ValueConsumtion 
-        
         if current_mode == 0: # Man
             systemPerformance = (production_system / total_power_in_all_inv) * 100 if total_power_in_all_inv else 0
         else:
@@ -157,12 +212,18 @@ class GetListAllDeviceClass:
         else:
             statusString = "System performance is exceeding established thresholds."
             statusInt = 2
-
         return systemPerformance, statusString, statusInt
 # ==================================================== Get List Auto Device ==================================================================
 class GetListAutoDeviceClass:
     def __init__(self):
         pass
+    # Describe getListDeviceAutoModeInALLInv 
+    # 	 * @description getListDeviceAutoModeInALLInv
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {messageAllDevice}
+    # 	 * @return ArayyDeviceList
+    # 	 */ 
     @staticmethod
     async def getListDeviceAutoModeInALLInv(messageAllDevice):
         ArayyDeviceList = []
@@ -186,6 +247,14 @@ class GetListAutoDeviceClass:
                         'slope': slope,
                     })
         return ArayyDeviceList
+    # Describe extract_device_auto_info 
+    # 	 * @description extract_device_auto_info
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {messageMQTT}
+    # 	 * @return id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type
+    # 	 */ 
+    @staticmethod
     def extract_device_auto_info(messageMQTT):
         if 'id_device' in messageMQTT and 'mode' in messageMQTT and 'status_device' in messageMQTT:
             id_device = messageMQTT['id_device']
@@ -213,16 +282,38 @@ class GetListAutoDeviceClass:
                 return None
             return id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type
         return None
+    # Describe get_device_value 
+    # 	 * @description get_device_value
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {item, point_key, field_key='value'}
+    # 	 * @return value of field_key
+    # 	 */ 
+    @staticmethod
     def get_device_value(item, point_key, field_key='value'):
         array = [field[field_key] for param in item.get("parameters", []) if param["name"] == "Basic" 
                     for field in param.get("fields", []) if field["point_key"] == point_key]
         return array[0] if array else None
-
+    # Describe is_device_controlable 
+    # 	 * @description is_device_controlable
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {results_device_type, status_device, mode, operator}
+    # 	 * @return conditon divece is auto
+    # 	 */ 
+    @staticmethod
     def is_device_controlable(results_device_type, status_device, mode, operator):
         return (results_device_type == "PV System Inverter" and 
                 status_device == 'online' and 
                 mode == 1 and 
                 operator not in [7, 8])
+    # Describe calculate_total_power_inv_auto 
+    # 	 * @description calculate_total_power_inv_auto
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {ArayyDeviceList}
+    # 	 * @return total_power
+    # 	 */ 
     @staticmethod
     def calculate_total_power_inv_auto(ArayyDeviceList):
         if ArayyDeviceList:

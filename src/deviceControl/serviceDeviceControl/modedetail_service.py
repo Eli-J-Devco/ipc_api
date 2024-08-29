@@ -16,24 +16,26 @@ from dbService.projectSetup import ProjectSetupService
 class ModeDetailClass:
     def __init__(self):
         pass
+    # Describe handleModeDetailChange 
+    # 	 * @description handleModeDetailChange
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service, messageMQTT, topicFeedback}
+    # 	 * @return ModeDetail
+    # 	 */ 
     @staticmethod
     async def handleModeDetailChange(mqtt_service, messageMQTT, topicFeedback):
-        # Biến cục bộ
         intComment = 0
         resultDB = []
         db_new=await DBSessionManager.get_db()
-        # Nhận dữ liệu từ MQTT
         try:
             if messageMQTT and 'control_mode' in messageMQTT:
                 ModeDetail = messageMQTT['control_mode'] 
                 token = messageMQTT.get("token", "")
                 updateModeDetail = {
                         'control_mode': ModeDetail,
-                        # Thêm các trường khác nếu cần
-                    }
+                        }
                 resultDB = await ProjectSetupService.updateProjectSetup(db_new,updateModeDetail)
-                print("resultDB",resultDB)
-                # Gửi phản hồi đến MQTT
                 if resultDB is None:
                     intComment = 400 
                 else:
@@ -44,11 +46,22 @@ class ModeDetailClass:
                     "token" : token
                 }
                 MQTTService.push_data_zip(mqtt_service, topicFeedback, objectSend)
-                # Trả về biến toàn cục
                 return ModeDetail
         except Exception as err:
             print(f"Error MQTT subscribe processUpdateModeControlDetail: '{err}'")
-            return None  # Trả về None nếu có lỗi
+            return None  
+    # Describe handleParametterDetailChange 
+    # 	 * @description handleParametterDetailChange
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service, messageMQTT, topicFeedback}
+    # 	 * @return return {
+    #     "value_offset_zero_export": OffsetZeroExport,
+    #     "value_power_limit": ValuePowerLimit,
+    #     "value_offset_power_limit": OffsetPowerLimit,
+    #     "threshold_zero_export": ThresholdZeroExport,
+    #       }
+    # 	 */ 
     @staticmethod
     async def handleParametterDetailChange( mqtt_service, messageMQTT, topicFeedBack):
         ModeDetail = ""
@@ -76,14 +89,12 @@ class ModeDetailClass:
                     intComment = 400 
                 else:
                     intComment = 200 
-                
                 # Object Sent MQTT
                 objectSend = {
                     "time_stamp": get_utc(),
                     "status": intComment,
                     "token":token
                 }
-                
                 # Push MQTT
                 MQTTService.push_data_zip(mqtt_service, topicFeedBack, objectSend)
                 return {
@@ -95,7 +106,13 @@ class ModeDetailClass:
         except Exception as err:
             print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
             return None
-        
+    # Describe handle_zero_export_mode 
+    # 	 * @description handle_zero_export_mode
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {message}
+    # 	 * @return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
+    # 	 */ 
     async def handle_zero_export_mode( message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
@@ -103,11 +120,16 @@ class ModeDetailClass:
         updateZeroExport = {
                 'value_offset_zero_export': ValueOffsetTemp,
                 'threshold_zero_export': ValueThresholdTemp,
-                # Thêm các trường khác nếu cần
             }
         ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updateZeroExport)
         return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
-
+    # Describe handle_power_limit_mode 
+    # 	 * @description handle_power_limit_mode
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {message}
+    # 	 * @return ValueOffsetTemp, ValuePowerLimit, ResultQuery
+    # 	 */ 
     async def handle_power_limit_mode( message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)

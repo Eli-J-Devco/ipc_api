@@ -16,11 +16,16 @@ from dbService.deviceType import deviceTypeService
 class ValueEnergySystemClass:
     def __init__(self):
         pass
+    # Describe ValueEnergySystemMain 
+    # 	 * @description ValueEnergySystemMain
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service, messageMQTT, topicFeedBack}
+    # 	 * @return 
+    # 	 */ 
     @staticmethod
     async def ValueEnergySystemMain(mqtt_service, messageMQTT, topicFeedBack):
         totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTT)
-        print("totalProduction",totalProduction)
-        print("totalConsumption",totalConsumption)
         try:
             ObjectSendMQTT = ValueEnergySystemClass.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
             # Push system_info to MQTT
@@ -29,7 +34,13 @@ class ValueEnergySystemClass:
             MQTTService.push_data(mqtt_service, topicFeedBack + "Binh", ObjectSendMQTT)
         except Exception as err:
             print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
-        # Return the relevant global variables
+    # Describe calculate_production_and_consumption 
+    # 	 * @description calculate_production_and_consumption
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {messageMQTT}
+    # 	 * @return totalProductionTemp, totalConsumptionTemp
+    # 	 */ 
     @staticmethod
     async def calculate_production_and_consumption(messageMQTT):
         totalProductionTemp = 0.0 
@@ -47,7 +58,13 @@ class ValueEnergySystemClass:
                             item, result_type_meter, totalConsumptionTemp)
         
         return totalProductionTemp, totalConsumptionTemp
-    
+    # Describe get_device_type 
+    # 	 * @description get_device_type
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {id_device}
+    # 	 * @return result type device
+    # 	 */ 
     async def get_device_type(id_device):
         db_new = await DBSessionManager.get_db()
         result = await deviceTypeService.selectTypeDeviceByID(db_new,id_device)
@@ -60,14 +77,17 @@ class ValueEnergySystemClass:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
-            
-            # Kiểm tra xem danh sách có rỗng không
             if resultFiltermessageMQTT:
                 if resultFiltermessageMQTT[0] is not None:
                     totalProduction += resultFiltermessageMQTT[0]
-            
         return totalProduction
-
+    # Describe calculate_consumption 
+    # 	 * @description calculate_consumption
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {messageMQTT, result_type_meter,totalConsumption}
+    # 	 * @return totalConsumption
+    # 	 */ 
     def calculate_consumption(messageMQTT, result_type_meter,totalConsumption):
         if result_type_meter == "Consumption meter":
             resultFiltermessageMQTT = [
@@ -76,14 +96,17 @@ class ValueEnergySystemClass:
                 for field in param.get("fields", [])
                 if field["point_key"] == "ACActivePower"
             ]
-            
-            # Kiểm tra xem danh sách có rỗng không
             if resultFiltermessageMQTT:
                 if resultFiltermessageMQTT[0] is not None:
                     totalConsumption += resultFiltermessageMQTT[0]
-            
         return totalConsumption
-
+    # Describe create_message_pud_MQTT 
+    # 	 * @description create_message_pud_MQTT
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {messageMQTT, totalProduction, totalConsumption}
+    # 	 * @return result message push mqtt
+    # 	 */ 
     def create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption):
         predicted_power = 0
         result = {

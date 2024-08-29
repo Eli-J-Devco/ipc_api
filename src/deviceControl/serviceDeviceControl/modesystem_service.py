@@ -14,13 +14,18 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
-# ============================================================== Mode Systemp ================================
 class ModeSystemClass:
     def __init__(self):
         pass
+    # Describe triggerDeviceModeChange 
+    # 	 * @description triggerDeviceModeChange
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service,topicFeedback}
+    # 	 * @return 
+    # 	 */ 
     @staticmethod
     async def triggerDeviceModeChange(mqtt_service,topicFeedback):
-        # Chuyển sang chế độ người dùng bao gồm cả chế độ thủ công và tự động
         try:
             db_new=await DBSessionManager.get_db()
             modes = await deviceListService.selectUniqueModesByDeviceType(db_new)
@@ -31,10 +36,16 @@ class ModeSystemClass:
                     data_send = {"id_device": "Systemp", "mode": 1}
             else:
                 data_send = {"id_device": "Systemp", "mode": 2}
-            
             MQTTService.push_data_zip(mqtt_service,topicFeedback, data_send)
         except asyncio.TimeoutError:
             print("Timeout waiting for data from MySQL")
+    # Describe handleModeSystemChange 
+    # 	 * @description handleModeSystemChange
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service, messageMQTT, topicFeedback}
+    # 	 * @return modeSysTemp
+    # 	 */ 
     @staticmethod
     async def handleModeSystemChange(mqtt_service, messageMQTT, topicFeedback):
         db_new=await DBSessionManager.get_db()
@@ -44,7 +55,6 @@ class ModeSystemClass:
             if modeSysTemp in [0, 1, 2]:
                 updates = {
                         'mode': modeSysTemp,
-                        # Thêm các trường khác nếu cần
                     }
                 await ProjectSetupService.updateProjectSetup(db_new,updates)
             else:

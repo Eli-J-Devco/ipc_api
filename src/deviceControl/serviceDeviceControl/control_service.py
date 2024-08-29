@@ -10,10 +10,16 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from deviceControl.serviceDeviceControl.enegy_service import *
 from deviceControl.serviceDeviceControl.processdevice_service import *
-# ==================================================== Caculator PowerLit And ZeroExport  ==================================================================
 class caculatorPowerClass:
     def __init__(self):
         pass
+    # Describe automatedParameterManagement 
+    # 	 * @description automatedParameterManagement
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
+    # 	 * @return 
+    # 	 */ 
     async def automatedParameterManagement(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Select the auto run process
         if resultDB["control_mode"] == 1 :
@@ -22,16 +28,14 @@ class caculatorPowerClass:
         else:
             print("==============================power_limit==============================")
             await caculatorPowerClass.processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
-    ############################################################################ Power Limit Control  ############################################################################
     # Describe processCaculatorPowerForInvInPowerLimitMode 
     # 	 * @description processCaculatorPowerForInvInPowerLimitMode
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
-    # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
-    # 	 * @return gIntValuePowerForEachInvInModePowerLimit
+    # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
+    # 	 * @return 
     # 	 */ 
     async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
-        # Local variables
         Arraydevices = []
         ArrayDeviceList = []
         gIntValuePowerForEachInvInModePowerLimit = 0 
@@ -81,7 +85,6 @@ class caculatorPowerClass:
             if len(Arraydevices) == len(listInvControlPowerLimitMode):
                 MQTTService.push_data_zip(mqtt_service,Topic_Control_WriteAuto,listInvControlPowerLimitMode)
                 MQTTService.push_data(mqtt_service,Topic_Control_WriteAuto + "Binh",listInvControlPowerLimitMode)
-    ############################################################################ Zero Export Control ############################################################################
     # Describe processCaculatorPowerForInvInZeroExportMode 
     # 	 * @description processCaculatorPowerForInvInZeroExportMode
     # 	 * @author bnguyen
@@ -90,7 +93,6 @@ class caculatorPowerClass:
     # 	 * @return PowerForEachInvInModeZeroExport
     # 	 */ 
     async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
-        # Local variables
         Arraydevices = []
         ArrayDeviceList = []
         PowerForEachInvInModeZeroExport = 0
@@ -142,12 +144,26 @@ class caculatorPowerClass:
             if len(Arraydevices) == len(listInvControlZeroExportMode):
                 MQTTService.push_data_zip(mqtt_service,Topic_Control_WriteAuto,listInvControlZeroExportMode)
                 MQTTService.push_data(mqtt_service,Topic_Control_WriteAuto + "Binh",listInvControlZeroExportMode)
+    # Describe process_device_powerlimit_info 
+    # 	 * @description process_device_powerlimit_info
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {device}
+    # 	 * @return id_device, mode, intPowerMaxOfInv
+    # 	 */ 
     @staticmethod
     def process_device_powerlimit_info(device):
         id_device = device["id_device"]
         mode = device["mode"]
         intPowerMaxOfInv = float(device["p_max"])
         return id_device, mode, intPowerMaxOfInv
+    # Describe calculate_power_value 
+    # 	 * @description calculate_power_value
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {intPowerMaxOfInv, modeSystem, TotalPowerInInvInManMode, TotalPowerInInvInAutoMode, Setpoint}
+    # 	 * @return intPowerMaxOfInv
+    # 	 */ 
     @staticmethod
     def calculate_power_value(intPowerMaxOfInv, modeSystem, TotalPowerInInvInManMode, TotalPowerInInvInAutoMode, Setpoint):
         # Tính toán hiệu suất cho thiết bị
@@ -162,6 +178,13 @@ class caculatorPowerClass:
             return 0
         else:
             return intPowerMaxOfInv
+    # Describe create_control_item 
+    # 	 * @description create_control_item
+    # 	 * @author bnguyen
+    # 	 * @since 2-05-2024
+    # 	 * @param {ModeSystemDetail ,device, PowerForEachInv, Setpoint, TotalPowerInInvInManMode, ValueProduction}
+    # 	 * @return ItemlistInvControlPowerLimitMode
+    # 	 */ 
     @staticmethod
     def create_control_item(ModeSystemDetail ,device, PowerForEachInv, Setpoint, TotalPowerInInvInManMode, ValueProduction):
         if ModeSystemDetail == 1 :
