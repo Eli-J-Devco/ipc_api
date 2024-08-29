@@ -124,7 +124,7 @@ class caculatorPowerClass:
         if ModeSystemDetail == 1 :
             status = "Zero Export"
         else:
-            status = " Power Limit "
+            status = "Power Limit"
         id_device = device["id_device"]
         mode = device["mode"]
         ItemlistInvControlPowerLimitMode = {
