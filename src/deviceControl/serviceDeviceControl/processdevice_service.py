@@ -30,7 +30,7 @@ from deviceControl.serviceDeviceControl.enegy_service import *
 class GetListAllDeviceClass:
     def __init__(self):
         pass
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,resultDB,ValueConsumtion):
+    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,resultDB):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
@@ -52,7 +52,7 @@ class GetListAllDeviceClass:
             resultDB,
             totalProduction,
             TotalPowerINV,
-            ValueConsumtion
+            totalConsumption
         )
         # Message Public MQTT
         result = {

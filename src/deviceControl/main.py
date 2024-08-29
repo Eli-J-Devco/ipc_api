@@ -30,9 +30,6 @@ from deviceControl.serviceDeviceControl.siteinfor_service import *
 arr = sys.argv # Variables Array System
 # Parameters values PowerLimit and ZeroExport
 gListMovingAverageConsumption = collections.deque(maxlen=10)
-# Parameters Value Production and Consumtion 
-gIntValueProductionSystemp = 0.0
-gIntValueConsumptionSystemp = 0.0
 
 def pathDirectory(project_name):
     if project_name =="":
@@ -220,8 +217,7 @@ async def processMessage(mqtt_service,serial_number ,topic, message):
             resultDB = await ProjectSetupClass.initializeValueControlAuto()
             if messageMQTTAllDevice:
                 # process all inv 
-                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS\
-                ,resultDB,gIntValueConsumptionSystemp)
+                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,resultDB)
                 # value energy
                 await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
                 # parametter power auto 
