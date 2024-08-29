@@ -30,7 +30,6 @@ from deviceControl.serviceDeviceControl.siteinfor_service import *
 arr = sys.argv # Variables Array System
 # Parameters values PowerLimit and ZeroExport
 gListMovingAverageConsumption = collections.deque(maxlen=10)
-gMaxValueChangeSetpoint = 10  # Maximum allowed change per second
 # Parameters Value Production and Consumtion 
 gIntValueProductionSystemp = 0.0
 gIntValueConsumptionSystemp = 0.0
@@ -156,7 +155,7 @@ async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,gArrayMessage
     # Get Setpoint ,Value Consumption System 
     if gIntValueConsumptionSystemp:
         setpointCalculatorPowerForEachInv, intPracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,gIntValueConsumptionSystemp,TotalPowerINVMan,\
-        gListMovingAverageConsumption,gMaxValueChangeSetpoint,OffsetZeroExport)
+        gListMovingAverageConsumption,OffsetZeroExport)
     if gArraydevices:
         listInvControlZeroExportMode = []
         for device in gArraydevices:
