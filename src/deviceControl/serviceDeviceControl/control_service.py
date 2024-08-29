@@ -148,12 +148,11 @@ class caculatorPowerClass:
         ConsumptionAfterSudOfset = 0.0
         gMaxValueChangeSetpoint = 10 
         gListMovingAverageConsumption = deque(maxlen=10)
-        print("gListMovingAverageConsumption",gListMovingAverageConsumption)
         if modeSystem == 1:
             gListMovingAverageConsumption.append(ValueConsump)
         else:
             gListMovingAverageConsumption.append(ValueConsump - ValueTotalPowerInInvInManMode)
-
+        print("gListMovingAverageConsumption",gListMovingAverageConsumption)
         if ValueConsump > ValueTotalPowerInInvInManMode:
             intAvgValueComsumtion = sum(gListMovingAverageConsumption) / len(gListMovingAverageConsumption)
         else:
