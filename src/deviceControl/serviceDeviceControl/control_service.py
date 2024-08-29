@@ -24,7 +24,7 @@ from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
 from deviceControl.serviceDeviceControl.enegy_service import *
 from deviceControl.serviceDeviceControl.processdevice_service import *
-from deviceControl.serviceDeviceControl.control_service import GetListAutoDeviceClass, caculatorPowerClass
+from deviceControl.serviceDeviceControl.processdevice_service import GetListAllDeviceClass
 # ==================================================== Get List Auto Device  ==================================================================
 class GetListAutoDeviceClass:
     def __init__(self):

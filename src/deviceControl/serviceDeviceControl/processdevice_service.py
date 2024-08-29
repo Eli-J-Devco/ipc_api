@@ -24,8 +24,8 @@ from utils.mqttManager import (gzip_decompress, mqtt_public_common,
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from dbService.deviceType import deviceTypeService
-from deviceControl.serviceDeviceControl.control_service import *
 from deviceControl.serviceDeviceControl.enegy_service import *
+from deviceControl.serviceDeviceControl.control_service import GetListAutoDeviceClass
 # ==================================================== Get List All Device ==================================================================
 class GetListAllDeviceClass:
     def __init__(self):
