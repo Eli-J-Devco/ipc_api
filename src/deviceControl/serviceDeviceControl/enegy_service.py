@@ -29,22 +29,7 @@ class ValueEnergySystemClass:
         pass
     @staticmethod
     async def ValueEnergySystemMain(mqtt_service, messageMQTT, topicFeedBack):
-        # Get Value Production And Consumption From message All
-        totalProductionTemp = 0.0 
-        totalConsumptionTemp = 0.0
-        if messageMQTT:
-            for item in messageMQTT:
-                if 'id_device' in item:
-                    id_device = item['id_device']
-                    result_type_meter = await ValueEnergySystemClass.get_device_type(id_device)
-                    if result_type_meter:
-                        totalProductionTemp= ValueEnergySystemClass.calculate_production(
-                            item, result_type_meter,totalProductionTemp)
-                        totalConsumptionTemp = ValueEnergySystemClass.calculate_consumption(
-                            item, result_type_meter,totalConsumptionTemp)
-            # Update the global values of total production and total consumption
-            totalProduction = totalProductionTemp
-            totalConsumption = totalConsumptionTemp
+        totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTT)
         try:
             ObjectSendMQTT = ValueEnergySystemClass.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
             # Push system_info to MQTT
@@ -52,9 +37,25 @@ class ValueEnergySystemClass:
             MQTTService.push_data(mqtt_service, topicFeedBack + "Binh", ObjectSendMQTT)
         except Exception as err:
             print(f"Error MQTT subscribe pudValueProductionAndConsumtionInMQTT: '{err}'")
-        
         # Return the relevant global variables
         return totalProduction, totalConsumption
+    @staticmethod
+    async def calculate_production_and_consumption(messageMQTT):
+        totalProductionTemp = 0.0 
+        totalConsumptionTemp = 0.0
+        
+        if messageMQTT:
+            for item in messageMQTT:
+                if 'id_device' in item:
+                    id_device = item['id_device']
+                    result_type_meter = await ValueEnergySystemClass.get_device_type(id_device)
+                    if result_type_meter:
+                        totalProductionTemp = ValueEnergySystemClass.calculate_production(
+                            item, result_type_meter, totalProductionTemp)
+                        totalConsumptionTemp = ValueEnergySystemClass.calculate_consumption(
+                            item, result_type_meter, totalConsumptionTemp)
+        
+        return totalProductionTemp, totalConsumptionTemp
     
     async def get_device_type(id_device):
         db_new = await DBSessionManager.get_db()
