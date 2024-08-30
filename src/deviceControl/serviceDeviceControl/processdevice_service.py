@@ -42,7 +42,7 @@ class ProcessSystem:
         if messageAllDevice and isinstance(messageAllDevice, list):
             # Calculate Total Power 
             totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageAllDevice)
-            device_auto_info = await ProcessAuto.getListDeviceAutoModeInALLInv(messageAllDevice)
+            device_auto_info = await ProcessAuto.get_parametter_device_list_auto_mode(messageAllDevice)
             TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
                 device_info = ProcessSystem.get_device_details(item)
@@ -107,7 +107,7 @@ class ProcessSystem:
             device_name = item['device_name']
             results_device_type = item['name_device_type']
             if results_device_type == "PV System Inverter":
-                operator, wmax, capacity_power, real_power = ProcessSystem.get_device_parameters(item)
+                operator, wmax, capacity_power, real_power = ProcessSystem.get_operator_wmax_capacitypower_realpower(item)
                 if status_device == 'offline':
                     real_power = 0.0
                     operator = "off"
@@ -217,8 +217,8 @@ class ProcessSystem:
 class ProcessAuto:
     def __init__(self):
         pass
-    # Describe getListDeviceAutoModeInALLInv 
-    # 	 * @description getListDeviceAutoModeInALLInv
+    # Describe get_parametter_device_list_auto_mode 
+    # 	 * @description get_parametter_device_list_auto_mode
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
     # 	 * @param {messageAllDevice}

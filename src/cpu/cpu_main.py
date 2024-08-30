@@ -68,7 +68,7 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         print(f"Error in getIPCHardwareInformation: '{err}'")
 
 async def main():
-    initialized_values = await ProjectSetupClass.initializeValueControlAuto()
+    initialized_values = await ProjectSetup.get_project_setup_values()
     parameterMQTT = MQTTSettings()
     topicPushMQTT = MQTTTopicPUSH()
     # Create Service MQTT
