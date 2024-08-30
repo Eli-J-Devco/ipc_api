@@ -81,7 +81,7 @@ async def main():
     )
     # create scheduler
     scheduler = AsyncIOScheduler()
-    scheduler.add_job(getIPCHardwareInformation, 'cron', second='*/3', args=[mqtt_service, topicPushMQTT.MQTT_TOPIC_PUD_CPU_SETUP])
+    scheduler.add_job(getIPCHardwareInformation, 'cron', second='*/3', args=[mqtt_service, topicPushMQTT.CPU_Information])
     scheduler.start()
     while True:
         await asyncio.sleep(1)
