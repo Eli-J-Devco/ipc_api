@@ -14,7 +14,7 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
-class ModeSystemClass:
+class ModeSystem:
     def __init__(self):
         pass
     # Describe triggerDeviceModeChange 
@@ -25,7 +25,7 @@ class ModeSystemClass:
     # 	 * @return 
     # 	 */ 
     @staticmethod
-    async def triggerDeviceModeChange(mqtt_service,topicFeedback):
+    async def trigger_system_mode_change(mqtt_service,topicFeedback):
         try:
             db_new=await DBSessionManager.get_db()
             modes = await deviceListService.selectUniqueModesByDeviceType(db_new)
@@ -47,7 +47,7 @@ class ModeSystemClass:
     # 	 * @return modeSysTemp
     # 	 */ 
     @staticmethod
-    async def handleModeSystemChange(mqtt_service, messageMQTT, topicFeedback):
+    async def update_mode_system(mqtt_service, messageMQTT, topicFeedback):
         db_new=await DBSessionManager.get_db()
         if messageMQTT.get('id_device') == 'Systemp':
             modeSysTemp = messageMQTT.get('mode')

@@ -13,7 +13,7 @@ from utils.MQTTService import *
 from utils.libTime import *
 from deviceControl.serviceDeviceControl.enegy_service import *
 # ==================================================== Get List All Device ==================================================================
-class GetListAllDeviceClass:
+class ProcessSystem:
     def __init__(self):
         pass
         # Describe GetListAllDeviceMain 
@@ -33,7 +33,7 @@ class GetListAllDeviceClass:
     #         "status": statusInt
     #     }
     # 	 */ 
-    async def GetListAllDeviceMain(mqtt_service, messageAllDevice, topicFeedback ,resultDB):
+    async def create_message_for_process_systemp(mqtt_service, messageAllDevice, topicFeedback ,resultDB):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
@@ -41,17 +41,17 @@ class GetListAllDeviceClass:
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
             # Calculate Total Power 
-            totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageAllDevice)
-            device_auto_info = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageAllDevice)
-            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(device_auto_info)
+            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageAllDevice)
+            device_auto_info = await ProcessAuto.getListDeviceAutoModeInALLInv(messageAllDevice)
+            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
-                device_info = GetListAllDeviceClass.extract_device_all_info(item)
+                device_info = ProcessSystem.get_device_details(item)
                 if device_info:
                     ArrayDeviceList.append(device_info)
         # Calculate the sum of wmax values of all inv in the system
-        TotalPowerINV, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+        TotalPowerINV, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Call the update_system_performance function and get the return value
-        SystemPerformance, statusString, statusInt = GetListAllDeviceClass.update_system_performance(
+        SystemPerformance, statusString, statusInt = ProcessSystem.calculate_system_performance (
             resultDB,
             totalProduction,
             TotalPowerINV,
@@ -73,8 +73,8 @@ class GetListAllDeviceClass:
         # Public MQTT
         MQTTService.push_data_zip(mqtt_service, topicFeedback, result)
         MQTTService.push_data(mqtt_service, topicFeedback + "Binh", result)
-    # Describe extract_device_all_info 
-    # 	 * @description extract_device_all_info
+    # Describe get_device_details 
+    # 	 * @description get_device_details
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
     # 	 * @param {item}
@@ -92,7 +92,7 @@ class GetListAllDeviceClass:
                 #     'timestamp': get_utc(),
                 # }
     # 	 */ 
-    def extract_device_all_info(item):
+    def get_device_details(item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
             id_device = item['id_device']
             mode = item['mode']
@@ -107,11 +107,11 @@ class GetListAllDeviceClass:
             device_name = item['device_name']
             results_device_type = item['name_device_type']
             if results_device_type == "PV System Inverter":
-                operator, wmax, capacity_power, real_power = GetListAllDeviceClass.get_device_parameters(item)
+                operator, wmax, capacity_power, real_power = ProcessSystem.get_device_parameters(item)
                 if status_device == 'offline':
                     real_power = 0.0
                     operator = "off"
-                p_min = GetListAllDeviceClass.calculate_p_min(p_max_custom, p_min_percent)
+                p_min = ProcessSystem.calculate_p_min(p_max_custom, p_min_percent)
                 return {
                     'id_device': id_device,
                     'device_name': device_name,
@@ -126,7 +126,7 @@ class GetListAllDeviceClass:
                     'timestamp': get_utc(),
                 }
         return None
-    # Describe get_device_parameters 
+    # Describe get_operator_wmax_capacitypower_realpower
     # 	 * @description get_device_parameters
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
@@ -134,7 +134,7 @@ class GetListAllDeviceClass:
     # 	 * @return operator, wmax, capacity_power, real_power
     # 	 */ 
     @staticmethod
-    def get_device_parameters(item):
+    def get_operator_wmax_capacitypower_realpower(item):
         stringOperatorText = {
             0: "shutting down",
             1: "shutting down",
@@ -185,7 +185,7 @@ class GetListAllDeviceClass:
     # 	 * @return systemPerformance, statusString, statusInt
     # 	 */ 
     @staticmethod
-    def update_system_performance(resultDB, production_system, total_power_in_all_inv ,ValueConsumtion):
+    def calculate_system_performance (resultDB, production_system, total_power_in_all_inv ,ValueConsumtion):
         current_mode = resultDB["mode"] 
         mode_detail = resultDB["control_mode"] 
         low_performance_threshold = resultDB["low_performance"] 
@@ -214,7 +214,7 @@ class GetListAllDeviceClass:
             statusInt = 2
         return systemPerformance, statusString, statusInt
 # ==================================================== Get List Auto Device ==================================================================
-class GetListAutoDeviceClass:
+class ProcessAuto:
     def __init__(self):
         pass
     # Describe getListDeviceAutoModeInALLInv 
@@ -225,17 +225,17 @@ class GetListAutoDeviceClass:
     # 	 * @return ArayyDeviceList
     # 	 */ 
     @staticmethod
-    async def getListDeviceAutoModeInALLInv(messageAllDevice):
+    async def get_parametter_device_list_auto_mode(messageAllDevice):
         ArayyDeviceList = []
         if messageAllDevice and isinstance(messageAllDevice, list):
             for item in messageAllDevice:
-                device_info = GetListAutoDeviceClass.extract_device_auto_info(item)
+                device_info = ProcessAuto.get_device_auto_details(item)
                 if not device_info:
                     continue
                 # Get Information Each Device 
                 id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type = device_info
                 # Check Device Auto 
-                if GetListAutoDeviceClass.is_device_controlable(results_device_type, status_device, mode, operator):
+                if ProcessAuto.is_device_controlable(results_device_type, status_device, mode, operator):
                     ArayyDeviceList.append({
                         'id_device': id_device,
                         'mode': mode,
@@ -255,7 +255,7 @@ class GetListAutoDeviceClass:
     # 	 * @return id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type
     # 	 */ 
     @staticmethod
-    def extract_device_auto_info(messageMQTT):
+    def get_device_auto_details(messageMQTT):
         if 'id_device' in messageMQTT and 'mode' in messageMQTT and 'status_device' in messageMQTT:
             id_device = messageMQTT['id_device']
             mode = messageMQTT['mode']
@@ -268,13 +268,13 @@ class GetListAutoDeviceClass:
                 p_max_custom = p_max
             p_min_percent = messageMQTT['min_watt_in_percent']
             p_min = (p_max * p_min_percent) / 100 if p_max and p_min_percent else 0
-            value = GetListAutoDeviceClass.get_device_value(messageMQTT, "ControlINV")
+            value = ProcessAuto.get_device_value(messageMQTT, "ControlINV")
             if value is None:
                 return None
-            operator = GetListAutoDeviceClass.get_device_value(messageMQTT, "OperatingState")
+            operator = ProcessAuto.get_device_value(messageMQTT, "OperatingState")
             if operator is None:
                 return None
-            slope = GetListAutoDeviceClass.get_device_value(messageMQTT, "WMax", field_key='slope')
+            slope = ProcessAuto.get_device_value(messageMQTT, "WMax", field_key='slope')
             if slope is None:
                 return None
             results_device_type = messageMQTT.get('name_device_type')

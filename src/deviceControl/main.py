@@ -34,24 +34,24 @@ async def handle_mqtt_message(mqtt_service,serial_number ,topic, message):
     topicPushMQTT = MQTTTopicPUSH()
     try:
         if topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:
-            await ModeSystemClass.handleModeSystemChange(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
+            await ModeSystem.update_mode_system(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
         elif topic in [serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE]:   # topic8, topic9, topic10
-            await ModeSystemClass.triggerDeviceModeChange(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
+            await ModeSystem.trigger_system_mode_change(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:
-            await ModeDetailClass.handleModeDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
+            await ModeControl.update_mode_control(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO: 
-            await ModeDetailClass.handleParametterDetailChange(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO )
+            await ModeControl.update_parameter_control(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO )
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION: 
-            await ProjectSetupClass.pudFeedBackProjectSetup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
+            await ProjectSetup.publish_project_setup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:
-            await ProjectSetupClass.insertInformationProjectSetup(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
+            await ProjectSetup.insert_project_setup_info(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
         elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:
             messageMQTTAllDevice = message
-            resultDB = await ProjectSetupClass.initializeValueControlAuto()
+            resultDB = await ProjectSetup.get_project_setup_values()
             if messageMQTTAllDevice:
-                await GetListAllDeviceClass.GetListAllDeviceMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,resultDB)
-                await ValueEnergySystemClass.ValueEnergySystemMain(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
-                await caculatorPowerClass.automatedParameterManagement(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
+                await ProcessSystem.create_message_for_process_systemp(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,resultDB)
+                await EnergySystem.calculate_and_publish_production_and_consumption(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
+                await PowerCalculator.calculate_auto_parameters(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
 # Describe consume_mqtt_messages 
@@ -104,7 +104,7 @@ async def subscribe_to_mqtt_topics(mqtt_service, serial_number):
 # 	 * @return 
 # 	 */ 
 async def start_mqtt_service():
-    project_setup_config = await ProjectSetupClass.initializeValueControlAuto()
+    project_setup_config = await ProjectSetup.get_project_setup_values()
     if project_setup_config["serial_number"] is not None:
         mqtt_settings = MQTTSettings()
         mqtt_topics = MQTTTopicSUD()

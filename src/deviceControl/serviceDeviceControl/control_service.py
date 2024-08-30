@@ -10,7 +10,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from deviceControl.serviceDeviceControl.enegy_service import *
 from deviceControl.serviceDeviceControl.processdevice_service import *
-class caculatorPowerClass:
+class PowerCalculator :
     def __init__(self):
         pass
     # Describe automatedParameterManagement 
@@ -20,14 +20,14 @@ class caculatorPowerClass:
     # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
     # 	 * @return 
     # 	 */ 
-    async def automatedParameterManagement(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_auto_parameters(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Select the auto run process
         if resultDB["control_mode"] == 1 :
             print("==============================zero_export==============================")
-            await caculatorPowerClass.processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
+            await PowerCalculator.calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
         else:
             print("==============================power_limit==============================")
-            await caculatorPowerClass.processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
+            await PowerCalculator.calculate_power_limit_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
     # Describe processCaculatorPowerForInvInPowerLimitMode 
     # 	 * @description processCaculatorPowerForInvInPowerLimitMode
     # 	 * @author bnguyen
@@ -35,37 +35,34 @@ class caculatorPowerClass:
     # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
     # 	 * @return 
     # 	 */ 
-    async def processCaculatorPowerForInvInPowerLimitMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_power_limit_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         Arraydevices = []
         ArrayDeviceList = []
         gIntValuePowerForEachInvInModePowerLimit = 0 
-        Powerlimit = resultDB["value_power_limit"]
-        PowerLimitOffset = resultDB["value_offset_power_limit"]
+        PowerlimitCaculator = resultDB["value_power_limit"]
         ModeSystem = resultDB["mode"]
         ModeDetail = resultDB["control_mode"]
-        # Calculate Power Limit
-        PowerlimitCaculator = Powerlimit - (Powerlimit * PowerLimitOffset / 100) if PowerLimitOffset is not None else Powerlimit
         # Get List Device Can Control 
         if messageMQTTAllDevice:
             # Calculate Total Power 
-            totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
+            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
-            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await ProcessAuto.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
+            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
-            ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
+            ArrayDeviceList = [ProcessSystem.get_device_details(item) for item in messageMQTTAllDevice if ProcessSystem.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
-            TotalPowerINVAll, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+            TotalPowerINVAll, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Get Infor Device Control 
         if Arraydevices:
             listInvControlPowerLimitMode = []
             for device in Arraydevices:
-                id_device, mode, intPowerMaxOfInv = caculatorPowerClass.process_device_powerlimit_info(device)
-                gIntValuePowerForEachInvInModePowerLimit = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv,ModeSystem,TotalPowerINVMan,\
+                id_device, mode, intPowerMaxOfInv = PowerCalculator .extract_device_info (device)
+                gIntValuePowerForEachInvInModePowerLimit = PowerCalculator .calculate_power_value(intPowerMaxOfInv,ModeSystem,TotalPowerINVMan,\
                     TotalPowerINVAuto,PowerlimitCaculator)
                 # Create Infor Device Publish MQTT
                 if totalProduction < PowerlimitCaculator:
-                    item = caculatorPowerClass.create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,PowerlimitCaculator,\
+                    item = PowerCalculator .create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,PowerlimitCaculator,\
                         TotalPowerINVMan,totalProduction)
                 else:
                     item = {
@@ -92,7 +89,7 @@ class caculatorPowerClass:
     # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
     # 	 * @return PowerForEachInvInModeZeroExport
     # 	 */ 
-    async def processCaculatorPowerForInvInZeroExportMode(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         Arraydevices = []
         ArrayDeviceList = []
         PowerForEachInvInModeZeroExport = 0
@@ -105,27 +102,27 @@ class caculatorPowerClass:
         # Get List Device Can Control 
         if messageMQTTAllDevice:
             # Calculate Total Power 
-            totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTTAllDevice)
+            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await GetListAutoDeviceClass.getListDeviceAutoModeInALLInv(messageMQTTAllDevice)
-            TotalPowerINVAuto = GetListAutoDeviceClass.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await ProcessAuto.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
+            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
-            ArrayDeviceList = [GetListAllDeviceClass.extract_device_all_info(item) for item in messageMQTTAllDevice if GetListAllDeviceClass.extract_device_all_info(item)]
+            ArrayDeviceList = [ProcessSystem.get_device_details(item) for item in messageMQTTAllDevice if ProcessSystem.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
-            TotalPowerINVAll, TotalPowerINVMan = GetListAllDeviceClass.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+            TotalPowerINVAll, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Get Setpoint ,Value Consumption System 
         if totalConsumption:
-            Setpoint, PracticalConsumptionValue = await caculatorPowerClass.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
+            Setpoint, PracticalConsumptionValue = await PowerCalculator.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
         if Arraydevices:
             listInvControlZeroExportMode = []
             for device in Arraydevices:
-                id_device, mode, intPowerMaxOfInv = caculatorPowerClass.process_device_powerlimit_info(device)
-                PowerForEachInvInModeZeroExport = caculatorPowerClass.calculate_power_value(intPowerMaxOfInv, ModeSystem, 
+                id_device, mode, intPowerMaxOfInv = PowerCalculator .extract_device_info (device)
+                PowerForEachInvInModeZeroExport = PowerCalculator .calculate_power_value(intPowerMaxOfInv, ModeSystem, 
                     TotalPowerINVMan, TotalPowerINVAuto, Setpoint)
                 # Create Infor Device Publish MQTT
                 if totalProduction < PracticalConsumptionValue and \
                     totalConsumption >= ThresholdZeroExport and totalConsumption >= 0:
-                    item = caculatorPowerClass.create_control_item(ModeDetail,device, PowerForEachInvInModeZeroExport,Setpoint,\
+                    item = PowerCalculator .create_control_item(ModeDetail,device, PowerForEachInvInModeZeroExport,Setpoint,\
                     TotalPowerINVMan,totalProduction)
                 else:
                     item = {
@@ -152,12 +149,12 @@ class caculatorPowerClass:
     # 	 * @return id_device, mode, intPowerMaxOfInv
     # 	 */ 
     @staticmethod
-    def process_device_powerlimit_info(device):
+    def extract_device_info (device):
         id_device = device["id_device"]
         mode = device["mode"]
         intPowerMaxOfInv = float(device["p_max"])
         return id_device, mode, intPowerMaxOfInv
-    # Describe calculate_power_value 
+    # Describe calculate_device_power 
     # 	 * @description calculate_power_value
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
@@ -178,7 +175,7 @@ class caculatorPowerClass:
             return 0
         else:
             return intPowerMaxOfInv
-    # Describe create_control_item 
+    # Describe create_control_message 
     # 	 * @description create_control_item
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
@@ -220,15 +217,15 @@ class caculatorPowerClass:
         else:
             ValueConsump -= ValueTotalPowerInInvInManMode
         
-        if not hasattr(caculatorPowerClass.calculate_setpoint, 'last_setpoint'):
-            caculatorPowerClass.calculate_setpoint.last_setpoint = ValueConsump
+        if not hasattr(PowerCalculator.calculate_setpoint, 'last_setpoint'):
+            PowerCalculator.calculate_setpoint.last_setpoint = ValueConsump
         # setpoint value change limit
         new_setpoint = ValueConsump
         Setpoint = max(
-            caculatorPowerClass.calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
-            min(caculatorPowerClass.calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
+            PowerCalculator.calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
+            min(PowerCalculator.calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
         )
-        caculatorPowerClass.calculate_setpoint.last_setpoint = Setpoint
+        PowerCalculator.calculate_setpoint.last_setpoint = Setpoint
         ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump) / 100)
         if Setpoint:
             Setpoint -= Setpoint * ValueOffetConsump / 100

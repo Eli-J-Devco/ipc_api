@@ -13,7 +13,7 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
 # ============================================================== Parametter Mode Detail Systemp ================================
-class ModeDetailClass:
+class ModeControl:
     def __init__(self):
         pass
     # Describe handleModeDetailChange 
@@ -24,7 +24,7 @@ class ModeDetailClass:
     # 	 * @return ModeDetail
     # 	 */ 
     @staticmethod
-    async def handleModeDetailChange(mqtt_service, messageMQTT, topicFeedback):
+    async def update_mode_control(mqtt_service, messageMQTT, topicFeedback):
         intComment = 0
         resultDB = []
         db_new=await DBSessionManager.get_db()
@@ -63,7 +63,7 @@ class ModeDetailClass:
     #       }
     # 	 */ 
     @staticmethod
-    async def handleParametterDetailChange( mqtt_service, messageMQTT, topicFeedBack):
+    async def update_parameter_control ( mqtt_service, messageMQTT, topicFeedBack):
         ModeDetail = ""
         intComment = 0
         resultDBZeroExport = []
@@ -75,11 +75,11 @@ class ModeDetailClass:
                 ModeDetail = int(messageMQTT['mode'])
                 token = messageMQTT.get("token", "")
                 if ModeDetail == 1:
-                    OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await ModeDetailClass.handle_zero_export_mode(messageMQTT)
+                    OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await ModeControl.update_zero_export_mode (messageMQTT)
                     OffsetPowerLimit = result[0]["value_offset_power_limit"]
                     ValuePowerLimit = result[0]["value_power_limit"]
                 elif ModeDetail == 2:
-                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeDetailClass.handle_power_limit_mode(messageMQTT)
+                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeControl.update_power_limit_mode(messageMQTT)
                     OffsetZeroExport = result[0]["value_offset_zero_export"]
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
                 # Feedback to MQTT
@@ -106,14 +106,14 @@ class ModeDetailClass:
         except Exception as err:
             print(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
             return None
-    # Describe handle_zero_export_mode 
-    # 	 * @description handle_zero_export_mode
+    # Describe update_zero_export_mode  
+    # 	 * @description update_zero_export_mode 
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
     # 	 * @param {message}
     # 	 * @return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
     # 	 */ 
-    async def handle_zero_export_mode( message):
+    async def update_zero_export_mode ( message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
         ValueThresholdTemp = message.get("threshold", 0)
@@ -123,14 +123,14 @@ class ModeDetailClass:
             }
         ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updateZeroExport)
         return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
-    # Describe handle_power_limit_mode 
-    # 	 * @description handle_power_limit_mode
+    # Describe update_power_limit_mode 
+    # 	 * @description update_power_limit_mode
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
     # 	 * @param {message}
     # 	 * @return ValueOffsetTemp, ValuePowerLimit, ResultQuery
     # 	 */ 
-    async def handle_power_limit_mode( message):
+    async def update_power_limit_mode( message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
         ValuePowerLimitTemp = message.get("value", 0)

@@ -13,7 +13,7 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dbService.deviceType import deviceTypeService
 # ==================================================== Caculator Production And Consumtion  ==================================================================
-class ValueEnergySystemClass:
+class EnergySystem:
     def __init__(self):
         pass
     # Describe ValueEnergySystemMain 
@@ -24,12 +24,11 @@ class ValueEnergySystemClass:
     # 	 * @return 
     # 	 */ 
     @staticmethod
-    async def ValueEnergySystemMain(mqtt_service, messageMQTT, topicFeedBack):
-        totalProduction, totalConsumption = await ValueEnergySystemClass.calculate_production_and_consumption(messageMQTT)
+    async def calculate_and_publish_production_and_consumption(mqtt_service, messageMQTT, topicFeedBack):
+        totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTT)
         try:
-            ObjectSendMQTT = ValueEnergySystemClass.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
+            ObjectSendMQTT = EnergySystem.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
             # Push system_info to MQTT
-            print("push dataa metter")
             MQTTService.push_data_zip(mqtt_service, topicFeedBack, ObjectSendMQTT)
             MQTTService.push_data(mqtt_service, topicFeedBack + "Binh", ObjectSendMQTT)
         except Exception as err:
@@ -50,11 +49,11 @@ class ValueEnergySystemClass:
             for item in messageMQTT:
                 if 'id_device' in item:
                     id_device = item['id_device']
-                    result_type_meter = await ValueEnergySystemClass.get_device_type(id_device)
+                    result_type_meter = await EnergySystem.get_device_type(id_device)
                     if result_type_meter:
-                        totalProductionTemp = ValueEnergySystemClass.calculate_production(
+                        totalProductionTemp = EnergySystem.calculate_production(
                             item, result_type_meter, totalProductionTemp)
-                        totalConsumptionTemp = ValueEnergySystemClass.calculate_consumption(
+                        totalConsumptionTemp = EnergySystem.calculate_consumption(
                             item, result_type_meter, totalConsumptionTemp)
         
         return totalProductionTemp, totalConsumptionTemp

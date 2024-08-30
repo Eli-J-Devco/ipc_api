@@ -14,7 +14,7 @@ from utils.libMySQL import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
 
-class ProjectSetupClass:
+class ProjectSetup:
     def __init__(self):
         pass
     # Describe initializeValueControlAuto 
@@ -35,7 +35,7 @@ class ProjectSetupClass:
                 # }
     # 	 */ 
     @staticmethod
-    async def initializeValueControlAuto():
+    async def get_project_setup_values():
         OffsetZeroExport = 0
         PowerLimit = 0
         OffsetPowerLimit = 0
@@ -81,7 +81,7 @@ class ProjectSetupClass:
     # 	 * @return 
     # 	 */ 
     @staticmethod
-    async def pudFeedBackProjectSetup(mqtt_service,topicFeedBack):
+    async def publish_project_setup(mqtt_service,topicFeedBack):
         try :
             db_new = await DBSessionManager.get_db()
             resultDB = await ProjectSetupService.selectAllProjectSetup(db_new)
@@ -110,7 +110,7 @@ class ProjectSetupClass:
     # 	 * @return 
     # 	 */ 
     @staticmethod
-    async def insertInformationProjectSetup(mqtt_service, messageMQTT, topicFeedBack):
+    async def insert_project_setup_info(mqtt_service, messageMQTT, topicFeedBack):
         try:
             resultSet = messageMQTT.get('parameter', {})
             resultSet.pop('mqtt', None)
