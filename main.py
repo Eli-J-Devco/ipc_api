@@ -262,7 +262,7 @@ def init_api_gateway():
 # 	 */
 def init_mqtt_control():
     absDirname=path
-    pid=f'MQTTControl'
+    pid=f'CaculatorSystemAuto'
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
