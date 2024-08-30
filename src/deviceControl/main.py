@@ -33,25 +33,25 @@ async def handle_mqtt_message(mqtt_service,serial_number ,topic, message):
     topicSudMQTT = MQTTTopicSUD()
     topicPushMQTT = MQTTTopicPUSH()
     try:
-        if topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE:
-            await ModeSystem.update_mode_system(mqtt_service,message, topicPushMQTT.MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL)
-        elif topic in [serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODIFY_DEVICE]:   # topic8, topic9, topic10
-            await ModeSystem.trigger_system_mode_change(mqtt_service ,topicPushMQTT.MQTT_TOPIC_SUD_MODECONTROL_DEVICE)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL:
-            await ModeControl.update_mode_control(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO: 
-            await ModeControl.update_parameter_control(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_CHOICES_MODE_AUTO )
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_MODEGET_INFORMATION: 
-            await ProjectSetup.publish_project_setup(mqtt_service,topicPushMQTT.MQTT_TOPIC_PUD_PROJECT_SETUP)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE:
-            await ProjectSetup.insert_project_setup_info(mqtt_service,message,topicPushMQTT.MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE)
-        elif topic == serial_number + topicSudMQTT.MQTT_TOPIC_SUD_DEVICES_ALL:
+        if topic == serial_number + topicSudMQTT.Control_Setup_Mode_Write:
+            await ModeSystem.update_mode_system(mqtt_service,message, topicPushMQTT.Control_Setup_Mode_Feedback)
+        elif topic in [serial_number + topicSudMQTT.Control_Feedback,serial_number + topicSudMQTT.Control_Feedbacksetup,serial_number + topicSudMQTT.Control_Modify]:
+            await ModeSystem.trigger_system_mode_change(mqtt_service ,topicPushMQTT.Control_Setup_Mode_Write)
+        elif topic == serial_number + topicSudMQTT.Control_Setup_Mode_Write_Detail:
+            await ModeControl.update_mode_control(mqtt_service,message,topicPushMQTT.Control_Setup_Mode_Write_Detail_Feedback)
+        elif topic == serial_number + topicSudMQTT.Control_Setup_Auto:
+            await ModeControl.update_parameter_control(mqtt_service,message,topicPushMQTT.Control_Setup_Auto_Feedback )
+        elif topic == serial_number + topicSudMQTT.Project_Get: 
+            await ProjectSetup.publish_project_setup(mqtt_service,topicPushMQTT.Project_Information)
+        elif topic == serial_number + topicSudMQTT.Project_Set:
+            await ProjectSetup.insert_project_setup_info(mqtt_service,message,topicPushMQTT.Project_Set_Feedback)
+        elif topic == serial_number + topicSudMQTT.Devices_All:
             messageMQTTAllDevice = message
             resultDB = await ProjectSetup.get_project_setup_values()
             if messageMQTTAllDevice:
-                await ProcessSystem.create_message_for_process_systemp(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS,resultDB)
-                await EnergySystem.calculate_and_publish_production_and_consumption(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_MONIT_METER)
-                await PowerCalculator.calculate_auto_parameters(mqtt_service,messageMQTTAllDevice,topicPushMQTT.MQTT_TOPIC_PUD_CONTROL_AUTO,resultDB)
+                await ProcessSystem.create_message_for_process_systemp(mqtt_service,messageMQTTAllDevice,topicPushMQTT.Control_Process,resultDB)
+                await EnergySystem.calculate_and_publish_production_and_consumption(mqtt_service,messageMQTTAllDevice,topicPushMQTT.Meter_Monitor)
+                await PowerCalculator.calculate_auto_parameters(mqtt_service,messageMQTTAllDevice,topicPushMQTT.Control_WriteAuto,resultDB)
     except Exception as err:
         print(f"Error MQTT subscribe processMessage: '{err}'") 
 # Describe consume_mqtt_messages 
@@ -116,16 +116,15 @@ async def start_mqtt_service():
             serial_number=project_setup_config["serial_number"]
         )
         mqtt_service.set_topics(
-            mqtt_topics.MQTT_TOPIC_SUD_MODECONTROL_DEVICE,
-            mqtt_topics.MQTT_TOPIC_SUD_MODEGET_INFORMATION,
-            mqtt_topics.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL,
-            mqtt_topics.MQTT_TOPIC_SUD_CHOICES_MODE_AUTO,
-            mqtt_topics.MQTT_TOPIC_SUD_DEVICES_ALL,
-            mqtt_topics.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN,
-            mqtt_topics.MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP,
-            mqtt_topics.MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE,
-            mqtt_topics.MQTT_TOPIC_SUD_SETTING_ARLAM,
-            mqtt_topics.MQTT_TOPIC_SUD_MODIFY_DEVICE
+            mqtt_topics.Control_Setup_Mode_Write,
+            mqtt_topics.Project_Get,
+            mqtt_topics.Control_Setup_Mode_Write_Detail,
+            mqtt_topics.Control_Setup_Auto,
+            mqtt_topics.Devices_All,
+            mqtt_topics.Control_Feedback,
+            mqtt_topics.Control_Feedbacksetup,
+            mqtt_topics.Project_Set,
+            mqtt_topics.Control_Modify
         )
         tasks = []
         tasks.append(asyncio.create_task(subscribe_to_mqtt_topics(mqtt_service, project_setup_config["serial_number"])))

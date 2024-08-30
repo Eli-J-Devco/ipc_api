@@ -60,30 +60,27 @@ class MQTTSettings(BaseSettings):
     MQTT_PORT: int
     
 class MQTTTopicSUD(BaseSettings):
-    MQTT_TOPIC_SUD_MODECONTROL_DEVICE: str
-    MQTT_TOPIC_SUD_MODEGET_INFORMATION: str
-    MQTT_TOPIC_SUD_MODEGET_CPU: str
-    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO_DETAIL: str
-    MQTT_TOPIC_SUD_CHOICES_MODE_AUTO: str
-    MQTT_TOPIC_SUD_DEVICES_ALL: str
-    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN: str
-    MQTT_TOPIC_SUD_FEEDBACK_CONTROL_MAN_SETUP: str
-    MQTT_TOPIC_SUD_SET_PROJECTSETUP_DATABASE: str
-    MQTT_TOPIC_SUD_SETTING_ARLAM: str
-    MQTT_TOPIC_SUD_MODIFY_DEVICE: str
+    Control_Setup_Mode_Write: str
+    Project_Get: str
+    Control_Setup_Mode_Write_Detail: str
+    Control_Setup_Auto: str
+    Devices_All: str
+    Control_Feedback: str
+    Control_Feedbacksetup: str
+    Project_Set: str
+    Control_Modify: str
 
 class MQTTTopicPUSH(BaseSettings):
-    MQTT_TOPIC_PUD_FEEDBACK_MODECONTROL: str
-    MQTT_TOPIC_PUD_PROJECT_SETUP: str
-    MQTT_TOPIC_PUD_CPU_SETUP: str
-    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO_DETAIL_FEEDBACK: str
-    MQTT_TOPIC_PUD_CHOICES_MODE_AUTO: str
-    MQTT_TOPIC_PUD_CONTROL_AUTO: str
-    MQTT_TOPIC_PUD_SET_PROJECTSETUP_DATABASE: str
-    MQTT_TOPIC_PUD_LIST_DEVICE_PROCESS: str
-    MQTT_TOPIC_PUD_MONIT_METER: str
-    MQTT_TOPIC_PUD_SETTING_ARLAM_FEEDBACK: str
-    MQTT_TOPIC_SUD_MODECONTROL_DEVICE : str
+    Control_Setup_Mode_Feedback: str
+    Project_Information: str
+    CPU_Information: str
+    Control_Setup_Mode_Write_Detail_Feedback: str
+    Control_Setup_Auto_Feedback: str
+    Control_WriteAuto: str
+    Project_Set_Feedback: str
+    Control_Process: str
+    Meter_Monitor: str
+    Control_Setup_Mode_Write : str
 Config = Settings()
 
 db_config = MySqlConfigFactory(
