@@ -25,6 +25,7 @@ class DeviceType(BaseModel):
 class DeviceFull(BaseModel):
     id: Optional[int] = None
     parent: Optional[int] = None
+    map_mppt: Optional[int] = None
     table_name: Optional[str] = None
     view_table: Optional[str] = None
     name: Optional[str] = None
@@ -78,6 +79,7 @@ class DeviceFull(BaseModel):
     meter_type: Optional[int] = None
     inverter_type: Optional[int] = 2
     creation_state: Optional[int] = -1
+    plug_point: Optional[int] = None
     status: Optional[bool] = True
     driver_type: Optional[str] = None
     device_type: Optional[DeviceType] = None
@@ -123,7 +125,7 @@ class DeviceComponentBase(BaseModel):
     sub_type: Optional[int] = None
     group: Optional[int] = None
     quantity: Optional[int] = None
-    required: Optional[bool] = False
+    require: Optional[bool] = False
     plug_point: Optional[str] = None
 
 
@@ -144,10 +146,24 @@ class DeviceComponentList(BaseModel):
 class Component(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
-    device_type: Optional[DeviceType] = None
-    device_group: Optional[DeviceGroup] = None
-    template_library: Optional[TemplateBase] = None
+    image: Optional[str] = None
+    plug_point: Optional[int] = None
+    id_device_type: Optional[int] = None
+    device_type_name: Optional[str] = None
     mppt_id: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+
+class ComponentGroup(BaseModel):
+    name: Optional[str] = None
+    sub_type: Optional[int] = None
+    group: Optional[int] = None
+    quantity: Optional[int] = None
+    type: Optional[int] = None
+    require: Optional[bool] = False
+    components: Optional[list[Component]] = None
 
     class Config:
         orm_mode = True

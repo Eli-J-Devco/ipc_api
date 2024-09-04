@@ -255,10 +255,10 @@ class DevicesService:
 
                 if body.components:
                     component_devices = await self.components_service.add_components_parent(new_devices.id,
-                                                                                  body.components, session)
+                                                                                            body.components, session)
                     if isinstance(component_devices, HTTPException):
                         return component_devices
-                    symbolic_devices += component_devices
+                    symbolic_devices.extend(component_devices)
                 devices.append(new_devices.id)
             await session.commit()
         else:

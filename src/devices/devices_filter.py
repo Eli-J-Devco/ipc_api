@@ -55,6 +55,8 @@ class DeviceComponentFilter(BaseModel):
     id_device_group: Optional[int] = None
     id_mppt: Optional[int] = None
     type: Optional[int] = None
+    plug_point: Optional[int] = None
+    quantity: Optional[int] = None
 
 
 class AddComponentFilter(BaseModel):
@@ -129,3 +131,9 @@ class GetDeviceComponentFilter(DeviceComponentFilter):
 
 class DeleteDeviceFilter(DeviceSecret):
     device_id: int | list[int] = None
+
+
+class GetAvailableComponents(BaseModel):
+    name: str
+    id_device_type: int
+    exclude: Optional[list[int]] = []

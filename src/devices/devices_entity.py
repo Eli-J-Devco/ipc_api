@@ -16,6 +16,7 @@ class Devices(config.Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     parent: Mapped[int] = mapped_column(Integer, nullable=True)
+    map_mppt: Mapped[int] = mapped_column(Integer, nullable=True)
     table_name: Mapped[str] = mapped_column(String, unique=True)
     view_table: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[str] = mapped_column(String, unique=True)
@@ -94,6 +95,7 @@ class Devices(config.Base):
     meter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     inverter_type: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     creation_state: Mapped[int] = mapped_column(Integer, nullable=True, default=-1)
+    plug_point: Mapped[int] = mapped_column(Integer, nullable=True, default=None)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")

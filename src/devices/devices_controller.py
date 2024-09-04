@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .components_service import ComponentsService
 from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter, \
-    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter
+    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter, GetAvailableComponents
 from .devices_service import DevicesService
 from .devices_utils_service import UtilsService
 from ..authentication.authentication_model import Authentication
@@ -128,3 +128,10 @@ class DevicesController:
                                     session: AsyncSession = Depends(config.get_db),
                                     auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.components_service.get_device_components)(device_id, session)
+
+    @Post("/component/search/")
+    async def get_available_components(self,
+                                       body: GetAvailableComponents,
+                                       session: AsyncSession = Depends(config.get_db),
+                                       auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.components_service.get_available_components)(body, session)

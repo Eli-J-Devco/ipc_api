@@ -4,6 +4,7 @@
 # *
 # *********************************************************/
 import logging
+from functools import reduce
 from typing import Sequence
 
 from fastapi import HTTPException, status
@@ -15,8 +16,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
 from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
-from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice
-from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, DeviceGroup
+from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents
+from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, DeviceGroup, \
+    ComponentGroup, DeviceUploadChannelMap
 from .devices_utils_service import UtilsService
 from ..template.template_entity import Template
 
@@ -86,13 +88,22 @@ class ComponentsService:
                 device_type = await (self.utils_service
                                      .get_device_type_by_id(component.id_device_type, session))
                 component_name = device_type.name
-            new_component = DevicesEntity(name=f"{component_name} {count}",
-                                          parent=parent,
-                                          id_device_type=component.id_device_type,
-                                          id_template=template.id, )
-            session.add(new_component)
+
+            num_of_new_component = component.quantity if component.quantity else 1
+            new_components = []
+            for _ in range(num_of_new_component):
+                new_components.append(DevicesEntity(name=f"{component_name} {count}",
+                                                    parent=parent,
+                                                    id_device_type=component.id_device_type,
+                                                    id_template=template.id,
+                                                    plug_point=component.plug_point
+                                                    if component.plug_point is not None else None,
+                                                    map_mppt=-1 if num_of_new_component > 1 else None,))
+                count += 1 if num_of_new_component > 1 else 0
+            session.add_all(new_components)
             await session.flush()
-            symbolic_devices.append(SymbolicDevice(id=new_component.id, name=new_component.name))
+            symbolic_devices.extend([SymbolicDevice(id=new_component.id, name=new_component.name)
+                                     for new_component in new_components])
             count += 1
         return symbolic_devices
 
@@ -208,31 +219,34 @@ class ComponentsService:
     @async_db_request_handler
     async def get_device_components(self,
                                     device_id: int,
-                                    session: AsyncSession) -> list[Component]:
+                                    session: AsyncSession) -> list[ComponentGroup]:
         """
         Get device components
         :author: nhan.tran
         :date: 17-06-2024
         :param device_id:
         :param session:
-        :return: list[Component]
+        :return: list[ComponentGroup]
         """
+        query = select(DevicesEntity.id_device_type).where(DevicesEntity.id == device_id)
+        result = await session.execute(query)
+        id_device_type = result.scalar()
+        group_component = await self.get_device_components_by_main_type(GetDeviceComponentFilter(
+            main_type=id_device_type, ), session)
+
         query = select(DevicesEntity).where(DevicesEntity.parent == device_id)
         result = await session.execute(query)
-        components = result.scalars().all()
+        components = list(result.scalars().all())
         output = []
 
-        for component in components:
-            component_dict = jsonable_encoder(component)
-            component = Component(**component_dict, template_library=component_dict.get("template"))
-            if not component.template_library:
-                output.append(component)
-                continue
-            device_group = DeviceGroup(**jsonable_encoder(await self.utils_service
-                                                          .get_device_group_by_id(component.template_library
-                                                                                  .id_device_group, session)))
-            component.device_group = device_group
-            output.append(component)
+        for group in group_component:
+            formatted_group = ComponentGroup(**group.dict(exclude={"components"}))
+            device_type_components = list(map(lambda x: x.id, group.components))
+            device_components = list(map(lambda x: Component(**x.__dict__, image=x.device_type.image, device_type_name=x.device_type.name),
+                                     list(filter(lambda x: x.id_device_type in device_type_components, components))))
+            formatted_group.components = device_components
+            output.append(formatted_group)
+
         return output
 
     @async_db_request_handler
@@ -299,3 +313,24 @@ class ComponentsService:
         result = await session.execute(query)
         quantity = result.scalar()
         return quantity
+
+    @async_db_request_handler
+    async def get_available_components(self, body: GetAvailableComponents, session: AsyncSession):
+        """
+        Get available components
+        :author: nhan.tran
+        :date: 30-08-2024
+        :param body: GetAvailableComponents
+        :param session: AsyncSession
+        :return: list[DeviceComponent]
+        """
+
+        query = (select(DevicesEntity)
+                 .where(DevicesEntity.id_device_type == body.id_device_type)
+                 .where(DevicesEntity.parent.is_(None))
+                 .where(DevicesEntity.id.notin_(body.exclude))
+                 .where(DevicesEntity.name.like(f"%{body.name}%")))
+        result = await session.execute(query)
+        components = result.scalars().all()
+
+        return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))
