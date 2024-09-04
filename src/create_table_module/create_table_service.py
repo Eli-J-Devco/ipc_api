@@ -3,7 +3,7 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateTable
-from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey, func
+from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey, func, update
 
 from .create_table_model import CreateTableModel
 
@@ -116,6 +116,24 @@ class CreateTableService:
         logging.info(f"Device mppt of {device.table_name} added")
 
     @async_db_request_handler
+    async def update_map_mppt(self, parent: int, mppt_id: int, session: AsyncSession):
+        query = (select(DevicesEntity)
+                 .where(DevicesEntity.parent == parent)
+                 .where(DevicesEntity.map_mppt == -1))
+        result = await session.execute(query)
+        device = result.scalars().first()
+
+        if not device:
+            return
+
+        query = (update(DevicesEntity)
+                 .where(DevicesEntity.id == device.id)
+                 .values(map_mppt=mppt_id))
+        await session.execute(query)
+
+        return device.id
+
+    @async_db_request_handler
     async def add_device_string(self,
                                 device: DeviceModel,
                                 point_id: int,
@@ -125,11 +143,16 @@ class CreateTableService:
         query = (select(PointListEntity)
                  .where(PointListEntity.id_template == device.id_template)
                  .where(PointListEntity.id_config_information == PointType.STRING.value))
+        new_device = DeviceModel(**device.dict())
         if point_id and id_device_mppt:
+            switch_id = await self.update_map_mppt(device.id, id_device_mppt, session=session)
             query = (select(PointListEntity)
                      .where(PointListEntity.id_template == device.id_template)
                      .where(PointListEntity.parent == point_id)
                      .where(PointListEntity.id_config_information == PointType.STRING.value))
+            if switch_id is not None:
+                new_device.id = switch_id
+
         result = await session.execute(query)
         points = result.scalars().all()
         if not points:
@@ -146,13 +169,13 @@ class CreateTableService:
             new_device_mppt_string = DeviceMpptStringEntity(**DeviceMpptString(**point.__dict__,
                                                                                id_point_list=point.id,
                                                                                namekey=point.id_pointkey,
-                                                                               id_device_list=device.id,
+                                                                               id_device_list=new_device.id,
                                                                                panel=count).
                                                             dict(exclude={"id", "parent"}),
                                                             parent=id_device_mppt,)
             session.add(new_device_mppt_string)
             await session.flush()
-            await self.add_device_panel(device, point.id, new_device_mppt_string.id, session=session)
+            await self.add_device_panel(new_device, point.id, new_device_mppt_string.id, session=session)
 
     @staticmethod
     @async_db_request_handler

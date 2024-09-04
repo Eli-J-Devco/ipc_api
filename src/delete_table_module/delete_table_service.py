@@ -105,6 +105,9 @@ class DeleteTableService:
         query = select(DevicesEntity).where(DevicesEntity.id == device_id)
         result = await session.execute(query)
         device = result.scalars().first()
+        if not device:
+            raise Exception(f"Device {device_id} not found")
+
         id_device_type = device.id_device_type
 
         query = (select(DeviceComponentEntity)
@@ -113,20 +116,16 @@ class DeleteTableService:
         result = await session.execute(query)
         require_type_list = [device_type_group.group for device_type_group in result.scalars().all()]
 
-        logger.info(f"Require type list: {require_type_list}")
         query = (select(DevicesEntity)
                  .join(DeviceType, DevicesEntity.id_device_type == DeviceType.id)
                  .join(DeviceTypeGroup, DeviceType.group == DeviceTypeGroup.id)
                  .where(DevicesEntity.parent == device_id)
                  .where(DeviceTypeGroup.id.in_(require_type_list)))
-        logger.info(f"Query: {query}")
         result = await session.execute(query)
         component_list = result.scalars().all()
 
-        logger.info(f"Component list: {component_list}")
         results = []
         for component in component_list:
-            logger.info(f"Delete component {component.__dict__}")
             msg = PM2DeviceModel(id=component.id,
                                  name=component.name,
                                  id_communication=component.communication.__dict__.get("id")
