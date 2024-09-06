@@ -139,6 +139,8 @@ device_parent=None
 emergency_stop=None
 type_device_type=None
 id_device_group=None
+
+rtu_bus_address=None
 # 
 # config[0] -- id
 # ----- mybatis -----
@@ -1091,6 +1093,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
         global id_template
         global power_limit_percent,power_limit_percent_enable,reactive_limit_percent,reactive_limit_percent_enable
         global type_device_type, id_device_group
+        global rtu_bus_address
         pathSource=path
         # pathSource="D:/NEXTWAVE/project/ipc_api"
         id_device=ConfigPara[1]
@@ -1184,6 +1187,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                 slave_ip = results_device[0]["tcp_gateway_ip"]
                 slave_port = results_device[0]['tcp_gateway_port']
                 slave_ID =  results_device[0]['rtu_bus_address']
+                rtu_bus_address=  results_device[0]['rtu_bus_address']
                 NAME_DEVICE_TYPE =  results_device[0]['device_type']
                 ID_DEVICE_TYPE =  results_device[0]['id_device_type']
                 
@@ -1359,6 +1363,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
         global device_parent
         global type_device_type
         global id_device_group
+        global rtu_bus_address
         results_control_group = MySQL_Select(f'SELECT * FROM point_list_control_group where id_template={id_template} and status=1', ())
         print(f'init monitoring_device')
         # point_list
@@ -1647,7 +1652,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                 "min_watt_in_percent":min_watt_in_percent,# realtime
                 # "rated_reactive_custom":rated_reactive_custom, # realtime
                 "emergency_stop":emergency_stop,# realtime
-                
+                "rtu_bus_address":rtu_bus_address
             }
             if device_name !="" and serial_number_project!= None:
                 await mqtt_init.sendZIP("Devices/"+""+device_id,
