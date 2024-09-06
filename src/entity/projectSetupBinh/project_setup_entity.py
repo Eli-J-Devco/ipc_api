@@ -20,8 +20,8 @@ class ProjectSetup(DBSessionManager.Base):
     # id_first_page_on_login: Mapped[int] = mapped_column(Integer,
     #                                                         ForeignKey("screen.id", ondelete="CASCADE", onupdate="CASCADE"),
     #                                                         nullable=False)
-    # id_logging_interval: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
-    #                                                         onupdate="CASCADE"), nullable=False)
+    id_logging_interval: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
+                                                            onupdate="CASCADE"), nullable=False)
     # id_scheduled_upload_time: Mapped[int] = mapped_column(Integer,
     #                                                         ForeignKey("config_information.id", ondelete="CASCADE",
     #                                                         onupdate="CASCADE"), nullable=False)
@@ -87,39 +87,39 @@ class ProjectSetup(DBSessionManager.Base):
     high_performance: Mapped[float] = mapped_column(DOUBLE, nullable=False, default=100)
     status: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     
-#     logging_interval = relationship('ConfigInformation', foreign_keys=[id_logging_interval])
+    logging_interval = relationship('ConfigInformation', foreign_keys=[id_logging_interval])
 #     first_page_on_login = relationship('Screen', foreign_keys=[id_first_page_on_login])
 #     scheduled_upload_time = relationship('ConfigInformation', foreign_keys=[id_scheduled_upload_time])
 #     time_wait_before_retry = relationship('ConfigInformation', foreign_keys=[id_time_wait_before_retry])
 #     upload_debug_information = relationship('ConfigInformation', foreign_keys=[id_upload_debug_information])
 #     time_zone = relationship('TimeZone', foreign_keys=[id_time_zone])
 
-# class ConfigInformation(DBSessionManager.Base):
-#     __tablename__ = "config_information"
+class ConfigInformation(DBSessionManager.Base):
+    __tablename__ = "config_information"
 
-#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-#     parent: Mapped[str] = mapped_column(Integer, nullable=True)
-#     name: Mapped[str] = mapped_column(String, nullable=True)
-#     namekey: Mapped[str] = mapped_column(String, unique=True, nullable=True)
-#     description: Mapped[str] = mapped_column(String, nullable=True)
-#     value: Mapped[str] = mapped_column(Integer, nullable=True)
-#     type: Mapped[str] = mapped_column(Integer, nullable=True)
-#     id_type: Mapped[int] = mapped_column(Integer, ForeignKey("config_type.id", ondelete="CASCADE", onupdate="CASCADE"),
-#                                          nullable=False)
-#     status: Mapped[int] = mapped_column(Integer, nullable=False)
-#     id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
-#                                                                         onupdate="CASCADE"), nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    parent: Mapped[str] = mapped_column(Integer, nullable=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    namekey: Mapped[str] = mapped_column(String, unique=True, nullable=True)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+    value: Mapped[str] = mapped_column(Integer, nullable=True)
+    type: Mapped[str] = mapped_column(Integer, nullable=True)
+    id_type: Mapped[int] = mapped_column(Integer, ForeignKey("config_type.id", ondelete="CASCADE", onupdate="CASCADE"),
+                                        nullable=False)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
+                                                                        onupdate="CASCADE"), nullable=False)
 
-#     config_type = relationship("ConfigType", foreign_keys=[id_type])
-#     pointclass_type = relationship("PointclassType", foreign_keys=[id_pointclass_type])
+    config_type = relationship("ConfigType", foreign_keys=[id_type])
+    # pointclass_type = relationship("PointclassType", foreign_keys=[id_pointclass_type])
 
 
-# class ConfigType(DBSessionManager.Base):
-#     __tablename__ = "config_type"
+class ConfigType(DBSessionManager.Base):
+    __tablename__ = "config_type"
 
-#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-#     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-#     status: Mapped[int] = mapped_column(Integer, nullable=False)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    status: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
 # class TimeZone(DBSessionManager.Base):

@@ -1218,7 +1218,7 @@ async def device(serial_number_project,ConfigPara,mqtt_host,
                             ADDR = itemRB["addr"]
                             COUNT = itemRB["count"]
                             result_rb=select_function(client,FUNCTION,ADDR,COUNT,slave_ID)
-                            print(f'result_rb: {result_rb}')
+                            # print(f'result_rb: {result_rb}')
                             match result_rb["code"]:
                                 case None:
                                     status_device="offline"
@@ -2113,6 +2113,7 @@ async def handle_messages_driver(client,serial_number_project, host, port, usern
     try:
         while True:
             message = await client.messages.get()
+            print("message",message)
             if message is None:
                 print('Broker connection lost!')
                 break

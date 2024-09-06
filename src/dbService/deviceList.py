@@ -8,7 +8,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text, update  # Thêm import cho update
 from entity.devicesBinh.deviceList import *
-
+from entity.upload_channel.upload_channel_entity import *
 class deviceListService:
     @staticmethod
     async def selectAllDeviceList(session: AsyncSession):
@@ -87,5 +87,21 @@ class deviceListService:
         except Exception as e:
             print("Error in getUniqueModesByDeviceType: ", e)
             return None
+        finally:
+            await session.close()
+    @staticmethod
+    async def selectDevicesByUploadChannelID(session: AsyncSession, upload_channel_id: int):
+        try:
+            query = (
+                select(Devices.id, Devices.name, Devices.rtu_bus_address)
+                .join(UploadChannelDeviceMap, Devices.id == UploadChannelDeviceMap.id_device)
+                .where(Devices.status == 1, UploadChannelDeviceMap.id_upload_channel == upload_channel_id)
+            )
+            result = await session.execute(query)  # Thực hiện câu lệnh truy vấn
+            devices = result.mappings().all()  # Lấy tất cả thiết bị
+            return [dict(device) for device in devices]  # Chuyển đổi thành dict
+        except Exception as e:
+            print("Error in selectDevicesByUploadChannel: ", e)
+            return []
         finally:
             await session.close()

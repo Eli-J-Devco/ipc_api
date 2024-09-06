@@ -114,3 +114,19 @@ class ProjectSetupService:
             return None
         finally:
             await session.close()
+    @staticmethod
+    async def selectTimeLogInterval(session: AsyncSession):
+        try:
+            query = (
+                select(ConfigInformation.name.label("time_log_interval"))
+                .join(ProjectSetup, ProjectSetup.id_logging_interval == ConfigInformation.id)
+            )
+            result = await session.execute(query)
+            time_log_intervals = result.scalars().all()
+            extracted_values = [int(interval.split()[0]) for interval in time_log_intervals if interval]
+            return extracted_values 
+        except Exception as e:
+            print("Error in selectTimeLogInterval: ", e)
+            return None
+        finally:
+            await session.close()

@@ -135,3 +135,17 @@ class ProjectSetup:
                 MQTTService.push_data_zip(mqtt_service, topicFeedBack, data_send)
         except Exception as err:
             print(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")
+    @staticmethod
+    async def get_time_interval_logdevice():
+        try :
+            db_new = await DBSessionManager.get_db()
+            resultDB = await ProjectSetupService.selectTimeLogInterval(db_new)
+            if resultDB:
+                try:
+                    time = resultDB[0]
+                    return time
+                except Exception as err:
+                    print(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
+        except Exception as err:
+            print(f"Error MQTT subscribe get_time_interval_logdevice: '{err}'")
+            return None 

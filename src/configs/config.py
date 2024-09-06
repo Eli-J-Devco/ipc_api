@@ -65,6 +65,7 @@ class MQTTTopicSUD(BaseSettings):
     Control_Setup_Mode_Write_Detail: str
     Control_Setup_Auto: str
     Devices_All: str
+    Devices_Detail: str
     Control_Feedback: str
     Control_Feedbacksetup: str
     Project_Set: str

@@ -140,7 +140,7 @@ class ModeControl:
             updatePowerLimit = {
                     'value_power_limit': ValuePowerLimitTemp,
                     'value_offset_power_limit': ValueOffsetTemp,
-                    # Thêm các trường khác nếu cần
+                    # Add other fields if needed
                 }
             ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updatePowerLimit)
             return ValueOffsetTemp, ValuePowerLimit, ResultQuery
