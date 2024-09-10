@@ -1,0 +1,191 @@
+# ********************************************************
+# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
+# * All rights reserved.
+# *
+# *********************************************************/
+import os
+import sys
+import asyncio
+sys.stdout.reconfigure(encoding='utf-8')
+path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
+sys.path.append(path)
+from configs.config import DBSessionManager
+from utils.MQTTService import *
+from utils.libTime import *
+from utils.libMySQL import *
+from dbService.deviceMppt import deviceMpptService
+from dbService.deviceMpptString import deviceMpptStringService
+
+class LogDevice:
+    def __init__(self):
+        self.messageLogDevice = []  
+        self.messageLogMPPTDevice = []  
+
+    async def create_message_device_log_db(self, message):
+        arrayListDeviceLogDevice = {}
+        try:
+            current_time = get_utc()
+            for items in message:
+                deviceId = items["id_device"]
+                statusDevice = items["status_device"]
+                fields = items["fields"]
+                nameOfDevice = items["device_name"]
+                if deviceId not in arrayListDeviceLogDevice:
+                    arrayListDeviceLogDevice[deviceId] = {
+                        "id": int(deviceId),
+                        "device_name": nameOfDevice,
+                        "point_id": [],
+                        "data": [],
+                        "namekey": [],
+                        "time": current_time,
+                        "status_device": statusDevice,
+                    }
+                if items["type_device_type"] != 1:      
+                    for field in fields:
+                        if field['config'] != 'MPPT':
+                            arrayListDeviceLogDevice[deviceId]["point_id"].append(str(field["id"]))
+                            dataCorrespondingfield = str(field["value"]) if field["value"] is not None else 0.0
+                            arrayListDeviceLogDevice[deviceId]["data"].append(dataCorrespondingfield)
+                            arrayListDeviceLogDevice[deviceId]["namekey"].append(field["point_key"])
+            result = list(arrayListDeviceLogDevice.values())
+            return result
+        except Exception as err:
+            print(f"process_message_result_list : '{err}'")
+
+    async def insert_each_device_data(self, IdDeviceFromListMQTTAll, resultListDevice):
+        dictionaryQueriesEachOfDevice = {}
+        arrayDataUsingLogDB = []
+        arrayFieldOfDevice = []
+        DictID = [item for item in resultListDevice if item["id"] == IdDeviceFromListMQTTAll]
+        if DictID:
+            arrayDataUsingLogDB = DictID[0]["data"]
+            arrayFieldOfDevice = DictID[0]["namekey"]
+        if not arrayDataUsingLogDB: 
+            arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
+        try:
+            timeCurrent = get_utc()
+            ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll) + tuple(arrayDataUsingLogDB)
+            ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
+            columns = ["time", "id_device"] + arrayFieldOfDevice
+            tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
+            queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+            dictionaryQueriesEachOfDevice[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
+            MySQL_Insert_v3(dictionaryQueriesEachOfDevice)
+        except Exception as e:
+            print(f"Error during file creation is : {e}")
+        return dictionaryQueriesEachOfDevice
+
+    async def insert_list_device_data(self):
+        if self.messageLogDevice :
+            tasks = []
+            for item in self.messageLogDevice:
+                deviceId = item["id"]
+                task = self.insert_each_device_data(deviceId, self.messageLogDevice)
+                tasks.append(task)
+            await asyncio.gather(*tasks)
+
+    async def create_message_device_mptt_log_db(self, message):
+        dictionaryInforEachOfDevice = {}
+        try:
+            for items in message:
+                deviceId = items["id_device"]
+                fields = items["fields"]
+                strNameDeviceType = items["name_device_type"]
+                strTypeOfDevice = items["type_device_type"]
+                if strTypeOfDevice != 1 and strNameDeviceType == "PV System Inverter":      
+                    for field in fields:
+                        if field['config'] == 'MPPT':
+                            MPPTVolt = field['value']['mppt_volt']
+                            MPPTAmps = field['value']["mppt_amps"]
+                            MPPTpoint_key_strings = field['value']["mppt_string"]
+                            MPPTpoint_key = field['point_key']
+                            for item_string in MPPTpoint_key_strings:
+                                MPPTpoint_key_string = item_string['point_key']
+                            key_mppt = (int(deviceId), MPPTpoint_key, MPPTpoint_key_string)
+                            if key_mppt in dictionaryInforEachOfDevice:
+                                dictionaryInforEachOfDevice[key_mppt]['MPPTVolt'] = MPPTVolt
+                                dictionaryInforEachOfDevice[key_mppt]['MPPTAmps'] = MPPTAmps
+                            else:
+                                dictionaryInforEachOfDevice[key_mppt] = {
+                                    "id": int(deviceId),
+                                    "point_key": MPPTpoint_key,
+                                    "point_key_string": MPPTpoint_key_string,
+                                    "MPPTVolt": MPPTVolt,
+                                    "MPPTAmps": MPPTAmps
+                                }
+            messageLogMPPTDevice = list(dictionaryInforEachOfDevice.values())
+            return messageLogMPPTDevice
+        except Exception as err:
+            print(f"create_message_device_mptt_log_db error: '{err}'")
+    
+    async def create_data_insert_db(self, messageLogMPPTDevice):
+        data_device_mptt = []
+        data_device_mptt_string = []
+        for item in messageLogMPPTDevice:
+            if all(key in item for key in ['id', 'point_key', 'point_key_string', 'MPPTVolt', 'MPPTAmps']):
+                deviceId = item['id']
+                MPPTKey = item['point_key']
+                MPPTKey_string = item['point_key_string']
+                voltageDeviceMPTT = item['MPPTVolt']
+                currentDeviceMPTT = item['MPPTAmps']
+                data_device_mptt.append((voltageDeviceMPTT, currentDeviceMPTT, deviceId, MPPTKey))
+                data_device_mptt_string.append((currentDeviceMPTT, deviceId, MPPTKey_string))
+        return data_device_mptt, data_device_mptt_string
+
+    async def update_data_in_db(self, data_device_mptt, data_device_mptt_string):
+        db_new = await DBSessionManager.get_db()
+        for voltage, current, deviceId, MPPTKey in data_device_mptt:
+            await deviceMpptService.updateDeviceMPPT(db_new, voltage, current, deviceId, MPPTKey)
+        for current, deviceId, MPPTKey_string in data_device_mptt_string:
+            await deviceMpptStringService.updateDeviceMPPTString(db_new, current, deviceId, MPPTKey_string)
+
+    async def insert_list_device_mptt_data(self):
+        try:
+            if self.messageLogMPPTDevice:
+                data_device_mptt, data_device_mptt_string = await self.create_data_insert_db(self.messageLogMPPTDevice)
+                await self.update_data_in_db(data_device_mptt, data_device_mptt_string)
+        except Exception as e:
+            print(f"Error during data insertion: {e}")
+    # MQTT
+    async def create_threading_push_status_log_device(self, mqtt_service, timeLog):
+        tasks = []
+        if self.messageLogDevice:
+            for item in self.messageLogDevice:
+                sql_id = item["id"]
+                task = self.message_status_log_device(mqtt_service, timeLog, sql_id)
+                tasks.append(task)
+            await asyncio.gather(*tasks)
+
+    async def message_status_log_device(self, mqtt_service, timeLog, IdDeviceGetListMQTT):
+        arrayDataOfDevice = []
+        topic = ""
+        strSqlID = ""
+        gStrNameOfDevice = ""
+        DictID = [item for item in self.messageLogDevice if item["id"] == IdDeviceGetListMQTT]
+        if DictID:
+            arrayDataOfDevice = DictID[0]["data"]
+        try:
+            message_status_log_device = {
+                "id_device": IdDeviceGetListMQTT,
+                "time_stamp": get_utc(),
+                "time_log": timeLog,
+                "data_log": arrayDataOfDevice,
+            }
+            
+            strSqlID = str(IdDeviceGetListMQTT)
+            gStrNameOfDevice = [item['device_name'] for item in self.messageLogDevice if item['id'] == IdDeviceGetListMQTT][0] 
+            topic = "/" + "LogDevice" + "/" + strSqlID + "|" + gStrNameOfDevice
+            
+            MQTTService.push_data_zip(mqtt_service, topic, message_status_log_device)
+        except Exception as err:
+            print('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
+
+    async def handle_mqtt_message(self, mqtt_service, message, time_interval_log_device):
+        try:
+            if message:
+                self.messageLogDevice = await self.create_message_device_log_db(message)
+                self.messageLogMPPTDevice = await self.create_message_device_mptt_log_db(message)
+                # print("self.messageLogDevice",self.messageLogDevice)
+                await self.create_threading_push_status_log_device(mqtt_service, time_interval_log_device)
+        except Exception as err:
+            print(f"Error handling MQTT message: '{err}'")
