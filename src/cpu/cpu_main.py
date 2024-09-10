@@ -13,7 +13,6 @@ from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
 from deviceControl.serviceDeviceControl.siteinfor_service import *
 
-# Khởi tạo biến toàn cục
 net_io_counters_prev = {
     "TotalSent": 0,
     "TotalReceived": 0,

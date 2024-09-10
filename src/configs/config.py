@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     API_DOCS_USERNAME : str
     API_DOCS_PASSWORD : str
     PATH_FILE_NETWORK_INTERFACE: str
-    FOLDER_PATH_LOG : str
-    HEAD_FILE_LOG : str
+    Path_File_Log : str
+    Head_File_Log : str
     API_PORT : int
     PASSWORD_SECRET_KEY: str
     URL_SERVER_SYNC : str
@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     FTPSERVER_USERNAME : str
     FTPSERVER_PASSWORD : str
 
+class FolderSetting(BaseSettings):
+    Path_File_Log : str
+    Head_File_Log : str
+    
 class MQTTSettings(BaseSettings):
     MQTT_USERNAME: str
     MQTT_PASSWORD: str
