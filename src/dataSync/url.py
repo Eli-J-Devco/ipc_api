@@ -1664,7 +1664,7 @@ async def main():
     if not time_data_server :
         print("Unable to select synchronization time for data in the database.")
         return -1
-    if type_file != "URL" and type_file != "LOGFILE" and type_file != "FTP":
+    if type_file != "URL" and type_file != "LOGF" and type_file != "FTP":
         print("Unable to select file type in the database.")
         return -1
     if time_data_server and isinstance(time_data_server[0].get("time_log_data_server"), int):
