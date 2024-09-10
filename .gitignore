@@ -40,8 +40,6 @@ __pycache__
 .env.development
 #src/utils/libcom.py
 .env.development
-/src/dataLog
-/src/dataLog
 .env.development
 test
 api_of_device
