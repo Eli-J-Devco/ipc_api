@@ -13,6 +13,7 @@ from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
 from deviceControl.serviceDeviceControl.siteinfor_service import *
 
+# create global variables
 net_io_counters_prev = {
     "TotalSent": 0,
     "TotalReceived": 0,
@@ -50,7 +51,7 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         "DiskIO": {}
     }
     try:
-        # Lấy thông tin hệ thống
+        # get system information
         system_info["SystemInformation"] = CPUInfo.getSystemInformation()
         system_info["BootTime"] = CPUInfo.getBootTime() or {}
         system_info["CPUInfo"] = CPUInfo.getCpuInformation() or {}
@@ -59,8 +60,7 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         system_info["NetworkInformation"] = CPUInfo.getNetworkInformation() or {}
         system_info["NetworkSpeed"] = CPUInfo.getNetworkSpeedInformation(net_io_counters_prev) or {}
         system_info["DiskIO"] = CPUInfo.getDiskIoInformation(disk_io_counters_prev) or {}
-        # if all(system_info.values()):
-        # Gửi dữ liệu đến MQTT
+        # sent data to mqtt
         MQTTService.push_data(mqtt_service, Topic_CPU_Information + "Binh", system_info)
         MQTTService.push_data_zip(mqtt_service, Topic_CPU_Information, system_info)
     except Exception as err:

@@ -1614,8 +1614,8 @@ async def main():
     result_all =[]
     result_mybatis = get_mybatis('/mybatis/logfile.xml')
     try:
-        QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"]
-        QUERY_GETDATA_SERVER = result_mybatis["QUERY_GETDATA_SERVER"]
+        QUERY_ALL_DEVICES_SYNCDATA = result_mybatis["QUERY_ALL_DEVICES_SYNCDATA"] # ok 
+        QUERY_GETDATA_SERVER = result_mybatis["QUERY_GETDATA_SERVER"] 
         QUERY_SYNC_SERVER = result_mybatis["QUERY_SYNC_SERVER"]
         QUERY_UPDATE_DATABASE = result_mybatis["QUERY_UPDATE_DATABASE"]
         QUERY_TIME_SYNC_DATA = result_mybatis["QUERY_TIME_SYNC_DATA"]
