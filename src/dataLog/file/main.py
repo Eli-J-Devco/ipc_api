@@ -74,8 +74,8 @@ DATABASE_PASSWORD = Config.DATABASE_PASSWORD
 DATABASE_NAME = Config.DATABASE_NAME
 
 # Information Folder
-FOLDER_PATH = Config.FOLDER_PATH_LOG
-HEAD_FILE_LOG = Config.HEAD_FILE_LOG
+FOLDER_PATH = Config.Path_File_Log
+HEAD_FILE_LOG = Config.Head_File_Log
 
 #----------------------------------------
 # /**
