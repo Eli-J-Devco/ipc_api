@@ -146,3 +146,34 @@ class DeviceComponent(DBSessionManager.Base):
 
     main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
     component_type = relationship("DeviceType", foreign_keys=[component], lazy="immediate")
+
+class DeviceMPPT(DBSessionManager.Base):
+    __tablename__ = "device_mppt"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id_device_list: Mapped[int] = mapped_column(Integer, ForeignKey("device_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
+    namekey: Mapped[str] = mapped_column(String(255), nullable=True)
+    voltage: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+
+
+    # Relationships
+    device = relationship("Devices", foreign_keys=[id_device_list], lazy="immediate")
+    # point = relationship("PointList", foreign_keys=[id_point_list], lazy="immediate")
+
+class DeviceMPPTString(DBSessionManager.Base):
+    __tablename__ = "device_mppt_string"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id_device_list: Mapped[int] = mapped_column(Integer, ForeignKey("device_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_device_mppt: Mapped[int] = mapped_column(Integer, ForeignKey("device_mppt.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
+    namekey: Mapped[str] = mapped_column(String(255), nullable=True)
+    panel: Mapped[int] = mapped_column(Integer, nullable=True)
+    current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    # Relationships
+    device = relationship("Devices", foreign_keys=[id_device_list], lazy="immediate")
+    # point = relationship("PointList", foreign_keys=[id_point_list], lazy="immediate")
+    device_mppt = relationship("DeviceMPPT", foreign_keys=[id_device_mppt], lazy="immediate")

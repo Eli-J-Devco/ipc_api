@@ -163,12 +163,12 @@ class PowerCalculator :
     # 	 */ 
     @staticmethod
     def calculate_power_value(intPowerMaxOfInv, modeSystem, TotalPowerInInvInManMode, TotalPowerInInvInAutoMode, Setpoint):
-        # Tính toán hiệu suất cho thiết bị
+        # Calculate performance for equipment
         if modeSystem == 1:
             Efficiency = (Setpoint / TotalPowerInInvInAutoMode)
         else:
             Efficiency = (Setpoint - TotalPowerInInvInManMode) / TotalPowerInInvInAutoMode
-        # Công suất của thiết bị bằng hiệu suất nhân với công suất tối đa.
+        # The power of a device is equal to its efficiency multiplied by its maximum power.
         if 0 <= Efficiency <= 1:
             return Efficiency * intPowerMaxOfInv
         elif Efficiency < 0:
@@ -199,7 +199,7 @@ class PowerCalculator :
             "feedback": ValueProduction,
             "parameter": []
         }
-        # Tạo mục cho thiết bị
+        # create item list for device
         if device['controlinv'] == 1:
             ItemlistInvControlPowerLimitMode["parameter"].append({"id_pointkey": "WMax", "value": PowerForEachInv})
         elif device['controlinv'] == 0:

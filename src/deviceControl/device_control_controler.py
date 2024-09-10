@@ -68,18 +68,13 @@ async def consume_mqtt_messages(mqtt_service, client, serial_number):
             if message is None:
                 print('Broker connection lost!')
                 break
+            
             topic = message.topic
             payload = MQTTService.gzip_decompress(mqtt_service, message.message)
             await handle_mqtt_message(mqtt_service, serial_number, topic, payload)
     except Exception as err:
         print(f"Error handle_mqtt_messages: '{err}'")
-# Describe subscribe_to_mqtt_topics 
-# 	 * @description subscribe_to_mqtt_topics
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {mqtt_service, serial_number}
-# 	 * @return all topic , all message
-# 	 */ 
+
 async def subscribe_to_mqtt_topics(mqtt_service, serial_number):
     try:
         client = mqttools.Client(
@@ -90,19 +85,13 @@ async def subscribe_to_mqtt_topics(mqtt_service, serial_number):
             subscriptions=mqtt_service.topics,
             connect_delays=[1, 2, 4, 8]
         )
-        await client.start()
-        await consume_mqtt_messages(mqtt_service, client, serial_number)
+        while True:
+            await client.start()
+            await consume_mqtt_messages(mqtt_service, client, serial_number)
+            await client.stop()
     except Exception as err:
         print(f"Error subscribe_to_mqtt_topics: '{err}'")
-    finally:
-        await client.stop()
-# Describe start_mqtt_service 
-# 	 * @description start_mqtt_service
-# 	 * @author bnguyen
-# 	 * @since 2-05-2024
-# 	 * @param {}
-# 	 * @return 
-# 	 */ 
+
 async def start_mqtt_service():
     project_setup_config = await ProjectSetup.get_project_setup_values()
     if project_setup_config["serial_number"] is not None:
@@ -126,6 +115,7 @@ async def start_mqtt_service():
             mqtt_topics.Project_Set,
             mqtt_topics.Control_Modify
         )
+        
         tasks = []
         tasks.append(asyncio.create_task(subscribe_to_mqtt_topics(mqtt_service, project_setup_config["serial_number"])))
         await asyncio.gather(*tasks, return_exceptions=False)

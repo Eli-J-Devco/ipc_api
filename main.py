@@ -131,10 +131,10 @@ def init_log_file():
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
-                            f'pm2 start {absDirname}/dataLog/file.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataLog/file/log_file_controler.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
                 else:
                     subprocess.Popen(
-                            f'sudo pm2 start {absDirname}/dataLog/file.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'sudo pm2 start {absDirname}/dataLog/file/log_file_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_log_file: ',e)
         LOGGER.error(f'{e}')
@@ -180,10 +180,10 @@ def init_log_data():
         pid = f'LogDevice'
         if sys.platform == 'win32':
             subprocess.Popen(
-                            f'pm2 start {absDirname}/dataLog/device.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataLog/device/log_device_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
         else:
             subprocess.Popen(
-                        f'sudo pm2 start {absDirname}/dataLog/device.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+                        f'sudo pm2 start {absDirname}/dataLog/device/log_device_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_log_data: ',e)
         LOGGER.error(f'{e}')
@@ -266,11 +266,11 @@ def init_mqtt_control():
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/deviceControl/main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/deviceControl/device_control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/deviceControl/main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/deviceControl/device_control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API_NEW of web
@@ -334,11 +334,11 @@ def init_get_cpuinfor():
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/cpu/cpu_main.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/cpu/cpu_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/cpu/cpu_main.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/cpu/cpu_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 time.sleep(10)        
 delete_all_app_pm2()
 # init_api_web()
@@ -349,7 +349,7 @@ init_log_file()
 init_sync_file()
 init_log_data()
 init_api_web_v2()
-init_device_service()
+# init_device_service()
 init_virtual_device()
 init_get_cpuinfor()
 
