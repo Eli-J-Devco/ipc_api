@@ -1703,7 +1703,7 @@ async def main():
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
                 scheduler.start()
-    if time_sentdata and type_file == "LOGFILE":
+    if time_sentdata and type_file == "LOG":
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerFile_Database_AllDevice, 'cron', hour = 1, args=[])
