@@ -455,7 +455,7 @@ async def sync_ServerURL_Database_AllDevice():
     id_device_fr_sys = id_upload_chanel[1]
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA, (id_device_fr_sys,))
     
-    print("result================================" , result_all)
+    print("result================================ url" , result_all)
     tasks = []
     for item in result_all:
         sql_id = item["id"]
@@ -655,7 +655,7 @@ async def sync_ServerURL_Database(id_device):
                         else :
                             pass
                     template_names = MySQL_Select(QUERY_SELECT_NAME_DEVICE, (device.id_device,))
-
+                    print("template_names",template_names)
                     if template_names : 
                         for i in range(4, len(array_file)):
                             if i - 4 < len(template_names):
@@ -667,6 +667,8 @@ async def sync_ServerURL_Database(id_device):
                     try:
                         if json_data or files:
                             if type_file == "URL" :
+                                print("status","single")
+                                print("json_data",json_data)
                                 response = requests.post(url, json=json_data) 
                                 
                             if response.status_code == 200:
@@ -792,6 +794,8 @@ async def sync_ServerURL_Database(id_device):
                         try:
                             if json_data_total:
                                 if type_file == "URL" :
+                                    print("status","multi")
+                                    print("json_data_total",json_data_total)
                                     response = requests.post(url, json=json_data_total)
                                     print(f"Send json {json_data_total} to the path {url} and receive feedback as {response.status_code}") 
                                 if response.status_code == 200:
@@ -937,6 +941,9 @@ async def sync_ServerFile_Database(sql_id):
     url = result3[0]["uploadurl"]
     
     result_all = MySQL_Select(QUERY_ALL_DEVICES_SYNCDATA,(id_device_fr_sys,))
+    
+    print("number_file",number_file)
+    print("multifile",multifile)
     # execute devices in the list simultaneously
     if number_file != 0 and url:
         if multifile is False :
@@ -1024,7 +1031,7 @@ async def sync_ServerFile_Database(sql_id):
                         }
                         file = ('LOGFILE', (device.file_name, open(device.source, 'rb'), 'text/plain'))
                         files.append(file)
-
+                        
                         # ==================================Information sent file to server ==================================
                     else:
                         upErr_Database(device.time_id,device.id_device)
@@ -1141,6 +1148,8 @@ async def sync_ServerFile_Database(sql_id):
                     if source_file and file_name:
                         file = ('LOGFILE', (file_name, open(source_file, 'rb'), 'text/plain'))
                         files.append(file)
+                        print("headers",headers)
+                        print("files",files)
                         # Send the file to the server and wait for a 200 response
                         response = requests.post(url, files=files, data=headers)
                         server_response_text = response.text
@@ -1699,10 +1708,10 @@ async def main():
                 scheduler = AsyncIOScheduler()
                 scheduler.add_job(sync_ServerURL_Database_AllDevice, 'interval', hours = 1,  args=[])
                 scheduler.start()
-            elif time_sentdata == 100 : # test cron 
-                scheduler = AsyncIOScheduler()
-                scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
-                scheduler.start()
+            # elif time_sentdata == 100 : # test cron 
+            #     scheduler = AsyncIOScheduler()
+            #     scheduler.add_job(sync_ServerURL_Database_AllDevice, 'cron', second="*/10", args=[])
+            #     scheduler.start()
     if time_sentdata and type_file == "LOG":
             if 0 <= time_sentdata <= 24: # Connect by timestamp
                 scheduler = AsyncIOScheduler()

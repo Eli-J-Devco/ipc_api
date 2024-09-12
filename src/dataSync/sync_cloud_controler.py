@@ -17,10 +17,11 @@ from configs.config import MQTTSettings, MQTTTopicSUD,FolderSetting
 from utils.MQTTService import *
 from utils.libMySQL import *
 from utils.libTime import *
+from dataSync.sync_cloud_service import *
 from dataLog.file.file_service import *
 from deviceControl.serviceDeviceControl.siteinfor_service import *
 
-async def consume_mqtt_messages(mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile):
+async def consume_mqtt_messages(mqtt_service, client,time_interval_log_device,sync_data_instance,IdChannel,typeOfFile,serial):
     try:
         while True:
             message = await client.messages.get()
@@ -28,11 +29,11 @@ async def consume_mqtt_messages(mqtt_service, client,time_interval_log_device,lo
                 print('Broker connection lost!')
                 break
             payload = MQTTService.gzip_decompress(mqtt_service, message.message)
-            await log_file_instance.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,Head_File_Log,typeOfFile)
+            await sync_data_instance.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,typeOfFile,serial)
     except Exception as err:
         print(f"Error consuming MQTT messages: '{err}'")
 
-async def subscribe_to_mqtt_topics(mqtt_service,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile):
+async def subscribe_to_mqtt_topics(mqtt_service,time_interval_log_device,sync_data_instance,IdChannel,typeOfFile,serial):
     try:
         client = mqttools.Client(
             host=mqtt_service.host,
@@ -44,19 +45,24 @@ async def subscribe_to_mqtt_topics(mqtt_service,time_interval_log_device,log_fil
         )
         while True :
             await client.start()
-            await consume_mqtt_messages(mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile)
+            await consume_mqtt_messages(mqtt_service, client,time_interval_log_device,sync_data_instance,IdChannel,typeOfFile,serial)
             await client.stop()
     except Exception as err:
         print(f"Error subscribing to MQTT topics: '{err}'")
 
 async def start_mqtt_service():
     global IdChannel 
+    sync_data_instance = SyncData()
     log_file_instance = LogFile()
+    db_new = await DBSessionManager.get_db()
     project_setup_config = await ProjectSetup.get_project_setup_values()
     time_interval_log_device = await ProjectSetup.get_time_interval_logdevice()
+    time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
+    time_interval = sync_data_instance.get_cycle_sync(time_sync,time_interval_log_device)
+    print("time_sync",time_sync)
+    print("time_interval",time_interval)
     typeOfFile = await log_file_instance.get_type_of_file(IdChannel)
-    if project_setup_config is not None and time_interval_log_device is not None:
-        folder_parametter = FolderSetting()
+    if project_setup_config is not None and time_sync is not None:
         mqtt_settings = MQTTSettings()
         mqtt_topics = MQTTTopicSUD()
         mqtt_service = MQTTService(
@@ -69,12 +75,17 @@ async def start_mqtt_service():
         mqtt_service.set_topics(mqtt_topics.Devices_All,)
         # Cycle Insert Device
         scheduler = AsyncIOScheduler()
-        scheduler.add_job(log_file_instance.create_file_log, 'cron', minute=f'*/{time_interval_log_device}',args=[folder_parametter.Path_File_Log,folder_parametter.Head_File_Log,IdChannel,typeOfFile])
-        scheduler.add_job(log_file_instance.delete_data_table_synced, 'cron', hour=f'*/1',)
+        if time_sync in [0,23]:
+            scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'cron', hour=time_sync,args=[IdChannel,typeOfFile])
+        elif time_sync in [95,95,99]:
+            scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval,args=[IdChannel,typeOfFile])
+        elif time_sync in [97,98]:
+            scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval,args=[IdChannel,typeOfFile])
         scheduler.start()
         # Sud message
         tasks = []
-        tasks.append(subscribe_to_mqtt_topics(mqtt_service,time_interval_log_device,log_file_instance,IdChannel,folder_parametter.Head_File_Log,typeOfFile))
+        typeOfFile = 1
+        tasks.append(subscribe_to_mqtt_topics(mqtt_service,time_sync,sync_data_instance,IdChannel,typeOfFile,project_setup_config["serial_number"]))
         await asyncio.gather(*tasks, return_exceptions=False)
     await asyncio.sleep(0.05)
 if sys.platform == 'win32':

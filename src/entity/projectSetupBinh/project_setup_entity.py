@@ -22,13 +22,13 @@ class ProjectSetup(DBSessionManager.Base):
     #                                                         nullable=False)
     id_logging_interval: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                             onupdate="CASCADE"), nullable=False)
-    # id_scheduled_upload_time: Mapped[int] = mapped_column(Integer,
-    #                                                         ForeignKey("config_information.id", ondelete="CASCADE",
-    #                                                         onupdate="CASCADE"), nullable=False)
+    id_scheduled_upload_time: Mapped[int] = mapped_column(Integer,
+                                                            ForeignKey("config_information.id", ondelete="CASCADE",
+                                                            onupdate="CASCADE"), nullable=False)
     # number_times_retry: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
-    # id_time_wait_before_retry: Mapped[int] = mapped_column(Integer,
-    #                                                         ForeignKey("config_information.id", ondelete="CASCADE",
-    #                                                         onupdate="CASCADE"), nullable=False)
+    id_time_wait_before_retry: Mapped[int] = mapped_column(Integer,
+                                                            ForeignKey("config_information.id", ondelete="CASCADE",
+                                                            onupdate="CASCADE"), nullable=False)
     # id_upload_debug_information: Mapped[int] = mapped_column(Integer,
     #                                                         ForeignKey("config_information.id", ondelete="CASCADE",
     #                                                         onupdate="CASCADE"), nullable=False)

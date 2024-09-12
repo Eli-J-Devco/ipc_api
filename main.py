@@ -159,10 +159,10 @@ def init_sync_file():
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
-                            f'pm2 start {absDirname}/dataSync/url.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataSync/sync_cloud_controler.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
                     subprocess.Popen(
-                            f'sudo pm2 start {absDirname}/dataSync/url.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'sudo pm2 start {absDirname}/dataSync/sync_cloud_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_sync_file: ',e)
         LOGGER.error(f'{e}')

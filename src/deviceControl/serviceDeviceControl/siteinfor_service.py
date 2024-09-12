@@ -149,3 +149,4 @@ class ProjectSetup:
         except Exception as err:
             print(f"Error MQTT subscribe get_time_interval_logdevice: '{err}'")
             return None 
+    

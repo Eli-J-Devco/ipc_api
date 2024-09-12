@@ -177,3 +177,21 @@ class DeviceMPPTString(DBSessionManager.Base):
     device = relationship("Devices", foreign_keys=[id_device_list], lazy="immediate")
     # point = relationship("PointList", foreign_keys=[id_point_list], lazy="immediate")
     device_mppt = relationship("DeviceMPPT", foreign_keys=[id_device_mppt], lazy="immediate")
+    
+class DevicePointMap(DBSessionManager.Base):
+    __tablename__ = "device_point_list_map"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id_device_list: Mapped[int] = mapped_column(Integer, ForeignKey("device_list.id",
+                                                                    ondelete="CASCADE",
+                                                                    onupdate="CASCADE"),
+                                                nullable=True)
+    id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id",
+                                                                   ondelete="CASCADE",
+                                                                   onupdate="CASCADE"),
+                                               nullable=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    low_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    high_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    output_values: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    status: Mapped[bool] = mapped_column(Integer, nullable=True)

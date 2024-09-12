@@ -57,6 +57,11 @@ class FolderSetting(BaseSettings):
     Path_File_Log : str
     Head_File_Log : str
     
+class SyncSetting(BaseSettings):
+    Name_Key_URL : str
+    Name_Key_File_Log : str
+    Name_Key_Ftp : str
+    Number_File_Sync_Max : int
 class MQTTSettings(BaseSettings):
     MQTT_USERNAME: str
     MQTT_PASSWORD: str

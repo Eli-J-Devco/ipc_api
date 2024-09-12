@@ -199,7 +199,7 @@ class LogFile:
         with open(file_path, 'w') as file:
             file.write(data_in_file)
         return data_in_file
-
+    
     def create_data_insert_db(self, id_device, modbus_device, directory_path, time_file, source_file, name_file, data_in_file, id_channel):
         item_data_insert = (
             time_file, 

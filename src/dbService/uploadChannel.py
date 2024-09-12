@@ -32,3 +32,18 @@ class UploadChannelService:
         if channel_info:
             return channel_info.type_protocol
         return None
+    @staticmethod
+    async def get_upload_url_by_id(session: AsyncSession, id_upload_channel: int):
+        try:
+            query = (
+                select(UploadChannel.uploadurl)
+                .where(UploadChannel.id == id_upload_channel)
+            )
+            result = await session.execute(query)
+            upload_url = result.scalar()  # Lấy giá trị đầu tiên
+            return upload_url
+        except Exception as e:
+            print("Error in get_upload_url_by_id: ", e)
+            return None
+        finally:
+            await session.close()

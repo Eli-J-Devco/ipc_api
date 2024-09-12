@@ -130,3 +130,35 @@ class ProjectSetupService:
             return None
         finally:
             await session.close()
+    @staticmethod
+    async def select_time_sync_cloud(session: AsyncSession):
+        try:
+            query = (
+                select(ConfigInformation.value.label("time_sync_server"))
+                .join(ProjectSetup, ProjectSetup.id_scheduled_upload_time == ConfigInformation.id)
+            )
+            result = await session.execute(query)
+            time_log_data_servers = result.scalars().all()
+            return time_log_data_servers[0]  # Trả về danh sách các giá trị
+        except Exception as e:
+            print("Error in selectScheduledUploadTime: ", e)
+            return None
+        finally:
+            await session.close()
+    @staticmethod
+    async def get_time_retry(session: AsyncSession):
+        try:
+            query = (
+                select(ConfigInformation.value
+                .label("time_retry"))
+                .join(ProjectSetup, ProjectSetup.id_time_wait_before_retry == ConfigInformation.id)
+            )
+            result = await session.execute(query)
+            time_retry = result.scalar()  # Lấy giá trị đầu tiên
+            return time_retry
+        except Exception as e:
+            print("Error in get_time_log_data_server: ", e)
+            return None
+        finally:
+            await session.close()
+    
