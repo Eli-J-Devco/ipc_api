@@ -70,7 +70,6 @@ async def start_mqtt_service():
         # Cycle Insert Device
         scheduler = AsyncIOScheduler()
         scheduler.add_job(log_file_instance.create_file_log, 'cron', minute=f'*/{time_interval_log_device}',args=[folder_parametter.Path_File_Log,folder_parametter.Head_File_Log,IdChannel,typeOfFile])
-        scheduler.add_job(log_file_instance.delete_data_table_synced, 'cron', hour=f'*/1',)
         scheduler.start()
         # Sud message
         tasks = []

@@ -59,8 +59,6 @@ async def start_mqtt_service():
     time_interval_log_device = await ProjectSetup.get_time_interval_logdevice()
     time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
     time_interval = sync_data_instance.get_cycle_sync(time_sync,time_interval_log_device)
-    print("time_sync",time_sync)
-    print("time_interval",time_interval)
     typeOfFile = await log_file_instance.get_type_of_file(IdChannel)
     if project_setup_config is not None and time_sync is not None:
         mqtt_settings = MQTTSettings()

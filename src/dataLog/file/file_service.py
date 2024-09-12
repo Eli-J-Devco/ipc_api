@@ -223,8 +223,5 @@ class LogFile:
     async def insert_data_table_synced(self):
         db_new = await DBSessionManager.get_db()
         await SyncDataService.insert_sync_data(db_new,self.value_insert_db)
-    async def delete_data_table_synced(self):
-        db_new = await DBSessionManager.get_db()
-        await SyncDataService.delete_synced_data(db_new)
 
 
