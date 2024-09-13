@@ -106,7 +106,7 @@ class MQTTSubscriber(Subscriber):
             return
 
         try:
-            message = MessageModel(**json.loads(decoded_message))
+            message = MessageModel(**decoded_message)
             payload = PayloadModel(**message.message)
             await self.action[ActionEnum(payload.type).name](payload)
         except Exception as e:
