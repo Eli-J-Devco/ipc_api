@@ -59,6 +59,7 @@ class MQTTSubscriber(Subscriber):
         self.action = {
             ActionEnum.GetSLD.name: self.get_sld
         }
+        self.isCompress = True
 
     async def connect_broker(self, resume_session: bool = True):
         logger.info(f"Client {self.client_id} starting...")
@@ -93,17 +94,23 @@ class MQTTSubscriber(Subscriber):
     async def process_message(self, message):
         logger.info(f"Process message: {message}")
         try:
-            logger.info(f"Processing message: {message}")
+            logger.info(f"Processing encoded message: {message}")
             decoded_message = decompress_data(message)
             decoded_message = json.loads(decoded_message)
             logger.info(f"Decoded message: {decoded_message}")
         except Exception as e:
-            logger.error(f"Error decoding message: {e}")
-            await self.dead_letter_publisher.start()
-            msg = gzip_data(e.__str__())
-            self.dead_letter_publisher.send(self.topic[0] + "_dead_letter", msg)
-            await self.dead_letter_publisher.stop()
-            return
+            try:
+                logger.info(f"Processing message: {message}")
+                decoded_message = json.loads(message)
+                self.isCompress = False
+                logger.info(f"Decoded message: {decoded_message}")
+            except Exception as e:
+                logger.error(f"Error decoding message: {e}")
+                await self.dead_letter_publisher.start()
+                msg = gzip_data(e.__str__())
+                self.dead_letter_publisher.send(self.topic[0] + "_dead_letter", msg)
+                await self.dead_letter_publisher.stop()
+                return
 
         try:
             message = MessageModel(**decoded_message)
@@ -114,7 +121,8 @@ class MQTTSubscriber(Subscriber):
             await self.handle_error(e,
                                     message,
                                     self.publisher,
-                                    self.dead_letter_publisher)
+                                    self.dead_letter_publisher,
+                                    is_zip=self.isCompress)
 
     @async_db_request_handler
     async def get_sld(self, message: PayloadModel):
@@ -134,28 +142,34 @@ class MQTTSubscriber(Subscriber):
         query = select(DeviceConnectionEntity)
         result = await self.session.execute(query)
         self.connections = list(map(lambda x: DeviceConnection(**x.__dict__), result.scalars().all()))
+        await self.session.commit()
 
         devices = self.get_devices()
+        if isinstance(devices, Exception):
+            raise devices
 
         try:
             await self.publisher.stop()
             await self.publisher.start()
+            msg = json.dumps(devices)
             self.publisher.send(f"{self.serial_number}/{TopicEnum.GET.value}",
-                                gzip_data(json.dumps(devices)))
+                                gzip_data(msg) if self.isCompress else msg)
         except Exception as e:
             logger.error(f"Error: {e}")
             raise e
         finally:
             await self.publisher.stop()
         process_ = time.time() - start_
-        await self.session.commit()
         logger.info(f"Process time: {process_}")
 
     def get_connection(self, connection: DeviceConnection):
         point = list(filter(lambda x: x.id == connection.connect_device_id,
-                            self.points[connection.connect_device_table]))[0]
+                            self.points[connection.connect_device_table]))
+        if not point:
+            return None
+        point = point[0]
         connections = list(filter(lambda x: x.device_list_id == connection.connect_device_id and
-                                            x.device_table == connection.connect_device_table,
+                                  x.device_table == connection.connect_device_table,
                                   self.connections))
         if connections:
             connect_devices = list(filter(lambda x: x is not None,
@@ -184,6 +198,7 @@ class MQTTSubscriber(Subscriber):
                                       and x.device_table == "device_list",
                                       self.connections))
             if connections:
+                logger.error(f"Connect devices: {connections}")
                 connect_devices = list(filter(lambda x: x is not None,
                                               map(lambda x: self.get_connection(x),
                                                   connections)))

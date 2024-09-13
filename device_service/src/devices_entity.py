@@ -81,6 +81,7 @@ class Devices(config.Base):
     mode: Mapped[int] = mapped_column(INTEGER, nullable=True)
     inverter_type: Mapped[int] = mapped_column(INTEGER, nullable=True)
     creation_state: Mapped[int] = mapped_column(INTEGER, nullable=True)
+    status: Mapped[int] = mapped_column(INTEGER, nullable=True)
 
     communication = relationship("Communication", backref="device_list",
                                  foreign_keys=[id_communication], lazy="immediate")

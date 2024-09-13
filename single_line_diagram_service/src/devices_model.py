@@ -74,6 +74,7 @@ class DeviceModel(BaseModel):
     parent: Optional[int] = None
     id_device_type: Optional[int] = None
     plug_point: Optional[int] = None
+    status: Optional[bool] = None
 
     # communication: Optional[Communication] = None
     # device_type: Optional[DeviceType] = None
