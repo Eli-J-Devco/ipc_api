@@ -1,3 +1,4 @@
+#!/bin/bash
 cd ../
 export server="test"
 if [ ! -d .venv ]; then
