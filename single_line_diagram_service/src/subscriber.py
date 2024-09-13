@@ -99,10 +99,10 @@ class MQTTSubscriber(Subscriber):
             logger.info(f"Decoded message: {decoded_message}")
         except Exception as e:
             logger.error(f"Error decoding message: {e}")
-            await self.handle_error(e,
-                                    message,
-                                    self.publisher,
-                                    self.dead_letter_publisher)
+            await self.dead_letter_publisher.start()
+            msg = gzip_data(json.dumps(e.__dict__))
+            self.dead_letter_publisher.send(self.topic[0] + "_dead_letter", msg)
+            await self.dead_letter_publisher.stop()
             return
 
         try:
