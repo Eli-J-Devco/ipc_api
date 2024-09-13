@@ -180,7 +180,9 @@ class MQTTSubscriber(Subscriber):
             device = SLDResponseModel(**device.__dict__)
             device.children = self.get_devices(device.id)
 
-            connections = list(filter(lambda x: x.device_list_id == device.id, self.connections))
+            connections = list(filter(lambda x: x.device_list_id == device.id
+                                      and x.device_table == "device_list",
+                                      self.connections))
             if connections:
                 connect_devices = list(filter(lambda x: x is not None,
                                               map(lambda x: self.get_connection(x),
