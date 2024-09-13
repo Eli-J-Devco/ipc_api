@@ -11,7 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
-from deviceControl.serviceDeviceControl.siteinfor_service import *
+from deviceControl.deviceControlService.siteinfor_service import *
 
 # create global variables
 net_io_counters_prev = {

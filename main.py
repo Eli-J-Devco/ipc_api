@@ -131,10 +131,10 @@ def init_log_file():
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
-                            f'pm2 start {absDirname}/dataLog/file/log_file_controler.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataLog/file/file_controler.py -f  --name "{pid}" -- {id}  --restart-delay 10000', shell=True).communicate()
                 else:
                     subprocess.Popen(
-                            f'sudo pm2 start {absDirname}/dataLog/file/log_file_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'sudo pm2 start {absDirname}/dataLog/file/file_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_log_file: ',e)
         LOGGER.error(f'{e}')
@@ -159,10 +159,10 @@ def init_sync_file():
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
-                            f'pm2 start {absDirname}/dataSync/sync_cloud_controler.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataSync/sync_controler.py -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
                 else:
                     subprocess.Popen(
-                            f'sudo pm2 start {absDirname}/dataSync/sync_cloud_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
+                            f'sudo pm2 start {absDirname}/dataSync/sync_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}" -- {id}  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_sync_file: ',e)
         LOGGER.error(f'{e}')
@@ -180,10 +180,10 @@ def init_log_data():
         pid = f'LogDevice'
         if sys.platform == 'win32':
             subprocess.Popen(
-                            f'pm2 start {absDirname}/dataLog/device/log_device_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+                            f'pm2 start {absDirname}/dataLog/device/device_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
         else:
             subprocess.Popen(
-                        f'sudo pm2 start {absDirname}/dataLog/device/log_device_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+                        f'sudo pm2 start {absDirname}/dataLog/device/device_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     except Exception as e:
         print('Error init_log_data: ',e)
         LOGGER.error(f'{e}')
@@ -266,11 +266,11 @@ def init_mqtt_control():
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/deviceControl/device_control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/deviceControl/control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/deviceControl/device_control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/deviceControl/control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API_NEW of web

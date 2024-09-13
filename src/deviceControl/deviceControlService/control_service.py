@@ -8,8 +8,8 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from deviceControl.serviceDeviceControl.enegy_service import *
-from deviceControl.serviceDeviceControl.processdevice_service import *
+from deviceControl.deviceControlService.enegy_service import *
+from deviceControl.deviceControlService.processdevice_service import *
 class PowerCalculator :
     def __init__(self):
         pass

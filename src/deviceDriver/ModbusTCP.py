@@ -2084,9 +2084,9 @@ async def process_message(topic, message,serial_number_project, host, port, user
                 if result_topic2['confirm_mode'] in [0, 1]:
                     device_mode = result_topic2['confirm_mode']
                     gIntModeConfirmOfDevice = device_mode
-        elif topic == topic4:
-            result_topic4 = message
-            await get_list_device_in_process(result_topic4)
+        # elif topic == topic4:
+        #     result_topic4 = message
+        #     await get_list_device_in_process(result_topic4)
         elif topic == topic5:
             result_topic5 = message
             value_zero_export_temp = result_topic5["instant"]["consumption"]

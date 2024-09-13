@@ -10,7 +10,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from utils.MQTTService import *
 from utils.libTime import *
-from deviceControl.serviceDeviceControl.enegy_service import *
+from deviceControl.deviceControlService.enegy_service import *
 # ==================================================== Get List All Device ==================================================================
 class ProcessSystem:
     def __init__(self):
