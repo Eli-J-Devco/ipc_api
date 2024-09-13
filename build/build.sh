@@ -1,5 +1,4 @@
 #!/bin/bash
-cd ../
 export server="test"
 if [ ! -d .venv ]; then
     python3 -m venv .venv
