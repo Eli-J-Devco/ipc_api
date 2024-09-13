@@ -124,5 +124,3 @@ class EnergySystem:
         result["instant"]["grid_feed"] = round((totalProduction - totalConsumption), 4)
         result["instant"]["max_production"] = round(predicted_power, 4)
         return result
-
-    

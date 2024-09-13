@@ -230,5 +230,3 @@ class PowerCalculator :
         if Setpoint:
             Setpoint -= Setpoint * ValueOffetConsump / 100
         return Setpoint, ConsumptionAfterSudOfset
-
-    

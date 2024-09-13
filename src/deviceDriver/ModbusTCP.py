@@ -32,7 +32,6 @@ from database.sql.device import all_query as device_query
 from deviceDriver.device import device_service
 from deviceDriver.monitoring import monitoring_service
 # from entity.devices.devices_entity import Devices as DevicesEntity
-from utils.libMQTT import *
 from utils.libMySQL import *
 from utils.libTime import *
 from utils.mqttManager import gzip_decompress as gzipDecompress
@@ -759,17 +758,17 @@ def func_check_data_mybatis(data,item,object_name):
 # 	 * @param {host, port,topic, username, password, data_send}
 # 	 * @return data ()
 # 	 */
-def func_mqtt_public(host, port,topic, username, password, data_send):
-    try:
-        payload = json.dumps(data_send)
-        # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
-        #                     "%Y%m%d_%H%M%S"
-        #                 )
-        publish.single(topic, payload, hostname=host,
-                    #    client_id=str(client_id),
-                       retain=False, port=port,
-                       auth = {'username':f'{username}', 
-                               'password':f'{password}'})
+# def func_mqtt_public(host, port,topic, username, password, data_send):
+#     try:
+#         payload = json.dumps(data_send)
+#         # client_id= datetime.datetime.now(datetime.timezone.utc).strftime(
+#         #                     "%Y%m%d_%H%M%S"
+#         #                 )
+#         publish.single(topic, payload, hostname=host,
+#                     #    client_id=str(client_id),
+#                        retain=False, port=port,
+#                        auth = {'username':f'{username}', 
+#                                'password':f'{password}'})
         # publish.single(Topic, payload, hostname=Broker,
         #             retain=False, port=Port)
     # except Error as err:

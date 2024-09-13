@@ -5,10 +5,9 @@
 # *********************************************************/
 from sqlalchemy import DOUBLE, Date, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from configs.config import DBSessionManager
+from configs.config import orm_provider as config
 
-
-class Point(DBSessionManager.Base):
+class Point(config.Base):
     __tablename__ = "point_list"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

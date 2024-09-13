@@ -8,11 +8,11 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from configs.config import DBSessionManager
 from utils.MQTTService import *
 from utils.libMySQL import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
+from configs.config import orm_provider as config
 
 class ProjectSetup:
     def __init__(self):
@@ -46,7 +46,7 @@ class ProjectSetup:
         serialNumber = ""
         PowerLimit_temp = 0
         try:
-            db_new=await DBSessionManager.get_db()
+            db_new=await config.get_db()
             resultDB = await ProjectSetupService.selectAllProjectSetup(db_new)
             if resultDB:
                 serialNumber = resultDB[0]["serial_number"]
@@ -83,7 +83,7 @@ class ProjectSetup:
     @staticmethod
     async def publish_project_setup(mqtt_service,topicFeedBack):
         try :
-            db_new = await DBSessionManager.get_db()
+            db_new = await config.get_db()
             resultDB = await ProjectSetupService.selectAllProjectSetup(db_new)
             if resultDB:
                 try:
@@ -138,7 +138,7 @@ class ProjectSetup:
     @staticmethod
     async def get_time_interval_logdevice():
         try :
-            db_new = await DBSessionManager.get_db()
+            db_new = await config.get_db()
             resultDB = await ProjectSetupService.selectTimeLogInterval(db_new)
             if resultDB:
                 try:

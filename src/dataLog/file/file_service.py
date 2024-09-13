@@ -9,38 +9,72 @@ import asyncio
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from configs.config import DBSessionManager
 from utils.MQTTService import *
 from utils.libTime import *
 from utils.libMySQL import *
 from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService
-
+from configs.config import orm_provider as config
 class LogFile:
     def __init__(self):
         self.message_log_file = []  
         self.list_device_log_file = []  
         self.time_create_file = ""
         self.value_insert_db = []
-        
-    # MQTT
+    
+    async def get_type_of_file(self, IdChannel):
+        db_new = await config.get_db()
+        typeOfFile = await UploadChannelService.select_type_log_file(db_new, IdChannel)
+        return typeOfFile
+class MQTTHandler(LogFile):
+    def __init__(self, log_file_instance):
+        self.log_file_instance = log_file_instance
+
+    async def subscribe_to_mqtt_topics(self,mqtt_service,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile):
+        try:
+            client = mqttools.Client(
+                host=mqtt_service.host,
+                port=mqtt_service.port,
+                username=mqtt_service.username,
+                password=bytes(mqtt_service.password, 'utf-8'),
+                subscriptions=mqtt_service.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True :
+                await client.start()
+                await self.consume_mqtt_messages(mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile)
+                await client.stop()
+        except Exception as err:
+            print(f"Error subscribing to MQTT topics: '{err}'")
+    
+    async def consume_mqtt_messages(self,mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+                await self.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,Head_File_Log,typeOfFile)
+        except Exception as err:
+            print(f"Error consuming MQTT messages: '{err}'")
+            
     async def handle_mqtt_message(self, mqtt_service, message, time_interval_log_device,IdChannel,Head_File_Log,typeOfFile):
         try:
             if message:
                 await self.create_threading_push_status_log_device(mqtt_service, time_interval_log_device,IdChannel,Head_File_Log,typeOfFile)
-                if self.list_device_log_file:
-                    self.message_log_file = await self.create_message_log_file(message)
-                
+                if self.log_file_instance.list_device_log_file:
+                    self.log_file_instance.message_log_file = await self.create_message_log_file(message)
         except Exception as err:
             print(f"Error handling MQTT message: '{err}'")
-            
+    
     async def create_threading_push_status_log_device(self, mqtt_service, timeLog,IdChannel,Head_File_Log,typeOfFile):
-        db_new = await DBSessionManager.get_db()
+        db_new = await config.get_db()
         tasks = []
-        self.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new,IdChannel)
-        if self.list_device_log_file:
-            for item in self.list_device_log_file:
+        self.log_file_instance.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new,IdChannel)
+        if self.log_file_instance.list_device_log_file:
+            for item in self.log_file_instance.list_device_log_file:
                 sql_id = item["id"]
                 task = self.push_status_log_file(mqtt_service, timeLog, sql_id,IdChannel,Head_File_Log,typeOfFile)
                 tasks.append(task)
@@ -58,36 +92,31 @@ class LogFile:
         except Exception as err:
             print('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 
-    async def get_type_of_file(self, IdChannel):
-        db_new = await DBSessionManager.get_db()
-        typeOfFile = await UploadChannelService.select_type_log_file(db_new, IdChannel)
-        return typeOfFile
-
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
-        gStrNameOfDevice = [item['device_name'] for item in self.message_log_file if item['id'] == IdDeviceGetListMQTT][0]
+        gStrNameOfDevice = [item['device_name'] for item in self.log_file_instance.message_log_file if item['id'] == IdDeviceGetListMQTT][0]
         topic = f"/LogFile/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{gStrNameOfDevice}"
         return topic
     
     async def create_message(self ,IdDevice, Head_File_Log, timeLog):
-        DictID = [item for item in self.message_log_file if item["id"] == IdDevice]
+        DictID = [item for item in self.log_file_instance.message_log_file if item["id"] == IdDevice]
         if DictID:
             data = DictID[0]["data"]
             status_device = DictID[0]["status_device"]
             message = {
                 "time_stamp": get_utc(),
                 "id_device": IdDevice,
-                "name_file": f'{Head_File_Log}-{IdDevice:03d}.{self.time_create_file}.log',
+                "name_file": f'{Head_File_Log}-{IdDevice:03d}.{self.log_file_instance.time_create_file}.log',
                 "status_device": status_device,
                 "time_log": timeLog,
                 "data_log": data,
             }
             return message
         return None
-    # create message log file 
+    
     async def create_message_log_file(self, messageAllDevice):
         dict_device = {}
-        list_id_filter = {item["id"] for item in self.list_device_log_file}
+        list_id_filter = {item["id"] for item in self.log_file_instance.list_device_log_file}
         try:
             currentTime = get_utc()
             for items in messageAllDevice:
@@ -100,6 +129,7 @@ class LogFile:
         except Exception as err:
             print(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
             return None
+    
     def update_device_info(self, dictionary, deviceId, items, currentTime):
         status_device = items["status_device"]
         status_register = items["status_register"]
@@ -129,11 +159,14 @@ class LogFile:
                 device_info["point_id"].append(str(field["id"]))
                 dataCorrespondingfield = str(field["value"]) if field["value"] is not None else ""
                 device_info["data"].append(dataCorrespondingfield)
-    
+class ProcessLogFile(LogFile):
+    def __init__(self, log_file_instance):
+        self.log_file_instance = log_file_instance
+        
     async def create_file_log(self, base_path, head_file, id_channel, typeOfFile):
         currentDateTime = datetime.datetime.strptime(get_utc(), "%Y-%m-%d %H:%M:%S")
         year, month, day = currentDateTime.year, currentDateTime.month, currentDateTime.day
-        for item in self.message_log_file:
+        for item in self.log_file_instance.message_log_file:
             id_device, modbus_device, point_list, data = await self.extract_device_info(item)
             
             data_in_file, directory_path, source_file ,name_file, time_file = await self.create_and_write_file(
@@ -150,20 +183,20 @@ class LogFile:
                 data_in_file, 
                 id_channel
             )
-        if len(self.list_device_log_file) == len(self.value_insert_db):
+        if len(self.log_file_instance.list_device_log_file) == len(self.log_file_instance.value_insert_db):
             await self.insert_data_table_synced()
 
     async def extract_device_info(self, item):
         id_device = item["id"]
-        modbus_device = [item['rtu_bus_address'] for item in self.message_log_file if item['id'] == id_device][0]
-        point_list = [item['point_count'] for item in self.message_log_file if item['id'] == id_device][0]
-        data = [item['data'] for item in self.message_log_file if item['id'] == id_device][0]
+        modbus_device = [item['rtu_bus_address'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
+        point_list = [item['point_count'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
+        data = [item['data'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
         return id_device, modbus_device, point_list, data
 
     async def create_and_write_file(self, base_path, head_file, id_channel, typeOfFile, id_device, year, month, day, point_list, data):
         time_file = get_utc()
         time_file_datetime = datetime.datetime.strptime(time_file, "%Y-%m-%d %H:%M:%S")
-        self.time_create_file = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
+        self.log_file_instance.time_create_file = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
         
         data_in_file_temp = self.prepare_data_in_file(data, point_list)
         directory_path = self.create_directory_path(base_path, id_channel, typeOfFile, id_device, year, month, day)
@@ -188,7 +221,7 @@ class LogFile:
         return directory_path
 
     def create_file(self, directory_path, head_file, id_device):
-        name_file = f'{head_file}-{id_device:03d}.{self.time_create_file}.log'
+        name_file = f'{head_file}-{id_device:03d}.{self.log_file_instance.time_create_file}.log'
         file_path = os.path.join(directory_path, name_file)
         source_file = directory_path + "/" + name_file
         return file_path, source_file , name_file
@@ -213,15 +246,14 @@ class LogFile:
             id_channel
         )
         
-        for index, item in enumerate(self.value_insert_db):
+        for index, item in enumerate(self.log_file_instance.value_insert_db):
             if item[1] == id_device:
-                self.value_insert_db[index] = item_data_insert
+                self.log_file_instance.value_insert_db[index] = item_data_insert
                 break
         else:
-            self.value_insert_db.append(item_data_insert)
+            self.log_file_instance.value_insert_db.append(item_data_insert)
             
     async def insert_data_table_synced(self):
-        db_new = await DBSessionManager.get_db()
-        await SyncDataService.insert_sync_data(db_new,self.value_insert_db)
-
+        db_new = await config.get_db()
+        await SyncDataService.insert_sync_data(db_new,self.log_file_instance.value_insert_db)
 

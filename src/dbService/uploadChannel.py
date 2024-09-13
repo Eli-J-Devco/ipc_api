@@ -8,8 +8,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 from entity.upload_channel.upload_channel_entity import UploadChannel
-from entity.projectSetupBinh.project_setup_entity import ConfigInformation
-
+from entity.project_setup.project_setup_entity import *
 class UploadChannelService:
     @staticmethod
     async def select_type_log_file(session: AsyncSession,channel_id: int):

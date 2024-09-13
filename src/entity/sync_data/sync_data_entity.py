@@ -1,9 +1,8 @@
 import datetime
 from sqlalchemy import Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
-from configs.config import DBSessionManager
-
-class SyncData(DBSessionManager.Base):
+from configs.config import orm_provider as config
+class SyncData(config.Base):
     __tablename__ = 'sync_data'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

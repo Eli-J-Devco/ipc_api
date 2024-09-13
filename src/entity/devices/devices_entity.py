@@ -97,7 +97,7 @@ class Devices(config.Base):
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
     # communication = relationship("Rs485", foreign_keys=[id_communication], lazy="immediate")
-    # device_type = relationship("DeviceType", foreign_keys=[id_device_type], lazy="immediate")
+    device_type = relationship("DeviceType", foreign_keys=[id_device_type], lazy="immediate")
     # project_setup = relationship("ProjectSetup", foreign_keys=[id_project_setup])
     # template = relationship("Template", foreign_keys=[id_template], lazy="immediate")
     # point_list_p = relationship("Point", foreign_keys=[point_p])
@@ -165,3 +165,33 @@ class DevicePointMap(config.Base):
     high_alarm: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     output_values: Mapped[float] = mapped_column(DOUBLE, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True)
+class DeviceMPPT(config.Base):
+    __tablename__ = "device_mppt"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id_device_list: Mapped[int] = mapped_column(Integer, ForeignKey("device_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
+    namekey: Mapped[str] = mapped_column(String(255), nullable=True)
+    voltage: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+
+
+    # Relationships
+    device = relationship("Devices", foreign_keys=[id_device_list], lazy="immediate")
+    # point = relationship("PointList", foreign_keys=[id_point_list], lazy="immediate")
+
+class DeviceMPPTString(config.Base):
+    __tablename__ = "device_mppt_string"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    id_device_list: Mapped[int] = mapped_column(Integer, ForeignKey("device_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_point_list: Mapped[int] = mapped_column(Integer, ForeignKey("point_list.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    id_device_mppt: Mapped[int] = mapped_column(Integer, ForeignKey("device_mppt.id", ondelete="RESTRICT", onupdate="RESTRICT"), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=True)
+    namekey: Mapped[str] = mapped_column(String(255), nullable=True)
+    panel: Mapped[int] = mapped_column(Integer, nullable=True)
+    current: Mapped[float] = mapped_column(DOUBLE, nullable=True)
+    # Relationships
+    device = relationship("Devices", foreign_keys=[id_device_list], lazy="immediate")
+    # point = relationship("PointList", foreign_keys=[id_point_list], lazy="immediate")
+    device_mppt = relationship("DeviceMPPT", foreign_keys=[id_device_mppt], lazy="immediate")
