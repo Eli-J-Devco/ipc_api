@@ -10,7 +10,7 @@ pids = ["DEVICE_SERVICE", "SINGLE_LINE_DIAGRAM_SERVICE"]
 def init(path: str, pid: str):
     abs_dirname = PATH
     subprocess.Popen(
-        f'sudo pm2 start {abs_dirname}/{path}/main.py --interpreter {abs_dirname}/venv/bin/python3 -f --name "{pid}" '
+        f'sudo pm2 start {abs_dirname}/{path}/main.py --interpreter {abs_dirname}/.venv/bin/python3 -f --name "{pid}" '
         f'--restart-delay=10000', shell=True).communicate()
 
 
