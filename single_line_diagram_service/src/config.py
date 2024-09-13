@@ -1,3 +1,5 @@
+import enum
+
 from dotenv import load_dotenv
 from pydantic import BaseSettings
 
@@ -36,3 +38,10 @@ db_config = MySqlConfigFactory(
 )
 
 orm_provider = OrmProvider(db_config)
+
+
+class PlugPointEnum(enum.Enum):
+    TOP = 0
+    LEFT = 1
+    BOTTOM = 2
+    RIGHT = 3

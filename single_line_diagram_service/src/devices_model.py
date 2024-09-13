@@ -3,63 +3,53 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from .devices_entity import (DeviceMppt as DeviceMpptEntity,
+                             DeviceMpptString as DeviceMpptStringEntity,
+                             DevicePanel as DevicePanelEntity)
 
-class UtilsActionEnum(enum.Enum):
-    RetryCreateDevice = 0
+
+class TopicEnum(enum.Enum):
+    GET = "SLD/GET"
+    WRITE = "SLD/WRITE"
+    DEAD_LETTER = "SLD/DEAD_LETTER"
 
 
 class ActionEnum(enum.Enum):
-    Default = 0
-    Utils = 1
+    GetSLD = 0
+
+
+class PointType(enum.Enum):
+    MPPT = 277
+    MPPT_CONFIG = 274, 275
+    STRING = 276
+    PANEL = 278
+    POINT = 266
+
+
+class Point(BaseModel):
+    id: int
+    name: str
+    id_template: int
+    parent: Optional[int] = None
+    id_config_information: int
+
+
+class PointOutput(Point):
+    children: Optional[list[Point]] = []
 
 
 class MetadataModel(BaseModel):
     retry: int
 
 
-class CreateDeviceModel(BaseModel):
+class PayloadModel(BaseModel):
+    type: int = 0
+    id: Optional[int] = None
+
+
+class SLDModel(BaseModel):
     metadata: MetadataModel
-    type: str
-    devices: list[int]
-
-
-class DeviceStatus(enum.Enum):
-    CREATING = 0
-    CREATED = 1
-    DELETING = -1
-    DELETED = -2
-    DEAD_LETTER = -3
-
-
-class DeviceState(enum.Enum):
-    InProgress = -1
-    Success = 0
-    Error = 1
-
-
-class Action(enum.Enum):
-    CREATE = "InitDevices/create"
-    UPDATE = "InitDevices/update"
-    DELETE = "InitDevices/delete"
-    DEAD_LETTER = "InitDevices/dead-letter"
-    SET_PROJECT_MODE = "InitDevices/set-project-mode"
-
-
-class Point(BaseModel):
-    id: int
-    parent: Optional[int] = None
-    id_pointkey: str
-    name: str
-    id_config_information: int
-    id_control_group: Optional[int] = None
-
-
-class PointString(Point):
-    children: Optional[list[Point]] = []
-
-
-class PointMPPT(Point):
-    children: Optional[list[PointString]] = []
+    payload: PayloadModel
 
 
 class Communication(BaseModel):
@@ -81,53 +71,58 @@ class SymbolicDevice(BaseModel):
 class DeviceModel(BaseModel):
     id: int
     name: str
-    table_name: Optional[str] = None
-    view_table: Optional[str] = None
-    id_template: Optional[int] = None
+    parent: Optional[int] = None
+    id_device_type: Optional[int] = None
+    plug_point: Optional[int] = None
 
-    points: Optional[list[Point]] = None
-    communication: Optional[Communication] = None
-    device_type: Optional[DeviceType] = None
+    # communication: Optional[Communication] = None
+    # device_type: Optional[DeviceType] = None
 
     class Config:
         orm_mode = True
 
 
-class PointType(enum.Enum):
-    MPPT = 277
-    STRING = 276
-    PANEL = 278
-    POINT = 266
-
-
-class DeviceMppt(BaseModel):
+class DevicePointBase(BaseModel):
     id: Optional[int] = None
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
+    parent: Optional[int] = None
     name: Optional[str] = None
     namekey: Optional[str] = None
 
 
-class DeviceMpptString(BaseModel):
-    id: Optional[int] = None
-    id_device_list: Optional[int] = None
-    id_point_list: Optional[int] = None
-    id_device_mppt: Optional[int] = None
-    name: Optional[str] = None
-    namekey: Optional[str] = None
-    panel: Optional[int] = None
+class DevicePanel(DevicePointBase):
+    pass
 
 
-class DevicePanel(BaseModel):
-    id: Optional[int] = None
-    id_device_list: Optional[int] = None
-    id_point_list: Optional[int] = None
-    id_device_string: Optional[int] = None
-    name: Optional[str] = None
+class DeviceMpptString(DevicePointBase):
+    # num_of_panels: Optional[int] = None
+    children: Optional[list[DevicePanel]] = []
 
 
-class DevicePointListMap(BaseModel):
-    id: Optional[int] = None
-    id_device_list: Optional[int] = None
-    id_point_list: Optional[int] = None
-    name: Optional[str] = None
+class DeviceMppt(DevicePointBase):
+    children: Optional[list[DeviceMpptString]] = []
+
+
+class SLDResponseModel(DeviceModel):
+    children: Optional[list[DeviceModel]] = []
+
+
+class DeviceConnection(BaseModel):
+    device_list_id: int
+    device_table: str
+    connect_device_id: int
+    connect_device_table: str
+    type: Optional[int] = None
+
+
+class DeviceConnectionEntityEnum(enum.Enum):
+    device_mppt = DeviceMpptEntity
+    device_mppt_string = DeviceMpptStringEntity
+    device_panel = DevicePanelEntity
+
+
+class DeviceConnectionEnum(enum.Enum):
+    device_mppt = DeviceMppt
+    device_mppt_string = DeviceMpptString
+    device_panel = DevicePanel

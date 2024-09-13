@@ -8,20 +8,16 @@ import uuid
 from mqtt_service.model import MessageModel
 from mqtt_service.mqtt import Subscriber, Publisher
 from mqttools import SessionResumeError
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .async_db.src.async_db.config import OrmProvider
-from .config import orm_provider as db_config, config
-from .create_table_module.create_table_service import CreateTableService
-from .delete_table_module.delete_table_service import DeleteTableService
-from .devices_entity import ProjectSetup, Devices
-from .devices_model import Action, DeviceStatus, ActionEnum
-from .devices_service import DeviceService
-from .pm2_service.pm2_service import PM2Service
-from .update_table_module.update_table_service import UpdateTableService
-from .utils.utils import decompress_data
-from .utils_service import UtilsService
+from .async_db.src.async_db.wrapper import async_db_request_handler
+from .config import config, orm_provider as db_config, PlugPointEnum
+from .devices_entity import (ProjectSetup, Devices, DeviceMppt as DeviceMpptEntity,
+                             DeviceMpptString as DeviceMpptStringEntity,
+                             DevicePanel as DevicePanelEntity, DeviceConnection as DeviceConnectionEntity, )
+from .devices_model import TopicEnum, PayloadModel, ActionEnum, SLDResponseModel, DeviceModel, \
+    DeviceMppt, DeviceMpptString, DevicePanel, DeviceConnection, DeviceConnectionEntityEnum, DeviceConnectionEnum
 
 logger = logging.getLogger(__name__)
 
@@ -36,10 +32,9 @@ class MQTTSubscriber(Subscriber):
                  password: str = None,
                  will_retain: bool = True,
                  will_qos: int = 0,
-                 retry_publisher: Publisher = None,
+                 publisher: Publisher = None,
                  dead_letter_publisher: Publisher = None,
                  session: AsyncSession = None,
-                 db_config: OrmProvider = None,
                  serial_number: str = None,
                  **kwargs):
 
@@ -54,28 +49,14 @@ class MQTTSubscriber(Subscriber):
                          **kwargs)
         self.topic = topic
         self.serial_number = serial_number
-        self.retry_publisher = retry_publisher
+        self.publisher = publisher
         self.dead_letter_publisher = dead_letter_publisher
-
-        self.create_table_service = CreateTableService(db_config.Base.metadata)
-        self.delete_table_service = DeleteTableService(db_config.Base.metadata)
-        self.update_table_service = UpdateTableService(db_config.Base.metadata)
-        self.pm2_service = PM2Service(serial_number=serial_number)
         self.session = session
-        self.device_service = DeviceService(session=session,
-                                            create_table_service=self.create_table_service,
-                                            update_table_service=self.update_table_service,
-                                            delete_table_service=self.delete_table_service,
-                                            retry_publisher=self.retry_publisher,
-                                            dead_letter_publisher=self.dead_letter_publisher,
-                                            serial_number=self.serial_number,
-                                            handle_error=self.handle_error,
-                                            pm2_service=self.pm2_service)
-        self.utils_service = UtilsService(device_service=self.device_service,
-                                          session=session)
+        self.devices = []
+        self.points = {}
+        self.connections = []
         self.action = {
-            ActionEnum.Default.name: self.device_service,
-            ActionEnum.Utils.name: self.utils_service
+            ActionEnum.GetSLD.name: self.get_sld
         }
 
     async def connect_broker(self, resume_session: bool = True):
@@ -106,38 +87,113 @@ class MQTTSubscriber(Subscriber):
 
             logger.info(f"Received message from {msg.topic}")
             await self.process_message(msg.message)
+            logger.info(f"Message processed!")
 
     async def process_message(self, message):
+        logger.info(f"Process message: {message}")
         try:
-            logger.info(f"Processing message: {message}")
-            decoded_message = decompress_data(message)
-            decoded_message = json.loads(decoded_message)
-            logger.info(f"Decoded message: {decoded_message}")
-        except Exception as e:
-            logger.error(f"Error decoding message: {e}")
-            return
+            message = MessageModel(**json.loads(message))
+            payload = PayloadModel(**message.message)
+            await self.action[ActionEnum(payload.type).name](payload)
+        except ValueError as e:
+            logger.error(f"ValueError: {e}")
+            try:
+                message = base64.b64decode(message).decode("ascii")
+                message = MessageModel(**json.loads(message))
+                payload = PayloadModel(**message.message)
+                await self.action[ActionEnum(payload.type).name](payload)
+            except Exception as e:
+                logger.error(f"Error: {e}")
+                await self.handle_error(e,
+                                        message,
+                                        self.publisher,
+                                        self.dead_letter_publisher)
+
+    @async_db_request_handler
+    async def get_sld(self, message: PayloadModel):
+        start_ = time.time()
+        logger.info(f"Get SLD: {message}")
+        query = select(Devices)
+        result = await self.session.execute(query)
+        self.devices = list(map(lambda x: DeviceModel(**x.__dict__), result.scalars().all()))
+
+        for device_connection in DeviceConnectionEntityEnum:
+            query = select(device_connection.value)
+            result = await self.session.execute(query)
+            self.points[device_connection.name] = list(map(lambda x: DeviceConnectionEnum
+                                                           .__getitem__(device_connection.name).value(**x.__dict__),
+                                                           result.scalars().all()))
+
+        query = select(DeviceConnectionEntity)
+        result = await self.session.execute(query)
+        self.connections = list(map(lambda x: DeviceConnection(**x.__dict__), result.scalars().all()))
+
+        devices = self.get_devices()
 
         try:
-            data = MessageModel(**decoded_message)
-            logger.info(f"Action: {data.message.get('type')}")
-            logger.info(f"Data: {data.message}")
-
-            await self.action[data.message.get("action")].handler(data)
-
+            await self.publisher.stop()
+            await self.publisher.start()
+            self.publisher.send(f"{self.serial_number}/{TopicEnum.GET.value}",
+                                json.dumps(devices).encode("ascii"))
         except Exception as e:
-            logger.error(f"Error processing message: {e}")
-            data = MessageModel(**decoded_message)
-            await self.handle_error(e, data, self.retry_publisher, self.dead_letter_publisher, is_zip=True)
+            logger.error(f"Error: {e}")
+            raise e
+        finally:
+            await self.publisher.stop()
+        process_ = time.time() - start_
+        await self.session.commit()
+        logger.info(f"Process time: {process_}")
+
+    def get_connection(self, connection: DeviceConnection):
+        point = list(filter(lambda x: x.id == connection.connect_device_id,
+                            self.points[connection.connect_device_table]))[0]
+        connections = list(filter(lambda x: x.device_list_id == connection.connect_device_id and
+                                  x.device_table == connection.connect_device_table,
+                                  self.connections))
+        if connections:
+            connect_devices = list(filter(lambda x: x is not None,
+                                          map(lambda x: self.get_connection(
+                                              DeviceConnection(device_list_id=connection.connect_device_id,
+                                                               device_table=connection.connect_device_table,
+                                                               connect_device_id=x.connect_device_id,
+                                                               connect_device_table=x.connect_device_table,
+                                                               type=x.type)),
+                                              connections)))
+            point.children = connect_devices
+        return point
+
+    def get_devices(self, parent: int = None):
+        devices = filter(lambda x: x.parent == parent, self.devices)
+
+        if not devices:
+            return []
+
+        output = []
+        for device in devices:
+            device = SLDResponseModel(**device.__dict__)
+            device.children = self.get_devices(device.id)
+
+            connections = list(filter(lambda x: x.device_list_id == device.id, self.connections))
+            if connections:
+                connect_devices = list(filter(lambda x: x is not None,
+                                              map(lambda x: self.get_connection(x),
+                                                  connections)))
+                device.children.extend(connect_devices)
+
+            output.append(device.dict())
+
+        return output
 
 
 async def reconector():
     serial_number = await get_serial_number()
     session = await db_config.get_db()
-    re_publisher = Publisher(
+
+    publisher = Publisher(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
-        subscriptions=[f"{serial_number}/{Action.CREATE.value}"],
-        client_id=f"publisher-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
+        subscriptions=[f"{serial_number}/{TopicEnum.GET.value}"],
+        client_id=f"publisher-SLD-GET-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
         username=config.MQTT_USERNAME,
@@ -147,24 +203,24 @@ async def reconector():
     dead_letter_publisher = Publisher(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
-        subscriptions=[f"{serial_number}/{Action.DEAD_LETTER.value}"],
-        client_id=f"publisher-{DeviceStatus.DEAD_LETTER.name.lower()}-{uuid.uuid4()}",
+        subscriptions=[f"{serial_number}/{TopicEnum.DEAD_LETTER.value}"],
+        client_id=f"publisher-SLD-DeadLetter-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
         username=config.MQTT_USERNAME,
         password=config.MQTT_PASSWORD.encode("utf-8")
     )
+
     subscriber = MQTTSubscriber(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
-        topic=[f"{serial_number}/{topic.value}" for topic in Action if topic != Action.DEAD_LETTER],
-        client_id=f"sub-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
+        topic=[f"{serial_number}/{TopicEnum.WRITE.value}"],
+        client_id=f"sub-SLD-WRITE-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
-        retry_publisher=re_publisher,
+        publisher=publisher,
         dead_letter_publisher=dead_letter_publisher,
         session=session,
-        db_config=db_config,
         username=config.MQTT_USERNAME,
         password=config.MQTT_PASSWORD.encode("utf-8"),
         serial_number=serial_number
@@ -176,7 +232,7 @@ async def reconector():
             await subscriber.disconnect_broker()
         except KeyboardInterrupt:
             await subscriber.session.close()
-            await subscriber.retry_publisher.disconnect()
+            await subscriber.publisher.disconnect()
             await subscriber.dead_letter_publisher.disconnect()
             asyncio.get_running_loop().close()
             break
