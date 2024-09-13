@@ -7,6 +7,7 @@ import uuid
 
 from mqtt_service.model import MessageModel
 from mqtt_service.mqtt import Subscriber, Publisher
+from mqtt_service.utils import decompress_data, gzip_data
 from mqttools import SessionResumeError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -92,22 +93,28 @@ class MQTTSubscriber(Subscriber):
     async def process_message(self, message):
         logger.info(f"Process message: {message}")
         try:
-            message = MessageModel(**json.loads(message))
+            logger.info(f"Processing message: {message}")
+            decoded_message = decompress_data(message)
+            decoded_message = json.loads(decoded_message)
+            logger.info(f"Decoded message: {decoded_message}")
+        except Exception as e:
+            logger.error(f"Error decoding message: {e}")
+            await self.handle_error(e,
+                                    message,
+                                    self.publisher,
+                                    self.dead_letter_publisher)
+            return
+
+        try:
+            message = MessageModel(**json.loads(decoded_message))
             payload = PayloadModel(**message.message)
             await self.action[ActionEnum(payload.type).name](payload)
-        except ValueError as e:
-            logger.error(f"ValueError: {e}")
-            try:
-                message = base64.b64decode(message).decode("ascii")
-                message = MessageModel(**json.loads(message))
-                payload = PayloadModel(**message.message)
-                await self.action[ActionEnum(payload.type).name](payload)
-            except Exception as e:
-                logger.error(f"Error: {e}")
-                await self.handle_error(e,
-                                        message,
-                                        self.publisher,
-                                        self.dead_letter_publisher)
+        except Exception as e:
+            logger.error(f"Exception: {e}")
+            await self.handle_error(e,
+                                    message,
+                                    self.publisher,
+                                    self.dead_letter_publisher)
 
     @async_db_request_handler
     async def get_sld(self, message: PayloadModel):
@@ -134,7 +141,7 @@ class MQTTSubscriber(Subscriber):
             await self.publisher.stop()
             await self.publisher.start()
             self.publisher.send(f"{self.serial_number}/{TopicEnum.GET.value}",
-                                json.dumps(devices).encode("ascii"))
+                                gzip_data(json.dumps(devices)))
         except Exception as e:
             logger.error(f"Error: {e}")
             raise e
@@ -148,7 +155,7 @@ class MQTTSubscriber(Subscriber):
         point = list(filter(lambda x: x.id == connection.connect_device_id,
                             self.points[connection.connect_device_table]))[0]
         connections = list(filter(lambda x: x.device_list_id == connection.connect_device_id and
-                                  x.device_table == connection.connect_device_table,
+                                            x.device_table == connection.connect_device_table,
                                   self.connections))
         if connections:
             connect_devices = list(filter(lambda x: x is not None,
