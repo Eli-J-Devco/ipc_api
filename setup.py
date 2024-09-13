@@ -4,7 +4,7 @@ from pathlib import Path
 
 PATH = Path(__file__).parent.absolute()
 
-pids = ["DEVICE_SERVICE"]
+pids = ["DEVICE_SERVICE", "SINGLE_LINE_DIAGRAM_SERVICE"]
 
 
 def init(path: str, pid: str):
