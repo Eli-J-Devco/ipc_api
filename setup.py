@@ -26,6 +26,7 @@ if __name__ == '__main__':
         sys.exit()
 
     for pid in pids:
+        print(f"Starting {pid}")
         clear(pid)
         init(pid.lower(), pid)
 
