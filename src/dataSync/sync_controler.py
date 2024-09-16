@@ -21,7 +21,7 @@ from utils.libMySQL import *
 from utils.libTime import *
 from dataSync.sync_service import *
 from dataLog.file.file_service import *
-from deviceControl.deviceControlService.siteinfor_service import *
+from deviceControl.setupSite.setup_site_service import *
 
 class MainClass:
     def __init__(self, id_channel):
@@ -31,10 +31,10 @@ class MainClass:
         sync_data_instance = SyncData()
         log_file_instance = LogFile()
         mqtt_handler_instance = MQTTHandler1(sync_data_instance)
-        
+        setup_site_instance = SetupSite()
         db_new = await config.get_db()
-        project_setup_config = await ProjectSetup.get_project_setup_values()
-        time_interval_log_device = await ProjectSetup.get_time_interval_logdevice()
+        project_setup_config = await setup_site_instance.get_project_setup_values()
+        time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
         time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
         time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)

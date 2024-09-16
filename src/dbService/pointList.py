@@ -26,9 +26,9 @@ class PointListService:
                     Devices.id_template == Point.id_template
                 )
             )
-            result = await session.execute(query)  # Thực hiện câu lệnh truy vấn
-            points = result.mappings().all()  # Lấy tất cả kết quả dưới dạng từ điển
-            return [dict(row) for row in points]  # Chuyển đổi kết quả thành danh sách từ điển
+            result = await session.execute(query)
+            points = result.mappings().all()
+            return [dict(row) for row in points] 
         except Exception as e:
             print("Error in queryPointKeysByDeviceId: ", e)
             return []

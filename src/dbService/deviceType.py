@@ -6,7 +6,7 @@
 import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, insert, join, literal_column, select, text, update  # Thêm import cho update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text, update
 from entity.devices.devices_entity import *
 
 class deviceTypeService:
@@ -18,9 +18,9 @@ class deviceTypeService:
                 .join(Devices, Devices.id_device_type == DeviceType.id)
                 .where(Devices.id == device_id, Devices.status == 1)
             )
-            result = await session.execute(query)  # Thực hiện câu lệnh truy vấn
-            device_name = result.scalars().one_or_none()  # Lấy tên thiết bị hoặc None
-            return device_name  # Trả về tên thiết bị (hoặc None nếu không tìm thấy)
+            result = await session.execute(query)
+            device_name = result.scalars().one_or_none()
+            return device_name
         except Exception as e:
             print("Error in selectTypeDeviceByID: ", e)
             return None

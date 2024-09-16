@@ -65,12 +65,11 @@ class SyncDataService:
                     SyncData.id_device == id_device
                 )
                 .order_by(SyncData.id.asc())
-                .limit(limit)  # Sử dụng biến limit
+                .limit(limit)
             )
             result = await session.execute(query)
-            sync_data_list = result.scalars().all()  # Lấy danh sách bản ghi
+            sync_data_list = result.scalars().all()
 
-            # Trả về danh sách các bản ghi dưới dạng danh sách từ điển
             return [
                 {key: value for key, value in record.__dict__.items() if key != '_sa_instance_state'}
                 for record in sync_data_list
@@ -92,12 +91,12 @@ class SyncDataService:
                 )
             )
             result = await session.execute(query)
-            await session.commit()  # Commit thay đổi
+            await session.commit()
             print("Deleted synced data successfully --->")
-            return result.rowcount  # Trả về số lượng bản ghi đã xóa
+            return result.rowcount
         except Exception as e:
             print("Error in delete_sync_data: ", e)
-            await session.rollback()  # Rollback nếu có lỗi
+            await session.rollback()
             return None
         finally:
             await session.close()
@@ -114,10 +113,10 @@ class SyncDataService:
                 .values(error=1)
             )
             await session.execute(query)
-            await session.commit()  # Commit thay đổi
+            await session.commit()
         except Exception as e:
             print("Error in update_error_status: ", e)
-            await session.rollback()  # Rollback nếu có lỗi
+            await session.rollback()
         finally:
             await session.close()
     @staticmethod
@@ -133,10 +132,10 @@ class SyncDataService:
                 .values(number_of_time_retry=number_of_time_retry)
             )
             await session.execute(query)
-            await session.commit()  # Commit thay đổi
+            await session.commit()
         except Exception as e:
             print("Error in update_number_of_time_retry: ", e)
-            await session.rollback()  # Rollback nếu có lỗi
+            await session.rollback()
         finally:
             await session.close()
     @staticmethod
@@ -152,7 +151,7 @@ class SyncDataService:
                 )
             )
             result = await session.execute(query)
-            remaining_files = result.scalar()  # Lấy giá trị đầu tiên
+            remaining_files = result.scalar()
             return remaining_files
         except Exception as e:
             print("Error in count_remaining_files: ", e)

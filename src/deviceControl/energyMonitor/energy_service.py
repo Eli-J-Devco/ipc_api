@@ -12,10 +12,13 @@ from configs.config import DBSessionManager
 from utils.MQTTService import *
 from utils.libTime import *
 from dbService.deviceType import deviceTypeService
+from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 # ==================================================== Caculator Production And Consumtion  ==================================================================
 class EnergySystem:
     def __init__(self):
-        pass
+        self.mqtt_topic_sud = MQTTTopicSUD()
+        self.mqtt_topic_push = MQTTTopicPUSH()
+        self.devicetypeservice = deviceTypeService()
     # Describe ValueEnergySystemMain 
     # 	 * @description ValueEnergySystemMain
     # 	 * @author bnguyen
@@ -23,11 +26,10 @@ class EnergySystem:
     # 	 * @param {mqtt_service, messageMQTT, topicFeedBack}
     # 	 * @return 
     # 	 */ 
-    @staticmethod
-    async def calculate_and_publish_production_and_consumption(mqtt_service, messageMQTT, topicFeedBack):
-        totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTT)
+    async def calculate_and_publish_production_and_consumption(self,mqtt_service, messageMQTT, topicFeedBack):
+        totalProduction, totalConsumption = await self.calculate_production_and_consumption(messageMQTT)
         try:
-            ObjectSendMQTT = EnergySystem.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
+            ObjectSendMQTT = self.create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption)
             # Push system_info to MQTT
             MQTTService.push_data_zip(mqtt_service, topicFeedBack, ObjectSendMQTT)
             MQTTService.push_data(mqtt_service, topicFeedBack + "Binh", ObjectSendMQTT)
@@ -40,8 +42,7 @@ class EnergySystem:
     # 	 * @param {messageMQTT}
     # 	 * @return totalProductionTemp, totalConsumptionTemp
     # 	 */ 
-    @staticmethod
-    async def calculate_production_and_consumption(messageMQTT):
+    async def calculate_production_and_consumption(self,messageMQTT):
         totalProductionTemp = 0.0 
         totalConsumptionTemp = 0.0
         
@@ -49,11 +50,11 @@ class EnergySystem:
             for item in messageMQTT:
                 if 'id_device' in item:
                     id_device = item['id_device']
-                    result_type_meter = await EnergySystem.get_device_type(id_device)
+                    result_type_meter = await self.get_device_type(id_device)
                     if result_type_meter:
-                        totalProductionTemp = EnergySystem.calculate_production(
+                        totalProductionTemp = self.calculate_production(
                             item, result_type_meter, totalProductionTemp)
-                        totalConsumptionTemp = EnergySystem.calculate_consumption(
+                        totalConsumptionTemp = self.calculate_consumption(
                             item, result_type_meter, totalConsumptionTemp)
         
         return totalProductionTemp, totalConsumptionTemp
@@ -64,11 +65,11 @@ class EnergySystem:
     # 	 * @param {id_device}
     # 	 * @return result type device
     # 	 */ 
-    async def get_device_type(id_device):
+    async def get_device_type(self,id_device):
         db_new = await DBSessionManager.get_db()
-        result = await deviceTypeService.selectTypeDeviceByID(db_new,id_device)
+        result = await self.devicetypeservice.selectTypeDeviceByID(db_new,id_device)
         return result
-    def calculate_production(messageMQTT, result_type_meter ,totalProduction):
+    def calculate_production(self,messageMQTT, result_type_meter ,totalProduction):
         if result_type_meter == "PV System Inverter":
             resultFiltermessageMQTT = [
                 field["value"] for param in messageMQTT.get("parameters", [])
@@ -87,7 +88,7 @@ class EnergySystem:
     # 	 * @param {messageMQTT, result_type_meter,totalConsumption}
     # 	 * @return totalConsumption
     # 	 */ 
-    def calculate_consumption(messageMQTT, result_type_meter,totalConsumption):
+    def calculate_consumption(self,messageMQTT, result_type_meter,totalConsumption):
         if result_type_meter == "Consumption meter":
             resultFiltermessageMQTT = [
                 field["value"] for param in messageMQTT.get("parameters", [])
@@ -106,7 +107,7 @@ class EnergySystem:
     # 	 * @param {messageMQTT, totalProduction, totalConsumption}
     # 	 * @return result message push mqtt
     # 	 */ 
-    def create_message_pud_MQTT(messageMQTT, totalProduction, totalConsumption):
+    def create_message_pud_MQTT(self,messageMQTT, totalProduction, totalConsumption):
         predicted_power = 0
         result = {
             "Timestamp": get_utc(),
@@ -124,3 +125,44 @@ class EnergySystem:
         result["instant"]["grid_feed"] = round((totalProduction - totalConsumption), 4)
         result["instant"]["max_production"] = round(predicted_power, 4)
         return result
+class MQTTHandlerEnergySystem(EnergySystem):
+    def __init__(self, energy_instance):
+        self.energy_instance = energy_instance
+        
+    async def subscribe_to_mqtt_topics(self,mqtt_service,serial):
+        try:
+            client = mqttools.Client(
+                host=mqtt_service.host,
+                port=mqtt_service.port,
+                username=mqtt_service.username,
+                password=bytes(mqtt_service.password, 'utf-8'),
+                subscriptions=mqtt_service.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True :
+                await client.start()
+                await self.consume_mqtt_messages(mqtt_service, client,serial)
+                await client.stop()
+        except Exception as err:
+            print(f"Error subscribing to MQTT topics: '{err}'")
+    
+    async def consume_mqtt_messages(self,mqtt_service, client,serial):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                topic = message.topic
+                payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+                await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
+        except Exception as err:
+            print(f"Error consuming MQTT messages: '{err}'")
+    
+    async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
+        try:
+            if message :
+                await self.energy_instance.calculate_and_publish_production_and_consumption(mqtt_service, message, self.energy_instance.mqtt_topic_push.Meter_Monitor)
+                print("monitor energy")
+        except Exception as err:
+            print(f"Error handling MQTT message: '{err}'")

@@ -11,7 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
-from deviceControl.deviceControlService.siteinfor_service import *
+from deviceControl.setupSite.setup_site_service import *
 
 # create global variables
 net_io_counters_prev = {
@@ -67,7 +67,8 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         print(f"Error in getIPCHardwareInformation: '{err}'")
 
 async def main():
-    initialized_values = await ProjectSetup.get_project_setup_values()
+    setup_site_instance = SetupSite()
+    initialized_values = await setup_site_instance.get_project_setup_values()
     parameterMQTT = MQTTSettings()
     topicPushMQTT = MQTTTopicPUSH()
     # Create Service MQTT

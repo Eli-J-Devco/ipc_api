@@ -12,10 +12,13 @@ from configs.config import DBSessionManager
 from utils.MQTTService import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
+from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 # ============================================================== Parametter Mode Detail Systemp ================================
 class ModeControl:
     def __init__(self):
-        pass
+        self.mqtt_topic_sud = MQTTTopicSUD()
+        self.mqtt_topic_push = MQTTTopicPUSH()
+        self.project_setup_service = ProjectSetupService()
     # Describe handleModeDetailChange 
     # 	 * @description handleModeDetailChange
     # 	 * @author bnguyen
@@ -23,8 +26,7 @@ class ModeControl:
     # 	 * @param {mqtt_service, messageMQTT, topicFeedback}
     # 	 * @return ModeDetail
     # 	 */ 
-    @staticmethod
-    async def update_mode_control(mqtt_service, messageMQTT, topicFeedback):
+    async def update_mode_control(self,mqtt_service, messageMQTT, topicFeedback):
         intComment = 0
         resultDB = []
         db_new=await DBSessionManager.get_db()
@@ -35,7 +37,7 @@ class ModeControl:
                 updateModeDetail = {
                         'control_mode': ModeDetail,
                         }
-                resultDB = await ProjectSetupService.updateProjectSetup(db_new,updateModeDetail)
+                resultDB = await self.project_setup_service.updateProjectSetup(db_new,updateModeDetail)
                 if resultDB is None:
                     intComment = 400 
                 else:
@@ -62,24 +64,23 @@ class ModeControl:
     #     "threshold_zero_export": ThresholdZeroExport,
     #       }
     # 	 */ 
-    @staticmethod
-    async def update_parameter_control ( mqtt_service, messageMQTT, topicFeedBack):
+    async def update_parameter_control (self,mqtt_service, messageMQTT, topicFeedBack):
         ModeDetail = ""
         intComment = 0
         resultDBZeroExport = []
         resultDBPowerLimit = []
         db_new = await DBSessionManager.get_db()
-        result = await ProjectSetupService.selectAllProjectSetup(db_new)
+        result = await self.project_setup_service.selectAllProjectSetup(db_new)
         try:
             if messageMQTT and 'mode' in messageMQTT and 'offset' in messageMQTT :
                 ModeDetail = int(messageMQTT['mode'])
                 token = messageMQTT.get("token", "")
                 if ModeDetail == 1:
-                    OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await ModeControl.update_zero_export_mode (messageMQTT)
+                    OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await self.update_zero_export_mode (messageMQTT)
                     OffsetPowerLimit = result[0]["value_offset_power_limit"]
                     ValuePowerLimit = result[0]["value_power_limit"]
                 elif ModeDetail == 2:
-                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await ModeControl.update_power_limit_mode(messageMQTT)
+                    OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await self.update_power_limit_mode(messageMQTT)
                     OffsetZeroExport = result[0]["value_offset_zero_export"]
                     ThresholdZeroExport = result[0]["threshold_zero_export"]
                 # Feedback to MQTT
@@ -113,7 +114,7 @@ class ModeControl:
     # 	 * @param {message}
     # 	 * @return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
     # 	 */ 
-    async def update_zero_export_mode ( message):
+    async def update_zero_export_mode (self,message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
         ValueThresholdTemp = message.get("threshold", 0)
@@ -121,7 +122,7 @@ class ModeControl:
                 'value_offset_zero_export': ValueOffsetTemp,
                 'threshold_zero_export': ValueThresholdTemp,
             }
-        ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updateZeroExport)
+        ResultQuery = await self.project_setup_service.updateProjectSetup(db_new,updateZeroExport)
         return ValueOffsetTemp, ValueThresholdTemp, ResultQuery
     # Describe update_power_limit_mode 
     # 	 * @description update_power_limit_mode
@@ -130,7 +131,7 @@ class ModeControl:
     # 	 * @param {message}
     # 	 * @return ValueOffsetTemp, ValuePowerLimit, ResultQuery
     # 	 */ 
-    async def update_power_limit_mode( message):
+    async def update_power_limit_mode(self, message):
         db_new = await DBSessionManager.get_db()
         ValueOffsetTemp = message.get("offset", 0)
         ValuePowerLimitTemp = message.get("value", 0)
@@ -142,7 +143,51 @@ class ModeControl:
                     'value_offset_power_limit': ValueOffsetTemp,
                     # Add other fields if needed
                 }
-            ResultQuery = await ProjectSetupService.updateProjectSetup(db_new,updatePowerLimit)
+            ResultQuery = await self.project_setup_service.updateProjectSetup(db_new,updatePowerLimit)
             return ValueOffsetTemp, ValuePowerLimit, ResultQuery
         
         return ValueOffsetTemp, None, None
+class MQTTHandlerModeControl(ModeControl):
+    def __init__(self, mode_control_instance):
+        self.mode_control_instance = mode_control_instance
+        
+    async def subscribe_to_mqtt_topics(self,mqtt_service,serial):
+        try:
+            client = mqttools.Client(
+                host=mqtt_service.host,
+                port=mqtt_service.port,
+                username=mqtt_service.username,
+                password=bytes(mqtt_service.password, 'utf-8'),
+                subscriptions=mqtt_service.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True :
+                await client.start()
+                await self.consume_mqtt_messages(mqtt_service, client,serial)
+                await client.stop()
+        except Exception as err:
+            print(f"Error subscribing to MQTT topics: '{err}'")
+    
+    async def consume_mqtt_messages(self,mqtt_service, client,serial):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                topic = message.topic
+                payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+                await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
+        except Exception as err:
+            print(f"Error consuming MQTT messages: '{err}'")
+    
+    async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
+        try:
+            if topic == serial + self.mode_control_instance.mqtt_topic_sud.Control_Setup_Mode_Write_Detail:
+                await self.mode_control_instance.update_mode_control(mqtt_service, message, self.mode_control_instance.mqtt_topic_push.Control_Setup_Mode_Write_Detail_Feedback)
+                print("update mode control suscessfully")
+            elif topic == serial + self.mode_control_instance.mqtt_topic_sud.Control_Setup_Auto:
+                await self.mode_control_instance.update_parameter_control(mqtt_service, message, self.mode_control_instance.mqtt_topic_push.Control_Setup_Auto_Feedback)
+                print("update parameter control suscessfully")
+        except Exception as err:
+            print(f"Error handling MQTT message: '{err}'")

@@ -18,10 +18,10 @@ class deviceMpptService:
                 .where(DeviceMPPT.id_device_list == id_device_list, DeviceMPPT.namekey == namekey)
                 .values(voltage=voltage, current=current)
             )
-            await session.execute(query)  # Thực hiện câu lệnh cập nhật
-            await session.commit()  # Cam kết thay đổi
+            await session.execute(query)
+            await session.commit()
         except Exception as e:
             print("Error in updateDeviceMPPT: ", e)
-            await session.rollback()  # Hoàn tác nếu có lỗi
+            await session.rollback()
         finally:
             await session.close()

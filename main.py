@@ -260,17 +260,112 @@ def init_api_gateway():
 # 	 * @param {}
 # 	 * @return data ()
 # 	 */
-def init_mqtt_control():
+def init_setup_site():
     absDirname=path
-    pid=f'CaculatorSystemAuto'
+    pid=f'SetupSite'
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
-            f'pm2 start {absDirname}/deviceControl/control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'pm2 start {absDirname}/deviceControl/setupSite/setup_site_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo pm2 start {absDirname}/deviceControl/control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+            f'sudo pm2 start {absDirname}/deviceControl/setupSite/setup_site_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run mqtt control
+# 	 * @author vnguyen
+# 	 * @since 05-04-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_process_system():
+    absDirname=path
+    pid=f'ProcessSystem'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/deviceControl/processSystem/process_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/deviceControl/processSystem/process_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run mqtt control
+# 	 * @author vnguyen
+# 	 * @since 05-04-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_mode_system():
+    absDirname=path
+    pid=f'ModeSystem'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/deviceControl/modeSystem/mode_system_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/deviceControl/modeSystem/mode_system_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run mqtt control
+# 	 * @author vnguyen
+# 	 * @since 05-04-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_mode_control():
+    absDirname=path
+    pid=f'ModeControl'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/deviceControl/modeControl/mode_control_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/deviceControl/modeControl/mode_control_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run mqtt control
+# 	 * @author vnguyen
+# 	 * @since 05-04-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_energy_monitor():
+    absDirname=path
+    pid=f'EnergyMonitor'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/deviceControl/energyMonitor/energy_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/deviceControl/energyMonitor/energy_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+# Describe functions before writing code
+# /**
+# 	 * @description run mqtt control
+# 	 * @author vnguyen
+# 	 * @since 05-04-2024
+# 	 * @param {}
+# 	 * @return data ()
+# 	 */
+def init_caculator_control():
+    absDirname=path
+    pid=f'CaculatorControl'
+    if sys.platform == 'win32':
+        # use run with window          
+        subprocess.Popen(
+            f'pm2 start {absDirname}/deviceControl/caculatorControl/caculator_controler.py -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
+    else:
+        # use run with ubuntu/linux
+        subprocess.Popen(
+            f'sudo pm2 start {absDirname}/deviceControl/caculatorControl/caculator_controler.py --interpreter /usr/bin/python3 -f  --name "{pid}"  --restart-delay=10000', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run API_NEW of web
@@ -343,7 +438,7 @@ time.sleep(10)
 delete_all_app_pm2()
 # init_api_web()
 init_api_gateway()
-init_mqtt_control()
+init_setup_site()
 init_driver()
 init_log_file()
 init_sync_file()
@@ -352,8 +447,8 @@ init_api_web_v2()
 # init_device_service()
 init_virtual_device()
 init_get_cpuinfor()
-
-
-
-
-
+init_process_system()
+init_mode_system()
+init_mode_control()
+init_energy_monitor()
+init_caculator_control()

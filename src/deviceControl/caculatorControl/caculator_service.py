@@ -8,11 +8,15 @@ import sys
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-from deviceControl.deviceControlService.enegy_service import *
-from deviceControl.deviceControlService.processdevice_service import *
+from deviceControl.energyMonitor.energy_service import *
+from deviceControl.processSystem.process_service import *
 class PowerCalculator :
     def __init__(self):
-        pass
+        self.mqtt_topic_sud = MQTTTopicSUD()
+        self.mqtt_topic_push = MQTTTopicPUSH()
+        self.ennergy_instance = EnergySystem()
+        self.process_system_instance = ProcessSystem()
+        self.process_auto_instance = ProcessAuto(self.process_system_instance)
     # Describe automatedParameterManagement 
     # 	 * @description automatedParameterManagement
     # 	 * @author bnguyen
@@ -20,14 +24,14 @@ class PowerCalculator :
     # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
     # 	 * @return 
     # 	 */ 
-    async def calculate_auto_parameters(mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_auto_parameters(self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Select the auto run process
         if resultDB["control_mode"] == 1 :
             print("==============================zero_export==============================")
-            await PowerCalculator.calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
+            await self.calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
         else:
             print("==============================power_limit==============================")
-            await PowerCalculator.calculate_power_limit_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
+            await self.calculate_power_limit_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
     # Describe processCaculatorPowerForInvInPowerLimitMode 
     # 	 * @description processCaculatorPowerForInvInPowerLimitMode
     # 	 * @author bnguyen
@@ -35,7 +39,7 @@ class PowerCalculator :
     # 	 * @param {mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB}
     # 	 * @return 
     # 	 */ 
-    async def calculate_power_limit_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_power_limit_mode (self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         Arraydevices = []
         ArrayDeviceList = []
         gIntValuePowerForEachInvInModePowerLimit = 0 
@@ -45,24 +49,24 @@ class PowerCalculator :
         # Get List Device Can Control 
         if messageMQTTAllDevice:
             # Calculate Total Power 
-            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTTAllDevice)
+            totalProduction, totalConsumption = await self.ennergy_instance.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await ProcessAuto.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
-            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await self.process_auto_instance.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
+            TotalPowerINVAuto = self.process_auto_instance.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
-            ArrayDeviceList = [ProcessSystem.get_device_details(item) for item in messageMQTTAllDevice if ProcessSystem.get_device_details(item)]
+            ArrayDeviceList = [self.process_system_instance.get_device_details(item) for item in messageMQTTAllDevice if self.process_system_instance.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
-            TotalPowerINVAll, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+            TotalPowerINVAll, TotalPowerINVMan = self.process_system_instance.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Get Infor Device Control 
         if Arraydevices:
             listInvControlPowerLimitMode = []
             for device in Arraydevices:
-                id_device, mode, intPowerMaxOfInv = PowerCalculator .extract_device_info (device)
-                gIntValuePowerForEachInvInModePowerLimit = PowerCalculator .calculate_power_value(intPowerMaxOfInv,ModeSystem,TotalPowerINVMan,\
+                id_device, mode, intPowerMaxOfInv = self.extract_device_info (device)
+                gIntValuePowerForEachInvInModePowerLimit = self.calculate_power_value(intPowerMaxOfInv,ModeSystem,TotalPowerINVMan,\
                     TotalPowerINVAuto,PowerlimitCaculator)
                 # Create Infor Device Publish MQTT
                 if totalProduction < PowerlimitCaculator:
-                    item = PowerCalculator .create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,PowerlimitCaculator,\
+                    item = self.create_control_item(ModeDetail,device, gIntValuePowerForEachInvInModePowerLimit,PowerlimitCaculator,\
                         TotalPowerINVMan,totalProduction)
                 else:
                     item = {
@@ -89,7 +93,7 @@ class PowerCalculator :
     # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
     # 	 * @return PowerForEachInvInModeZeroExport
     # 	 */ 
-    async def calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_zero_export_mode (self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         Arraydevices = []
         ArrayDeviceList = []
         PowerForEachInvInModeZeroExport = 0
@@ -102,27 +106,27 @@ class PowerCalculator :
         # Get List Device Can Control 
         if messageMQTTAllDevice:
             # Calculate Total Power 
-            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageMQTTAllDevice)
+            totalProduction, totalConsumption = await self.ennergy_instance.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
-            Arraydevices = await ProcessAuto.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
-            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(Arraydevices)
+            Arraydevices = await self.process_auto_instance.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
+            TotalPowerINVAuto = self.process_auto_instance.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
-            ArrayDeviceList = [ProcessSystem.get_device_details(item) for item in messageMQTTAllDevice if ProcessSystem.get_device_details(item)]
+            ArrayDeviceList = [self.process_auto_instance.get_device_details(item) for item in messageMQTTAllDevice if self.process_auto_instance.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
-            TotalPowerINVAll, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+            TotalPowerINVAll, TotalPowerINVMan = self.process_auto_instance.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Get Setpoint ,Value Consumption System 
         if totalConsumption:
-            Setpoint, PracticalConsumptionValue = await PowerCalculator.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
+            Setpoint, PracticalConsumptionValue = await self.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
         if Arraydevices:
             listInvControlZeroExportMode = []
             for device in Arraydevices:
-                id_device, mode, intPowerMaxOfInv = PowerCalculator .extract_device_info (device)
-                PowerForEachInvInModeZeroExport = PowerCalculator .calculate_power_value(intPowerMaxOfInv, ModeSystem, 
+                id_device, mode, intPowerMaxOfInv = self.extract_device_info (device)
+                PowerForEachInvInModeZeroExport = self.calculate_power_value(intPowerMaxOfInv, ModeSystem, 
                     TotalPowerINVMan, TotalPowerINVAuto, Setpoint)
                 # Create Infor Device Publish MQTT
                 if totalProduction < PracticalConsumptionValue and \
                     totalConsumption >= ThresholdZeroExport and totalConsumption >= 0:
-                    item = PowerCalculator .create_control_item(ModeDetail,device, PowerForEachInvInModeZeroExport,Setpoint,\
+                    item = self.create_control_item(ModeDetail,device, PowerForEachInvInModeZeroExport,Setpoint,\
                     TotalPowerINVMan,totalProduction)
                 else:
                     item = {
@@ -208,7 +212,7 @@ class PowerCalculator :
                 {"id_pointkey": "WMax", "value": PowerForEachInv}
             ])
         return ItemlistInvControlPowerLimitMode
-    async def calculate_setpoint( modeSystem, ValueConsump, ValueTotalPowerInInvInManMode, ValueOffetConsump):
+    async def calculate_setpoint(self, modeSystem, ValueConsump, ValueTotalPowerInInvInManMode, ValueOffetConsump):
         ConsumptionAfterSudOfset = 0.0
         gMaxValueChangeSetpoint = 10 
         # minus man value
@@ -217,16 +221,59 @@ class PowerCalculator :
         else:
             ValueConsump -= ValueTotalPowerInInvInManMode
         
-        if not hasattr(PowerCalculator.calculate_setpoint, 'last_setpoint'):
-            PowerCalculator.calculate_setpoint.last_setpoint = ValueConsump
+        if not hasattr(self.calculate_setpoint, 'last_setpoint'):
+            self.calculate_setpoint.last_setpoint = ValueConsump
         # setpoint value change limit
         new_setpoint = ValueConsump
         Setpoint = max(
-            PowerCalculator.calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
-            min(PowerCalculator.calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
+            self.calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
+            min(self.calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
         )
-        PowerCalculator.calculate_setpoint.last_setpoint = Setpoint
+        self.calculate_setpoint.last_setpoint = Setpoint
         ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump) / 100)
         if Setpoint:
             Setpoint -= Setpoint * ValueOffetConsump / 100
         return Setpoint, ConsumptionAfterSudOfset
+    
+class MQTTHandlerPowerCalculator(PowerCalculator):
+    def __init__(self, power_caculator_instance):
+        self.power_caculator_instance = power_caculator_instance
+        
+    async def subscribe_to_mqtt_topics(self,mqtt_service,serial,setup_site_instance):
+        try:
+            client = mqttools.Client(
+                host=mqtt_service.host,
+                port=mqtt_service.port,
+                username=mqtt_service.username,
+                password=bytes(mqtt_service.password, 'utf-8'),
+                subscriptions=mqtt_service.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True :
+                await client.start()
+                await self.consume_mqtt_messages(mqtt_service, client,serial,setup_site_instance)
+                await client.stop()
+        except Exception as err:
+            print(f"Error subscribing to MQTT topics: '{err}'")
+    
+    async def consume_mqtt_messages(self,mqtt_service, client,serial,setup_site_instance):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                topic = message.topic
+                payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+                await self.handle_mqtt_message(mqtt_service,payload,topic,serial,setup_site_instance)
+        except Exception as err:
+            print(f"Error consuming MQTT messages: '{err}'")
+    
+    async def handle_mqtt_message(self, mqtt_service, message,topic, serial,setup_site_instance):
+        try:
+            resultDB = await setup_site_instance.get_project_setup_values()
+            if message and resultDB:
+                await self.power_caculator_instance.calculate_auto_parameters(mqtt_service, message, self.power_caculator_instance.mqtt_topic_push.Control_WriteAuto, resultDB)
+                print("write auto parameters")
+        except Exception as err:
+            print(f"Error handling MQTT message: '{err}'")

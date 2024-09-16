@@ -12,7 +12,6 @@ from entity.project_setup.project_setup_entity import *
 class UploadChannelService:
     @staticmethod
     async def select_type_log_file(session: AsyncSession,channel_id: int):
-        # Tạo truy vấn để lấy thông tin từ upload_channel và config_information
         stmt = (
             select(
                 UploadChannel.id.label('id_channel'),
@@ -39,7 +38,7 @@ class UploadChannelService:
                 .where(UploadChannel.id == id_upload_channel)
             )
             result = await session.execute(query)
-            upload_url = result.scalar()  # Lấy giá trị đầu tiên
+            upload_url = result.scalar()
             return upload_url
         except Exception as e:
             print("Error in get_upload_url_by_id: ", e)

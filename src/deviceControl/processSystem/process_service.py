@@ -10,11 +10,16 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from utils.MQTTService import *
 from utils.libTime import *
-from deviceControl.deviceControlService.enegy_service import *
+from deviceControl.energyMonitor.energy_service import *
+from deviceControl.setupSite.setup_site_service import *
+from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 # ==================================================== Get List All Device ==================================================================
 class ProcessSystem:
     def __init__(self):
-        pass
+        self.mqtt_topic_sud = MQTTTopicSUD()
+        self.mqtt_topic_push = MQTTTopicPUSH()
+        self.ennergy_instance = EnergySystem()
+        self.process_auto_instance = ProcessAuto(self)
         # Describe GetListAllDeviceMain 
     # 	 * @description GetListAllDeviceMain
     # 	 * @author bnguyen
@@ -32,7 +37,7 @@ class ProcessSystem:
     #         "status": statusInt
     #     }
     # 	 */ 
-    async def create_message_for_process_systemp(mqtt_service, messageAllDevice, topicFeedback ,resultDB):
+    async def create_message_for_process_systemp(self,mqtt_service, messageAllDevice, topicFeedback ,resultDB):
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
@@ -40,17 +45,17 @@ class ProcessSystem:
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
             # Calculate Total Power 
-            totalProduction, totalConsumption = await EnergySystem.calculate_production_and_consumption(messageAllDevice)
-            device_auto_info = await ProcessAuto.get_parametter_device_list_auto_mode(messageAllDevice)
-            TotalPowerINVAuto = ProcessAuto.calculate_total_power_inv_auto(device_auto_info)
+            totalProduction, totalConsumption = await self.ennergy_instance.calculate_production_and_consumption(messageAllDevice)
+            device_auto_info = await self.process_auto_instance.get_parametter_device_list_auto_mode(messageAllDevice)
+            TotalPowerINVAuto = self.process_auto_instance.calculate_total_power_inv_auto(device_auto_info)
             for item in messageAllDevice:
-                device_info = ProcessSystem.get_device_details(item)
+                device_info = self.get_device_details(item)
                 if device_info:
                     ArrayDeviceList.append(device_info)
         # Calculate the sum of wmax values of all inv in the system
-        TotalPowerINV, TotalPowerINVMan = ProcessSystem.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+        TotalPowerINV, TotalPowerINVMan = self.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
         # Call the update_system_performance function and get the return value
-        SystemPerformance, statusString, statusInt = ProcessSystem.calculate_system_performance (
+        SystemPerformance, statusString, statusInt = self.calculate_system_performance (
             resultDB,
             totalProduction,
             TotalPowerINV,
@@ -91,7 +96,7 @@ class ProcessSystem:
                 #     'timestamp': get_utc(),
                 # }
     # 	 */ 
-    def get_device_details(item):
+    def get_device_details(self,item):
         if 'id_device' in item and 'mode' in item and 'status_device' in item:
             id_device = item['id_device']
             mode = item['mode']
@@ -106,11 +111,11 @@ class ProcessSystem:
             device_name = item['device_name']
             results_device_type = item['name_device_type']
             if results_device_type == "PV System Inverter":
-                operator, wmax, capacity_power, real_power = ProcessSystem.get_operator_wmax_capacitypower_realpower(item)
+                operator, wmax, capacity_power, real_power = self.get_operator_wmax_capacitypower_realpower(item)
                 if status_device == 'offline':
                     real_power = 0.0
                     operator = "off"
-                p_min = ProcessSystem.calculate_p_min(p_max_custom, p_min_percent)
+                p_min = self.calculate_p_min(p_max_custom, p_min_percent)
                 return {
                     'id_device': id_device,
                     'device_name': device_name,
@@ -213,9 +218,9 @@ class ProcessSystem:
             statusInt = 2
         return systemPerformance, statusString, statusInt
 # ==================================================== Get List Auto Device ==================================================================
-class ProcessAuto:
-    def __init__(self):
-        pass
+class ProcessAuto(ProcessSystem):
+    def __init__(self,process_system_instance):
+        self.process_system_instance = process_system_instance
     # Describe get_parametter_device_list_auto_mode 
     # 	 * @description get_parametter_device_list_auto_mode
     # 	 * @author bnguyen
@@ -223,18 +228,17 @@ class ProcessAuto:
     # 	 * @param {messageAllDevice}
     # 	 * @return ArayyDeviceList
     # 	 */ 
-    @staticmethod
-    async def get_parametter_device_list_auto_mode(messageAllDevice):
+    async def get_parametter_device_list_auto_mode(self,messageAllDevice):
         ArayyDeviceList = []
         if messageAllDevice and isinstance(messageAllDevice, list):
             for item in messageAllDevice:
-                device_info = ProcessAuto.get_device_auto_details(item)
+                device_info = self.get_device_auto_details(item)
                 if not device_info:
                     continue
                 # Get Information Each Device 
                 id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type = device_info
                 # Check Device Auto 
-                if ProcessAuto.is_device_controlable(results_device_type, status_device, mode, operator):
+                if self.is_device_controlable(results_device_type, status_device, mode, operator):
                     ArayyDeviceList.append({
                         'id_device': id_device,
                         'mode': mode,
@@ -253,8 +257,7 @@ class ProcessAuto:
     # 	 * @param {messageMQTT}
     # 	 * @return id_device, mode, status_device, p_max_custom, p_min, value, operator, slope, results_device_type
     # 	 */ 
-    @staticmethod
-    def get_device_auto_details(messageMQTT):
+    def get_device_auto_details(self,messageMQTT):
         if 'id_device' in messageMQTT and 'mode' in messageMQTT and 'status_device' in messageMQTT:
             id_device = messageMQTT['id_device']
             mode = messageMQTT['mode']
@@ -267,13 +270,13 @@ class ProcessAuto:
                 p_max_custom = p_max
             p_min_percent = messageMQTT['min_watt_in_percent']
             p_min = (p_max * p_min_percent) / 100 if p_max and p_min_percent else 0
-            value = ProcessAuto.get_device_value(messageMQTT, "ControlINV")
+            value = self.get_device_value(messageMQTT, "ControlINV")
             if value is None:
                 return None
-            operator = ProcessAuto.get_device_value(messageMQTT, "OperatingState")
+            operator = self.get_device_value(messageMQTT, "OperatingState")
             if operator is None:
                 return None
-            slope = ProcessAuto.get_device_value(messageMQTT, "WMax", field_key='slope')
+            slope = self.get_device_value(messageMQTT, "WMax", field_key='slope')
             if slope is None:
                 return None
             results_device_type = messageMQTT.get('name_device_type')
@@ -319,4 +322,47 @@ class ProcessAuto:
             total_power = round(sum(device['p_max'] for device in ArayyDeviceList if device['p_max'] is not None), 2)
             return total_power
         return 0
+
+class MQTTHandlerProcessSystem(ProcessSystem):
+    def __init__(self, process_instance):
+        self.process_instance = process_instance
+        
+    async def subscribe_to_mqtt_topics(self,mqtt_service,serial,setup_site_instance):
+        try:
+            client = mqttools.Client(
+                host=mqtt_service.host,
+                port=mqtt_service.port,
+                username=mqtt_service.username,
+                password=bytes(mqtt_service.password, 'utf-8'),
+                subscriptions=mqtt_service.topics,
+                connect_delays=[1, 2, 4, 8]
+            )
+            while True :
+                await client.start()
+                await self.consume_mqtt_messages(mqtt_service, client,serial,setup_site_instance)
+                await client.stop()
+        except Exception as err:
+            print(f"Error subscribing to MQTT topics: '{err}'")
+    
+    async def consume_mqtt_messages(self,mqtt_service, client,serial,setup_site_instance):
+        try:
+            while True:
+                message = await client.messages.get()
+                if message is None:
+                    print('Broker connection lost!')
+                    break
+                topic = message.topic
+                payload = MQTTService.gzip_decompress(mqtt_service, message.message)
+                await self.handle_mqtt_message(mqtt_service,payload,topic,serial,setup_site_instance)
+        except Exception as err:
+            print(f"Error consuming MQTT messages: '{err}'")
+    
+    async def handle_mqtt_message(self, mqtt_service, message,topic, serial,setup_site_instance):
+        try:
+            resultDB = await setup_site_instance.get_project_setup_values()
+            if message and resultDB:
+                await self.process_instance.create_message_for_process_systemp(mqtt_service, message, self.process_instance.mqtt_topic_push.Control_Process, resultDB)
+                print("Processed MQTT message")
+        except Exception as err:
+            print(f"Error handling MQTT message: '{err}'")
     

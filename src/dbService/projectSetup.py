@@ -13,11 +13,10 @@ class ProjectSetupService:
     @staticmethod
     async def selectAllProjectSetup(session: AsyncSession):
         try:
-            query = select(ProjectSetup)  # Tạo câu query Select All Bảng 
-            result = await session.execute(query)  # Thực hiện câu lệnh truy vấn
-            projects = result.scalars().all()  # Lấy tất cả các đối tượng ProjectSetup
+            query = select(ProjectSetup)
+            result = await session.execute(query)
+            projects = result.scalars().all()
 
-            # Xây dựng danh sách dict từ các đối tượng ProjectSetup
             return [
                 {
                     "id": project.id,
@@ -80,7 +79,7 @@ class ProjectSetupService:
                     "status": project.status,
                 }
                 for project in projects
-            ]  # Trả về danh sách các dict
+            ] 
         except Exception as e:
             print("Error in selectAllProjectSetup: ", e)
             return []
@@ -89,7 +88,6 @@ class ProjectSetupService:
     @staticmethod
     async def updateProjectSetup(session: AsyncSession, updates: dict):
         try:
-            # Giả định rằng bảng chỉ có một bản ghi
             query = select(ProjectSetup)
             result = await session.execute(query)
             project = result.scalars().one_or_none()
@@ -98,16 +96,14 @@ class ProjectSetupService:
                 print("No project found to update.")
                 return None
 
-            # Cập nhật các trường trong project
             for key, value in updates.items():
                 if hasattr(project, key):
                     setattr(project, key, value)
                 else:
                     print(f"Attribute {key} does not exist on ProjectSetup.")
 
-            # Lưu thay đổi vào cơ sở dữ liệu
             await session.commit()
-            return project.__dict__  # Trả về thông tin đã cập nhật
+            return project.__dict__ 
         except Exception as e:
             print("Error in updateProjectSetup: ", e)
             await session.rollback() 
@@ -139,7 +135,7 @@ class ProjectSetupService:
             )
             result = await session.execute(query)
             time_log_data_servers = result.scalars().all()
-            return time_log_data_servers[0]  # Trả về danh sách các giá trị
+            return time_log_data_servers[0]
         except Exception as e:
             print("Error in selectScheduledUploadTime: ", e)
             return None
@@ -154,7 +150,7 @@ class ProjectSetupService:
                 .join(ProjectSetup, ProjectSetup.id_time_wait_before_retry == ConfigInformation.id)
             )
             result = await session.execute(query)
-            time_retry = result.scalar()  # Lấy giá trị đầu tiên
+            time_retry = result.scalar()
             return time_retry
         except Exception as e:
             print("Error in get_time_log_data_server: ", e)

@@ -6,7 +6,7 @@
 import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, insert, join, literal_column, select, text, update  # Thêm import cho update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text, update
 from entity.devices.devices_entity import *
 class deviceMpptStringService:
     @staticmethod
@@ -17,10 +17,10 @@ class deviceMpptStringService:
                 .where(DeviceMPPTString.id_device_list == id_device_list, DeviceMPPTString.namekey == namekey)
                 .values(current=current)
             )
-            await session.execute(query)  # Thực hiện câu lệnh cập nhật
-            await session.commit()  # Cam kết thay đổi
+            await session.execute(query)
+            await session.commit()
         except Exception as e:
             print("Error in updateDeviceMPPTString: ", e)
-            await session.rollback()  # Hoàn tác nếu có lỗi
+            await session.rollback()
         finally:
             await session.close()
