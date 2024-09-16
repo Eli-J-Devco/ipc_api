@@ -4,13 +4,14 @@
 # *
 # *********************************************************/
 import asyncio
+import logging
 
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .components_service import ComponentsService
 from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter, \
-    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter, GetAvailableComponents
+    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter, GetAvailableComponents, GetComponentAdditionBase
 from .devices_service import DevicesService
 from .devices_utils_service import UtilsService
 from ..authentication.authentication_model import Authentication
@@ -28,7 +29,7 @@ class DevicesController:
         self.devices_service = devices_service
         self.components_service = components_service
         self.utils_service = utils_service
-        asyncio.run(self.devices_service.set_up_publisher())
+        # asyncio.run(self.devices_service.set_up_publisher())
 
     @Post("/get/all/")
     async def get_devices(self,
@@ -135,3 +136,23 @@ class DevicesController:
                                        session: AsyncSession = Depends(config.get_db),
                                        auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.components_service.get_available_components)(body, session)
+
+    # @Post("/component/addition/")
+    # async def get_addition_components(self,
+    #                                   body: GetComponentAdditionBase,
+    #                                   session: AsyncSession = Depends(config.get_db),
+    #                                   auth: Authentication = Depends(get_current_user)):
+    #     return await ServiceWrapper.async_wrapper(self.components_service.get_addition_components)(body, session)
+
+    # @Post("/input/get/")
+    # async def get_device_input_map(self,
+    #                                input_map_id: int,
+    #                                session: AsyncSession = Depends(config.get_db),
+    #                                auth: Authentication = Depends(get_current_user)):
+    #     return await ServiceWrapper.async_wrapper(self.utils_service.get_input_map)(input_map_id, session)
+
+    @Post("/connection/")
+    async def get_connection_types(self,
+                                   session: AsyncSession = Depends(config.get_db),
+                                   auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.utils_service.get_connection_types)(session)

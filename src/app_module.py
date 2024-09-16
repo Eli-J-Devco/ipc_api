@@ -23,7 +23,7 @@ from .user.user_module import UserModule
 from .role.role_module import RoleModule
 from .upload_channel.upload_channel_module import UploadChannelModule
 from .point_config.point_config_module import PointConfigModule
-from .point_mppt.point_mppt_module import PointMpptModule
+from .point_external.point_external_module import PointMpptModule
 from .point_control.point_control_module import PointControlModule
 from .register_block.register_block_module import RegisterBlockModule
 from .device_point.device_point_module import DevicePointModule

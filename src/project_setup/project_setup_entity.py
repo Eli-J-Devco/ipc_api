@@ -121,6 +121,7 @@ class ConfigInformation(config.Base):
     status: Mapped[int] = mapped_column(Integer, nullable=False)
     id_pointclass_type: Mapped[int] = mapped_column(Integer, ForeignKey("pointclass_type.id", ondelete="CASCADE",
                                                                         onupdate="CASCADE"), nullable=False)
+    table: Mapped[str] = mapped_column(String, nullable=True)
 
     config_type = relationship("ConfigType", foreign_keys=[id_type])
     pointclass_type = relationship("PointclassType", foreign_keys=[id_pointclass_type])

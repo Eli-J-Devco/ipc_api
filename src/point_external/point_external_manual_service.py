@@ -9,14 +9,14 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from .point_mppt_service import PointMpptService
-from .point_mppt_entity import PointMppt, ManualPointMppt as ManualPointMpptEntity
-from .point_mppt_model import PointMpptBase, PointString
+from .point_external_service import PointExternalService
+from .point_external_entity import PointMppt, ManualPointMppt as ManualPointMpptEntity
+from .point_external_model import PointMpptBase, PointString
 from ..point_config.point_config_filter import PointType
 
 
 @Injectable
-class ManualPointMpptService(PointMpptService):
+class ManualPointExternalService(PointExternalService):
 
     @async_db_request_handler
     async def add_string_point(self, id_template: int, point_string: PointString, id_point_mppt: int,

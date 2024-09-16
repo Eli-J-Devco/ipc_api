@@ -3,22 +3,22 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import json
 import logging
-from functools import reduce
 from typing import Sequence
 
 from fastapi import HTTPException, status
-from fastapi.encoders import jsonable_encoder
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy import select, text, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
-from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity
-from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents
-from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, DeviceGroup, \
-    ComponentGroup, DeviceUploadChannelMap
+from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity, DeviceConnection as DeviceConnectionEntity
+from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents, \
+    GetComponentAdditionBase
+from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
+    DeviceUploadChannelMap, DeviceComponentAdditionMap, DeviceComponentAddition
 from .devices_utils_service import UtilsService
 from ..template.template_entity import Template
 
@@ -89,21 +89,24 @@ class ComponentsService:
                                      .get_device_type_by_id(component.id_device_type, session))
                 component_name = device_type.name
 
-            num_of_new_component = component.quantity if component.quantity else 1
-            new_components = []
-            for _ in range(num_of_new_component):
-                new_components.append(DevicesEntity(name=f"{component_name} {count}",
-                                                    parent=parent,
-                                                    id_device_type=component.id_device_type,
-                                                    id_template=template.id,
-                                                    plug_point=component.plug_point
-                                                    if component.plug_point is not None else None,
-                                                    map_mppt=-1 if num_of_new_component > 1 else None,))
-                count += 1 if num_of_new_component > 1 else 0
-            session.add_all(new_components)
+            new_component = DevicesEntity(name=component_name,
+                                          parent=parent,
+                                          id_device_type=component.id_device_type,
+                                          id_template=template.id,
+                                          plug_point=component.plug_point
+                                          if component.plug_point is not None else None)
+
+            session.add(new_component)
             await session.flush()
-            symbolic_devices.extend([SymbolicDevice(id=new_component.id, name=new_component.name)
-                                     for new_component in new_components])
+
+            if component.addition is not None:
+                connection = DeviceConnectionEntity(device_list_id=new_component.id,
+                                                    device_table="device_list",
+                                                    connect_device_table=component.addition)
+                session.add(connection)
+                await session.flush()
+
+            symbolic_devices.append(SymbolicDevice(id=new_component.id, name=new_component.name))
             count += 1
         return symbolic_devices
 
@@ -123,17 +126,17 @@ class ComponentsService:
                  .where(DeviceComponentEntity.main_type == device_type.main_type)
                  .where(DeviceComponentEntity.sub_type == device_type.sub_type
                         if device_type.sub_type else text("1=1")))
-
-        result = await session.execute(query)
-        groups = result.scalars().all()
-        output = []
-        for group in groups:
-            base_component = DeviceComponentBase(**group.__dict__)
-            components = await self.utils_service.get_device_type_by_group(base_component.group, session)
-            output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
-                                          name=group.component_type.name,
-                                          type=group.component_type.type,
-                                          components=components))
+        with session.no_autoflush:
+            result = await session.execute(query)
+            groups = result.scalars().all()
+            output = []
+            for group in groups:
+                base_component = DeviceComponentBase(**group.__dict__)
+                components = await self.utils_service.get_device_type_by_group(base_component.group, session)
+                output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
+                                              name=group.component_type.name,
+                                              type=group.component_type.type,
+                                              components=components))
         return output
 
     @async_db_request_handler
@@ -147,7 +150,6 @@ class ComponentsService:
         :return: Sequence[DeviceComponentList]
         """
         device_types = await self.utils_service.get_device_type(session)
-
         output = []
         for device_type in device_types:
             device_component = await (self.get_device_components_by_main_type(GetDeviceComponentFilter(
@@ -242,8 +244,13 @@ class ComponentsService:
         for group in group_component:
             formatted_group = ComponentGroup(**group.dict(exclude={"components"}))
             device_type_components = list(map(lambda x: x.id, group.components))
-            device_components = list(map(lambda x: Component(**x.__dict__, image=x.device_type.image, device_type_name=x.device_type.name),
-                                     list(filter(lambda x: x.id_device_type in device_type_components, components))))
+            device_components = list(
+                map(lambda x: Component(**x.__dict__, image=x.device_type.image,
+                                        device_type_name=x.device_type.name),
+                    list(filter(lambda
+                                x: x.id_device_type in device_type_components
+                                and x.plug_point == formatted_group.plug_point,
+                                components))))
             formatted_group.components = device_components
             output.append(formatted_group)
 
@@ -327,10 +334,44 @@ class ComponentsService:
 
         query = (select(DevicesEntity)
                  .where(DevicesEntity.id_device_type == body.id_device_type)
-                 .where(DevicesEntity.parent.is_(None))
+                 .where(or_(DevicesEntity.parent.is_(None), DevicesEntity.parent == body.parent))
                  .where(DevicesEntity.id.notin_(body.exclude))
                  .where(DevicesEntity.name.like(f"%{body.name}%")))
         result = await session.execute(query)
         components = result.scalars().all()
 
         return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))
+
+    # @async_db_request_handler
+    # async def get_addition_components(self, body: GetComponentAdditionBase, session: AsyncSession):
+    #     """
+    #     Get addition components
+    #     :author: nhan.tran
+    #     :date: 09-09-2024
+    #     :param body: GetInverterComponentAddition
+    #     :param session: AsyncSession
+    #     :return: int
+    #     """
+    #     query = (select(DeviceComponentAdditionMapEntity)
+    #              .where(DeviceComponentAdditionMapEntity.id == body.id))
+    #     result = await session.execute(query)
+    #     addition = DeviceComponentAdditionMap(**result.scalar().__dict__)
+    #
+    #     criteria = addition.criteria
+    #     extract_criteria = criteria.split(addition.extract_symbol)
+    #     for c in extract_criteria:
+    #         extract_each_criteria = c.split("=")
+    #         try:
+    #             logging.info(f"Extract each criteria: {extract_each_criteria[0].strip()}")
+    #             if body.__getattribute__(extract_each_criteria[0].strip()) is not None:
+    #                 criteria = (criteria
+    #                             .replace(f"{extract_each_criteria[0]}=?",
+    #                                      f"{extract_each_criteria[0]}={str(body.__getattribute__(extract_each_criteria[0].strip()))}"))
+    #         except AttributeError:
+    #             continue
+    #     target = addition.target
+    #
+    #     query = text(f"SELECT COUNT(*) FROM {target} WHERE {criteria}")
+    #     result = await session.execute(query)
+    #
+    #     return DeviceComponentAddition(count=result.scalar(), addition=json.loads(addition.addition_column))

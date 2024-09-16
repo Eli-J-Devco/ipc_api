@@ -6,18 +6,18 @@
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter, DeletePointFilter
-from .point_mppt_normal_service import NormalPointMpptService
+from .point_external_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter, DeletePointFilter
+from .point_external_normal_service import NormalPointExternalService
 from ..authentication.authentication_model import Authentication
 from ..authentication.authentication_repository import get_current_user
 from ..config import config
 from ..utils.service_wrapper import ServiceWrapper
 
 
-@Controller("point_mppt")
-class PointMpptController:
+@Controller("point_external")
+class PointExternalController:
 
-    def __init__(self, point_mppt_service: NormalPointMpptService):
+    def __init__(self, point_mppt_service: NormalPointExternalService):
         self.point_mppt_service = point_mppt_service
 
     @Post("/add/")

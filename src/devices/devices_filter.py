@@ -57,6 +57,7 @@ class DeviceComponentFilter(BaseModel):
     type: Optional[int] = None
     plug_point: Optional[int] = None
     quantity: Optional[int] = None
+    addition: Optional[str] = None
 
 
 class AddComponentFilter(BaseModel):
@@ -137,3 +138,12 @@ class GetAvailableComponents(BaseModel):
     name: str
     id_device_type: int
     exclude: Optional[list[int]] = []
+    parent: Optional[int] = None
+
+
+class GetInverterComponentAddition(BaseModel):
+    id_template: int
+
+
+class GetComponentAdditionBase(GetInverterComponentAddition):
+    id: int

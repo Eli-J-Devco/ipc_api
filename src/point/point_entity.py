@@ -41,6 +41,9 @@ class Point(config.Base):
                                                                        onupdate="CASCADE"), nullable=False, default=252)
     id_type_function: Mapped[int] = mapped_column(Integer, ForeignKey("config_information.id", ondelete="CASCADE",
                                                                       onupdate="CASCADE"), nullable=True, default=269)
+    id_connection_type: Mapped[int] = mapped_column(Integer, ForeignKey("device_connection_type.id",
+                                                                        ondelete="CASCADE",
+                                                                        onupdate="CASCADE"), nullable=True)
     slope: Mapped[float] = mapped_column(DOUBLE, nullable=False)
     slopeenabled: Mapped[bool] = mapped_column(Integer, nullable=False, default=False)
     offset: Mapped[float] = mapped_column(DOUBLE, nullable=False)
@@ -75,6 +78,7 @@ class Point(config.Base):
     type_control = relationship("PointListControlGroup", foreign_keys=[id_control_group], lazy="immediate")
     type_function = relationship("ConfigInformation", foreign_keys=[id_type_function], lazy="immediate")
     reply_to_point = relationship("Point", remote_side=[parent])
+    connection_type = relationship("DeviceConnectionType", foreign_keys=[id_connection_type], lazy="immediate")
 
 
 class ManualPoint(config.Base):

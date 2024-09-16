@@ -116,9 +116,16 @@ class DevicesService:
             device["driver_type"] = driver_type
             device["device_type"] = device_type.__dict__ if device_type else None
 
+            query = (select(PointEntity)
+                     .filter(PointEntity.id_template == device["id_template"])
+                     .filter(PointEntity.id_config_information == PointType().MPPT_POINT))
+            result = await session.execute(query)
+            mppt_points = result.scalars().all()
+
             device = DeviceFull(**device)
             device.inverter_shutdown = device.inverter_shutdown.strftime("%Y-%m-%d") \
                 if device.inverter_shutdown else None
+            device.num_of_mptt = len(mppt_points)
             output.append(device.dict())
 
         return generate_pagination_response(output,
@@ -233,7 +240,7 @@ class DevicesService:
                         tcp_gateway_port=tcp_gateway_port,
                         rated_power_custom=body.rated_power,
                         id_communication=body.id_communication if not is_symbolic_device else None
-                    ).dict(exclude_none=True, exclude={"children"})
+                    ).dict(exclude_none=True, exclude={"children", "num_of_mptt"})
                 )
                 session.add(new_devices)
                 await session.flush()

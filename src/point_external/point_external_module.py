@@ -4,13 +4,13 @@
 # *
 # *********************************************************/
 from nest.core import Module
-from .point_mppt_controller import PointMpptController
-from .point_mppt_service import PointMpptService
+from .point_external_controller import PointExternalController
+from .point_external_service import PointExternalService
 
 
 @Module(
-    controllers=[PointMpptController],
-    providers=[PointMpptService],
+    controllers=[PointExternalController],
+    providers=[PointExternalService],
     imports=[]
 )   
 class PointMpptModule:

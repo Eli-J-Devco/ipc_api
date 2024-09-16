@@ -9,7 +9,7 @@ from pydantic import BaseModel
 
 from ..point.point_model import PointOutput
 from ..point_config.point_config_model import PointListControlGroupChildren
-from ..point_mppt.point_mppt_model import PointMppt, PointString
+from ..point_external.point_external_model import PointMppt, PointString
 from ..project_setup.project_setup_model import ConfigInformationShort
 from ..register_block.register_block_model import RegisterBlock
 

@@ -3,17 +3,21 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import json
+import logging
 from typing import Sequence
 
 from fastapi import HTTPException, status
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, text
 
-from .devices_entity import DeviceGroup as DeviceGroupEntity, DeviceType as DeviceTypeEntity
+from .devices_entity import (DeviceGroup as DeviceGroupEntity, DeviceType as DeviceTypeEntity,
+                             DeviceConnection as DeviceConnectionEntity,
+                             DeviceConnectionType as DeviceConnectionTypeEntity)
 from .devices_filter import AddDeviceGroupFilter
-from .devices_model import DeviceGroup, DeviceType
+from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection
 from ..template.template_entity import Template
 
 
@@ -108,9 +112,14 @@ class UtilsService:
         :param session:
         :return: list[DeviceTypeEntity] | HTTPException
         """
+        def convert_str_to_dict(obj):
+            obj.plug_point_count = json.loads(obj.plug_point_count) if obj.plug_point_count is not None else None
+            return obj.__dict__
+
         query = select(DeviceTypeEntity)
         result = await session.execute(query)
-        return result.scalars().all()
+        device_types = result.scalars().all()
+        return list(map(lambda x: DeviceType(**convert_str_to_dict(x)), device_types))
 
     @async_db_request_handler
     async def get_device_type_by_id(self, id_device_type: int,
@@ -165,3 +174,36 @@ class UtilsService:
         query = select(DeviceGroupEntity.id_device_type).filter(DeviceGroupEntity.id == id_device_group)
         result = await session.execute(query)
         return result.scalars().first()
+
+    # @async_db_request_handler
+    # async def get_input_map(self, device_id: int, session: AsyncSession):
+    #     """
+    #     Get input map
+    #     """
+    #     query = select(DeviceConnectionEntity).filter(DeviceConnectionEntity.device_list_id == device_id)
+    #     result = await session.execute(query)
+    #     input_map = list(map(lambda x: DeviceConnection(**x.__dict__), result.scalars().all()))
+    #
+    #     output = []
+    #     for item in input_map:
+    #         table = item.connect_device_table
+    #         value = item.connect_device_id
+    #         query = text(f"SELECT {table}.id, {table}.name FROM {table} WHERE {table}.id = {value}")
+    #         result = await session.execute(query)
+    #         result = result.first()
+    #         output.append(DeviceInputMap(id=result[0], name=result[1]))
+    #
+    #     return output
+
+    @async_db_request_handler
+    async def get_connection_types(self, session: AsyncSession) -> Sequence[DeviceConnection]:
+        """
+        Get connection types
+        :author: nhan.tran
+        :date: 16-09-2024
+        :param session:
+        :return: Sequence[DeviceConnection]
+        """
+        query = select(DeviceConnectionTypeEntity)
+        result = await session.execute(query)
+        return result.scalars().all()

@@ -110,9 +110,9 @@ class ConfigInformation(ConfigInformationShort):
     description: Optional[str] = None
     value: Optional[str] = None
     id_type: Optional[int] = None
-    type: Optional[int] = None
     status: Optional[bool] = None
     id_pointclass_type: Optional[int] = None
+    table: Optional[str] = None
 
     class Config:
         orm_mode = True

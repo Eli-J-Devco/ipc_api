@@ -11,9 +11,9 @@ from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .point_mppt_entity import PointMppt as PointMpptEntity
-from .point_mppt_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
-from .point_mppt_model import PointMppt, PointMpptBase, PointString
+from .point_external_entity import PointMppt as PointMpptEntity
+from .point_external_filter import AddMPPTFilter, AddStringFilter, AddPanelFilter
+from .point_external_model import PointMppt, PointMpptBase, PointString
 from ..config import env_config
 from ..devices.devices_service import DevicesService
 from ..point.point_model import PointBase
@@ -22,7 +22,7 @@ from ..utils.utils import generate_id
 
 
 @Injectable
-class PointMpptService:
+class PointExternalService:
     @abstractmethod
     async def add_point_mppt(self, id_template: int, point_mppt: PointMppt, session: AsyncSession) -> int:
         """

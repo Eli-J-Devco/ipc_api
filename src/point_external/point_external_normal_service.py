@@ -11,10 +11,10 @@ from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import select, delete
 
-from .point_mppt_service import PointMpptService
-from .point_mppt_entity import PointMppt as PointMpptEntity
-from .point_mppt_model import PointMpptBase, PointString, PointMppt
-from .point_mppt_filter import DeletePointFilter
+from .point_external_service import PointExternalService
+from .point_external_entity import PointMppt as PointMpptEntity
+from .point_external_model import PointMpptBase, PointString, PointMppt
+from .point_external_filter import DeletePointFilter
 from ..devices.devices_service import DevicesService
 # from ..point.point_filter import DeletePointFilter
 from ..point.point_model import PointBase
@@ -22,7 +22,7 @@ from ..point_config.point_config_filter import PointType
 
 
 @Injectable
-class NormalPointMpptService(PointMpptService):
+class NormalPointExternalService(PointExternalService):
     @async_db_request_handler
     async def get_last_string_formatted(self, id_template: int, parent: int, session: AsyncSession):
         query = (select(PointMpptEntity)

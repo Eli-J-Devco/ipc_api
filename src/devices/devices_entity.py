@@ -16,7 +16,6 @@ class Devices(config.Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     parent: Mapped[int] = mapped_column(Integer, nullable=True)
-    map_mppt: Mapped[int] = mapped_column(Integer, nullable=True)
     table_name: Mapped[str] = mapped_column(String, unique=True)
     view_table: Mapped[str] = mapped_column(String, unique=True)
     name: Mapped[str] = mapped_column(String, unique=True)
@@ -128,6 +127,7 @@ class DeviceType(config.Base):
                                                            onupdate="CASCADE"),
                                        nullable=True)
     image: Mapped[str] = mapped_column(String, nullable=True)
+    plug_point_count: Mapped[str] = mapped_column(String, nullable=True)
 
     device_type_group = relationship("DeviceTypeGroup", foreign_keys=[group])
 
@@ -164,7 +164,39 @@ class DeviceComponent(config.Base):
                                        nullable=False)
     quantity: Mapped[int] = mapped_column(Integer, nullable=True)
     require: Mapped[bool] = mapped_column(Integer, nullable=True)
-    plug_point: Mapped[str] = mapped_column(String, nullable=True)
+    plug_point: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    addition: Mapped[str] = mapped_column(String, nullable=True)
 
     main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
     component_type = relationship("DeviceTypeGroup", foreign_keys=[group], lazy="immediate")
+
+
+class DeviceConnection(config.Base):
+    __tablename__ = "device_connection"
+
+    device_list_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    device_table: Mapped[str] = mapped_column(String, primary_key=True, nullable=True)
+    connect_device_id: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
+    connect_device_table: Mapped[str] = mapped_column(String, primary_key=True, nullable=True)
+    type: Mapped[int] = mapped_column(Integer, ForeignKey("device_connection_type.id",
+                                                          ondelete="CASCADE",
+                                                          onupdate="CASCADE"))
+
+    connection_type = relationship("DeviceConnectionType", foreign_keys=[type])
+
+
+class DeviceConnectionType(config.Base):
+    __tablename__ = "device_connection_type"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)
+    type: Mapped[int] = mapped_column(Integer)
+    detail_type: Mapped[int] = mapped_column(Integer)
+    description: Mapped[str] = mapped_column(String, nullable=True)
+
+
+class DeviceMppt(config.Base):
+    __tablename__ = "device_mppt"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String, nullable=True)

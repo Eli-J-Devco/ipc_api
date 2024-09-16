@@ -9,16 +9,16 @@ from .template_service import TemplateService
 from ..devices.devices_service import DevicesService
 from ..point.point_service import PointService
 from ..point_control.point_control_service import PointControlService
-from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
-from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
+from ..point_external.point_external_normal_service import NormalPointExternalService
+from ..point_external.point_external_manual_service import ManualPointExternalService
 from ..register_block.register_block_service import RegisterBlockService
 
 
 @Module(
     controllers=[TemplateController],
     providers=[TemplateService,
-               ManualPointMpptService,
-               NormalPointMpptService,
+               ManualPointExternalService,
+               NormalPointExternalService,
                PointService,
                RegisterBlockService,
                PointControlService,

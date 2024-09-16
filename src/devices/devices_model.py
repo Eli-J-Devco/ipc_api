@@ -17,6 +17,7 @@ class DeviceType(BaseModel):
     name: Optional[str] = None
     type: Optional[int] = None
     image: Optional[str] = None
+    plug_point_count: Optional[dict | str] = None
 
     class Config:
         orm_mode = True
@@ -25,7 +26,7 @@ class DeviceType(BaseModel):
 class DeviceFull(BaseModel):
     id: Optional[int] = None
     parent: Optional[int] = None
-    map_mppt: Optional[int] = None
+    input_map: Optional[int] = None
     table_name: Optional[str] = None
     view_table: Optional[str] = None
     name: Optional[str] = None
@@ -82,8 +83,10 @@ class DeviceFull(BaseModel):
     plug_point: Optional[int] = None
     status: Optional[bool] = True
     driver_type: Optional[str] = None
+
     device_type: Optional[DeviceType] = None
     template: Optional[TemplateBase] = None
+    num_of_mptt: Optional[int] = 0
     children: Optional[bool] = False
 
 
@@ -126,7 +129,8 @@ class DeviceComponentBase(BaseModel):
     group: Optional[int] = None
     quantity: Optional[int] = None
     require: Optional[bool] = False
-    plug_point: Optional[str] = None
+    plug_point: Optional[int] = None
+    addition: Optional[str] = None
 
 
 class DeviceComponent(DeviceComponentBase):
@@ -150,7 +154,7 @@ class Component(BaseModel):
     plug_point: Optional[int] = None
     id_device_type: Optional[int] = None
     device_type_name: Optional[str] = None
-    mppt_id: Optional[int] = None
+    input_map: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -163,7 +167,36 @@ class ComponentGroup(BaseModel):
     quantity: Optional[int] = None
     type: Optional[int] = None
     require: Optional[bool] = False
+    plug_point: Optional[int] = None
     components: Optional[list[Component]] = None
 
     class Config:
         orm_mode = True
+
+
+class DeviceComponentAdditionMap(BaseModel):
+    id: Optional[int] = None
+    target: Optional[str] = None
+    criteria: Optional[str] = None
+    extract_symbol: Optional[str] = None
+    addition_column: Optional[str] = None
+
+
+class DeviceComponentAddition(BaseModel):
+    count: Optional[int] = None
+    addition: Optional[dict | str] = None
+
+
+class DeviceConnection(BaseModel):
+    device_list_id: Optional[int] = None
+    connect_device_id: Optional[int] = None
+    connect_device_table: Optional[str] = None
+    type: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+
+class DeviceInputMap(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None

@@ -27,8 +27,8 @@ from ..point_config.point_config_service import PointConfigService
 from ..point_config.point_control_group_config_service import PointControlGroupConfigService
 from ..point_control.point_control_entity import PointControl as PointControlEntity
 from ..point_control.point_control_service import PointControlService
-from ..point_mppt.point_mppt_manual_service import ManualPointMpptService
-from ..point_mppt.point_mppt_normal_service import NormalPointMpptService
+from ..point_external.point_external_manual_service import ManualPointExternalService
+from ..point_external.point_external_normal_service import NormalPointExternalService
 from ..project_setup.project_setup_service import ProjectSetupService
 from ..register_block.register_block_service import RegisterBlockService
 from ..utils.service_wrapper import ServiceWrapper
@@ -37,8 +37,8 @@ from ..utils.service_wrapper import ServiceWrapper
 @Injectable
 class TemplateService:
     def __init__(self,
-                 manual_point_mppt_service: ManualPointMpptService,
-                 point_mppt_service: NormalPointMpptService,
+                 manual_point_mppt_service: ManualPointExternalService,
+                 point_mppt_service: NormalPointExternalService,
                  point_service: PointService,
                  register_block_service: RegisterBlockService,
                  point_control_service: PointControlService,
