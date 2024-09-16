@@ -64,27 +64,25 @@ class CPUInfo:
             "TotalCPUUsage": f"{psutil.cpu_percent()}%"
         }
 
-    @staticmethod
-    def getMemoryInformation():
+    def getMemoryInformation(self):
         svmem = psutil.virtual_memory()
         swap = psutil.swap_memory()
         return {
-            "Total": CPUInfo.get_readable_size(svmem.total),
-            "Available": CPUInfo.get_readable_size(svmem.available),
-            "Used": CPUInfo.get_readable_size(svmem.total - svmem.available),
-            "UsedReal": CPUInfo.get_readable_size(svmem.used),
-            "Free": CPUInfo.get_readable_size(svmem.free),
+            "Total": self.get_readable_size(svmem.total),
+            "Available": self.get_readable_size(svmem.available),
+            "Used": self.get_readable_size(svmem.total - svmem.available),
+            "UsedReal": self.get_readable_size(svmem.used),
+            "Free": self.get_readable_size(svmem.free),
             "Percentage": f"{svmem.percent:.1f}%",
             "SWAP": {
-                "Total": CPUInfo.get_readable_size(swap.total),
-                "Free": CPUInfo.get_readable_size(swap.free),
-                "Used": CPUInfo.get_readable_size(swap.used),
+                "Total": self.get_readable_size(swap.total),
+                "Free": self.get_readable_size(swap.free),
+                "Used": self.get_readable_size(swap.used),
                 "Percentage": f"{swap.percent}%"
             }
         }
 
-    @staticmethod
-    def getDiskInformation():
+    def getDiskInformation(self):
         total_disk_size = 0
         total_disk_used = 0
         disk_partitions = psutil.disk_partitions()
@@ -100,9 +98,9 @@ class CPUInfo:
 
                 unique_partitions[partition_key] = {
                     "MountPoint": partition.mountpoint,
-                    "TotalSize": CPUInfo.get_readable_size(partition_usage.total),
-                    "Used": CPUInfo.get_readable_size(partition_usage.used),
-                    "Free": CPUInfo.get_readable_size(partition_usage.free),
+                    "TotalSize": self.get_readable_size(partition_usage.total),
+                    "Used": self.get_readable_size(partition_usage.used),
+                    "Free": self.get_readable_size(partition_usage.free),
                     "Percentage": f"{(partition_usage.used / partition_usage.total) * 100:.1f}%"
                 }
 
@@ -112,9 +110,9 @@ class CPUInfo:
                 continue
 
         return {
-            "TotalSize": CPUInfo.get_readable_size(total_disk_size),
-            "Used": CPUInfo.get_readable_size(total_disk_used),
-            "Free": CPUInfo.get_readable_size(total_disk_size - total_disk_used),
+            "TotalSize": self.get_readable_size(total_disk_size),
+            "Used": self.get_readable_size(total_disk_used),
+            "Free": self.get_readable_size(total_disk_size - total_disk_used),
             "Percentage": f"{(total_disk_used / total_disk_size) * 100:.1f}%"
         }
 
@@ -137,29 +135,27 @@ class CPUInfo:
                     }
         return network_info
 
-    @staticmethod
-    def getNetworkSpeedInformation(net_io_counters_prev):
+    def getNetworkSpeedInformation(self,net_io_counters_prev):
         net_io_counters = psutil.net_io_counters()
         current_time = datetime.now()
         time_diff = (current_time - net_io_counters_prev["Timestamp"]).total_seconds()
         if time_diff < 1:
             return None  
         else:
-            upstream = CPUInfo.convert_bytes_to_readable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
-            downstream = CPUInfo.convert_bytes_to_readable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
+            upstream = self.convert_bytes_to_readable((net_io_counters.bytes_sent - net_io_counters_prev["TotalSent"]) / time_diff, unit="KB")
+            downstream = self.convert_bytes_to_readable((net_io_counters.bytes_recv - net_io_counters_prev["TotalReceived"]) / time_diff, unit="KB")
             net_io_counters_prev["TotalSent"] = net_io_counters.bytes_sent
             net_io_counters_prev["TotalReceived"] = net_io_counters.bytes_recv
             net_io_counters_prev["Timestamp"] = current_time
         return {
             "Upstream": upstream,
             "Downstream": downstream,
-            "TotalSent": CPUInfo.get_readable_size(net_io_counters.bytes_sent),
-            "TotalReceived": CPUInfo.get_readable_size(net_io_counters.bytes_recv),
+            "TotalSent": self.get_readable_size(net_io_counters.bytes_sent),
+            "TotalReceived": self.get_readable_size(net_io_counters.bytes_recv),
             "Timestamp": f"{current_time.hour}:{current_time.minute}:{current_time.second}"
         }
 
-    @staticmethod
-    def getDiskIoInformation(disk_io_counters_prev):
+    def getDiskIoInformation(self,disk_io_counters_prev):
         disk_io_counters = psutil.disk_io_counters()
         current_time = datetime.now()
         time_diff = (current_time - disk_io_counters_prev["Timestamp"]).total_seconds()

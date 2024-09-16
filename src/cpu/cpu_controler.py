@@ -37,6 +37,7 @@ def get_utc():
 
 async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
     global net_io_counters_prev, disk_io_counters_prev 
+    cpu_infor_instance = CPUInfo()
     timeStampPudCpuInformation = get_utc()
     system_info = {
         "Timestamp": timeStampPudCpuInformation,
@@ -52,14 +53,14 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
     }
     try:
         # get system information
-        system_info["SystemInformation"] = CPUInfo.getSystemInformation()
-        system_info["BootTime"] = CPUInfo.getBootTime() or {}
-        system_info["CPUInfo"] = CPUInfo.getCpuInformation() or {}
-        system_info["MemoryInformation"] = CPUInfo.getMemoryInformation() or {}
-        system_info["DiskInformation"] = CPUInfo.getDiskInformation() or {}
-        system_info["NetworkInformation"] = CPUInfo.getNetworkInformation() or {}
-        system_info["NetworkSpeed"] = CPUInfo.getNetworkSpeedInformation(net_io_counters_prev) or {}
-        system_info["DiskIO"] = CPUInfo.getDiskIoInformation(disk_io_counters_prev) or {}
+        system_info["SystemInformation"] = cpu_infor_instance.getSystemInformation()
+        system_info["BootTime"] = cpu_infor_instance.getBootTime() or {}
+        system_info["CPUInfo"] = cpu_infor_instance.getCpuInformation() or {}
+        system_info["MemoryInformation"] = cpu_infor_instance.getMemoryInformation() or {}
+        system_info["DiskInformation"] = cpu_infor_instance.getDiskInformation() or {}
+        system_info["NetworkInformation"] = cpu_infor_instance.getNetworkInformation() or {}
+        system_info["NetworkSpeed"] = cpu_infor_instance.getNetworkSpeedInformation(net_io_counters_prev) or {}
+        system_info["DiskIO"] = cpu_infor_instance.getDiskIoInformation(disk_io_counters_prev) or {}
         # sent data to mqtt
         MQTTService.push_data(mqtt_service, Topic_CPU_Information + "Binh", system_info)
         MQTTService.push_data_zip(mqtt_service, Topic_CPU_Information, system_info)

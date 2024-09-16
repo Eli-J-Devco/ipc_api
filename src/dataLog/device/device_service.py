@@ -23,7 +23,7 @@ class LogDevice:
 class MQTTHandler(LogDevice):
     def __init__(self, log_device_instance):
         self.log_device_instance = log_device_instance
-        
+    
     async def subscribe_to_mqtt_topics(self,mqtt_service,time_interval_log_device):
         try:
             client = mqttools.Client(
