@@ -29,6 +29,7 @@ class MainClass:
         self.current_time_interval = None
         self.time_sync = None
         self.time_interval = None
+        self.type_of_file = None
     # initialize the necessary parameters
     async def start_mqtt_service(self):
         sync_data_instance = SyncData()
@@ -65,7 +66,7 @@ class MainClass:
             scheduler.start()
             
             # update parameters db init 
-            asyncio.create_task(self.update_parameter(setup_site_instance, sync_data_instance, type_of_file))
+            asyncio.create_task(self.update_parameter(setup_site_instance, sync_data_instance,log_file_instance))
             
             # function to send and receive messages using mqtt
             tasks = []
@@ -74,18 +75,20 @@ class MainClass:
             await asyncio.gather(*tasks, return_exceptions=False)
         await asyncio.sleep(0.05)
         
-    async def update_parameter(self, setup_site_instance, sync_data_instance, type_of_file):
+    async def update_parameter(self, setup_site_instance, sync_data_instance,log_file_instance):
         while True:
             try:
                 db_new = await config.get_db()
                 time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
                 time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
                 time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
-                
-                if time_interval_log_device != self.current_time_interval or time_sync != self.time_sync:
+                type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
+
+                if time_interval_log_device != self.current_time_interval or time_sync != self.time_sync or type_of_file != self.type_of_file:
                     self.current_time_interval = time_interval_log_device 
                     self.time_sync = time_sync
                     self.time_interval = time_interval
+                    self.type_of_file = type_of_file
                     # stop jod current 
                     self.scheduler.remove_job('sync1_log')
                     self.scheduler.remove_job('sync2_log')
