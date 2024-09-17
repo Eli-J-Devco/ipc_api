@@ -158,4 +158,37 @@ class SyncDataService:
             return None
         finally:
             await session.close()
+    @staticmethod
+    async def update_number_of_time_retry(session: AsyncSession, id: int, id_upload_channel: int, id_device: int):
+        try:
+            query = select(SyncData.number_of_time_retry).where(
+                SyncData.id == id,
+                SyncData.id_upload_channel == id_upload_channel,
+                SyncData.id_device == id_device
+            )
+            result = await session.execute(query)
+            current_retry_value = result.scalar_one_or_none()
+
+            if current_retry_value is not None:
+                new_retry_value = current_retry_value + 1
+
+                update_query = (
+                    update(SyncData)
+                    .where(
+                        SyncData.id == id,
+                        SyncData.id_upload_channel == id_upload_channel,
+                        SyncData.id_device == id_device
+                    )
+                    .values(number_of_time_retry=new_retry_value)
+                )
+                update_result = await session.execute(update_query)
+                await session.commit()  
+
+                return new_retry_value  
+            return current_retry_value
+        except Exception as e:
+            print("Error in update_number_of_time_retry: ", e)
+            return None
+        finally:
+            await session.close()
 

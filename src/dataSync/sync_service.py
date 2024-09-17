@@ -281,11 +281,13 @@ class URL(SyncData):
         if response == 200:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for id: {id} with result: {result}")
+                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
-            for id in id_time:
+            number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
+            print(f"Updated number retry:{number_time_rety}")
+            if number_time_rety == 5 :
                 result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                print(f"Updated error status for id: {id} with result: {result}")
+            print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -318,11 +320,14 @@ class FileLog(SyncData):
         if response == "\nSUCCESS\n":
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for id: {id} with result: {result}")
+                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
-                result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                print(f"Updated error status for id: {id} with result: {result}")
+                number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
+                print(f"Updated number retry:{number_time_rety}")
+                if number_time_rety == 5 :
+                    result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
+                print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FTP(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -355,8 +360,11 @@ class FTP(SyncData):
         if response == True:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for id: {id} with result: {result}")
+                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
-                result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                print(f"Updated error status for id: {id} with result: {result}")
+                number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
+                print(f"Updated number retry:{number_time_rety}")
+                if number_time_rety == 5 :
+                    result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
+                print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")

@@ -155,7 +155,7 @@ def init_sync_file():
             id = item["id"]
             name = item["name"]
             type_protocol= item["type_protocol"]
-            pid = f'UpData|{id}|{name}|{type_protocol}'
+            pid = f'SyncData|{id}|{name}|{type_protocol}'
             if item["enable"]==1:
                 if sys.platform == 'win32':
                     subprocess.Popen(
