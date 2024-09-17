@@ -26,6 +26,9 @@ from deviceControl.setupSite.setup_site_service import *
 class MainClass:
     def __init__(self, id_channel):
         self.id_channel = id_channel
+        self.current_time_interval = None
+        self.time_sync = None
+        self.time_interval = None
     # initialize the necessary parameters
     async def start_mqtt_service(self):
         sync_data_instance = SyncData()
@@ -54,12 +57,15 @@ class MainClass:
             # run services on cycle time
             scheduler = AsyncIOScheduler()
             if time_sync in [0, 23]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'cron', hour=time_sync, args=[self.id_channel, type_of_file])
+                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'cron', hour=time_sync, args=[self.id_channel, type_of_file],id='sync1_log')
             elif time_sync in [95, 96, 99]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval, args=[self.id_channel, type_of_file])
+                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval, args=[self.id_channel, type_of_file],id='sync2_log')
             elif time_sync in [97, 98]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval, args=[self.id_channel, type_of_file])
+                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval, args=[self.id_channel, type_of_file],id='sync3_log')
             scheduler.start()
+            
+            # update parameters db init 
+            asyncio.create_task(self.update_parameter(setup_site_instance, sync_data_instance, type_of_file))
             
             # function to send and receive messages using mqtt
             tasks = []
@@ -67,7 +73,31 @@ class MainClass:
             tasks.append(mqtt_handler_instance.subscribe_to_mqtt_topics(mqtt_service, time_sync, self.id_channel, type_of_file, project_setup_config["serial_number"]))
             await asyncio.gather(*tasks, return_exceptions=False)
         await asyncio.sleep(0.05)
-
+        
+    async def update_parameter(self, setup_site_instance, sync_data_instance, type_of_file):
+        while True:
+            try:
+                db_new = await config.get_db()
+                time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
+                time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
+                time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
+                
+                if time_interval_log_device != self.current_time_interval or time_sync != self.time_sync:
+                    self.current_time_interval = time_interval_log_device 
+                    self.time_sync = time_sync
+                    self.time_interval = time_interval
+                    # stop jod current 
+                    self.scheduler.remove_job('sync1_log')
+                    self.scheduler.remove_job('sync2_log')
+                    self.scheduler.remove_job('sync3_log')
+                    # run new job 
+                    self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging,'cron',hour=f'*/{time_interval_log_device}', args=[self.id_channel, type_of_file],id='sync1_log')
+                    self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval, args=[self.id_channel, type_of_file],id='sync2_log')
+                    self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval, args=[self.id_channel, type_of_file],id='sync3_log')
+                await asyncio.sleep(50) # check 50s 
+            except Exception as e:
+                print("Error in update_parameter:", e)
+                
 if __name__ == '__main__':
     id_channel = sys.argv[1]
     main_instance = MainClass(id_channel)
