@@ -247,25 +247,7 @@ def MySQL_Update_V1(query, val):
     else:
         return None
 
-def MySQL_Update_v2(query, val):
-    db = create_server_connection(
-        DATABASE_HOSTNAME, DATABASE_PORT, DATABASE_USERNAME, DATABASE_PASSWORD, DATABASE_NAME)
-    if db:
-        cursor = db.cursor(dictionary=True)
-        try:
-            cursor.executemany(query, val)
-            db.commit()
-            result = cursor.rowcount
-            cursor.close()
-            db.close()
-            return result
-        except Exception as err:
-            cursor.close()
-            db.close()
-            print(f"Error: '{err}'")
-            return None
-    else:
-        return None
+
 
 def MySQL_Delete(query):
     db = create_server_connection(

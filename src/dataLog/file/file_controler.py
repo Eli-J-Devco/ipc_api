@@ -16,7 +16,6 @@ arr = sys.argv  # Id Channel
 IdChannel = arr[1]
 from configs.config import MQTTSettings, MQTTTopicSUD, FolderSetting
 from utils.MQTTService import *
-from utils.libMySQL import *
 from utils.libTime import *
 from dataLog.file.file_service import *
 from deviceControl.setupSite.setup_site_service import *

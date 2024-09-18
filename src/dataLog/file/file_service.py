@@ -11,7 +11,6 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from utils.MQTTService import *
 from utils.libTime import *
-from utils.libMySQL import *
 from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService

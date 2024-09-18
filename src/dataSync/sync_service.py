@@ -14,7 +14,6 @@ from configs.config import SyncSetting
 from configs.config import orm_provider as config
 from utils.MQTTService import *
 from utils.libTime import *
-from utils.libMySQL import *
 from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService

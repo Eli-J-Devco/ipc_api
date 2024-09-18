@@ -9,7 +9,7 @@ sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
 from utils.MQTTService import *
-from utils.libMySQL import *
+from deviceControl.setupSite.db_sql import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
@@ -122,7 +122,7 @@ class SetupSite:
                 values = [tuple(update_values)]
                 query = f"UPDATE project_setup SET {update_fields}"
                 if query and update_values:
-                    result = MySQL_Update_v2(query, values)
+                    result = update_project_setup(query, values)
                 if result is not None:
                     status = 200
                 else:

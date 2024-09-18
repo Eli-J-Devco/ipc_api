@@ -14,7 +14,6 @@ sys.path.append(path)
 
 from configs.config import MQTTSettings, MQTTTopicSUD
 from utils.MQTTService import *
-from utils.libMySQL import *
 from utils.libTime import *
 from dataLog.device.device_service import *
 from deviceControl.setupSite.setup_site_service import *

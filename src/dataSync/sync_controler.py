@@ -17,7 +17,6 @@ IdChannel = arr[1]
 from configs.config import MQTTSettings, MQTTTopicSUD, FolderSetting
 from configs.config import orm_provider as config
 from utils.MQTTService import *
-from utils.libMySQL import *
 from utils.libTime import *
 from dataSync.sync_service import *
 from dataLog.file.file_service import *

@@ -11,7 +11,7 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from utils.MQTTService import *
 from utils.libTime import *
-from utils.libMySQL import *
+from dataLog.device.db_sql import *
 from dbService.deviceMppt import deviceMpptService
 from dbService.deviceMpptString import deviceMpptStringService
 from configs.config import orm_provider as config
@@ -165,16 +165,19 @@ class LogAllDevice(LogDevice):
         self.log_device_instance = log_device_instance
         
     async def insert_list_device_data(self):
-        if self.log_device_instance.messageLogDevice :
-            tasks = []
+        timeCurrent = get_utc()
+        value_insert_db = []
+        if self.log_device_instance.messageLogDevice:
             for item in self.log_device_instance.messageLogDevice:
                 deviceId = item["id"]
-                task = self.insert_each_device_data(deviceId, self.log_device_instance.messageLogDevice)
-                tasks.append(task)
-            await asyncio.gather(*tasks)
+                queries = await self.create_data_insert_db(timeCurrent,deviceId, self.log_device_instance.messageLogDevice)
+                value_insert_db.append(queries)
+        if len(value_insert_db) == len(self.log_device_instance.messageLogDevice):
+            insert_data_table_device(value_insert_db)
             
-    async def insert_each_device_data(self, IdDeviceFromListMQTTAll, resultListDevice):
-        dictionaryQueriesEachOfDevice = {}
+    async def create_data_insert_db(self, timeCurrent,IdDeviceFromListMQTTAll, resultListDevice):
+        queries = {}
+        converted_queries = {}
         arrayDataUsingLogDB = []
         arrayFieldOfDevice = []
         DictID = [item for item in resultListDevice if item["id"] == IdDeviceFromListMQTTAll]
@@ -184,17 +187,22 @@ class LogAllDevice(LogDevice):
         if not arrayDataUsingLogDB: 
             arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
         try:
-            timeCurrent = get_utc()
             ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll) + tuple(arrayDataUsingLogDB)
             ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
             columns = ["time", "id_device"] + arrayFieldOfDevice
             tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
             queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-            dictionaryQueriesEachOfDevice[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
-            MySQL_Insert_v3(dictionaryQueriesEachOfDevice)
+            queries[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
+            # conver list queries to dic converted_queries
+            sql, values = queries[IdDeviceFromListMQTTAll]
+            converted_queries = {
+            'sql': sql,
+            'values': [values] 
+            }
+            return converted_queries
         except Exception as e:
             print(f"Error during file creation is : {e}")
-        return dictionaryQueriesEachOfDevice
+            return None
 class LogMPTTDevice(LogDevice):
     def __init__(self, log_device_instance):
         self.log_device_instance = log_device_instance
