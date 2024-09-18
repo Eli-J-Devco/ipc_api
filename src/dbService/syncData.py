@@ -8,6 +8,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert,delete,update, join, literal_column, select, text
 from entity.sync_data.sync_data_entity import *
+from dbModel.sync_data_model import SyncDataModel 
 
 class SyncDataService:
     @staticmethod
@@ -53,7 +54,7 @@ class SyncDataService:
         finally:
             await session.close()
     @staticmethod
-    async def select_number_row_send_cloud(session: AsyncSession, id_upload_channel: int, id_device: int, limit: int ):
+    async def select_number_row_send_cloud(session: AsyncSession, id_upload_channel: int, id_device: int, limit: int):
         try:
             query = (
                 select(SyncData)
@@ -71,7 +72,21 @@ class SyncDataService:
             sync_data_list = result.scalars().all()
 
             return [
-                {key: value for key, value in record.__dict__.items() if key != '_sa_instance_state'}
+                SyncDataModel(**{
+                    "id": record.id,
+                    "id_device": record.id_device,
+                    "modbusdevice": record.modbusdevice,
+                    "ensuredir": record.ensure_dir,
+                    "source": record.source,
+                    "filename": record.filename,
+                    "createtime": record.createtime,
+                    "data": record.data,
+                    "id_upload_channel": record.id_upload_channel,
+                    "synced": record.synced,
+                    "updatetime": record.updatetime,
+                    "error": record.error,
+                    "number_of_time_retry": record.number_of_time_retry,
+                })
                 for record in sync_data_list
             ]
         except Exception as e:

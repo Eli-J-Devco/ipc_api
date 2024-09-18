@@ -1,0 +1,64 @@
+from pydantic import BaseModel
+
+class ProjectSetupModel(BaseModel):
+    id: int
+    name: str
+    serial_number: str
+    location: str
+    description: str
+    administrative_contact: str
+    enable_upload_data_on_alarm_status: bool
+    enable_upload_data_on_low_disk: bool
+    enable_upload_data_on_system_startup: bool
+    link_remote_access: str
+    allow_remote_access: bool
+    enable_static_routing: bool
+    mode: str
+    Time1cycle: int
+    sampling_time1cycle: int
+    control_mode: str
+    value_offset_zero_export: float
+    threshold_zero_export: float
+    value_power_limit: float
+    value_offset_power_limit: float
+    kp_zero_export: float
+    ki_zero_export: float
+    kd_zero_export: float
+    delta_time_zero_export: float
+    kp_power_limit: float
+    ki_power_limit: float
+    kd_power_limit: float
+    delta_time_power_limit: float
+    value_zero_export: float
+    enable_power_limit: bool
+    powermeter_target_point: str
+    enable_zero_export: bool
+    powermeter_tolerance: float
+    powermeter_max_point: float
+    slow_approx_limit_in_percent: float
+    slow_approx_factor_in_percent: float
+    loop_interval_in_seconds: int
+    set_limit_delay_in_seconds: int
+    set_limit_timeout_seconds: int
+    set_limit_delay_in_seconds_multiple_inverter: int
+    poll_interval_in_seconds: int
+    on_grid_usage_jump_to_limit_percent: float
+    max_difference_between_limit_and_outputpower: float
+    set_limit_retry: int
+    set_power_status_delay_in_seconds: int
+    enable_search_modbus_rtu_device: bool
+    modhopper1: str
+    modhopper2: str
+    modhopper_key: str
+    modhopper_rf_config: str
+    modhopper_rf_channel: str
+    mqtt_broker_cloud: str
+    mqtt_port_cloud: int
+    mqtt_username_cloud: str
+    mqtt_password_cloud: str
+    low_performance: bool
+    high_performance: bool
+    status: str
+
+    class Config:
+        orm_mode = True

@@ -6,9 +6,11 @@
 import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, insert, join, literal_column, select, text, update  # Thêm import cho update
+from sqlalchemy.sql import func, insert, join, literal_column, select, text, update 
 from entity.devices.devices_entity import *
 from entity.upload_channel.upload_channel_entity import *
+from dbModel.device_list_model import DeviceModel 
+
 class deviceListService:
     @staticmethod
     async def selectAllDeviceList(session: AsyncSession):
@@ -16,7 +18,7 @@ class deviceListService:
             query = select(Devices)
             result = await session.execute(query)
             projects = result.scalars().all()
-            return [project.__dict__ for project in projects] 
+            return [DeviceModel.from_orm(project) for project in projects]
         except Exception as e:
             print("Error in queryAllProjectSetup: ", e)
             return []
@@ -31,7 +33,7 @@ class deviceListService:
             device = result.scalars().one_or_none()
             if device is None:
                 return None
-            return device.__dict__ 
+            return DeviceModel.from_orm(device) 
         except Exception as e:
             print("Error in queryDeviceById: ", e)
             return None
@@ -53,6 +55,7 @@ class deviceListService:
             return None
         finally:
             await session.close()
+
     @staticmethod
     async def updateDeviceModeByType(session: AsyncSession, mode: int):
         try:
@@ -70,6 +73,7 @@ class deviceListService:
             return None
         finally:
             await session.close()
+
     @staticmethod
     async def selectUniqueModesByDeviceType(session: AsyncSession):
         try:
@@ -86,6 +90,7 @@ class deviceListService:
             return None
         finally:
             await session.close()
+
     @staticmethod
     async def selectDevicesByUploadChannelID(session: AsyncSession, upload_channel_id: int):
         try:
@@ -96,7 +101,7 @@ class deviceListService:
             )
             result = await session.execute(query)
             devices = result.mappings().all()
-            return [dict(device) for device in devices]
+            return [DeviceModel(**device) for device in devices]
         except Exception as e:
             print("Error in selectDevicesByUploadChannel: ", e)
             return []

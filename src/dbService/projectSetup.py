@@ -8,6 +8,7 @@ import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 from entity.project_setup.project_setup_entity import *
+from dbModel.project_setup_model import ProjectSetupModel 
 
 class ProjectSetupService:
     @staticmethod
@@ -18,7 +19,7 @@ class ProjectSetupService:
             projects = result.scalars().all()
 
             return [
-                {
+                ProjectSetupModel(**{
                     "id": project.id,
                     "name": project.name,
                     "serial_number": project.serial_number,
@@ -77,7 +78,7 @@ class ProjectSetupService:
                     "low_performance": project.low_performance,
                     "high_performance": project.high_performance,
                     "status": project.status,
-                }
+                })
                 for project in projects
             ] 
         except Exception as e:

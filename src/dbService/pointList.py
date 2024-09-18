@@ -1,15 +1,9 @@
-# ********************************************************
-# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
-# * All rights reserved.
-# *
-# *********************************************************/
-import datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, insert, join, literal_column, select, text
+from sqlalchemy import select
 from entity.project_setup.project_setup_entity import *
 from entity.pointList.point_list_entity import *
 from entity.devices.devices_entity import *
+from dbModel.point_list_model import PointKeyModel 
 
 class PointListService:
     @staticmethod
@@ -28,10 +22,9 @@ class PointListService:
             )
             result = await session.execute(query)
             points = result.mappings().all()
-            return [dict(row) for row in points] 
+            return [PointKeyModel(id_pointkey=row["id_pointkey"], namekey=row["namekey"]) for row in points] 
         except Exception as e:
-            print("Error in queryPointKeysByDeviceId: ", e)
+            print("Error in select_point_keys_by_deviceid: ", e)
             return []
         finally:
             await session.close()
-

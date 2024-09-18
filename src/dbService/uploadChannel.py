@@ -1,17 +1,12 @@
-# ********************************************************
-# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
-# * All rights reserved.
-# *
-# *********************************************************/
-
-import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import select
 from entity.upload_channel.upload_channel_entity import UploadChannel
 from entity.project_setup.project_setup_entity import *
+from dbModel.upload_channel_model import * 
+
 class UploadChannelService:
     @staticmethod
-    async def select_type_log_file(session: AsyncSession,channel_id: int):
+    async def select_type_log_file(session: AsyncSession, channel_id: int):
         stmt = (
             select(
                 UploadChannel.id.label('id_channel'),
@@ -30,16 +25,21 @@ class UploadChannelService:
         if channel_info:
             return channel_info.type_protocol
         return None
+
     @staticmethod
     async def get_upload_url_by_id(session: AsyncSession, id_upload_channel: int):
         try:
             query = (
-                select(UploadChannel.uploadurl)
+                select(UploadChannel)
                 .where(UploadChannel.id == id_upload_channel)
             )
             result = await session.execute(query)
-            upload_url = result.scalar()
-            return upload_url
+            upload_channel = result.scalar_one_or_none()
+
+            if upload_channel:
+                return UploadChannelModel.from_orm(upload_channel)
+
+            return None
         except Exception as e:
             print("Error in get_upload_url_by_id: ", e)
             return None

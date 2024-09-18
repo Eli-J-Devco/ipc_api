@@ -1,17 +1,11 @@
-# ********************************************************
-# * Copyright 2023 NEXT WAVE ENERGY MONITORING INC.
-# * All rights reserved.
-# *
-# *********************************************************/
-import datetime
-
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import func, insert, join, literal_column, select, text, update
-from entity.devices.devices_entity import *
-
+from sqlalchemy import select
+from entity.devices.devices_entity import DeviceType, Devices  # Import các mô hình Entity
+from dbModel.device_type_model import DeviceTypeModel  # Import mô hình Pydantic
+from typing import Optional
 class deviceTypeService:
     @staticmethod
-    async def selectTypeDeviceByID(session: AsyncSession, device_id: int):
+    async def selectTypeDeviceByID(session: AsyncSession, device_id: int) -> Optional[DeviceTypeModel]:
         try:
             query = (
                 select(DeviceType.name)
@@ -20,7 +14,9 @@ class deviceTypeService:
             )
             result = await session.execute(query)
             device_name = result.scalars().one_or_none()
-            return device_name
+            if device_name:
+                return DeviceTypeModel(name=device_name)  # Trả về mô hình
+            return None  # Nếu không tìm thấy
         except Exception as e:
             print("Error in selectTypeDeviceByID: ", e)
             return None
