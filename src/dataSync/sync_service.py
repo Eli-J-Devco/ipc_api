@@ -82,7 +82,7 @@ class SyncData:
         db_new = await config.get_db()
         if self.list_device_log_file:
             for item in self.list_device_log_file:
-                sql_id = item["id"]
+                sql_id = item.id
                 result = await syncDataService.select_number_row_send_cloud(db_new,IdChannel,sql_id,row)
                 if result:
                     if typeOfFile == Sync_Setting.Name_Key_File_Log:
@@ -146,7 +146,7 @@ class MQTTHandler1(SyncData):
         self.sync_data_instance.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new,IdChannel)
         if self.sync_data_instance.list_device_log_file:
             for item in self.sync_data_instance.list_device_log_file:
-                sql_id = item["id"]
+                sql_id = item.id
                 task = self.push_status_log_file(mqtt_service, timeLog, sql_id,IdChannel,typeOfFile)
                 tasks.append(task)
             await asyncio.gather(*tasks)
@@ -164,7 +164,7 @@ class MQTTHandler1(SyncData):
 
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
-        gStrNameOfDevice = [item['device_name'] for item in self.sync_data_instance.message_log_file if item['id'] == IdDeviceGetListMQTT][0]
+        gStrNameOfDevice = [item["device_name"] for item in self.sync_data_instance.message_log_file if item["id"] == IdDeviceGetListMQTT][0]
         topic = f"/Updata/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{gStrNameOfDevice}"
         return topic
     
@@ -184,7 +184,7 @@ class MQTTHandler1(SyncData):
 
     async def create_message_log_file(self, messageAllDevice):
         dict_device = {}
-        list_id_filter = {item["id"] for item in self.sync_data_instance.list_device_log_file}
+        list_id_filter = {item.id for item in self.sync_data_instance.list_device_log_file}
         try:
             currentTime = get_utc()
             for items in messageAllDevice:
@@ -237,10 +237,9 @@ class URL(SyncData):
         arrayjson = []
         id_times = []
         result_id_pointkey = await pointListService.select_point_keys_by_deviceid(db_new,sqlid)
-        print("result",result)
         for item in result:
             id_times.append(item["id"])
-            array_file = await self.read_data_file(item["filename"],item["source"])
+            array_file = await self.read_data_file(item.filename, item.source)
             if array_file :
                 jsondata = {
                     'id_channel': IdChannel,

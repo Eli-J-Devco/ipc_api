@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import Optional
 class ProjectSetupModel(BaseModel):
     id: int
     name: str
@@ -47,17 +47,17 @@ class ProjectSetupModel(BaseModel):
     set_limit_retry: int
     set_power_status_delay_in_seconds: int
     enable_search_modbus_rtu_device: bool
-    modhopper1: str
-    modhopper2: str
-    modhopper_key: str
-    modhopper_rf_config: str
-    modhopper_rf_channel: str
+    modhopper1: Optional[str] = None
+    modhopper2: Optional[str] = None
+    modhopper_key: Optional[str] = None
+    modhopper_rf_config: Optional[str] = None
+    modhopper_rf_channel: Optional[str] = None
     mqtt_broker_cloud: str
     mqtt_port_cloud: int
     mqtt_username_cloud: str
     mqtt_password_cloud: str
-    low_performance: bool
-    high_performance: bool
+    low_performance: int
+    high_performance: int
     status: str
 
     class Config:

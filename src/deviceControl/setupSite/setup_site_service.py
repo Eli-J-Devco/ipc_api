@@ -38,40 +38,25 @@ class SetupSite:
                 # }
     # 	 */ 
     async def get_project_setup_values(self):
-        OffsetZeroExport = 0
-        PowerLimit = 0
-        OffsetPowerLimit = 0
-        ThresholdZeroExport = 0
-        LowPerformance = 0
-        ArlamHighPerformance = 0
-        ModeSystemp = ""
-        serialNumber = ""
-        PowerLimit_temp = 0
         try:
-            db_new=await config.get_db()
+            db_new = await config.get_db()
             resultDB = await self.project_setup_service.selectAllProjectSetup(db_new)
-            if resultDB:
-                serialNumber = resultDB[0]["serial_number"]
-                ModeSystemp = resultDB[0]["mode"]
-                gIntControlModeDetail = resultDB[0]["control_mode"]
-                OffsetZeroExport = resultDB[0]["value_offset_zero_export"]
-                PowerLimit_temp = resultDB[0]["value_power_limit"]
-                OffsetPowerLimit = resultDB[0]["value_offset_power_limit"]
-                PowerLimit = (PowerLimit_temp - (PowerLimit_temp * OffsetPowerLimit) / 100) if OffsetPowerLimit is not None else PowerLimit_temp 
-                ThresholdZeroExport = resultDB[0]["threshold_zero_export"]
-                LowPerformance = resultDB[0]["low_performance"]
-                ArlamHighPerformance = resultDB[0]["high_performance"]
+            if resultDB and len(resultDB) > 0:
+                project_setup = resultDB[0]
                 return {
-                    "serial_number": serialNumber,
-                    "mode": ModeSystemp,
-                    "control_mode": gIntControlModeDetail,
-                    "value_offset_zero_export": OffsetZeroExport,
-                    "value_power_limit": PowerLimit,
-                    "value_offset_power_limit": OffsetPowerLimit,
-                    "threshold_zero_export": ThresholdZeroExport,
-                    "low_performance": LowPerformance,
-                    "high_performance": ArlamHighPerformance,
+                    "serial_number": project_setup.serial_number,
+                    "mode": project_setup.mode,
+                    "control_mode": project_setup.control_mode,
+                    "value_offset_zero_export": project_setup.value_offset_zero_export,
+                    "value_power_limit": project_setup.value_power_limit,
+                    "value_offset_power_limit": project_setup.value_offset_power_limit,
+                    "threshold_zero_export": project_setup.threshold_zero_export,
+                    "low_performance": project_setup.low_performance,
+                    "high_performance": project_setup.high_performance,
                 }
+            else:
+                print("No data found in resultDB.")
+                return None
         except Exception as err:
             print(f"Error MQTT subscribe initializeValueControlAuto: '{err}'")
             return None 

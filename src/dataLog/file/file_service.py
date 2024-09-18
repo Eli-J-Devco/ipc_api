@@ -68,14 +68,15 @@ class MQTTHandler(LogFile):
         except Exception as err:
             print(f"Error handling MQTT message: '{err}'")
     
-    async def create_threading_push_status_log_device(self, mqtt_service, timeLog,IdChannel,Head_File_Log,typeOfFile):
+    async def create_threading_push_status_log_device(self, mqtt_service, timeLog, IdChannel, Head_File_Log, typeOfFile):
         db_new = await config.get_db()
         tasks = []
-        self.log_file_instance.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new,IdChannel)
+        self.log_file_instance.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new, IdChannel)
+        print("list",self.log_file_instance.list_device_log_file)
         if self.log_file_instance.list_device_log_file:
             for item in self.log_file_instance.list_device_log_file:
-                sql_id = item["id"]
-                task = self.push_status_log_file(mqtt_service, timeLog, sql_id,IdChannel,Head_File_Log,typeOfFile)
+                sql_id = item.id 
+                task = self.push_status_log_file(mqtt_service, timeLog, sql_id, IdChannel, Head_File_Log, typeOfFile)
                 tasks.append(task)
             await asyncio.gather(*tasks)
 
@@ -93,7 +94,7 @@ class MQTTHandler(LogFile):
 
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
-        gStrNameOfDevice = [item['device_name'] for item in self.log_file_instance.message_log_file if item['id'] == IdDeviceGetListMQTT][0]
+        gStrNameOfDevice = [item["device_name"] for item in self.log_file_instance.message_log_file if item["id"] == IdDeviceGetListMQTT][0]
         topic = f"/LogFile/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{gStrNameOfDevice}"
         return topic
     
@@ -115,7 +116,7 @@ class MQTTHandler(LogFile):
     
     async def create_message_log_file(self, messageAllDevice):
         dict_device = {}
-        list_id_filter = {item["id"] for item in self.log_file_instance.list_device_log_file}
+        list_id_filter = {item.id for item in self.log_file_instance.list_device_log_file}
         try:
             currentTime = get_utc()
             for items in messageAllDevice:
@@ -186,10 +187,10 @@ class ProcessLogFile(LogFile):
             await self.insert_data_table_synced()
 
     async def extract_device_info(self, item):
-        id_device = item["id"]
-        modbus_device = [item['rtu_bus_address'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
-        point_list = [item['point_count'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
-        data = [item['data'] for item in self.log_file_instance.message_log_file if item['id'] == id_device][0]
+        id_device = item.id
+        modbus_device = [item.rtu_bus_address for item in self.log_file_instance.message_log_file if item.id == id_device][0]
+        point_list = [item.point_count for item in self.log_file_instance.message_log_file if item.id == id_device][0]
+        data = [item.data for item in self.log_file_instance.message_log_file if item.id == id_device][0]
         return id_device, modbus_device, point_list, data
 
     async def create_and_write_file(self, base_path, head_file, id_channel, typeOfFile, id_device, year, month, day, point_list, data):

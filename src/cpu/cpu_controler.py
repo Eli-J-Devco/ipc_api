@@ -70,6 +70,7 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
 async def main():
     setup_site_instance = SetupSite()
     initialized_values = await setup_site_instance.get_project_setup_values()
+    print("Initialized values", initialized_values)
     parameterMQTT = MQTTSettings()
     topicPushMQTT = MQTTTopicPUSH()
     # Create Service MQTT
