@@ -184,12 +184,14 @@ class LogAllDevice(LogDevice):
         if DictID:
             arrayDataUsingLogDB = DictID[0]["data"]
             arrayFieldOfDevice = DictID[0]["namekey"]
+            statusDevice = DictID[0]["status_device"]
         if not arrayDataUsingLogDB: 
             arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
+        errorCode = 139 if statusDevice == "offline" else 0
         try:
-            ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll) + tuple(arrayDataUsingLogDB)
+            ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll,errorCode) + tuple(arrayDataUsingLogDB)
             ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
-            columns = ["time", "id_device"] + arrayFieldOfDevice
+            columns = ["time", "id_device","error"] + arrayFieldOfDevice
             tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
             queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
             queries[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
