@@ -50,3 +50,4 @@ main.spec
 docker-compose.yml
 model
 # entity
+logs/
