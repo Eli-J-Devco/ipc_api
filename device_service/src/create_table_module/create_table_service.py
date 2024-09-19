@@ -3,7 +3,7 @@ from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.schema import CreateTable
-from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey, func
+from sqlalchemy import MetaData, Table, Column, select, text, ForeignKey, func, update
 
 from .create_table_model import CreateTableModel
 
@@ -13,14 +13,16 @@ from ..devices_entity import (Devices as DevicesEntity,
                               DeviceMppt as DeviceMpptEntity,
                               DeviceMpptString as DeviceMpptStringEntity,
                               DevicePanel as DevicePanelEntity,
-                              DevicePointListMap as DevicePointListMapEntity, )
+                              DevicePointListMap as DevicePointListMapEntity,
+                              DeviceConnection as DeviceConnectionEntity, )
 from ..devices_model import (Point,
                              DeviceModel,
                              PointType,
                              DeviceMppt,
                              DeviceMpptString,
                              DevicePanel,
-                             DevicePointListMap)
+                             DevicePointListMap,
+                             DeviceConnection)
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +94,29 @@ class CreateTableService:
         return True
 
     @async_db_request_handler
+    async def get_need_mapping_connection(self, device_id: int, session: AsyncSession) -> list[int]:
+        query = (select(DevicesEntity)
+                 .join(DeviceConnectionEntity, DevicesEntity.id == DeviceConnectionEntity.device_list_id)
+                 .filter(DevicesEntity.parent == device_id))
+        result = await session.execute(query)
+        devices = result.scalars().all()
+
+        return [device.id for device in devices]
+
+    @async_db_request_handler
+    async def add_connection(self, connection: DeviceConnection, session: AsyncSession):
+        new_connection = DeviceConnectionEntity(**connection.dict())
+        session.add(new_connection)
+        await session.flush()
+
+    @async_db_request_handler
+    async def update_device_connection(self, device_id: int, connection_id: int, session: AsyncSession):
+        query = (update(DeviceConnectionEntity)
+                 .where(DeviceConnectionEntity.device_list_id == device_id)
+                 .values(connect_device_id=connection_id))
+        await session.execute(query)
+
+    @async_db_request_handler
     async def add_device_mppt(self, device: DeviceModel, session: AsyncSession):
         logging.info(f"Adding device mppt for {device.table_name}")
         query = (select(PointListEntity)
@@ -105,6 +130,7 @@ class CreateTableService:
             await self.add_device_string(device, None, None, session=session)
             return
 
+        need_mapping_connection = await self.get_need_mapping_connection(device.id, session=session)
         for point in points:
             new_device_mppt = DeviceMpptEntity(**DeviceMppt(**point.__dict__,
                                                             id_point_list=point.id,
@@ -112,6 +138,10 @@ class CreateTableService:
                                                             id_device_list=device.id).dict(exclude={"id"}))
             session.add(new_device_mppt)
             await session.flush()
+
+            if need_mapping_connection:
+                await self.update_device_connection(need_mapping_connection.pop(0), new_device_mppt.id, session=session)
+
             await self.add_device_string(device, point.id, new_device_mppt.id, session=session)
         logging.info(f"Device mppt of {device.table_name} added")
 
@@ -147,15 +177,21 @@ class CreateTableService:
                                                                                id_point_list=point.id,
                                                                                namekey=point.id_pointkey,
                                                                                id_device_list=device.id,
-                                                                               id_device_mppt=id_device_mppt,
-                                                                               panel=count).dict(exclude={"id"}))
+                                                                               panel=count).
+                                                            dict(exclude={"id", "parent"}),
+                                                            parent=id_device_mppt, )
             session.add(new_device_mppt_string)
             await session.flush()
+            await self.add_connection(DeviceConnection(device_list_id=id_device_mppt,
+                                                       device_table="device_mppt",
+                                                       connect_device_id=new_device_mppt_string.id,
+                                                       connect_device_table="device_mppt_string"),
+                                      session=session)
             await self.add_device_panel(device, point.id, new_device_mppt_string.id, session=session)
 
-    @staticmethod
     @async_db_request_handler
-    async def add_device_panel(device: DeviceModel,
+    async def add_device_panel(self,
+                               device: DeviceModel,
                                point_id: int,
                                id_device_string: int,
                                session: AsyncSession):
@@ -172,10 +208,18 @@ class CreateTableService:
             return
 
         for point in points:
-            session.add(DevicePanelEntity(**DevicePanel(**point.__dict__,
+            new_panel = DevicePanelEntity(**DevicePanel(**point.__dict__,
                                                         id_point_list=point.id,
-                                                        id_device_list=device.id,
-                                                        id_device_string=id_device_string).dict(exclude={"id"})))
+                                                        id_device_list=device.id, )
+                                          .dict(exclude={"id", "parent"}),
+                                          parent=id_device_string)
+            session.add(new_panel)
+            await session.flush()
+            await self.add_connection(DeviceConnection(device_list_id=id_device_string,
+                                                       device_table="device_mppt_string",
+                                                       connect_device_id=new_panel.id,
+                                                       connect_device_table="device_panel"),
+                                      session=session)
 
         logging.info(f"Device panel of {device.table_name} added")
 

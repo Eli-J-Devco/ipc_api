@@ -112,7 +112,7 @@ class DeviceMpptString(BaseModel):
     id: Optional[int] = None
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
-    id_device_mppt: Optional[int] = None
+    parent: Optional[int] = None
     name: Optional[str] = None
     namekey: Optional[str] = None
     panel: Optional[int] = None
@@ -122,7 +122,7 @@ class DevicePanel(BaseModel):
     id: Optional[int] = None
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
-    id_device_string: Optional[int] = None
+    parent: Optional[int] = None
     name: Optional[str] = None
 
 
@@ -131,3 +131,21 @@ class DevicePointListMap(BaseModel):
     id_device_list: Optional[int] = None
     id_point_list: Optional[int] = None
     name: Optional[str] = None
+
+
+class DeviceTypeGroup(BaseModel):
+    id: Optional[int] = None
+
+
+class DeviceComponent(BaseModel):
+    main_type: Optional[int] = None
+    group: Optional[int] = None
+    require: Optional[bool] = None
+
+
+class DeviceConnection(BaseModel):
+    device_list_id: Optional[int] = None
+    device_table: Optional[str] = None
+    connect_device_id: Optional[int] = None
+    connect_device_table: Optional[str] = None
+    type: Optional[int] = None
