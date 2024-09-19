@@ -10,6 +10,8 @@ from sqlalchemy.sql import select
 from dbEntity.upload_channel.upload_channel_entity import UploadChannel
 from dbEntity.project_setup.project_setup_entity import *
 from dbModel.upload_channel_model import *
+import logging
+logger = logging.getLogger(__name__)
 class UploadChannelService:
     @staticmethod
     async def select_type_log_file(session: AsyncSession, channel_id: int):
@@ -31,7 +33,7 @@ class UploadChannelService:
                 return channel_info.type_protocol
             return None
         except Exception as e:
-            print(f"Error: {e}")
+            logger.error(f"Error: {e}")
             return None
         finally:
             await session.close()
@@ -51,7 +53,7 @@ class UploadChannelService:
 
             return None
         except Exception as e:
-            print("Error in get_upload_url_by_id: ", e)
+            logger.error("Error in get_upload_url_by_id: ", e)
             return None
         finally:
             await session.close()

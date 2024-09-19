@@ -4,13 +4,13 @@
 # *
 # *********************************************************/
 import datetime
-
+import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text, update 
 from dbEntity.devices.devices_entity import *
 from dbEntity.upload_channel.upload_channel_entity import *
 from dbModel.device_list_model import DeviceModel 
-
+logger = logging.getLogger(__name__)
 class deviceListService:
     @staticmethod
     async def selectAllDeviceList(session: AsyncSession):
@@ -20,7 +20,7 @@ class deviceListService:
             projects = result.scalars().all()
             return [DeviceModel.from_orm(project) for project in projects]
         except Exception as e:
-            print("Error in queryAllProjectSetup: ", e)
+            logger.error("Error in queryAllProjectSetup: ", e)
             return []
         finally:
             await session.close()
@@ -35,7 +35,7 @@ class deviceListService:
                 return None
             return DeviceModel.from_orm(device) 
         except Exception as e:
-            print("Error in queryDeviceById: ", e)
+            logger.error("Error in queryDeviceById: ", e)
             return None
         finally:
             await session.close()
@@ -52,7 +52,7 @@ class deviceListService:
             await session.commit()
             return result.rowcount
         except Exception as e:
-            print("Error in queryUpdateRatedPowerInID: ", e)
+            logger.error("Error in queryUpdateRatedPowerInID: ", e)
             await session.rollback()
             return None
         finally:
@@ -70,7 +70,7 @@ class deviceListService:
             await session.commit()
             return result.rowcount
         except Exception as e:
-            print("Error in updateDeviceModeByType: ", e)
+            logger.error("Error in updateDeviceModeByType: ", e)
             await session.rollback()
             return None
         finally:
@@ -88,7 +88,7 @@ class deviceListService:
             modes = set(item['mode'] for item in result.mappings())
             return modes
         except Exception as e:
-            print("Error in getUniqueModesByDeviceType: ", e)
+            logger.error("Error in getUniqueModesByDeviceType: ", e)
             return None
         finally:
             await session.close()
@@ -105,7 +105,7 @@ class deviceListService:
             devices = result.mappings().all()
             return [DeviceModel(**device) for device in devices]
         except Exception as e:
-            print("Error in selectDevicesByUploadChannel: ", e)
+            logger.error("Error in selectDevicesByUploadChannel: ", e)
             return []
         finally:
             await session.close()

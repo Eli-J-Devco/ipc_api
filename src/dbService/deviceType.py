@@ -3,6 +3,8 @@ from sqlalchemy import select
 from dbEntity.devices.devices_entity import DeviceType, Devices  # Import các mô hình Entity
 from dbModel.device_type_model import DeviceTypeModel  # Import mô hình Pydantic
 from typing import Optional
+import logging
+logger = logging.getLogger(__name__)
 class deviceTypeService:
     @staticmethod
     async def selectTypeDeviceByID(session: AsyncSession, device_id: int) -> Optional[DeviceTypeModel]:
@@ -18,7 +20,7 @@ class deviceTypeService:
                 return DeviceTypeModel(name=device_name)
             return None
         except Exception as e:
-            print("Error in selectTypeDeviceByID: ", e)
+            logger.error("Error in selectTypeDeviceByID: ", e)
             return None
         finally:
             await session.close()

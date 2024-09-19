@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
 from dbEntity.project_setup.project_setup_entity import *
 from dbModel.project_setup_model import ProjectSetupModel 
-
+import logging
+logger = logging.getLogger(__name__)
 class ProjectSetupService:
     @staticmethod
     async def selectAllProjectSetup(session: AsyncSession):
@@ -82,7 +83,7 @@ class ProjectSetupService:
                 for project in projects
             ] 
         except Exception as e:
-            print("Error in selectAllProjectSetup: ", e)
+            logger.error("Error in selectAllProjectSetup: ", e)
             return []
         finally:
             await session.close()
@@ -94,19 +95,19 @@ class ProjectSetupService:
             project = result.scalars().one_or_none()
 
             if project is None:
-                print("No project found to update.")
+                logger.info("No project found to update.")
                 return None
 
             for key, value in updates.items():
                 if hasattr(project, key):
                     setattr(project, key, value)
                 else:
-                    print(f"Attribute {key} does not exist on ProjectSetup.")
+                    logger.info(f"Attribute {key} does not exist on ProjectSetup.")
 
             await session.commit()
             return project.__dict__ 
         except Exception as e:
-            print("Error in updateProjectSetup: ", e)
+            logger.error("Error in updateProjectSetup: ", e)
             await session.rollback() 
             return None
         finally:
@@ -123,7 +124,7 @@ class ProjectSetupService:
             extracted_values = [int(interval.split()[0]) for interval in time_log_intervals if interval]
             return extracted_values 
         except Exception as e:
-            print("Error in selectTimeLogInterval: ", e)
+            logger.error("Error in selectTimeLogInterval: ", e)
             return None
         finally:
             await session.close()
@@ -138,7 +139,7 @@ class ProjectSetupService:
             time_log_data_servers = result.scalars().all()
             return time_log_data_servers[0]
         except Exception as e:
-            print("Error in selectScheduledUploadTime: ", e)
+            logger.error("Error in selectScheduledUploadTime: ", e)
             return None
         finally:
             await session.close()
@@ -154,7 +155,7 @@ class ProjectSetupService:
             time_retry = result.scalar()
             return time_retry
         except Exception as e:
-            print("Error in get_time_log_data_server: ", e)
+            logger.error("Error in get_time_log_data_server: ", e)
             return None
         finally:
             await session.close()

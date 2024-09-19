@@ -29,7 +29,7 @@ class MainClass:
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
         
-        setup_logging(file_name="device", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
+        setup_logging(file_name="modeControl", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         
         if project_setup_config is not None :
             mqtt_settings = MQTTSettings()

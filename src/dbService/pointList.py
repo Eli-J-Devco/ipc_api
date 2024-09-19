@@ -11,7 +11,8 @@ from dbEntity.project_setup.project_setup_entity import *
 from dbEntity.pointList.point_list_entity import *
 from dbEntity.devices.devices_entity import *
 from dbModel.point_list_model import PointKeyModel 
-
+import logging
+logger = logging.getLogger(__name__)
 class PointListService:
     @staticmethod
     async def select_point_keys_by_deviceid(session: AsyncSession, device_id: int):
@@ -31,7 +32,7 @@ class PointListService:
             points = result.mappings().all()
             return [PointKeyModel(id_pointkey=row["id_pointkey"], namekey=row["namekey"]) for row in points]  
         except Exception as e:
-            print("Error in queryPointKeysByDeviceId: ", e)
+            logger.error("Error in queryPointKeysByDeviceId: ", e)
             return []
         finally:
             await session.close()

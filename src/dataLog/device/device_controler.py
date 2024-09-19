@@ -32,7 +32,7 @@ class MainClass:
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
-        setup_logging(file_name="device", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
+        setup_logging(file_name="logdevice", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None and time_interval_log_device is not None:
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()
@@ -62,7 +62,7 @@ class MainClass:
         while True:
             try:
                 time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
-                if time_interval_log_device != self.current_time_interval:
+                if time_interval_log_device != self.current_time_interval and time_interval_log_device is not None:
                     self.current_time_interval = time_interval_log_device 
                     # stop jod current 
                     self.scheduler.remove_job('log_device')

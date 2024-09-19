@@ -3,6 +3,8 @@ from sqlalchemy import update,select
 from dbEntity.devices.devices_entity import DeviceMPPT 
 from dbModel.device_mppt_model import DeviceMPPTModel
 from typing import Optional
+import logging
+logger = logging.getLogger(__name__)
 class deviceMpptService:
     @staticmethod
     async def updateDeviceMPPT(session: AsyncSession, voltage: float, current: float, id_device_list: int, namekey: str) -> Optional[DeviceMPPTModel]:
@@ -23,7 +25,7 @@ class deviceMpptService:
                 return DeviceMPPTModel.from_orm(device) 
             return None 
         except Exception as e:
-            print("Error in updateDeviceMPPT: ", e)
+            logger.error("Error in updateDeviceMPPT: ", e)
             await session.rollback()
             return None
         finally:

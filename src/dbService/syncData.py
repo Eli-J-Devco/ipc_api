@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert,delete,update, join, literal_column, select, text
 from dbEntity.sync_data.sync_data_entity import *
 from dbModel.sync_data_model import SyncDataModel 
-
+import logging
+logger = logging.getLogger(__name__)
 class SyncDataService:
     @staticmethod
     async def insert_sync_data(session: AsyncSession, data_list: list):
@@ -31,10 +32,10 @@ class SyncDataService:
             query = insert(SyncData).values(records)
             result = await session.execute(query)
             await session.commit()
-            print("Sync data successfully --->")
+            logger.info("Sync data successfully --->")
             return result.rowcount  
         except Exception as e:
-            print(f"Error: '{e}'")
+            logger.error(f"Error: '{e}'")
             await session.rollback() 
             return None
         finally:
@@ -45,10 +46,10 @@ class SyncDataService:
             query = delete(SyncData).where(SyncData.synced == 1)
             result = await session.execute(query)
             await session.commit()
-            print("Deleted synced data successfully --->")
+            logger.info("Deleted synced data successfully --->")
             return result.rowcount
         except Exception as e:
-            print(f"Error: '{e}'")
+            logger.error(f"Error: '{e}'")
             await session.rollback()
             return None
         finally:
@@ -90,7 +91,7 @@ class SyncDataService:
                 for record in sync_data_list
             ]
         except Exception as e:
-            print("Error in select_sync_data: ", e)
+            logger.error("Error in select_sync_data: ", e)
             return None
         finally:
             await session.close()
@@ -107,10 +108,10 @@ class SyncDataService:
             )
             result = await session.execute(query)
             await session.commit()
-            print("Deleted synced data successfully --->")
+            logger.info("Deleted synced data successfully --->")
             return result.rowcount
         except Exception as e:
-            print("Error in delete_sync_data: ", e)
+            logger.error("Error in delete_sync_data: ", e)
             await session.rollback()
             return None
         finally:
@@ -130,7 +131,7 @@ class SyncDataService:
             await session.execute(query)
             await session.commit()
         except Exception as e:
-            print("Error in update_error_status: ", e)
+            logger.error("Error in update_error_status: ", e)
             await session.rollback()
         finally:
             await session.close()
@@ -149,7 +150,7 @@ class SyncDataService:
             await session.execute(query)
             await session.commit()
         except Exception as e:
-            print("Error in update_number_of_time_retry: ", e)
+            logger.error("Error in update_number_of_time_retry: ", e)
             await session.rollback()
         finally:
             await session.close()
@@ -169,7 +170,7 @@ class SyncDataService:
             remaining_files = result.scalar()
             return remaining_files
         except Exception as e:
-            print("Error in count_remaining_files: ", e)
+            logger.error("Error in count_remaining_files: ", e)
             return None
         finally:
             await session.close()
@@ -202,7 +203,7 @@ class SyncDataService:
                 return new_retry_value  
             return current_retry_value
         except Exception as e:
-            print("Error in update_number_of_time_retry: ", e)
+            logger.error("Error in update_number_of_time_retry: ", e)
             return None
         finally:
             await session.close()

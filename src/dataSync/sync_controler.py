@@ -42,8 +42,8 @@ class MainClass:
         time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
         time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
-        # setup_logging(file_name="device", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
-        if project_setup_config is not None and time_sync is not None:
+        setup_logging(file_name="dataSync", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
+        if project_setup_config is not None and time_sync is not None and time_interval_log_device is not None and time_interval is not None and type_of_file is not None :
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()
             mqtt_service = MQTTService(
@@ -78,12 +78,13 @@ class MainClass:
         while True:
             try:
                 db_new = await config.get_db()
-                time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
-                time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
-                time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
-                type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
+                time_interval_log_device = await setup_site_instance.get_time_interval_logdevice() or None
+                time_sync = await ProjectSetupService.select_time_sync_cloud(db_new) or None
+                time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device) or None
+                type_of_file = await log_file_instance.get_type_of_file(self.id_channel) or None
 
-                if time_interval_log_device != self.current_time_interval or time_sync != self.time_sync or type_of_file != self.type_of_file:
+                if ((time_interval_log_device != self.current_time_interval or time_sync != self.time_sync or type_of_file != self.type_of_file) 
+                    and time_interval_log_device is not None and time_sync is not None and type_of_file is not None):
                     self.current_time_interval = time_interval_log_device 
                     self.time_sync = time_sync
                     self.time_interval = time_interval
