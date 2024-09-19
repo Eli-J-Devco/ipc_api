@@ -7,6 +7,7 @@ import os
 import sys
 import asyncio
 import requests
+import logging
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -18,6 +19,7 @@ from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService
 from dbService.pointList import PointListService
+logger = logging.getLogger(__name__)
 class SyncData:
     def __init__(self):
         self.message_log_file = []  
@@ -51,12 +53,12 @@ class SyncData:
     async def process_sync_file_log_to_stagging(self,IdChannel,typeOfFile):
         Sync_Setting = SyncSetting()
         self.number_file = await self.check_number_file_remainder(IdChannel)
-        url = await self.check_url(IdChannel) 
+        result = await self.check_url(IdChannel) 
         self.files = await self.check_sync_file_multi_or_single()
         row = 1
         if self.files == 1 :
             row = Sync_Setting.Number_File_Sync_Max
-        await self.process_sync_file(IdChannel,url,typeOfFile,row)
+        await self.process_sync_file(IdChannel,result.uploadurl,typeOfFile,row)
         
     async def check_number_file_remainder(self,IdChannel):
         syncDataService = SyncDataService()
@@ -116,19 +118,19 @@ class MQTTHandler1(SyncData):
                 await self.consume_mqtt_messages(mqtt_service, client,time_interval_log_device,IdChannel,typeOfFile,serial)
                 await client.stop()
         except Exception as err:
-            print(f"Error subscribing to MQTT topics: '{err}'")
+            logger.error(f"Error subscribing to MQTT topics: '{err}'")
 
     async def consume_mqtt_messages(self,mqtt_service, client,time_interval_log_device,IdChannel,typeOfFile,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    print('Broker connection lost!')
+                    logger.info('Broker connection lost!')
                     break
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,typeOfFile,serial)
         except Exception as err:
-            print(f"Error consuming MQTT messages: '{err}'")
+            logger.error(f"Error consuming MQTT messages: '{err}'")
             
     async def handle_mqtt_message(self, mqtt_service,message, time_interval_log_device,IdChannel,typeOfFile,serial):
         try:
@@ -138,7 +140,7 @@ class MQTTHandler1(SyncData):
                 if self.sync_data_instance.list_device_log_file:
                     self.sync_data_instance.message_log_file = await self.create_message_log_file(message)
         except Exception as err:
-            print(f"Error handling MQTT message: '{err}'")
+            logger.error(f"Error handling MQTT message: '{err}'")
             
     async def create_threading_push_status_log_device(self, mqtt_service, timeLog,IdChannel,typeOfFile):
         db_new = await config.get_db()
@@ -160,12 +162,12 @@ class MQTTHandler1(SyncData):
             if topic and message :
                 MQTTService.push_data_zip(mqtt_service, topic, message)
         except Exception as err:
-            print('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
+            logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
-        gStrNameOfDevice = [item["device_name"] for item in self.sync_data_instance.message_log_file if item["id"] == IdDeviceGetListMQTT][0]
-        topic = f"/Updata/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{gStrNameOfDevice}"
+        device_names = [item["device_name"] for item in self.sync_data_instance.message_log_file if item["id"] == IdDeviceGetListMQTT]
+        topic = f"/Updata/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{device_names}"
         return topic
     
     async def create_message(self ,IdDevice, timeLog):
@@ -195,7 +197,7 @@ class MQTTHandler1(SyncData):
             message_log_file = list(dict_device.values())
             return message_log_file
         except Exception as err:
-            print(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
+            logger.error(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
             return None
     
     def update_device_info(self, dictionary, deviceId, items, currentTime):
@@ -238,12 +240,12 @@ class URL(SyncData):
         id_times = []
         result_id_pointkey = await pointListService.select_point_keys_by_deviceid(db_new,sqlid)
         for item in result:
-            id_times.append(item["id"])
+            id_times.append(item.id)
             array_file = await self.read_data_file(item.filename, item.source)
             if array_file :
                 jsondata = {
                     'id_channel': IdChannel,
-                    'id_device': item["id_device"],
+                    'id_device': item.id_device,
                     'serial_number_port': self.sync_data_instance.serial,
                     'datetime': get_utc(),
                     'datas': {
@@ -279,13 +281,13 @@ class URL(SyncData):
         if response == 200:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-            print(f"Updated number retry:{number_time_rety}")
+            logger.info(f"Updated number retry:{number_time_rety}")
             if number_time_rety == 5 :
                 result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-            print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+            logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -296,14 +298,14 @@ class FileLog(SyncData):
         id_times = []
         headers = {
             'SERIALNUMBER': self.sync_data_instance.serial,
-            'MODBUSDEVICE': first_item["modbusdevice"],
-            'MODBUSPORT': first_item["modbusport"],
+            'MODBUSDEVICE': first_item.modbusdevice,
+            'MODBUSPORT': first_item.modbusport,
             'MODE': 'LOGFILEUPLOAD'
         }
         for item in result:
-            id_time = item["id"]
+            id_time = item.id
             id_times.append(id_time)
-            file = ('LOGFILE', (item["filename"], open(item["source"], 'rb'), 'text/plain'))
+            file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
             files.append(file)
         return headers , files ,id_times
     
@@ -318,14 +320,14 @@ class FileLog(SyncData):
         if response == "\nSUCCESS\n":
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
                 number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-                print(f"Updated number retry:{number_time_rety}")
+                logger.info(f"Updated number retry:{number_time_rety}")
                 if number_time_rety == 5 :
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FTP(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -336,14 +338,14 @@ class FTP(SyncData):
         id_times = []
         source = {
             'SERIALNUMBER': self.sync_data_instance.serial,
-            'MODBUSDEVICE': first_item["modbusdevice"],
-            'MODBUSPORT': first_item["modbusport"],
+            'MODBUSDEVICE': first_item.modbusdevice,
+            'MODBUSPORT': first_item.modbusport,
             'MODE': 'LOGFILEUPLOAD'
         }
         for item in result:
-            id_time = item["id"]
+            id_time = item.id
             id_times.append(id_time)
-            file = ('LOGFILE', (item["filename"], open(item["source"], 'rb'), 'text/plain'))
+            file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
             files.append(file)
         return source,id_times
     
@@ -358,11 +360,11 @@ class FTP(SyncData):
         if response == True:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                print(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
                 number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-                print(f"Updated number retry:{number_time_rety}")
+                logger.info(f"Updated number retry:{number_time_rety}")
                 if number_time_rety == 5 :
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                print(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")

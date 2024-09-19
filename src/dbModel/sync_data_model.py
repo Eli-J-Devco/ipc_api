@@ -2,9 +2,10 @@ from pydantic import BaseModel
 from datetime import datetime
 
 class SyncDataModel(BaseModel):
-    id: int
+    id: datetime
     id_device: int
-    modbusdevice: str
+    modbusport :int = None
+    modbusdevice: int
     ensuredir: str
     source: str
     filename: str
@@ -13,7 +14,7 @@ class SyncDataModel(BaseModel):
     id_upload_channel: int
     synced: int
     updatetime: datetime = None
-    error: int = None
+    error: str = None
     number_of_time_retry: int = 0
 
     class Config:

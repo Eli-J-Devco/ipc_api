@@ -7,7 +7,7 @@ import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert,delete,update, join, literal_column, select, text
-from entity.sync_data.sync_data_entity import *
+from dbEntity.sync_data.sync_data_entity import *
 from dbModel.sync_data_model import SyncDataModel 
 
 class SyncDataService:
@@ -54,7 +54,7 @@ class SyncDataService:
         finally:
             await session.close()
     @staticmethod
-    async def select_number_row_send_cloud(session: AsyncSession, id_upload_channel: int, id_device: int, limit: int):
+    async def select_number_row_send_cloud(session: AsyncSession, id_upload_channel: int, id_device: int, limit: int ):
         try:
             query = (
                 select(SyncData)
@@ -76,7 +76,7 @@ class SyncDataService:
                     "id": record.id,
                     "id_device": record.id_device,
                     "modbusdevice": record.modbusdevice,
-                    "ensuredir": record.ensure_dir,
+                    "ensuredir": record.ensuredir,
                     "source": record.source,
                     "filename": record.filename,
                     "createtime": record.createtime,
@@ -206,4 +206,3 @@ class SyncDataService:
             return None
         finally:
             await session.close()
-

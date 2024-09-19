@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from entity.devices.devices_entity import DeviceType, Devices  # Import các mô hình Entity
+from dbEntity.devices.devices_entity import DeviceType, Devices  # Import các mô hình Entity
 from dbModel.device_type_model import DeviceTypeModel  # Import mô hình Pydantic
 from typing import Optional
 class deviceTypeService:
@@ -15,8 +15,8 @@ class deviceTypeService:
             result = await session.execute(query)
             device_name = result.scalars().one_or_none()
             if device_name:
-                return DeviceTypeModel(name=device_name)  # Trả về mô hình
-            return None  # Nếu không tìm thấy
+                return DeviceTypeModel(name=device_name)
+            return None
         except Exception as e:
             print("Error in selectTypeDeviceByID: ", e)
             return None

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update,select
-from entity.devices.devices_entity import DeviceMPPT 
+from dbEntity.devices.devices_entity import DeviceMPPT 
 from dbModel.device_mppt_model import DeviceMPPTModel
 from typing import Optional
 class deviceMpptService:

@@ -7,7 +7,7 @@ import asyncio
 import os
 import sys
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+import pathlib
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -21,9 +21,10 @@ from utils.libTime import *
 from dataSync.sync_service import *
 from dataLog.file.file_service import *
 from deviceControl.setupSite.setup_site_service import *
-
+from logger.logger import setup_logging
 class MainClass:
     def __init__(self, id_channel):
+        self.scheduler = AsyncIOScheduler()
         self.id_channel = id_channel
         self.current_time_interval = None
         self.time_sync = None
@@ -41,7 +42,7 @@ class MainClass:
         time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
         time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
-
+        # setup_logging(file_name="device", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None and time_sync is not None:
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()
@@ -55,14 +56,13 @@ class MainClass:
             mqtt_service.set_topics(mqtt_topics.Devices_All,)
             
             # run services on cycle time
-            scheduler = AsyncIOScheduler()
             if time_sync in [0, 23]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'cron', hour=time_sync, args=[self.id_channel, type_of_file],id='sync1_log')
+                self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'cron', hour=time_sync, args=[self.id_channel, type_of_file],id='sync1_log')
             elif time_sync in [95, 96, 99]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval, args=[self.id_channel, type_of_file],id='sync2_log')
+                self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', hours=time_interval, args=[self.id_channel, type_of_file],id='sync2_log')
             elif time_sync in [97, 98]:
-                scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval, args=[self.id_channel, type_of_file],id='sync3_log')
-            scheduler.start()
+                self.scheduler.add_job(sync_data_instance.process_sync_file_log_to_stagging, 'interval', minutes=time_interval, args=[self.id_channel, type_of_file],id='sync3_log')
+            self.scheduler.start()
             
             # update parameters db init 
             asyncio.create_task(self.update_parameter(setup_site_instance, sync_data_instance,log_file_instance))

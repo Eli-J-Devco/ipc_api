@@ -20,7 +20,7 @@ from configs.config import orm_provider as db_config
 # from database.db import get_db
 from database.sql.device import all_query
 # from .devices_entity import Devices as DevicesEntity
-from entity.devices.devices_entity import Devices as DevicesEntity
+from dbEntity.devices.devices_entity import Devices as DevicesEntity
 from utils.mqttManager import (mqtt_public_common, mqtt_public_paho,
                                mqtt_public_paho_zip, mqttService)
 from utils.pm2Manager import (create_device_group_rs485_run_pm2,

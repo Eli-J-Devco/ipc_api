@@ -7,8 +7,8 @@ import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text, update 
-from entity.devices.devices_entity import *
-from entity.upload_channel.upload_channel_entity import *
+from dbEntity.devices.devices_entity import *
+from dbEntity.upload_channel.upload_channel_entity import *
 from dbModel.device_list_model import DeviceModel 
 
 class deviceListService:
@@ -37,6 +37,8 @@ class deviceListService:
         except Exception as e:
             print("Error in queryDeviceById: ", e)
             return None
+        finally:
+            await session.close()
 
     @staticmethod
     async def updateRatedPowerInID(session: AsyncSession, device_id: int, new_rated_power: float):

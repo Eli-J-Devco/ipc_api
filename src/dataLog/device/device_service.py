@@ -6,6 +6,7 @@
 import os
 import sys
 import asyncio
+import logging
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -15,6 +16,7 @@ from dataLog.device.db_sql import *
 from dbService.deviceMppt import deviceMpptService
 from dbService.deviceMpptString import deviceMpptStringService
 from configs.config import orm_provider as config
+logger = logging.getLogger(__name__)
 
 class LogDevice:
     def __init__(self):
@@ -39,19 +41,19 @@ class MQTTHandler(LogDevice):
                 await self.consume_mqtt_messages(mqtt_service, client,time_interval_log_device)
                 await client.stop()
         except Exception as err:
-            print(f"Error subscribing to MQTT topics: '{err}'")
+            logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,time_interval_log_device):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    print('Broker connection lost!')
+                    logger.warning('Broker connection lost!')
                     break
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,time_interval_log_device)
         except Exception as err:
-            print(f"Error consuming MQTT messages: '{err}'")
+            logger.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message, time_interval_log_device):
         try:
@@ -60,7 +62,7 @@ class MQTTHandler(LogDevice):
                 self.log_device_instance.messageLogMPPTDevice = await self.create_message_device_mptt_log_db(message)
                 await self.create_threading_push_status_log_device(mqtt_service, time_interval_log_device)
         except Exception as err:
-            print(f"Error handling MQTT message: '{err}'")
+            logger.error(f"Error handling MQTT message: '{err}'")
     
     async def create_message_device_log_db(self, message):
         arrayListDeviceLogDevice = {}
@@ -91,7 +93,7 @@ class MQTTHandler(LogDevice):
             result = list(arrayListDeviceLogDevice.values())
             return result
         except Exception as err:
-            print(f"process_message_result_list : '{err}'")
+            logger.error(f"process_message_result_list : '{err}'")
     
     async def create_message_device_mptt_log_db(self, message):
         dictionaryInforEachOfDevice = {}
@@ -125,7 +127,7 @@ class MQTTHandler(LogDevice):
             messageLogMPPTDevice = list(dictionaryInforEachOfDevice.values())
             return messageLogMPPTDevice
         except Exception as err:
-            print(f"create_message_device_mptt_log_db error: '{err}'")
+            logger.error(f"create_message_device_mptt_log_db error: '{err}'")
             
     async def create_threading_push_status_log_device(self, mqtt_service, timeLog):
         tasks = []
@@ -159,7 +161,7 @@ class MQTTHandler(LogDevice):
             MQTTService.push_data_zip(mqtt_service, topic, message_status_log_device)
             MQTTService.push_data(mqtt_service, topic + "Binh", message_status_log_device)
         except Exception as err:
-            print('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
+            logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 class LogAllDevice(LogDevice):
     def __init__(self, log_device_instance):
         self.log_device_instance = log_device_instance
@@ -203,7 +205,7 @@ class LogAllDevice(LogDevice):
             }
             return converted_queries
         except Exception as e:
-            print(f"Error during file creation is : {e}")
+            logger.error(f"Error during file creation is : {e}")
             return None
 class LogMPTTDevice(LogDevice):
     def __init__(self, log_device_instance):
@@ -215,7 +217,7 @@ class LogMPTTDevice(LogDevice):
                 data_device_mptt, data_device_mptt_string = await self.create_data_insert_db(self.log_device_instance.messageLogMPPTDevice)
                 await self.update_data_in_db(data_device_mptt, data_device_mptt_string)
         except Exception as e:
-            print(f"Error during data insertion: {e}")
+            logger.error(f"Error during data insertion: {e}")
             
     async def create_data_insert_db(self, messageLogMPPTDevice):
         data_device_mptt = []

@@ -5,6 +5,7 @@
 # *********************************************************/
 import os
 import sys
+import logging
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -13,6 +14,7 @@ from utils.libTime import *
 from deviceControl.energyMonitor.energy_service import *
 from deviceControl.setupSite.setup_site_service import *
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
+logger = logging.getLogger(__name__)
 # ==================================================== Get List All Device ==================================================================
 class ProcessSystem:
     def __init__(self):
@@ -342,20 +344,20 @@ class MQTTHandlerProcessSystem(ProcessSystem):
                 await self.consume_mqtt_messages(mqtt_service, client,serial,setup_site_instance)
                 await client.stop()
         except Exception as err:
-            print(f"Error subscribing to MQTT topics: '{err}'")
+            logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,serial,setup_site_instance):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    print('Broker connection lost!')
+                    logger.info('Broker connection lost!')
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,topic,serial,setup_site_instance)
         except Exception as err:
-            print(f"Error consuming MQTT messages: '{err}'")
+            logger.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message,topic, serial,setup_site_instance):
         try:
@@ -364,5 +366,5 @@ class MQTTHandlerProcessSystem(ProcessSystem):
                 await self.process_instance.create_message_for_process_systemp(mqtt_service, message, self.process_instance.mqtt_topic_push.Control_Process, resultDB)
                 print("Processed MQTT message")
         except Exception as err:
-            print(f"Error handling MQTT message: '{err}'")
+            logger.error(f"Error handling MQTT message: '{err}'")
     

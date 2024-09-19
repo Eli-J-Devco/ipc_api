@@ -7,7 +7,7 @@ import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import func, insert, join, literal_column, select, text
-from entity.project_setup.project_setup_entity import *
+from dbEntity.project_setup.project_setup_entity import *
 from dbModel.project_setup_model import ProjectSetupModel 
 
 class ProjectSetupService:

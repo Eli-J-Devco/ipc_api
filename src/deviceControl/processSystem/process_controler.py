@@ -7,7 +7,7 @@ import asyncio
 import os
 import sys
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-
+import pathlib
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -18,7 +18,7 @@ from utils.libTime import *
 from deviceControl.processSystem.process_service import *
 from dbService.projectSetup import ProjectSetupService
 from deviceControl.setupSite.setup_site_service import *
-
+from logger.logger import setup_logging
 class MainClass:
     # initialize the necessary parameters
     async def start_mqtt_service(self):
@@ -27,6 +27,7 @@ class MainClass:
         mqtt_handler_instance = MQTTHandlerProcessSystem(process_instance)
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
+        setup_logging(file_name="device", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None :
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()

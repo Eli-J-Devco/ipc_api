@@ -6,6 +6,7 @@
 import asyncio
 import os
 import sys
+import logging
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -15,6 +16,7 @@ from utils.libTime import *
 from dbService.deviceList import deviceListService
 from dbService.projectSetup import ProjectSetupService
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
+logger = logging.getLogger(__name__)
 class ModeSystem:
     def __init__(self):
         self.mqtt_topic_sud = MQTTTopicSUD()
@@ -41,7 +43,7 @@ class ModeSystem:
                 data_send = {"id_device": "Systemp", "mode": 2}
             MQTTService.push_data_zip(mqtt_service,topicFeedback, data_send)
         except asyncio.TimeoutError:
-            print("Timeout waiting for data from MySQL")
+            logger.error("Timeout waiting for data from MySQL")
     # Describe handleModeSystemChange 
     # 	 * @description handleModeSystemChange
     # 	 * @author bnguyen
@@ -96,20 +98,20 @@ class MQTTHandlerModeSystem(ModeSystem):
                 await self.consume_mqtt_messages(mqtt_service, client,serial)
                 await client.stop()
         except Exception as err:
-            print(f"Error subscribing to MQTT topics: '{err}'")
+            logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    print('Broker connection lost!')
+                    logger.info('Broker connection lost!')
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
         except Exception as err:
-            print(f"Error consuming MQTT messages: '{err}'")
+            logger.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
         try:
@@ -120,4 +122,4 @@ class MQTTHandlerModeSystem(ModeSystem):
                 await self.mode_system_instance.trigger_system_mode_change(mqtt_service, self.mode_system_instance.mqtt_topic_push.Control_Setup_Mode_Write)
                 print("triger mode suscessfully")
         except Exception as err:
-            print(f"Error handling MQTT message: '{err}'")
+            logger.error(f"Error handling MQTT message: '{err}'")

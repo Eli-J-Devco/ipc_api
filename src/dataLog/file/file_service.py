@@ -6,6 +6,7 @@
 import os
 import sys
 import asyncio
+import logging
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -15,6 +16,7 @@ from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService
 from configs.config import orm_provider as config
+logger = logging.getLogger(__name__)
 class LogFile:
     def __init__(self):
         self.message_log_file = []  
@@ -45,19 +47,19 @@ class MQTTHandler(LogFile):
                 await self.consume_mqtt_messages(mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile)
                 await client.stop()
         except Exception as err:
-            print(f"Error subscribing to MQTT topics: '{err}'")
+            logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,time_interval_log_device,log_file_instance,IdChannel,Head_File_Log,typeOfFile):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    print('Broker connection lost!')
+                    logger.info('Broker connection lost!')
                     break
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,Head_File_Log,typeOfFile)
         except Exception as err:
-            print(f"Error consuming MQTT messages: '{err}'")
+            logger.error(f"Error consuming MQTT messages: '{err}'")
             
     async def handle_mqtt_message(self, mqtt_service, message, time_interval_log_device,IdChannel,Head_File_Log,typeOfFile):
         try:
@@ -66,13 +68,12 @@ class MQTTHandler(LogFile):
                 if self.log_file_instance.list_device_log_file:
                     self.log_file_instance.message_log_file = await self.create_message_log_file(message)
         except Exception as err:
-            print(f"Error handling MQTT message: '{err}'")
+            logger.error(f"Error handling MQTT message: '{err}'")
     
     async def create_threading_push_status_log_device(self, mqtt_service, timeLog, IdChannel, Head_File_Log, typeOfFile):
         db_new = await config.get_db()
         tasks = []
         self.log_file_instance.list_device_log_file = await deviceListService.selectDevicesByUploadChannelID(db_new, IdChannel)
-        print("list",self.log_file_instance.list_device_log_file)
         if self.log_file_instance.list_device_log_file:
             for item in self.log_file_instance.list_device_log_file:
                 sql_id = item.id 
@@ -90,7 +91,7 @@ class MQTTHandler(LogFile):
                 MQTTService.push_data_zip(mqtt_service, topic, message)
                 MQTTService.push_data(mqtt_service, topic + "Binh", message)
         except Exception as err:
-            print('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
+            logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
@@ -127,7 +128,7 @@ class MQTTHandler(LogFile):
             message_log_file = list(dict_device.values())
             return message_log_file
         except Exception as err:
-            print(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
+            logger.error(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
             return None
     
     def update_device_info(self, dictionary, deviceId, items, currentTime):
@@ -187,10 +188,10 @@ class ProcessLogFile(LogFile):
             await self.insert_data_table_synced()
 
     async def extract_device_info(self, item):
-        id_device = item.id
-        modbus_device = [item.rtu_bus_address for item in self.log_file_instance.message_log_file if item.id == id_device][0]
-        point_list = [item.point_count for item in self.log_file_instance.message_log_file if item.id == id_device][0]
-        data = [item.data for item in self.log_file_instance.message_log_file if item.id == id_device][0]
+        id_device = item["id"]
+        modbus_device = [item["rtu_bus_address"] for item in self.log_file_instance.message_log_file if item["id"] == id_device][0]
+        point_list = [item["point_count"] for item in self.log_file_instance.message_log_file if item["id"] == id_device][0]
+        data = [item["data"] for item in self.log_file_instance.message_log_file if item["id"] == id_device][0]
         return id_device, modbus_device, point_list, data
 
     async def create_and_write_file(self, base_path, head_file, id_channel, typeOfFile, id_device, year, month, day, point_list, data):
@@ -205,7 +206,7 @@ class ProcessLogFile(LogFile):
             file_path, source_file ,name_file = self.create_file(directory_path, head_file, id_device)
             data_in_file = await self.write_data_to_file(file_path, time_file, data_in_file_temp)
         except Exception as e:
-            print(f"Error during file creation is : {e}")
+            logger.error(f"Error during file creation is : {e}")
         
         return data_in_file, directory_path, source_file ,name_file,time_file
 

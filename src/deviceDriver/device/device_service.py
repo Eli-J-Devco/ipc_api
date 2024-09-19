@@ -12,7 +12,7 @@ from sqlalchemy.sql import func, insert, join, literal_column, select, text
 
 # from async_db.wrapper import async_db_request_handler
 from configs.config import orm_provider as db_config
-from entity.devices.devices_entity import Devices as DevicesEntity
+from dbEntity.devices.devices_entity import Devices as DevicesEntity
 
 # from utils.mqttManager import gzip_decompress
 
