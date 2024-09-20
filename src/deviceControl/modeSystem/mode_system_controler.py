@@ -19,7 +19,10 @@ from dataLog.device.device_service import *
 from deviceControl.modeSystem.mode_system_service import *
 from deviceControl.setupSite.setup_site_service import *
 from dbService.projectSetup import ProjectSetupService
-from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='modeSystem')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     # initialize the necessary parameters
     async def start_mqtt_service(self):
@@ -28,8 +31,6 @@ class MainClass:
         
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
-        
-        setup_logging(file_name="modeSystem", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         
         if project_setup_config is not None :
             mqtt_settings = MQTTSettings()

@@ -21,7 +21,10 @@ from utils.libTime import *
 from dataSync.sync_service import *
 from dataLog.file.file_service import *
 from deviceControl.setupSite.setup_site_service import *
-from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='dataSync')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     def __init__(self, id_channel):
         self.scheduler = AsyncIOScheduler()
@@ -42,7 +45,7 @@ class MainClass:
         time_sync = await ProjectSetupService.select_time_sync_cloud(db_new)
         time_interval = sync_data_instance.get_cycle_sync(time_sync, time_interval_log_device)
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
-        setup_logging(file_name="dataSync", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
+
         if project_setup_config is not None and time_sync is not None and time_interval_log_device is not None and time_interval is not None and type_of_file is not None :
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()

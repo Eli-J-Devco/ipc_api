@@ -75,11 +75,15 @@ class SetupSite:
             if resultDB:
                 try:
                     OjectSentMQTT = resultDB[0]
-                    OjectSentMQTT['mqtt'] = [
+                    
+                    data_to_send = {
+                    "mqtt": [
                         {"time_stamp": get_utc()},
                         {"status": 200}
-                    ]
-                    MQTTService.push_data_zip(mqtt_service,topicFeedBack, OjectSentMQTT)
+                    ],
+                    **OjectSentMQTT.dict()
+                    }
+                    MQTTService.push_data_zip(mqtt_service,topicFeedBack, data_to_send)
                 except Exception as err:
                     print(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
         except Exception as err:

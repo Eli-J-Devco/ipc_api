@@ -19,7 +19,10 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dataLog.file.file_service import *
 from deviceControl.setupSite.setup_site_service import *
-from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='file')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     def __init__(self, id_channel):
         self.id_channel = id_channel
@@ -33,7 +36,6 @@ class MainClass:
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
-        setup_logging(file_name="logfile", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None and time_interval_log_device is not None:
             folder_parameter = FolderSetting()
             mqtt_settings = MQTTSettings()
