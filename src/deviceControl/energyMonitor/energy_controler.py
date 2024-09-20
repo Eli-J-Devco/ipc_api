@@ -7,11 +7,9 @@ import asyncio
 import os
 import sys
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import pathlib
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
-
 from configs.config import MQTTSettings, MQTTTopicSUD
 from utils.MQTTService import *
 from utils.libMySQL import *

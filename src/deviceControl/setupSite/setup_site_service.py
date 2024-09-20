@@ -13,7 +13,7 @@ from utils.MQTTService import *
 from deviceControl.setupSite.db_sql import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
-from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
+from configs.config import MQTTTopicSUD, MQTTTopicPUSH
 from configs.config import orm_provider as config
 logger = logging.getLogger(__name__)
 class SetupSite:

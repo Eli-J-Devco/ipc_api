@@ -17,7 +17,6 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dataLog.device.device_service import *
 from deviceControl.setupSite.setup_site_service import *
-from dbService.projectSetup import ProjectSetupService
 from utils.logger_manager import setup_logger
 
 LOGGER = setup_logger(module_name='setupSite')
