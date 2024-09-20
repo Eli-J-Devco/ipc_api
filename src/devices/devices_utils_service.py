@@ -16,8 +16,8 @@ from sqlalchemy import select, text
 from .devices_entity import (DeviceGroup as DeviceGroupEntity, DeviceType as DeviceTypeEntity,
                              DeviceConnection as DeviceConnectionEntity,
                              DeviceConnectionType as DeviceConnectionTypeEntity)
-from .devices_filter import AddDeviceGroupFilter
-from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection
+from .devices_filter import AddDeviceGroupFilter, ComponentEntity
+from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection, DeviceConnectionInfo
 from ..template.template_entity import Template
 
 
@@ -207,3 +207,34 @@ class UtilsService:
         query = select(DeviceConnectionTypeEntity)
         result = await session.execute(query)
         return result.scalars().all()
+
+    @async_db_request_handler
+    async def get_connection_by_device_id(self, device_id: int,
+                                          device_table: str, session: AsyncSession) -> DeviceConnectionInfo | None:
+        """
+        Get connection by device id
+        :author: nhan.tran
+        :date: 20-09-2024
+        :param device_id:
+        :param device_table:
+        :param session:
+        :return: DeviceConnectionInfo | None
+        """
+        query = (select(DeviceConnectionEntity)
+                 .filter(DeviceConnectionEntity.device_list_id == device_id)
+                 .filter(DeviceConnectionEntity.device_table == device_table))
+        result = await session.execute(query)
+        component = result.scalars().first()
+
+        if not component:
+            return
+
+        component = DeviceConnectionInfo(**component.__dict__)
+        component_entity = ComponentEntity.__getitem__(component.connect_device_table).value
+        query = (select(component_entity)
+                 .where(component_entity.id == component.connect_device_id))
+        result = await session.execute(query)
+        connection_name = result.scalars().first().name
+        component.connection_name = connection_name
+
+        return component

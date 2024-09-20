@@ -3,6 +3,7 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import asyncio
 import json
 import logging
 from typing import Sequence
@@ -14,12 +15,15 @@ from sqlalchemy import select, text, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import func
 
-from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity, DeviceConnection as DeviceConnectionEntity
+from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity, \
+    DeviceConnection as DeviceConnectionEntity
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents, \
-    GetComponentAdditionBase
+    GetComponentAdditionBase, ComponentCode
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
-    DeviceUploadChannelMap, DeviceComponentAdditionMap, DeviceComponentAddition
+    DeviceUploadChannelMap, DeviceComponentAdditionMap, DeviceComponentAddition, DeviceConnectionType, \
+    DeviceComponentChild, DeviceConnectionInfo
 from .devices_utils_service import UtilsService
+from ..point.point_entity import Point
 from ..template.template_entity import Template
 
 
@@ -65,7 +69,9 @@ class ComponentsService:
                     continue
                 query = (update(DevicesEntity)
                          .where(DevicesEntity.id == component.id)
-                         .values(parent=parent))
+                         .values(parent=parent,
+                                 plug_point=component.plug_point
+                                 if component.plug_point is not None else None))
                 await session.execute(query)
                 continue
 
@@ -102,7 +108,8 @@ class ComponentsService:
             if component.addition is not None:
                 connection = DeviceConnectionEntity(device_list_id=new_component.id,
                                                     device_table="device_list",
-                                                    connect_device_table=component.addition)
+                                                    connect_device_table=component.addition,
+                                                    type=component.id_connection_type)
                 session.add(connection)
                 await session.flush()
 
@@ -131,8 +138,18 @@ class ComponentsService:
             groups = result.scalars().all()
             output = []
             for group in groups:
-                base_component = DeviceComponentBase(**group.__dict__)
+                group_dict = group.__dict__
+                base_component = DeviceComponentBase(**group_dict,
+                                                     connection=DeviceConnectionType(
+                                                         **group.connection_type.__dict__
+                                                         if group.connection_type is not None else {})
+                                                     )
                 components = await self.utils_service.get_device_type_by_group(base_component.group, session)
+                components = list(map(lambda x: DeviceComponentChild(**x.__dict__,
+                                                                     connection=DeviceConnectionType(
+                                                                         **group.connection_type.__dict__
+                                                                         if group.connection_type is not None else {})),
+                                      components))
                 output.append(DeviceComponent(**base_component.dict(exclude_unset=True),
                                               name=group.component_type.name,
                                               type=group.component_type.type,
@@ -244,14 +261,22 @@ class ComponentsService:
         for group in group_component:
             formatted_group = ComponentGroup(**group.dict(exclude={"components"}))
             device_type_components = list(map(lambda x: x.id, group.components))
-            device_components = list(
-                map(lambda x: Component(**x.__dict__, image=x.device_type.image,
-                                        device_type_name=x.device_type.name),
-                    list(filter(lambda
-                                x: x.id_device_type in device_type_components
-                                and x.plug_point == formatted_group.plug_point,
-                                components))))
-            formatted_group.components = device_components
+            device_components = list(filter(lambda x: x.id_device_type in device_type_components
+                                                      and x.plug_point == formatted_group.plug_point,
+                                            components))
+            formatted_device_components = []
+            for component in device_components:
+                connection = await self.utils_service.get_connection_by_device_id(component.id,
+                                                                                  "device_list",
+                                                                                  session)
+                if connection:
+                    connection.connection_type = DeviceConnectionType(**group.connection.dict()
+                                                                      if group.connection is not None else {})
+                formatted_device_components.append(Component(**component.__dict__,
+                                                             image=component.device_type.image,
+                                                             device_type_name=component.device_type.name,
+                                                             connection=connection))
+            formatted_group.components = formatted_device_components
             output.append(formatted_group)
 
         return output
@@ -342,36 +367,21 @@ class ComponentsService:
 
         return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))
 
-    # @async_db_request_handler
-    # async def get_addition_components(self, body: GetComponentAdditionBase, session: AsyncSession):
-    #     """
-    #     Get addition components
-    #     :author: nhan.tran
-    #     :date: 09-09-2024
-    #     :param body: GetInverterComponentAddition
-    #     :param session: AsyncSession
-    #     :return: int
-    #     """
-    #     query = (select(DeviceComponentAdditionMapEntity)
-    #              .where(DeviceComponentAdditionMapEntity.id == body.id))
-    #     result = await session.execute(query)
-    #     addition = DeviceComponentAdditionMap(**result.scalar().__dict__)
-    #
-    #     criteria = addition.criteria
-    #     extract_criteria = criteria.split(addition.extract_symbol)
-    #     for c in extract_criteria:
-    #         extract_each_criteria = c.split("=")
-    #         try:
-    #             logging.info(f"Extract each criteria: {extract_each_criteria[0].strip()}")
-    #             if body.__getattribute__(extract_each_criteria[0].strip()) is not None:
-    #                 criteria = (criteria
-    #                             .replace(f"{extract_each_criteria[0]}=?",
-    #                                      f"{extract_each_criteria[0]}={str(body.__getattribute__(extract_each_criteria[0].strip()))}"))
-    #         except AttributeError:
-    #             continue
-    #     target = addition.target
-    #
-    #     query = text(f"SELECT COUNT(*) FROM {target} WHERE {criteria}")
-    #     result = await session.execute(query)
-    #
-    #     return DeviceComponentAddition(count=result.scalar(), addition=json.loads(addition.addition_column))
+    @async_db_request_handler
+    async def get_addition_components(self, body: GetComponentAdditionBase, session: AsyncSession):
+        """
+        Get addition components
+        :author: nhan.tran
+        :date: 09-09-2024
+        :param body: GetInverterComponentAddition
+        :param session: AsyncSession
+        :return: int
+        """
+        entity_code = ComponentCode.__getitem__(body.table).value
+        query = (select(Point)
+                 .where(Point.id_template == body.id_template)
+                 .where(Point.id_config_information == entity_code))
+        result = await session.execute(query)
+        addition = result.scalars().all()
+
+        return DeviceComponentAddition(count=len(addition))

@@ -9,6 +9,8 @@ from typing import Optional
 
 from pydantic.main import BaseModel
 
+from src.devices.devices_entity import DeviceMppt as DeviceMpptEntity
+
 
 class CodeEnum(enum.Enum):
     CreateRS485Dev = 1
@@ -21,6 +23,14 @@ class CodeEnum(enum.Enum):
 class ActionEnum(enum.Enum):
     Default = 0
     Utils = 1
+
+
+class ComponentCode(enum.Enum):
+    device_mppt = 277
+
+
+class ComponentEntity(enum.Enum):
+    device_mppt = DeviceMpptEntity
 
 
 class IncreaseMode:
@@ -58,6 +68,7 @@ class DeviceComponentFilter(BaseModel):
     plug_point: Optional[int] = None
     quantity: Optional[int] = None
     addition: Optional[str] = None
+    id_connection_type: Optional[int] = None
 
 
 class AddComponentFilter(BaseModel):
@@ -146,4 +157,4 @@ class GetInverterComponentAddition(BaseModel):
 
 
 class GetComponentAdditionBase(GetInverterComponentAddition):
-    id: int
+    table: str

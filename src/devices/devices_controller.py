@@ -3,8 +3,6 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import asyncio
-import logging
 
 from nest.core import Controller, Post, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -137,12 +135,12 @@ class DevicesController:
                                        auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.components_service.get_available_components)(body, session)
 
-    # @Post("/component/addition/")
-    # async def get_addition_components(self,
-    #                                   body: GetComponentAdditionBase,
-    #                                   session: AsyncSession = Depends(config.get_db),
-    #                                   auth: Authentication = Depends(get_current_user)):
-    #     return await ServiceWrapper.async_wrapper(self.components_service.get_addition_components)(body, session)
+    @Post("/component/addition/")
+    async def get_addition_components(self,
+                                      body: GetComponentAdditionBase,
+                                      session: AsyncSession = Depends(config.get_db),
+                                      auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.components_service.get_addition_components)(body, session)
 
     # @Post("/input/get/")
     # async def get_device_input_map(self,

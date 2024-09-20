@@ -18,6 +18,7 @@ class DeviceType(BaseModel):
     type: Optional[int] = None
     image: Optional[str] = None
     plug_point_count: Optional[dict | str] = None
+    group: Optional[int] = None
 
     class Config:
         orm_mode = True
@@ -124,6 +125,32 @@ class DeviceConfigOutput(BaseModel):
     device_groups: list[DeviceGroup]
 
 
+class DeviceConnectionType(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[int] = None
+    detail_type: Optional[int] = None
+    description: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+
+class DeviceConnection(BaseModel):
+    device_list_id: Optional[int] = None
+    connect_device_id: Optional[int] = None
+    connect_device_table: Optional[str] = None
+    type: Optional[int] = None
+
+    class Config:
+        orm_mode = True
+
+
+class DeviceConnectionInfo(DeviceConnection):
+    connection_name: Optional[str] = None
+    connection_type: Optional[DeviceConnectionType] = None
+
+
 class DeviceComponentBase(BaseModel):
     sub_type: Optional[int] = None
     group: Optional[int] = None
@@ -131,12 +158,17 @@ class DeviceComponentBase(BaseModel):
     require: Optional[bool] = False
     plug_point: Optional[int] = None
     addition: Optional[str] = None
+    connection: Optional[DeviceConnectionType] = None
+
+
+class DeviceComponentChild(DeviceType):
+    connection: Optional[DeviceConnectionType] = None
 
 
 class DeviceComponent(DeviceComponentBase):
     name: Optional[str] = None
     type: Optional[int] = None
-    components: Optional[list[DeviceType]] = None
+    components: Optional[list[DeviceComponentChild]] = None
 
     class Config:
         orm_mode = True
@@ -154,7 +186,7 @@ class Component(BaseModel):
     plug_point: Optional[int] = None
     id_device_type: Optional[int] = None
     device_type_name: Optional[str] = None
-    input_map: Optional[int] = None
+    connection: Optional[DeviceConnectionInfo] = None
 
     class Config:
         orm_mode = True
@@ -184,17 +216,7 @@ class DeviceComponentAdditionMap(BaseModel):
 
 class DeviceComponentAddition(BaseModel):
     count: Optional[int] = None
-    addition: Optional[dict | str] = None
-
-
-class DeviceConnection(BaseModel):
-    device_list_id: Optional[int] = None
-    connect_device_id: Optional[int] = None
-    connect_device_table: Optional[str] = None
-    type: Optional[int] = None
-
-    class Config:
-        orm_mode = True
+    # addition: Optional[dict | str] = None
 
 
 class DeviceInputMap(BaseModel):

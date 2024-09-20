@@ -166,9 +166,14 @@ class DeviceComponent(config.Base):
     require: Mapped[bool] = mapped_column(Integer, nullable=True)
     plug_point: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
     addition: Mapped[str] = mapped_column(String, nullable=True)
+    id_connection_type: Mapped[int] = mapped_column(Integer, ForeignKey("device_connection_type.id",
+                                                                        ondelete="CASCADE",
+                                                                        onupdate="CASCADE"),
+                                                    nullable=True)
 
     main_device_type = relationship("DeviceType", foreign_keys=[main_type], lazy="immediate")
     component_type = relationship("DeviceTypeGroup", foreign_keys=[group], lazy="immediate")
+    connection_type = relationship("DeviceConnectionType", foreign_keys=[id_connection_type], lazy="immediate")
 
 
 class DeviceConnection(config.Base):
