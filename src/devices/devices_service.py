@@ -449,7 +449,7 @@ class DevicesService:
                  .where(DevicesEntity.id == body.id)
                  .values(**body.dict(exclude_unset=True,
                                      exclude_none=True,
-                                     exclude={"inverter_shutdown", "components"}),
+                                     exclude={"inverter_shutdown", "components", "update_type"}),
                          inverter_shutdown=inverter_shutdown))
         await session.execute(query)
 
@@ -475,7 +475,7 @@ class DevicesService:
             "CODE": CodeEnum.UpdateDev.name,
             "PAYLOAD": {
                 "id": body.id,
-                "code": 0,
+                "code": body.update_type,
             }
         }
         init_msg.append(update_msg)

@@ -3,9 +3,6 @@
 # * All rights reserved.
 # *
 # *********************************************************/
-import asyncio
-import json
-import logging
 from typing import Sequence
 
 from fastapi import HTTPException, status
@@ -20,7 +17,7 @@ from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents, \
     GetComponentAdditionBase, ComponentCode
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
-    DeviceUploadChannelMap, DeviceComponentAdditionMap, DeviceComponentAddition, DeviceConnectionType, \
+    DeviceUploadChannelMap, DeviceComponentAddition, DeviceConnectionType, \
     DeviceComponentChild, DeviceConnectionInfo
 from .devices_utils_service import UtilsService
 from ..point.point_entity import Point
@@ -269,9 +266,13 @@ class ComponentsService:
                 connection = await self.utils_service.get_connection_by_device_id(component.id,
                                                                                   "device_list",
                                                                                   session)
+                connection_type = DeviceConnectionType(**group.connection.dict()
+                                                       if group.connection is not None else {})
                 if connection:
-                    connection.connection_type = DeviceConnectionType(**group.connection.dict()
-                                                                      if group.connection is not None else {})
+                    connection.connection_type = connection_type
+                else:
+                    connection = DeviceConnectionInfo(connection_type=connection_type)
+
                 formatted_device_components.append(Component(**component.__dict__,
                                                              image=component.device_type.image,
                                                              device_type_name=component.device_type.name,
@@ -302,7 +303,6 @@ class ComponentsService:
         output = {}
         if components:
             for component in components:
-                logging.info(f"Component: {component}")
                 output[component[0]] = {"limit": component[1],
                                         "actual": component[2]}
 

@@ -125,6 +125,7 @@ class UpdateDeviceFilter(AddComponentFilter):
     efficiency: Optional[float] = None
     enable_poweroff: Optional[bool] = None
     inverter_shutdown: Optional[date] = None
+    update_type: Optional[int] = 1
 
 
 class AddDeviceGroupFilter(BaseModel):
