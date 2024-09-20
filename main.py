@@ -357,7 +357,7 @@ def init_energy_monitor():
 # 	 */
 def init_caculator_control():
     absDirname=path
-    pid=f'CaculatorControl'
+    pid=f'CalculatorControl'
     if sys.platform == 'win32':
         # use run with window          
         subprocess.Popen(
