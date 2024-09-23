@@ -350,7 +350,7 @@ class DevicesService:
             # }
             update_code=(lambda x: x['code'] if 'code' in x.keys()  else 0) (update_devices)
             id_device=update_devices['id']
-            if update_code==0 and update_code==2:
+            if update_code==0 and update_code==1:
                 sql_query_select_device=all_query.select_only_device.format(id_device=id_device)
                 
                 result= await session.execute(text(sql_query_select_device))
@@ -380,10 +380,14 @@ class DevicesService:
                             pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{serialport_group}']
                             await restart_program_pm2_many(pm2_app_list)
                         case "Modbus/TCP":
-                            pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
-                            await delete_program_pm2_many(pm2_app_list)
-                            pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
-                            await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
+                            if update_code==0:
+                                pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
+                                await delete_program_pm2_many(pm2_app_list)
+                                pid=f'Dev|{id_communication}|{connect_type}|{id_device}|{name_device}'
+                                await create_program_pm2(f'{path}/deviceDriver/ModbusTCP.py',pid,id_device)
+                            elif update_code==1:
+                                pm2_app_list=[f'Dev|{id_communication}|{connect_type}|{id_device}']
+                                await restart_program_pm2_many(pm2_app_list)
             else:
                 print("update status device online")
             if id_device:
