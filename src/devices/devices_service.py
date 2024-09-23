@@ -245,8 +245,8 @@ class DevicesService:
                 session.add(new_devices)
                 await session.flush()
 
+                count += 1
                 if not is_symbolic_device:
-                    count += 1
                     tg = datetime.datetime.now(datetime.timezone.utc).strftime(
                         "%Y%m%d"
                     )
