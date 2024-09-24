@@ -222,3 +222,8 @@ class DeviceComponentAddition(BaseModel):
 class DeviceInputMap(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+
+
+class ValidationRequireComponent(BaseModel):
+    is_require: Optional[bool] = False
+    parent: Optional[int] = None

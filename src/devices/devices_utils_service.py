@@ -17,7 +17,8 @@ from .devices_entity import (DeviceGroup as DeviceGroupEntity, DeviceType as Dev
                              DeviceConnection as DeviceConnectionEntity,
                              DeviceConnectionType as DeviceConnectionTypeEntity, Devices, DeviceComponent)
 from .devices_filter import AddDeviceGroupFilter, ComponentEntity
-from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection, DeviceConnectionInfo
+from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection, DeviceConnectionInfo, \
+    ValidationRequireComponent
 from ..template.template_entity import Template
 
 
@@ -241,27 +242,27 @@ class UtilsService:
         return component
 
     @async_db_request_handler
-    async def validate_require_component(self, device_id: int, session: AsyncSession) -> bool:
+    async def validate_require_component(self, device_id: int, session: AsyncSession) -> ValidationRequireComponent:
         """
         Validate require component
         :author: nhan.tran
         :date: 24-09-2024
         :param device_id:
         :param session:
-        :return: bool
+        :return: ValidationRequireComponent
         """
         query = (select(Devices)
                  .filter(Devices.id == device_id))
         result = await session.execute(query)
         component = result.scalars().first()
-
+        validation_result = ValidationRequireComponent(is_require=False)
         if not component:
-            return False
+            return validation_result
 
         parent = component.parent
         logging.error(f"Component parent {parent}")
         if not parent:
-            return False
+            return validation_result
 
         query = (select(Devices)
                  .filter(Devices.id == parent))
@@ -269,7 +270,7 @@ class UtilsService:
         parent_component = result.scalars().first()
 
         if not parent_component:
-            return False
+            return validation_result
 
         query = (select(DeviceTypeEntity)
                  .filter(DeviceTypeEntity.id == component.id_device_type))
@@ -277,7 +278,10 @@ class UtilsService:
         device_type = result.scalars().first()
         device_type_group = device_type.group
 
-        return await self.is_component_require(parent_component.id_device_type, device_type_group, session)
+        validation_result.parent = parent_component.id
+        validation_result.is_require = await self.is_component_require(parent_component.id_device_type,
+                                                                       device_type_group, session)
+        return validation_result
 
     @async_db_request_handler
     async def is_component_require(self, main_type: int, component_type_group: int, session: AsyncSession) -> bool:

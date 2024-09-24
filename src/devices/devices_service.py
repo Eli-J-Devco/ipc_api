@@ -342,13 +342,12 @@ class DevicesService:
 
             device = await self.get_device_by_id(i, session)
             if device:
-                if await self.utils_service.validate_require_component(device.id, session):
+                validation_result = await self.utils_service.validate_require_component(device.id, session)
+                if validation_result.parent is not None and validation_result.parent not in deleted_devices and \
+                        validation_result.is_require:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete required device")
+
                 deleted_devices.append(device.id)
-            #     query = (update(DevicesEntity)
-            #              .where(DevicesEntity.parent == device.id)
-            #              .values(parent=None))
-            #     await session.execute(query)
 
         if len(deleted_devices) > 0:
             serial_number = await ProjectSetupService().get_project_serial_number(session)
