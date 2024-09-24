@@ -152,7 +152,6 @@ class DeviceConnectionInfo(DeviceConnection):
 
 
 class DeviceComponentBase(BaseModel):
-    sub_type: Optional[int] = None
     group: Optional[int] = None
     quantity: Optional[int] = None
     require: Optional[bool] = False
@@ -194,7 +193,6 @@ class Component(BaseModel):
 
 class ComponentGroup(BaseModel):
     name: Optional[str] = None
-    sub_type: Optional[int] = None
     group: Optional[int] = None
     quantity: Optional[int] = None
     type: Optional[int] = None

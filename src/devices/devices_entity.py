@@ -156,7 +156,6 @@ class DeviceComponent(config.Base):
                                                       onupdate="RESTRICT"),
                                            primary_key=True,
                                            nullable=False)
-    sub_type: Mapped[int] = mapped_column(Integer, primary_key=True, nullable=True)
     group: Mapped[int] = mapped_column(Integer, ForeignKey("device_type_group.id",
                                                            ondelete="RESTRICT",
                                                            onupdate="RESTRICT"),
