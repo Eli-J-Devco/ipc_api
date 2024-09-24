@@ -1546,7 +1546,6 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         })
                 new_point_control.sort(key=lambda x: x["control_menu_order"])
                 new_point_control_attr=[]
-                print(f'new_point_control: {new_point_control}')
                 match item_group["attributes"]:
                     case 0:
                         for item_point_attr in new_point_control:
