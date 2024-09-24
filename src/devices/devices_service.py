@@ -72,6 +72,7 @@ class DevicesService:
         :param pagination:
         :return: list[DeviceFull] | HTTPException
         """
+        session.expire_all()
         query = (select(DevicesEntity)
                  .where(DevicesEntity.status.__eq__(True))
                  .where(DevicesEntity.parent == body.id))
