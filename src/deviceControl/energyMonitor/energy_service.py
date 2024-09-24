@@ -50,9 +50,8 @@ class EnergySystem:
         
         if messageMQTT:
             for item in messageMQTT:
-                if 'id_device' in item:
-                    id_device = item['id_device']
-                    result_type_meter = await self.get_device_type(id_device)
+                if 'name_device_type' in item:
+                    result_type_meter = item["name_device_type"]
                     if result_type_meter:
                         totalProductionTemp = self.calculate_production(
                             item, result_type_meter, totalProductionTemp)
@@ -60,17 +59,13 @@ class EnergySystem:
                             item, result_type_meter, totalConsumptionTemp)
         
         return totalProductionTemp, totalConsumptionTemp
-    # Describe get_device_type 
-    # 	 * @description get_device_type
+    # Describe calculate_production 
+    # 	 * @description calculate_production
     # 	 * @author bnguyen
     # 	 * @since 2-05-2024
-    # 	 * @param {id_device}
-    # 	 * @return result type device
+    # 	 * @param {messageMQTT, result_type_meter ,totalProduction}
+    # 	 * @return totalProduction
     # 	 */ 
-    async def get_device_type(self,id_device):
-        db_new = await DBSessionManager.get_db()
-        result = await self.devicetypeservice.selectTypeDeviceByID(db_new,id_device)
-        return result
     def calculate_production(self,messageMQTT, result_type_meter ,totalProduction):
         if result_type_meter == "PV System Inverter":
             resultFiltermessageMQTT = [
