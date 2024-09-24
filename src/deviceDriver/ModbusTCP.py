@@ -1546,7 +1546,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                         })
                 new_point_control.sort(key=lambda x: x["control_menu_order"])
                 new_point_control_attr=[]
-                
+                print(f'new_point_control: {new_point_control}')
                 match item_group["attributes"]:
                     case 0:
                         for item_point_attr in new_point_control:
@@ -1557,6 +1557,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                 }
                             )
                     case 1: 
+                        
                         if len(new_point_control)==2:
                             control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
                             if control_enable!=None and control_enable!="null":
@@ -1584,6 +1585,7 @@ async def monitoring_device(point_type,serial_number_project,host=[], port=[], u
                                             }
                                         )
                     case 2:  
+                        
                         if len(new_point_control)==3:                   
                             control_enable=(lambda x:  x[0]["value"] if x else None) ([item for item in new_point_control if item['control_type_input'] == 4])
                             if control_enable!=None and control_enable!="null":

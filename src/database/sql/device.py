@@ -186,7 +186,9 @@ class Query():
         LEFT JOIN pointclass_type table_pointclass_type ON point_list.id_pointclass_type=table_pointclass_type.id
         LEFT JOIN config_information table_config_information ON point_list.id_config_information=table_config_information.id
         LEFT JOIN config_information table_pointtype ON point_list.id_pointtype=table_pointtype.id
-        LEFT JOIN point_list_control_group  ON point_list.id_control_group=point_list_control_group.id
+        
+        # LEFT JOIN point_list_control_group  ON point_list.id_control_group=point_list_control_group.id
+        
         LEFT JOIN config_information table_type_function ON point_list.id_type_function=table_type_function.id
         
         Left JOIN device_panel  ON device_panel.id_point_list=device_point_list_map.id_point_list and device_panel.id_device_list=device_point_list_map.id_device_list
