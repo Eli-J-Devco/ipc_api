@@ -1,7 +1,9 @@
+import json
 import logging
 
 from mqtt_service.mqtt import Publisher
 from mqtt_service.model import MessageModel, Topic
+from mqtt_service.utils import gzip_data
 from sqlalchemy import Double
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -52,6 +54,7 @@ class DeviceService:
             devices_info = await self.get_valid_devices(devices, action_type)
 
             if not devices_info:
+                await self.send_refresh(meta_code)
                 return
 
             logger.info("Processing devices")
@@ -85,6 +88,7 @@ class DeviceService:
                                               PAYLOAD=PayloadModel(id=devices_info[0].id_template, ))
                 await self.pm2_service.send(pm2_msg)
             await self.session.commit()
+            await self.send_refresh(meta_code)
         except Exception as e:
             logger.error(f"Error processing data: {e}")
             await self.session.rollback()
@@ -222,3 +226,18 @@ class DeviceService:
                                     self.retry_publisher,
                                     self.dead_letter_publisher,
                                     is_zip=True)
+
+    async def send_refresh(self, client_code: str):
+        try:
+            await self.retry_publisher.start()
+            msg = MessageModel(
+                topic=Topic(target=f"{self.serial_number}/{Action.REFRESH.value}",
+                            failed=f"{self.serial_number}/{Action.DEAD_LETTER.value}"),
+                message={"data": "refresh"},
+                metadata={"retry": 0, "code": client_code}).dict()
+            msg = gzip_data(json.dumps(msg))
+            self.retry_publisher.send(f"{self.serial_number}/{Action.REFRESH.value}", msg)
+            await self.retry_publisher.stop()
+        except Exception as e:
+            logger.error(f"Error sending refresh: {e}")
+            raise e

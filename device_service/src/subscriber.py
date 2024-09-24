@@ -136,7 +136,8 @@ async def reconector():
     re_publisher = Publisher(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
-        subscriptions=[f"{serial_number}/{Action.CREATE.value}"],
+        subscriptions=[f"{serial_number}/{Action.CREATE.value}",
+                       f"{serial_number}/{Action.REFRESH.value}"],
         client_id=f"publisher-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
@@ -157,7 +158,8 @@ async def reconector():
     subscriber = MQTTSubscriber(
         host=config.MQTT_HOST,
         port=config.MQTT_PORT,
-        topic=[f"{serial_number}/{topic.value}" for topic in Action if topic != Action.DEAD_LETTER],
+        topic=[f"{serial_number}/{topic.value}" for topic in Action
+               if topic not in [Action.DEAD_LETTER, Action.REFRESH]],
         client_id=f"sub-{DeviceStatus.CREATING.name.lower()}-{uuid.uuid4()}",
         will_qos=config.MQTT_QOS,
         will_retain=config.MQTT_RETAIN,
