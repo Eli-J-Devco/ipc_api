@@ -15,7 +15,7 @@ from sqlalchemy import select, text
 
 from .devices_entity import (DeviceGroup as DeviceGroupEntity, DeviceType as DeviceTypeEntity,
                              DeviceConnection as DeviceConnectionEntity,
-                             DeviceConnectionType as DeviceConnectionTypeEntity)
+                             DeviceConnectionType as DeviceConnectionTypeEntity, Devices, DeviceComponent)
 from .devices_filter import AddDeviceGroupFilter, ComponentEntity
 from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection, DeviceConnectionInfo
 from ..template.template_entity import Template
@@ -112,6 +112,7 @@ class UtilsService:
         :param session:
         :return: list[DeviceTypeEntity] | HTTPException
         """
+
         def convert_str_to_dict(obj):
             obj.plug_point_count = json.loads(obj.plug_point_count) if obj.plug_point_count is not None else None
             return obj.__dict__
@@ -238,3 +239,64 @@ class UtilsService:
         component.connection_name = connection_name
 
         return component
+
+    @async_db_request_handler
+    async def validate_require_component(self, device_id: int, session: AsyncSession) -> bool:
+        """
+        Validate require component
+        :author: nhan.tran
+        :date: 24-09-2024
+        :param device_id:
+        :param session:
+        :return: bool
+        """
+        query = (select(Devices)
+                 .filter(Devices.id == device_id))
+        result = await session.execute(query)
+        component = result.scalars().first()
+
+        if not component:
+            return False
+
+        parent = component.parent
+        logging.error(f"Component parent {parent}")
+        if not parent:
+            return False
+
+        query = (select(Devices)
+                 .filter(Devices.id == parent))
+        result = await session.execute(query)
+        parent_component = result.scalars().first()
+
+        if not parent_component:
+            return False
+
+        query = (select(DeviceTypeEntity)
+                 .filter(DeviceTypeEntity.id == component.id_device_type))
+        result = await session.execute(query)
+        device_type = result.scalars().first()
+        device_type_group = device_type.group
+
+        return await self.is_component_require(parent_component.id_device_type, device_type_group, session)
+
+    @async_db_request_handler
+    async def is_component_require(self, main_type: int, component_type_group: int, session: AsyncSession) -> bool:
+        """
+        Check component require
+        :author: nhan.tran
+        :date: 24-09-2024
+        :param main_type:
+        :param component_type_group:
+        :param session:
+        :return: bool
+        """
+        query = (select(DeviceComponent)
+                 .filter(DeviceComponent.main_type == main_type)
+                 .filter(DeviceComponent.group == component_type_group))
+        result = await session.execute(query)
+        component = result.scalars().first()
+
+        if not component:
+            return False
+
+        return component.require

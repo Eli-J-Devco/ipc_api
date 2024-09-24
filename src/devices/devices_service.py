@@ -342,6 +342,8 @@ class DevicesService:
 
             device = await self.get_device_by_id(i, session)
             if device:
+                if await self.utils_service.validate_require_component(device.id, session):
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete required device")
                 deleted_devices.append(device.id)
             #     query = (update(DevicesEntity)
             #              .where(DevicesEntity.parent == device.id)
