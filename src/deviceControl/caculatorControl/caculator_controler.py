@@ -39,11 +39,11 @@ class MainClass:
                 password=mqtt_settings.MQTT_PASSWORD,
                 serial_number=project_setup_config["serial_number"]
             )
-            mqtt_service.set_topics(mqtt_topics.Devices_All)
+            mqtt_service.set_topics(mqtt_topics.Devices_All,mqtt_topics.Control_Process)
             
             # function to send and receive messages using mqtt
             tasks = []
-            tasks.append(mqtt_handler_instance.subscribe_to_mqtt_topics(mqtt_service, project_setup_config["serial_number"],setup_site_instance))
+            tasks.append(mqtt_handler_instance.subscribe_to_mqtt_topics(mqtt_service, project_setup_config["serial_number"]))
             await asyncio.gather(*tasks, return_exceptions=False)
         
         await asyncio.sleep(0.05)
