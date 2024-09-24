@@ -36,21 +36,43 @@ def create_server_connection(host_name, port_name, user_name, user_password, db_
                 print(f"Unable to connect to the database")
                 return None
 
+# def insert_data_table_device(data):
+#     db = create_server_connection(Config.DATABASE_HOSTNAME, Config.DATABASE_PORT, Config.DATABASE_USERNAME, Config.DATABASE_PASSWORD, Config.DATABASE_NAME)
+#     if db:
+#         cursor = db.cursor(dictionary=True)
+#         try:
+#             for entry in data:
+#                 sql = entry['sql']
+#                 values = entry['values']
+#                 cursor.executemany(sql, values)
+#             db.commit()
+#             print("Data inserted successfully.")
+#         except Exception as e:
+#             print(f"Error during data insertion: {e}")
+#             db.rollback()
+#         finally:
+#             cursor.close()
+#             db.close()
 def insert_data_table_device(data):
     db = create_server_connection(Config.DATABASE_HOSTNAME, Config.DATABASE_PORT, Config.DATABASE_USERNAME, Config.DATABASE_PASSWORD, Config.DATABASE_NAME)
     if db:
         cursor = db.cursor(dictionary=True)
         try:
-            for entry in data:
-                sql = entry['sql']
-                values = entry['values']
-                cursor.executemany(sql, values)
+            for key, value in data.items():
+                sql = value[0]
+                val = value[1]
+                cursor.execute(sql, val)
             db.commit()
-            print("Data inserted successfully.")
-        except Exception as e:
-            print(f"Error during data insertion: {e}")
-            db.rollback()
-        finally:
+            result = cursor.rowcount
             cursor.close()
             db.close()
+            return result
+        except Exception as err:
+            cursor.close()
+            db.close()
+            print(f"Error: '{err}{val}'")
+            return None
+    else:
+        return None
+
 

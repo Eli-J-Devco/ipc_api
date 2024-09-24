@@ -166,47 +166,80 @@ class LogAllDevice(LogDevice):
     def __init__(self, log_device_instance):
         self.log_device_instance = log_device_instance
         
+    # async def insert_list_device_data(self):
+    #     timeCurrent = get_utc()
+    #     value_insert_db = []
+    #     if self.log_device_instance.messageLogDevice:
+    #         for item in self.log_device_instance.messageLogDevice:
+    #             deviceId = item["id"]
+    #             queries = await self.create_data_insert_db(timeCurrent,deviceId, self.log_device_instance.messageLogDevice)
+    #             value_insert_db.append(queries)
+    #     if len(value_insert_db) == len(self.log_device_instance.messageLogDevice):
+    #         insert_data_table_device(value_insert_db)
+    
+    #     async def create_data_insert_db(self, timeCurrent,IdDeviceFromListMQTTAll, resultListDevice):
+    #         queries = {}
+    #         converted_queries = {}
+    #         arrayDataUsingLogDB = []
+    #         arrayFieldOfDevice = []
+    #         DictID = [item for item in resultListDevice if item["id"] == IdDeviceFromListMQTTAll]
+    #         if DictID:
+    #             arrayDataUsingLogDB = DictID[0]["data"]
+    #             arrayFieldOfDevice = DictID[0]["namekey"]
+    #             statusDevice = DictID[0]["status_device"]
+    #         if not arrayDataUsingLogDB: 
+    #             arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
+    #         errorCode = 139 if statusDevice == "offline" else 0
+    #         try:
+    #             ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll,errorCode) + tuple(arrayDataUsingLogDB)
+    #             ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
+    #             columns = ["time", "id_device","error"] + arrayFieldOfDevice
+    #             tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
+    #             queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
+    #             queries[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
+    #             # conver list queries to dic converted_queries
+    #             sql, values = queries[IdDeviceFromListMQTTAll]
+    #             converted_queries = {
+    #             'sql': sql,
+    #             'values': [values] 
+    #             }
+    #             return converted_queries
+    #         except Exception as e:
+    #             logger.error(f"Error during file creation is : {e}")
+    #             return None
+    
     async def insert_list_device_data(self):
-        timeCurrent = get_utc()
-        value_insert_db = []
-        if self.log_device_instance.messageLogDevice:
+        if self.log_device_instance.messageLogDevice :
+            tasks = []
             for item in self.log_device_instance.messageLogDevice:
                 deviceId = item["id"]
-                queries = await self.create_data_insert_db(timeCurrent,deviceId, self.log_device_instance.messageLogDevice)
-                value_insert_db.append(queries)
-        if len(value_insert_db) == len(self.log_device_instance.messageLogDevice):
-            insert_data_table_device(value_insert_db)
+                task = self.insert_each_device_data(deviceId, self.log_device_instance.messageLogDevice)
+                tasks.append(task)
+            await asyncio.gather(*tasks)
             
-    async def create_data_insert_db(self, timeCurrent,IdDeviceFromListMQTTAll, resultListDevice):
-        queries = {}
-        converted_queries = {}
+    async def insert_each_device_data(self, IdDeviceFromListMQTTAll, resultListDevice):
+        dictionaryQueriesEachOfDevice = {}
         arrayDataUsingLogDB = []
         arrayFieldOfDevice = []
         DictID = [item for item in resultListDevice if item["id"] == IdDeviceFromListMQTTAll]
         if DictID:
             arrayDataUsingLogDB = DictID[0]["data"]
             arrayFieldOfDevice = DictID[0]["namekey"]
-            statusDevice = DictID[0]["status_device"]
         if not arrayDataUsingLogDB: 
             arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
-        errorCode = 139 if statusDevice == "offline" else 0
         try:
-            ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll,errorCode) + tuple(arrayDataUsingLogDB)
+            timeCurrent = get_utc()
+            ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll) + tuple(arrayDataUsingLogDB)
             ValueInsertInDB = tuple("0.0" if x == "" else x for x in ValueInsertInDB)
-            columns = ["time", "id_device","error"] + arrayFieldOfDevice
+            columns = ["time", "id_device"] + arrayFieldOfDevice
             tableNameDeviceInDB = f"dev_{IdDeviceFromListMQTTAll}"
             queryInsertDataDeviceInDB = f"INSERT INTO {tableNameDeviceInDB} ({', '.join(columns)}) VALUES ({', '.join(['%s'] * len(columns))})"
-            queries[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
-            # conver list queries to dic converted_queries
-            sql, values = queries[IdDeviceFromListMQTTAll]
-            converted_queries = {
-            'sql': sql,
-            'values': [values] 
-            }
-            return converted_queries
+            dictionaryQueriesEachOfDevice[IdDeviceFromListMQTTAll] = [queryInsertDataDeviceInDB, ValueInsertInDB]
+            insert_data_table_device(dictionaryQueriesEachOfDevice)
         except Exception as e:
-            logger.error(f"Error during file creation is : {e}")
-            return None
+            print(f"Error during file creation is : {e}")
+        return dictionaryQueriesEachOfDevice
+        
 class LogMPTTDevice(LogDevice):
     def __init__(self, log_device_instance):
         self.log_device_instance = log_device_instance
