@@ -89,7 +89,6 @@ class MQTTHandler(LogFile):
             message = await self.create_message(IdDeviceGetListMQTT,Head_File_Log,timeLog)
             if topic and message :
                 MQTTService.push_data_zip(mqtt_service, topic, message)
-                MQTTService.push_data(mqtt_service, topic + "Binh", message)
         except Exception as err:
             logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 
