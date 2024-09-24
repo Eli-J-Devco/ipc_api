@@ -2168,6 +2168,7 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
             global rated_power,rated_power_custom,min_watt_in_percent
             global maximum_DC_input_current,rated_DC_input_voltage
             message = await client.messages.get()
+            global device_id
             if message is None:
                 print('Broker connection lost!')
                 break
@@ -2177,13 +2178,17 @@ async def handle_messages_device(client,serial_number_project, host, port, usern
                 topic=f'{serial_number_project}/{topic_parent}'
                 if message.topic==topic:
                     result = gzipDecompress(message.message)
-                    output= await device_service_init.update_device(result)
-                    if output:
-                        rated_power=output["rated_power"]
-                        rated_power_custom=output["rated_power_custom"]
-                        min_watt_in_percent=output["min_watt_in_percent"]
-                        maximum_DC_input_current=output["maximum_DC_input_current"]
-                        rated_DC_input_voltage=output["rated_DC_input_voltage"]     
+                    if 'PAYLOAD' in result.keys():
+                        id=result["PAYLOAD"]["id"]
+                        if  id!=device_id:
+                            return
+                        output= await device_service_init.update_device(result)
+                        if output:
+                            rated_power=output["rated_power"]
+                            rated_power_custom=output["rated_power_custom"]
+                            min_watt_in_percent=output["min_watt_in_percent"]
+                            maximum_DC_input_current=output["maximum_DC_input_current"]
+                            rated_DC_input_voltage=output["rated_DC_input_voltage"]     
     except Exception as err:
         print(f"Error handle_messages_driver: '{err}'")
 """
