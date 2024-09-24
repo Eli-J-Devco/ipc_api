@@ -17,16 +17,16 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dataLog.device.device_service import *
 from deviceControl.setupSite.setup_site_service import *
-from dbService.projectSetup import ProjectSetupService
-from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='setupSite')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     # initialize the necessary parameters
     async def start_mqtt_service(self):
         setup_site_instance = SetupSite()
         mqtt_handler_instance = MQTTHandlerSetupSite(setup_site_instance)
         project_setup_config = await setup_site_instance.get_project_setup_values()
-        
-        setup_logging(file_name="setupSite", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         
         if project_setup_config is not None :
             mqtt_settings = MQTTSettings()

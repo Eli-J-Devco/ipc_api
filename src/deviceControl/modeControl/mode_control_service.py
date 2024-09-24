@@ -79,12 +79,12 @@ class ModeControl:
                 token = messageMQTT.get("token", "")
                 if ModeDetail == 1:
                     OffsetZeroExport, ThresholdZeroExport, resultDBZeroExport = await self.update_zero_export_mode (messageMQTT)
-                    OffsetPowerLimit = result[0]["value_offset_power_limit"]
-                    ValuePowerLimit = result[0]["value_power_limit"]
+                    OffsetPowerLimit = result[0].value_offset_power_limit
+                    ValuePowerLimit = result[0].value_power_limit
                 elif ModeDetail == 2:
                     OffsetPowerLimit, ValuePowerLimit, resultDBPowerLimit = await self.update_power_limit_mode(messageMQTT)
-                    OffsetZeroExport = result[0]["value_offset_zero_export"]
-                    ThresholdZeroExport = result[0]["threshold_zero_export"]
+                    OffsetZeroExport = result[0].value_offset_zero_export
+                    ThresholdZeroExport = result[0].threshold_zero_export
                 # Feedback to MQTT
                 if ((resultDBZeroExport is None and ModeDetail == 1) or 
                     (resultDBPowerLimit is None and ModeDetail == 2) or 

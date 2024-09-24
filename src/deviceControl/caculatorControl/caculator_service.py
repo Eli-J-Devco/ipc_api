@@ -29,7 +29,7 @@ class PowerCalculator :
     # 	 */ 
     async def calculate_auto_parameters(self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Select the auto run process
-        if resultDB["control_mode"] == 1 :
+        if int(resultDB["control_mode"]) == 1 :
             print("==============================zero_export==============================")
             await self.calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
         else:

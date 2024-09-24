@@ -17,8 +17,11 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dataLog.device.device_service import *
 from deviceControl.setupSite.setup_site_service import *
-from logger.logger import setup_logging
+# from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
 
+LOGGER = setup_logger(module_name='device')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     def __init__(self):
         self.current_time_interval = None
@@ -32,7 +35,6 @@ class MainClass:
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
-        setup_logging(file_name="logdevice", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None and time_interval_log_device is not None:
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()

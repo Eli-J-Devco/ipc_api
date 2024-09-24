@@ -18,7 +18,10 @@ from utils.libTime import *
 from deviceControl.caculatorControl.caculator_service import *
 from dbService.projectSetup import ProjectSetupService
 from deviceControl.setupSite.setup_site_service import *
-from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
+
+LOGGER = setup_logger(module_name='calculatorControl')
+LOGGER.warn(f'--- init ---')
 class MainClass:
     # initialize the necessary parameters
     async def start_mqtt_service(self):
@@ -26,7 +29,6 @@ class MainClass:
         mqtt_handler_instance = MQTTHandlerPowerCalculator(power_caculator_instance)
         setup_site_instance = SetupSite()
         project_setup_config = await setup_site_instance.get_project_setup_values()
-        setup_logging(file_name="caculatorControl", log_path=os.path.join(pathlib.Path(__file__).parent.absolute(), "logs"))
         if project_setup_config is not None :
             mqtt_settings = MQTTSettings()
             mqtt_topics = MQTTTopicSUD()
