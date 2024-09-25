@@ -79,6 +79,7 @@ class MQTTTopicSUD(BaseSettings):
     Control_Feedbacksetup: str
     Project_Set: str
     Control_Modify: str
+    Control_Process : str
 
 class MQTTTopicPUSH(BaseSettings):
     Control_Setup_Mode_Feedback: str

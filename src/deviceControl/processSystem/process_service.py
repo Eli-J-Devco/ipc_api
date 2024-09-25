@@ -43,7 +43,11 @@ class ProcessSystem:
         ArrayDeviceList = []
         TotalPowerINV = 0.0
         TotalPowerINVMan = 0.0
-        ModeSystem = resultDB["mode"] 
+        ModeSystem = resultDB["mode"]
+        ModeControl = resultDB["control_mode"]
+        ThresholdZeroExport = resultDB.get("threshold_zero_export") or 0.0
+        OffsetZeroExport = resultDB.get("value_offset_zero_export") or 0.0
+        PowerlimitCaculator = resultDB["value_power_limit"]
         # Get Information about the device
         if messageAllDevice and isinstance(messageAllDevice, list):
             # Calculate Total Power 
@@ -66,6 +70,10 @@ class ProcessSystem:
         # Message Public MQTT
         result = {
             "ModeSystempCurrent": ModeSystem,
+            "mode_control": ModeControl,
+            "threshold_zero_export": ThresholdZeroExport,
+            "value_offset_zero_export": OffsetZeroExport,
+            "value_power_limit": PowerlimitCaculator,
             "devices": ArrayDeviceList,
             "total_max_power": TotalPowerINV,
             "total_max_power_man": TotalPowerINVMan,

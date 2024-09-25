@@ -29,7 +29,7 @@ class PowerCalculator :
     # 	 */ 
     async def calculate_auto_parameters(self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         # Select the auto run process
-        if int(resultDB["control_mode"]) == 1 :
+        if int(resultDB["mode_control"]) == 1 :
             print("==============================zero_export==============================")
             await self.calculate_zero_export_mode (mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB)
         else:
@@ -47,8 +47,8 @@ class PowerCalculator :
         ArrayDeviceList = []
         gIntValuePowerForEachInvInModePowerLimit = 0 
         PowerlimitCaculator = resultDB["value_power_limit"]
-        ModeSystem = resultDB["mode"]
-        ModeDetail = resultDB["control_mode"]
+        ModeSystem = resultDB["ModeSystempCurrent"]
+        ModeDetail = resultDB["mode_control"]
         # Get List Device Can Control 
         if messageMQTTAllDevice:
             # Calculate Total Power 
@@ -102,8 +102,8 @@ class PowerCalculator :
         PowerForEachInvInModeZeroExport = 0
         PracticalConsumptionValue = 0.0
         Setpoint = 0 
-        ModeSystem = resultDB["mode"]
-        ModeDetail = resultDB["control_mode"]
+        ModeSystem = resultDB["ModeSystempCurrent"]
+        ModeDetail = resultDB["mode_control"]
         ThresholdZeroExport = resultDB.get("threshold_zero_export") or 0.0
         OffsetZeroExport = resultDB.get("value_offset_zero_export") or 0.0
         # Get List Device Can Control 
@@ -241,8 +241,8 @@ class PowerCalculator :
 class MQTTHandlerPowerCalculator(PowerCalculator):
     def __init__(self, power_caculator_instance):
         self.power_caculator_instance = power_caculator_instance
-        
-    async def subscribe_to_mqtt_topics(self,mqtt_service,serial,setup_site_instance):
+        self.resultDB = None 
+    async def subscribe_to_mqtt_topics(self,mqtt_service,serial):
         try:
             client = mqttools.Client(
                 host=mqtt_service.host,
@@ -254,12 +254,12 @@ class MQTTHandlerPowerCalculator(PowerCalculator):
             )
             while True :
                 await client.start()
-                await self.consume_mqtt_messages(mqtt_service, client,serial,setup_site_instance)
+                await self.consume_mqtt_messages(mqtt_service, client,serial)
                 await client.stop()
         except Exception as err:
             logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
-    async def consume_mqtt_messages(self,mqtt_service, client,serial,setup_site_instance):
+    async def consume_mqtt_messages(self,mqtt_service, client,serial):
         try:
             while True:
                 message = await client.messages.get()
@@ -268,14 +268,15 @@ class MQTTHandlerPowerCalculator(PowerCalculator):
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
-                await self.handle_mqtt_message(mqtt_service,payload,topic,serial,setup_site_instance)
+                await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
         except Exception as err:
             logger.error(f"Error consuming MQTT messages: '{err}'")
     
-    async def handle_mqtt_message(self, mqtt_service, message,topic, serial,setup_site_instance):
+    async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
         try:
-            resultDB = await setup_site_instance.get_project_setup_values()
-            if message and resultDB:
-                await self.power_caculator_instance.calculate_auto_parameters(mqtt_service, message, self.power_caculator_instance.mqtt_topic_push.Control_WriteAuto, resultDB)
+            if topic == serial + self.power_caculator_instance.mqtt_topic_sud.Control_Process:
+                self.resultDB = message
+            if topic == serial + self.power_caculator_instance.mqtt_topic_sud.Devices_All and self.resultDB is not None:
+                await self.power_caculator_instance.calculate_auto_parameters(mqtt_service, message, self.power_caculator_instance.mqtt_topic_push.Control_WriteAuto, self.resultDB)
         except Exception as err:
             logger.error(f"Error handling MQTT message: '{err}'")

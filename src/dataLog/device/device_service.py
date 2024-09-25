@@ -159,7 +159,6 @@ class MQTTHandler(LogDevice):
             topic = "/" + "LogDevice" + "/" + strSqlID + "|" + gStrNameOfDevice
             
             MQTTService.push_data_zip(mqtt_service, topic, message_status_log_device)
-            MQTTService.push_data(mqtt_service, topic + "Binh", message_status_log_device)
         except Exception as err:
             logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
 class LogAllDevice(LogDevice):

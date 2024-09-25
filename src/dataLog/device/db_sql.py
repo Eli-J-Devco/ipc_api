@@ -53,4 +53,3 @@ def insert_data_table_device(data):
         finally:
             cursor.close()
             db.close()
-
