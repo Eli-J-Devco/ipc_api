@@ -400,7 +400,7 @@ def init_device_service():
     else:
         # use run with ubuntu/linux
         subprocess.Popen(
-            f'sudo /usr/bin/python3 /sources/python/services/init_device_service/setup.py', shell=True).communicate()
+            f'sudo /usr/bin/python3 /sources/python/services/setup.py', shell=True).communicate()
 # Describe functions before writing code
 # /**
 # 	 * @description run create virtual device
