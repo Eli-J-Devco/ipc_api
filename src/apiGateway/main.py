@@ -138,76 +138,84 @@ class apiGateway:
                             db_new=await db_config.get_db()
                             await device_init.create_dev_tcp(new_device,db_new)
                         case "CreateRS485Dev":
-                            #  data of device
-                            # {
-                            #     "CODE": "CreateRS485Dev", 
-                            #     "PAYLOAD": 
-                            #         {
-                            #             "id_communication":id_communication,
-                            #             "device":[
-                            #                 {
-                            #                     "id":item.id,
-                            #                     "name":item.name,
-                            #                     "connect_type":driver_list.name,
-                            #                     "id_communication":id_communication,
-                            #                     "mode":item.mode
-                            #                 }
-                            #             ]
-                            #         }
-                            # }
-                            
+                            """
+                            data of device
+                            {
+                                "CODE": "CreateRS485Dev", 
+                                "PAYLOAD": 
+                                    {
+                                        "id_communication":id_communication,
+                                        "device":[
+                                            {
+                                                "id":item.id,
+                                                "name":item.name,
+                                                "connect_type":driver_list.name,
+                                                "id_communication":id_communication,
+                                                "mode":item.mode
+                                            }
+                                        ]
+                                    }
+                            }
+                            """
                             db_new=await db_config.get_db()
                             new_device=result['PAYLOAD']
                             await device_init.create_dev_rs485(new_device,db_new)
                         case "DeleteDev":
-                            # data of device
-                            # mode == 1:  # Disable
-                            # mode == 2:  # Delete
-                            # {
-                            #     "CODE":"DeleteDev",
-                            #     "PAYLOAD":{
-                            #         "device":[
-                            #             {
-                            #             "mode": mode,
-                            #             "id": item.id,
-                            #             "name": device.name,
-                            #             "id_communication": id_communication,
-                            #             "connect_type": driver_name,
-                            #             "device_type_value":0
-                            #             }
-                            #             ],
-                            #         "delete_mode":mode
-                            #     }
-                            # }
+                            """
+                            data of device
+                            mode == 1:  # Disable
+                            mode == 2:  # Delete
+                            {
+                                "CODE":"DeleteDev",
+                                "PAYLOAD":{
+                                    "device":[
+                                        {
+                                        "mode": mode,
+                                        "id": item.id,
+                                        "name": device.name,
+                                        "id_communication": id_communication,
+                                        "connect_type": driver_name,
+                                        "device_type_value":0
+                                        }
+                                        ],
+                                    "delete_mode":mode
+                                }
+                            }
+                            """
                             db_new=await db_config.get_db()
                             delete_device=result['PAYLOAD']
                             await device_init.delete_dev(delete_device,db_new)
                         case "UpdateDev":
-                            # {
-                            #     "CODE": "UpdateDev", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #            "id":296,
-                            #            "code":0/1 =0 init, =1 update mode kw .. , =2 update control min-max
-                            #         }
-                            # }
+                            """
+                            {
+                                "CODE": "UpdateDev", 
+                                "PAYLOAD":
+                                    { 
+                                       "id":296,
+                                       "code":0/1 =0 init, =1 update mode kw .. , =2 update control min-max
+                                    }
+                            }
+                            """
                             db_new=await db_config.get_db()
                             update_device=result['PAYLOAD']
                             await device_init.update_dev(update_device,db_new)
                         case "UpdateTemplate":
-                            # {
-                            #     "CODE": "UpdateTemplate", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #            "id":3
-                            #         }
-                            # }
+                            """
+                            {
+                                "CODE": "UpdateTemplate", 
+                                "PAYLOAD":
+                                    { 
+                                       "id":3
+                                    }
+                            }
+                            """
                             db_new=await db_config.get_db()
                             update_template=result['PAYLOAD']
                             await template_init.init_pm2(update_template,db_new)
                         case "DeleteTemplate":
                             pass
                         case "UpdatePortRS485":
+                            """
                             # {
                             #     "CODE": "UpdatePortRS485", 
                             #     "PAYLOAD":
@@ -215,35 +223,38 @@ class apiGateway:
                             #            "id":1
                             #         }
                             # }
+                            """
                             db_new=await db_config.get_db()
                             update_communication=result['PAYLOAD']
                             await rs485_init.init_pm2(update_communication,db_new)
                         case "UpdateUploadChannels":
-
-                            # {
-                            #     "CODE": "UpdateUploadChannels", 
-                            #     "PAYLOAD":[
-                            #               {"id":1},
-                            #               {"id":2},
-                            #               {"id":3}
-                            #               ]
-                            # }
-                            
+                            """
+                            {
+                                "CODE": "UpdateUploadChannels", 
+                                "PAYLOAD":[
+                                          {"id":1},
+                                          {"id":2},
+                                          {"id":3}
+                                          ]
+                            }
+                            """
                             db_new=await db_config.get_db()
                             upload_channel_list=result['PAYLOAD']
                             await upload_channel_init.init_pm2(upload_channel_list,db_new)
                         case "CreateNoLogDev":
-                            # {
-                            #     "CODE": "CreateNoLogDev", 
-                            #     "PAYLOAD":{
-                            #         "device":[
-                            #             {
-                            #                 "id":1,
-                            #                 "name":"CB",
-                            #             }
-                            #         ]
-                            #     }
-                            # }   
+                            """
+                            {
+                                "CODE": "CreateNoLogDev", 
+                                "PAYLOAD":{
+                                    "device":[
+                                        {
+                                            "id":1,
+                                            "name":"CB",
+                                        }
+                                    ]
+                                }
+                            }
+                            """   
                             db_new=await db_config.get_db()
                             new_device=result['PAYLOAD']
                             await device_init.create_dev_no_log(new_device,db_new)
