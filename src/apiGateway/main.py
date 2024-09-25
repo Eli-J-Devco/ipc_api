@@ -117,21 +117,23 @@ class apiGateway:
                             # table project
                             await project_init.init_logging_rate()
                         case "CreateTCPDev":
-                            # {
-                            #     "CODE": "CreateTCPDev", 
-                            #     "PAYLOAD":
-                            #         { 
-                            #             "device":[
-                            #             {
-                            #                 "id":item.id,
-                            #                 "name":item.name,
-                            #                 "connect_type":driver_list.name,
-                            #                 "id_communication":id_communication,
-                            #                 "mode":item.mode
-                            #             }
-                            #                 ]
-                            #         }
-                            # }
+                            """"
+                            {
+                                "CODE": "CreateTCPDev", 
+                                "PAYLOAD":
+                                    { 
+                                        "device":[
+                                        {
+                                            "id":296,
+                                            "name":"ABB",
+                                            "connect_type":"TCP",
+                                            "id_communication":1,
+                                            "mode":0
+                                        }
+                                            ]
+                                    }
+                            }
+                            """
                             new_device=result['PAYLOAD']
                             db_new=await db_config.get_db()
                             await device_init.create_dev_tcp(new_device,db_new)
