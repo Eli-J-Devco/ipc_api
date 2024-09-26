@@ -54,11 +54,10 @@ class SyncData:
         Sync_Setting = SyncSetting()
         self.number_file = await self.check_number_file_remainder(IdChannel)
         result = await self.check_url(IdChannel) 
-        self.files = await self.check_sync_file_multi_or_single()
+        self.files = await self.check_sync_file_multi_or_single() # multi = 1 , single = 0
         row = 1
         if self.files == 1 :
             row = Sync_Setting.Number_File_Sync_Max
-        print("vao chu trinh sync file")
         await self.process_sync_file(IdChannel,result.uploadurl,typeOfFile,row)
         
     async def check_number_file_remainder(self,IdChannel):
@@ -91,14 +90,15 @@ class SyncData:
                     try:
                         if typeOfFile == Sync_Setting.Name_Key_File_Log:
                             headers , files ,id_time = await self.file_log_handler.create_headers(result)
+                            print(f"headers{headers},files{files},id_time{id_time} ")
                             response = self.file_log_handler.post_request_log_to_cloud(headers,files,url)
                             await self.file_log_handler.update_reponse_logfile_to_db(response,IdChannel,sql_id,id_time)
-                            self.logger.info(f"sync file url successfull '{sql_id}'")
+                            self.logger.info(f"sync file log successfull '{sql_id}'")
                         elif typeOfFile == Sync_Setting.Name_Key_URL:
                             arrayjson,array_id_time = await self.url_handler.create_json(result,IdChannel,sql_id)
                             response = self.url_handler.post_request_json_to_cloud(arrayjson,url)
                             await self.url_handler.update_reponse_json_to_db(response,IdChannel,sql_id,array_id_time)
-                            self.logger.info(f"sync file log successfull '{sql_id}'")
+                            self.logger.info(f"sync file url successfull '{sql_id}'")
                         elif typeOfFile == Sync_Setting.Name_Key_Ftp:
                             soucre,id_time = await self.ftp_handler.create_connect(result)
                             response = self.ftp_handler.post_request_to_FTPcloud(soucre,url)
@@ -302,22 +302,32 @@ class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
     
-    async def create_headers(self,result):
-        first_item = result[0]
-        files = []
-        id_times = []
-        headers = {
-            'SERIALNUMBER': self.sync_data_instance.serial,
-            'MODBUSDEVICE': first_item.modbusdevice,
-            'MODBUSPORT': first_item.modbusport,
-            'MODE': 'LOGFILEUPLOAD'
-        }
-        for item in result:
-            id_time = item.id
-            id_times.append(id_time)
-            file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
-            files.append(file)
-        return headers , files ,id_times
+    async def create_headers(self, result):
+        try:
+            first_item = result[0]
+            files = []
+            id_times = []
+            headers = {
+                'SERIALNUMBER': self.sync_data_instance.serial,
+                'MODBUSDEVICE': first_item.modbusdevice,
+                'MODBUSPORT': first_item.modbusport,
+                'MODE': 'LOGFILEUPLOAD'
+            }
+            for item in result:
+                try:
+                    id_time = item.id
+                    id_times.append(id_time)
+                    file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
+                    files.append(file)
+                except Exception as e:
+                    logging.error(f"Error creating file for item {item.id}: {e}")
+                    print(f"Error creating file for item {item.id}: {e}")
+            return headers, files, id_times
+        
+        except Exception as e:
+            logging.error(f"Error in create_headers: {e}")
+            print(f"Error in create_headers: {e}")
+            return None, None, None
     
     def post_request_log_to_cloud(self,headers,files,url):
         if files:
