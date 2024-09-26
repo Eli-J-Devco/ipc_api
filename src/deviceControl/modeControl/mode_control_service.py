@@ -14,13 +14,13 @@ from utils.MQTTService import *
 from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
 from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
-logger = logging.getLogger(__name__)
 # ============================================================== Parametter Mode Detail Systemp ================================
 class ModeControl:
-    def __init__(self):
+    def __init__(self,logger: logging.Logger):
         self.mqtt_topic_sud = MQTTTopicSUD()
         self.mqtt_topic_push = MQTTTopicPUSH()
         self.project_setup_service = ProjectSetupService()
+        self.logger = logger
     # Describe handleModeDetailChange 
     # 	 * @description handleModeDetailChange
     # 	 * @author bnguyen
@@ -52,7 +52,7 @@ class ModeControl:
                 MQTTService.push_data_zip(mqtt_service, topicFeedback, objectSend)
                 return ModeDetail
         except Exception as err:
-            logger.error(f"Error MQTT subscribe processUpdateModeControlDetail: '{err}'")
+            self.logger.error(f"Error updating mode control: '{err}'")
             return None  
     # Describe handleParametterDetailChange 
     # 	 * @description handleParametterDetailChange
@@ -107,7 +107,7 @@ class ModeControl:
                     "threshold_zero_export": ThresholdZeroExport,
                 }
         except Exception as err:
-            logger.error(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
+            self.mode_control_instance.logger.error(f"Error MQTT subscribe processUpdateParameterModeDetail: '{err}'")
             return None
     # Describe update_zero_export_mode  
     # 	 * @description update_zero_export_mode 
@@ -168,20 +168,20 @@ class MQTTHandlerModeControl(ModeControl):
                 await self.consume_mqtt_messages(mqtt_service, client,serial)
                 await client.stop()
         except Exception as err:
-            logger.error(f"Error subscribing to MQTT topics: '{err}'")
+            self.mode_control_instance.logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    logger.info('Broker connection lost!')
+                    self.mode_control_instance.logger.info('Broker connection lost!')
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
         except Exception as err:
-            logger.error(f"Error consuming MQTT messages: '{err}'")
+            self.mode_control_instance.logger.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
         try:
@@ -192,4 +192,4 @@ class MQTTHandlerModeControl(ModeControl):
                 await self.mode_control_instance.update_parameter_control(mqtt_service, message, self.mode_control_instance.mqtt_topic_push.Control_Setup_Auto_Feedback)
                 print("update parameter control suscessfully")
         except Exception as err:
-            logger.error(f"Error handling MQTT message: '{err}'")
+            self.mode_control_instance.logger.error(f"Error handling MQTT message: '{err}'")
