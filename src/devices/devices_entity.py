@@ -6,6 +6,7 @@
 import datetime
 
 from sqlalchemy import Integer, DOUBLE, String, ForeignKey, Date
+from sqlalchemy.dialects.mysql import json
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ..config import config
@@ -112,6 +113,7 @@ class DeviceTypeGroup(config.Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     type: Mapped[int] = mapped_column(Integer, nullable=True)
+    addition: Mapped[json] = mapped_column(String, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
 

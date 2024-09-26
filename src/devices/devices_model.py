@@ -12,6 +12,14 @@ from pydantic import BaseModel
 from ..template.template_model import TemplateBase
 
 
+class DeviceTypeGroup(BaseModel):
+    id: Optional[int] = None
+    name: Optional[str] = None
+    type: Optional[int] = None
+    addition: Optional[list[dict]] = None
+    status: Optional[bool] = True
+
+
 class DeviceType(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
@@ -105,7 +113,7 @@ class DeviceUploadChannelMap(BaseModel):
         orm_mode = True
 
 
-class DeviceGroup(BaseModel):
+class DeviceGroupBase(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
 
@@ -113,16 +121,17 @@ class DeviceGroup(BaseModel):
         orm_mode = True
 
 
+class DeviceGroup(DeviceGroupBase):
+    id_device_type: Optional[int] = None
+    status: Optional[bool] = None
+    type: Optional[bool] = None
+
+
 class Action(enum.Enum):
     CREATE = "InitDevices/create"
     UPDATE = "InitDevices/update"
     DELETE = "InitDevices/delete"
     DEAD_LETTER = "InitDevices/dead-letter"
-
-
-class DeviceConfigOutput(BaseModel):
-    device_types: list[DeviceType]
-    device_groups: list[DeviceGroup]
 
 
 class DeviceConnectionType(BaseModel):
@@ -225,3 +234,10 @@ class DeviceInputMap(BaseModel):
 class ValidationRequireComponent(BaseModel):
     is_require: Optional[bool] = False
     parent: Optional[int] = None
+
+
+class DeviceConfigOutput(BaseModel):
+    device_type_groups: Optional[list[DeviceTypeGroup]] = []
+    device_types: Optional[list[DeviceType]] = []
+    device_groups: Optional[list[DeviceGroupBase]] = []
+    connections: Optional[list[DeviceConnectionType]] = []

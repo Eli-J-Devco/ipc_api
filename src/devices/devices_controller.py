@@ -86,6 +86,17 @@ class DevicesController:
                       .async_wrapper(self.devices_service
                                      .update_device)(device, session, pagination))
 
+    @Post("/config/")
+    async def get_device_config(self,
+                                session: AsyncSession = Depends(config.get_db),
+                                auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.utils_service.get_device_config_information)(session)
+
+    @Post("/config/group_type/get/")
+    async def get_device_type_group(self, session: AsyncSession = Depends(config.get_db),
+                                    auth: Authentication = Depends(get_current_user)):
+        return await ServiceWrapper.async_wrapper(self.utils_service.get_device_type_group)(session)
+
     @Post("/config/type/get/")
     async def get_device_type(self, session: AsyncSession = Depends(config.get_db),
                               auth: Authentication = Depends(get_current_user)):

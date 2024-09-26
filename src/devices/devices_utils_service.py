@@ -11,14 +11,15 @@ from fastapi import HTTPException, status
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from .devices_entity import (DeviceGroup as DeviceGroupEntity, DeviceType as DeviceTypeEntity,
                              DeviceConnection as DeviceConnectionEntity,
-                             DeviceConnectionType as DeviceConnectionTypeEntity, Devices, DeviceComponent)
+                             DeviceConnectionType as DeviceConnectionTypeEntity, Devices, DeviceComponent,
+                             DeviceTypeGroup as DeviceTypeGroupEntity)
 from .devices_filter import AddDeviceGroupFilter, ComponentEntity
-from .devices_model import DeviceGroup, DeviceType, DeviceInputMap, DeviceConnection, DeviceConnectionInfo, \
-    ValidationRequireComponent
+from .devices_model import DeviceGroupBase, DeviceType, DeviceConnection, DeviceConnectionInfo, \
+    ValidationRequireComponent, DeviceTypeGroup, DeviceConfigOutput, DeviceConnectionType, DeviceGroup
 from ..template.template_entity import Template
 
 
@@ -58,20 +59,20 @@ class UtilsService:
         }
 
     @async_db_request_handler
-    async def get_device_group(self, session: AsyncSession) -> Sequence[DeviceGroup]:
+    async def get_device_group(self, session: AsyncSession) -> list[DeviceGroup]:
         """
         Get device group
         :author: nhan.tran
         :date: 20-05-2024
         :param session:
-        :return: list[DeviceGroupEntity] | HTTPException
+        :return: list[DeviceGroup] | HTTPException
         """
         query = select(DeviceGroupEntity)
         result = await session.execute(query)
-        return result.scalars().all()
+        return list(map(lambda x: DeviceGroup(**x.__dict__), result.scalars().all()))
 
     @async_db_request_handler
-    async def get_device_group_by_id(self, id_device_group: int, session: AsyncSession) -> DeviceGroup | HTTPException:
+    async def get_device_group_by_id(self, id_device_group: int, session: AsyncSession) -> DeviceGroupBase | HTTPException:
         """
         Get device group by id
         """
@@ -82,11 +83,11 @@ class UtilsService:
         if not device_group:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device group not found")
 
-        return device_group
+        return DeviceGroupBase(**device_group.__dict__)
 
     @async_db_request_handler
     async def get_device_group_by_type(self, id_device_type: int,
-                                       session: AsyncSession) -> Sequence[DeviceGroup] | HTTPException:
+                                       session: AsyncSession) -> Sequence[DeviceGroupBase] | HTTPException:
         """
         Get device group by device type
         :author: nhan.tran
@@ -103,6 +104,22 @@ class UtilsService:
             return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device group not found")
 
         return device_group
+
+    @async_db_request_handler
+    async def get_device_type_group(self, session: AsyncSession) -> Sequence[DeviceTypeGroup]:
+        """
+        Get device type group
+        :author: nhan.tran
+        :date: 25-05-2024
+        :param session:
+        :return: list[DeviceTypeGroup] | HTTPException
+        """
+        query = select(DeviceTypeGroupEntity)
+        result = await session.execute(query)
+        device_type_groups = list(map(lambda x: DeviceTypeGroup(**{**x.__dict__, "addition": json.loads(x.addition)
+                                      if x.addition is not None else []}),
+                                      result.scalars().all()))
+        return device_type_groups
 
     @async_db_request_handler
     async def get_device_type(self, session: AsyncSession) -> Sequence[DeviceType]:
@@ -141,7 +158,7 @@ class UtilsService:
         if not device_type:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Device type not found")
 
-        return device_type
+        return DeviceType(**device_type.__dict__)
 
     @async_db_request_handler
     async def get_device_type_by_group(self, id_device_type_group: int,
@@ -177,38 +194,18 @@ class UtilsService:
         result = await session.execute(query)
         return result.scalars().first()
 
-    # @async_db_request_handler
-    # async def get_input_map(self, device_id: int, session: AsyncSession):
-    #     """
-    #     Get input map
-    #     """
-    #     query = select(DeviceConnectionEntity).filter(DeviceConnectionEntity.device_list_id == device_id)
-    #     result = await session.execute(query)
-    #     input_map = list(map(lambda x: DeviceConnection(**x.__dict__), result.scalars().all()))
-    #
-    #     output = []
-    #     for item in input_map:
-    #         table = item.connect_device_table
-    #         value = item.connect_device_id
-    #         query = text(f"SELECT {table}.id, {table}.name FROM {table} WHERE {table}.id = {value}")
-    #         result = await session.execute(query)
-    #         result = result.first()
-    #         output.append(DeviceInputMap(id=result[0], name=result[1]))
-    #
-    #     return output
-
     @async_db_request_handler
-    async def get_connection_types(self, session: AsyncSession) -> Sequence[DeviceConnection]:
+    async def get_connection_types(self, session: AsyncSession) -> list[DeviceConnectionType]:
         """
         Get connection types
         :author: nhan.tran
         :date: 16-09-2024
         :param session:
-        :return: Sequence[DeviceConnection]
+        :return: list[DeviceConnectionType]
         """
         query = select(DeviceConnectionTypeEntity)
         result = await session.execute(query)
-        return result.scalars().all()
+        return list(map(lambda x: DeviceConnectionType(**x.__dict__), result.scalars().all()))
 
     @async_db_request_handler
     async def get_connection_by_device_id(self, device_id: int,
@@ -304,3 +301,22 @@ class UtilsService:
             return False
 
         return component.require
+
+    @async_db_request_handler
+    async def get_device_config_information(self, session: AsyncSession) -> DeviceConfigOutput:
+        """
+        Get device config information
+        :author: nhan.tran
+        :date: 25-09-2024
+        :param session:
+        :return: DeviceConfigOutput
+        """
+        with session.no_autoflush:
+            device_type_groups = await self.get_device_type_group(session)
+            device_types = await self.get_device_type(session)
+            device_groups = await self.get_device_group(session)
+            connections = await self.get_connection_types(session)
+            return DeviceConfigOutput(device_type_groups=device_type_groups,
+                                      device_types=device_types,
+                                      device_groups=device_groups,
+                                      connections=connections)
