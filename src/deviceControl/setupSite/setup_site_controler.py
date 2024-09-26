@@ -24,7 +24,7 @@ LOGGER.warn(f'--- init ---')
 class MainClass:
     # initialize the necessary parameters
     async def start_mqtt_service(self):
-        setup_site_instance = SetupSite()
+        setup_site_instance = SetupSite(LOGGER)
         mqtt_handler_instance = MQTTHandlerSetupSite(setup_site_instance)
         project_setup_config = await setup_site_instance.get_project_setup_values()
         

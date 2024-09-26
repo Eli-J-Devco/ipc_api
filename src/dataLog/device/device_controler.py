@@ -28,11 +28,11 @@ class MainClass:
         
     # initialize the necessary parameters
     async def start_mqtt_service(self):
-        log_device_instance = LogDevice()
+        log_device_instance = LogDevice(LOGGER)
         mqtt_handler_instance = MQTTHandler(log_device_instance)
         log_all_device_instance = LogAllDevice(log_device_instance)
         log_mptt_device_instance = LogMPTTDevice(log_device_instance)
-        setup_site_instance = SetupSite()
+        setup_site_instance = SetupSite(LOGGER)
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
         if project_setup_config is not None and time_interval_log_device is not None:

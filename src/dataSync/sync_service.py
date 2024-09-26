@@ -8,6 +8,7 @@ import sys
 import asyncio
 import requests
 import logging
+import ftplib
 sys.stdout.reconfigure(encoding='utf-8')
 path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 sys.path.append(path)
@@ -19,15 +20,14 @@ from dbService.syncData import SyncDataService
 from dbService.deviceList import deviceListService
 from dbService.uploadChannel import UploadChannelService
 from dbService.pointList import PointListService
-logger = logging.getLogger(__name__)
 class SyncData:
-    def __init__(self):
+    def __init__(self,logger: logging.Logger):
         self.message_log_file = []  
         self.list_device_log_file = []  
         self.serial = ""
         self.number_file = ""
         self.files = ""
-
+        self.logger = logger
         self.url_handler = URL(self)
         self.file_log_handler = FileLog(self)
         self.ftp_handler = FTP(self)
@@ -58,6 +58,7 @@ class SyncData:
         row = 1
         if self.files == 1 :
             row = Sync_Setting.Number_File_Sync_Max
+        print("vao chu trinh sync file")
         await self.process_sync_file(IdChannel,result.uploadurl,typeOfFile,row)
         
     async def check_number_file_remainder(self,IdChannel):
@@ -87,19 +88,25 @@ class SyncData:
                 sql_id = item.id
                 result = await syncDataService.select_number_row_send_cloud(db_new,IdChannel,sql_id,row)
                 if result:
-                    if typeOfFile == Sync_Setting.Name_Key_File_Log:
-                        headers , files ,id_time = await self.file_log_handler.create_headers(result)
-                        response = self.file_log_handler.post_request_log_to_cloud(headers,files,url)
-                        await self.file_log_handler.update_reponse_logfile_to_db(response,IdChannel,sql_id,id_time)
-                    elif typeOfFile == Sync_Setting.Name_Key_URL:
-                        arrayjson,array_id_time = await self.url_handler.create_json(result,IdChannel,sql_id)
-                        response = self.url_handler.post_request_json_to_cloud(arrayjson,url)
-                        await self.url_handler.update_reponse_json_to_db(response,IdChannel,sql_id,array_id_time)
-                    elif typeOfFile == Sync_Setting.Name_Key_Ftp:
-                        soucre,id_time = await self.ftp_handler.create_source(result)
-                        response = self.ftp_handler.post_request_to_FTPcloud(soucre,url)
-                        await self.ftp_handler.update_reponse_ftp_to_db(response,IdChannel,sql_id,id_time)
-class MQTTHandler1(SyncData):
+                    try:
+                        if typeOfFile == Sync_Setting.Name_Key_File_Log:
+                            headers , files ,id_time = await self.file_log_handler.create_headers(result)
+                            response = self.file_log_handler.post_request_log_to_cloud(headers,files,url)
+                            await self.file_log_handler.update_reponse_logfile_to_db(response,IdChannel,sql_id,id_time)
+                            self.logger.info(f"sync file url successfull '{sql_id}'")
+                        elif typeOfFile == Sync_Setting.Name_Key_URL:
+                            arrayjson,array_id_time = await self.url_handler.create_json(result,IdChannel,sql_id)
+                            response = self.url_handler.post_request_json_to_cloud(arrayjson,url)
+                            await self.url_handler.update_reponse_json_to_db(response,IdChannel,sql_id,array_id_time)
+                            self.logger.info(f"sync file log successfull '{sql_id}'")
+                        elif typeOfFile == Sync_Setting.Name_Key_Ftp:
+                            soucre,id_time = await self.ftp_handler.create_connect(result)
+                            response = self.ftp_handler.post_request_to_FTPcloud(soucre,url)
+                            await self.ftp_handler.update_reponse_ftp_to_db(response,IdChannel,sql_id,id_time)
+                            self.logger.info(f"sync file ftp successfull '{sql_id}'")
+                    except Exception as e:
+                        self.logger.error(f"Error processing sync file for SQL ID '{sql_id}': {e}")
+class MQTTHandler(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
     
@@ -118,19 +125,19 @@ class MQTTHandler1(SyncData):
                 await self.consume_mqtt_messages(mqtt_service, client,time_interval_log_device,IdChannel,typeOfFile,serial)
                 await client.stop()
         except Exception as err:
-            logger.error(f"Error subscribing to MQTT topics: '{err}'")
+            self.sync_data_instance.logger.error(f"Error subscribing to MQTT topics: '{err}'")
 
     async def consume_mqtt_messages(self,mqtt_service, client,time_interval_log_device,IdChannel,typeOfFile,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    logger.info('Broker connection lost!')
+                    self.sync_data_instance.logger.info('Broker connection lost!')
                     break
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,time_interval_log_device,IdChannel,typeOfFile,serial)
         except Exception as err:
-            logger.error(f"Error consuming MQTT messages: '{err}'")
+            self.sync_data_instance.logger.error(f"Error consuming MQTT messages: '{err}'")
             
     async def handle_mqtt_message(self, mqtt_service,message, time_interval_log_device,IdChannel,typeOfFile,serial):
         try:
@@ -140,7 +147,7 @@ class MQTTHandler1(SyncData):
                 if self.sync_data_instance.list_device_log_file:
                     self.sync_data_instance.message_log_file = await self.create_message_log_file(message)
         except Exception as err:
-            logger.error(f"Error handling MQTT message: '{err}'")
+            self.sync_data_instance.logger.error(f"Error handling MQTT message: '{err}'")
             
     async def create_threading_push_status_log_device(self, mqtt_service, timeLog,IdChannel,typeOfFile):
         db_new = await config.get_db()
@@ -162,14 +169,17 @@ class MQTTHandler1(SyncData):
             if topic and message :
                 MQTTService.push_data_zip(mqtt_service, topic, message)
         except Exception as err:
-            logger.error('Error processFeedbackStatusLogDeviceSentMqttEachDevice: ', err)
+            self.sync_data_instance.logger.error('Error process create topic and message push MQTT : ', err)
 
     async def create_topic(self, IdChannel, typeOfFile, IdDeviceGetListMQTT):
         strSqlID = str(IdDeviceGetListMQTT)
-        device_names = [item["device_name"] for item in self.sync_data_instance.message_log_file if item["id"] == IdDeviceGetListMQTT]
-        topic = f"/Updata/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{device_names}"
-        return topic
-    
+        if self.sync_data_instance.message_log_file is not None :
+            device_names = [item["device_name"] for item in self.sync_data_instance.message_log_file if item["id"] == IdDeviceGetListMQTT]
+            topic = f"/Updata/Channel{IdChannel}|{typeOfFile}/{strSqlID}|{device_names}"
+            return topic
+        else:
+            return None
+
     async def create_message(self ,IdDevice, timeLog):
         if self.sync_data_instance.files == 0:
             status_file = "single"
@@ -197,7 +207,7 @@ class MQTTHandler1(SyncData):
             message_log_file = list(dict_device.values())
             return message_log_file
         except Exception as err:
-            logger.error(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
+            self.sync_data_instance.logger.error(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
             return None
     
     def update_device_info(self, dictionary, deviceId, items, currentTime):
@@ -281,13 +291,13 @@ class URL(SyncData):
         if response == 200:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                self.sync_data_instance.logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-            logger.info(f"Updated number retry:{number_time_rety}")
+            self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
             if number_time_rety == 5 :
                 result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-            logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+            self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -320,39 +330,40 @@ class FileLog(SyncData):
         if response == "\nSUCCESS\n":
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                self.sync_data_instance.logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
                 number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-                logger.info(f"Updated number retry:{number_time_rety}")
+                self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
                 if number_time_rety == 5 :
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FTP(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
     
-    async def create_source(self,result):
-        first_item = result[0]
-        files = []
-        id_times = []
-        source = {
-            'SERIALNUMBER': self.sync_data_instance.serial,
-            'MODBUSDEVICE': first_item.modbusdevice,
-            'MODBUSPORT': first_item.modbusport,
-            'MODE': 'LOGFILEUPLOAD'
-        }
-        for item in result:
-            id_time = item.id
-            id_times.append(id_time)
-            file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
-            files.append(file)
-        return source,id_times
+    async def create_connect(self,localFilePath,ftpHost, ftpPort, ftpUname, ftpPass):
+        if os.path.exists(localFilePath):
+            # Connect to the FTP server
+            ftp_connect = ftplib.FTP(timeout=30)
+            ftp_connect.connect(ftpHost, ftpPort)
+            ftp_connect.login(ftpUname, ftpPass)
+            # Retrieve the list of directories on the FTP server
+            directories = []
+            ftp_connect.retrlines('LIST', lambda x: directories.append(x.split()[-1]))
+            for directory in directories:
+                chosenDirectory = directory  
+            # Change to the specified remote directory
+            if chosenDirectory:
+                ftp_connect.cwd(chosenDirectory)
+        return ftp_connect
     
-    def post_request_to_FTPcloud(self,json,url):
-        if json :
-            response = requests.post(url,json=json) 
-            return response.status_code
+    def post_request_to_FTPcloud(self,localFilePath,ftp_connect):
+        _, targetFilename = os.path.split(localFilePath)
+        with open(localFilePath, "rb") as file:
+            retCode = ftp_connect.storbinary(f"STOR {targetFilename}", file, blocksize=1024*1024) 
+            ftp_connect.quit()
+            return retCode.startswith('226')
     
     async def update_reponse_ftp_to_db(self,response,IdChannel,sql_id,id_time):
         syncDataService = SyncDataService()
@@ -360,11 +371,11 @@ class FTP(SyncData):
         if response == True:
             for id in id_time:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
-                logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
+                self.sync_data_instance.logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
         else:
             for id in id_time:
                 number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-                logger.info(f"Updated number retry:{number_time_rety}")
+                self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
                 if number_time_rety == 5 :
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
