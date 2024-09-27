@@ -127,7 +127,7 @@ class MQTTHandler(LogFile):
             message_log_file = list(dict_device.values())
             return message_log_file
         except Exception as err:
-            self.log_file_instance.logger.error(f"Error in create message log file: {err}. Message All Device: {messageAllDevice}")
+            self.log_file_instance.logger.error(f"Error in create message log file: {err}.")
             return None
     
     def update_device_info(self, dictionary, deviceId, items, currentTime):
@@ -198,15 +198,12 @@ class ProcessLogFile(LogFile):
             self.log_file_instance.logger.error(f"Error extracting device info for item '{item}': {err}")
             return None, None, None, None
 
-
     async def create_and_write_file(self, base_path, head_file, id_channel, typeOfFile, id_device, year, month, day, point_list, data):
         time_file = get_utc()
         time_file_datetime = datetime.datetime.strptime(time_file, "%Y-%m-%d %H:%M:%S")
         self.log_file_instance.time_create_file = time_file_datetime.strftime("%Y%m%d%H%M%S").replace(":", "")
-        
         data_in_file_temp = self.prepare_data_in_file(data, point_list)
         directory_path = self.create_directory_path(base_path, id_channel, typeOfFile, id_device, year, month, day)
-        
         try:
             file_path, source_file, name_file = self.create_file(directory_path, head_file, id_device)
             data_in_file = await self.write_data_to_file(file_path, time_file, data_in_file_temp)
@@ -230,18 +227,23 @@ class ProcessLogFile(LogFile):
             self.log_file_instance.logger.error(f"Error creating directory path '{directory_path}': {err}")
             return None
 
-    def create_directory_path(self, base_path, id_channel, typeOfFile, id_device, year, month, day):
-        directory_path = os.path.join(base_path, f"{id_channel}\\{typeOfFile}\\{id_device}\\{year}\\{month}\\{day}")
-        os.makedirs(directory_path, exist_ok=True)
-        return directory_path
-
     def create_file(self, directory_path, head_file, id_device):
+        if not head_file or id_device is None:
+            self.log_file_instance.logger.error("File name is incomplete. Please check the inputs.")
+            return None, None, None
         name_file = f'{head_file}-{id_device:03d}.{self.log_file_instance.time_create_file}.log'
-        file_path = os.path.join(directory_path, name_file)
-        source_file = directory_path + "/" + name_file
-        return file_path, source_file , name_file
-
+        try : 
+            file_path = os.path.join(directory_path, name_file)
+            source_file = directory_path + "/" + name_file
+            return file_path, source_file , name_file
+        except Exception as e:
+            self.log_file_instance.logger.error(f"Error creating file '{file_path}': {e}")
+            return None , None , None
+        
     async def write_data_to_file(self, file_path, time_file, data_in_file):
+        if not data_in_file or len(data_in_file) == 0:
+            self.log_file_instance.logger.error("Data to write is empty. Please provide valid data.")
+            return None
         formatted_time2 = "'" + time_file + "'"
         data_in_file = f'{formatted_time2},0,0,0,{",".join(data_in_file)}'
         try:

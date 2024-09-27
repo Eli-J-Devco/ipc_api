@@ -81,6 +81,7 @@ class SyncData:
     async def process_sync_file(self,IdChannel,url,typeOfFile,row):
         syncDataService = SyncDataService()
         Sync_Setting = SyncSetting()
+        
         db_new = await config.get_db()
         if self.list_device_log_file:
             for item in self.list_device_log_file:
@@ -89,21 +90,20 @@ class SyncData:
                 if result:
                     try:
                         if typeOfFile == Sync_Setting.Name_Key_File_Log:
-                            headers , files ,id_time = await self.file_log_handler.create_headers(result)
-                            print(f"headers{headers},files{files},id_time{id_time} ")
+                            headers , files ,id_time = await self.file_log_handler.create_headers(result,IdChannel)
                             response = self.file_log_handler.post_request_log_to_cloud(headers,files,url)
                             await self.file_log_handler.update_reponse_logfile_to_db(response,IdChannel,sql_id,id_time)
-                            self.logger.info(f"sync file log successfull '{sql_id}'")
+                            self.logger.info(f"Sucessful processing sync {row} file Log for SQL ID '{sql_id}'")
                         elif typeOfFile == Sync_Setting.Name_Key_URL:
                             arrayjson,array_id_time = await self.url_handler.create_json(result,IdChannel,sql_id)
                             response = self.url_handler.post_request_json_to_cloud(arrayjson,url)
                             await self.url_handler.update_reponse_json_to_db(response,IdChannel,sql_id,array_id_time)
-                            self.logger.info(f"sync file url successfull '{sql_id}'")
+                            self.logger.info(f"Sucessful processing sync {row} file Url for SQL ID '{sql_id}'")
                         elif typeOfFile == Sync_Setting.Name_Key_Ftp:
-                            soucre,id_time = await self.ftp_handler.create_connect(result)
-                            response = self.ftp_handler.post_request_to_FTPcloud(soucre,url)
-                            await self.ftp_handler.update_reponse_ftp_to_db(response,IdChannel,sql_id,id_time)
-                            self.logger.info(f"sync file ftp successfull '{sql_id}'")
+                            ftp_connect = await self.ftp_handler.connect_ftp_server(Sync_Setting.ftpHost, Sync_Setting.ftpPort, Sync_Setting.ftpUname, Sync_Setting.ftpPass)
+                            responses, id_times = await self.ftp_handler.upload_files_to_ftp_server(ftp_connect,url,result)
+                            await self.ftp_handler.update_response_ftp_to_db(responses,IdChannel,sql_id,id_times)
+                            self.logger.info(f"Sucessful processing sync {row} file Ftp for SQL ID '{sql_id}'")
                     except Exception as e:
                         self.logger.error(f"Error processing sync file for SQL ID '{sql_id}': {e}")
 class MQTTHandler(SyncData):
@@ -207,7 +207,7 @@ class MQTTHandler(SyncData):
             message_log_file = list(dict_device.values())
             return message_log_file
         except Exception as err:
-            self.sync_data_instance.logger.error(f"processGetMessageAllDeviceCreateListDeviceLogFile : '{err}'")
+            self.sync_data_instance.logger.error(f"Error create message log file : '{err}'")
             return None
     
     def update_device_info(self, dictionary, deviceId, items, currentTime):
@@ -251,26 +251,32 @@ class URL(SyncData):
         result_id_pointkey = await pointListService.select_point_keys_by_deviceid(db_new,sqlid)
         for item in result:
             id_times.append(item.id)
-            array_file = await self.read_data_file(item.filename, item.source)
-            if array_file :
-                jsondata = {
-                    'id_channel': IdChannel,
-                    'id_device': item.id_device,
-                    'serial_number_port': self.sync_data_instance.serial,
-                    'datetime': get_utc(),
-                    'datas': {
-                            "time": array_file[0] if len(array_file) > 0 else None,
-                            "error": array_file[1] if len(array_file) > 1 else None,
-                            "high_alarm": array_file[2] if len(array_file) > 2 else None,
-                            "low_alarm": array_file[3] if len(array_file) > 3 else None
-                            }
-                            }
-                for i in range(4, len(array_file)):
-                    if i - 4 < len(result_id_pointkey):
-                        key = result_id_pointkey[i-4]
-                        value = array_file[i] if array_file[i] else None
-                        jsondata["datas"][key['id_pointkey']] = value
-                arrayjson.append(jsondata)
+            try:
+                array_file = await self.read_data_file(item.filename, item.source)
+                if array_file :
+                    jsondata = {
+                        'id_channel': IdChannel,
+                        'id_device': item.id_device,
+                        'serial_number_port': self.sync_data_instance.serial,
+                        'datetime': get_utc(),
+                        'datas': {
+                                "time": array_file[0] if len(array_file) > 0 else None,
+                                "error": array_file[1] if len(array_file) > 1 else None,
+                                "high_alarm": array_file[2] if len(array_file) > 2 else None,
+                                "low_alarm": array_file[3] if len(array_file) > 3 else None
+                                }
+                                }
+                    for i in range(4, len(array_file)):
+                        if i - 4 < len(result_id_pointkey):
+                            key = result_id_pointkey[i-4]
+                            value = array_file[i] if array_file[i] else None
+                            jsondata["datas"][key['id_pointkey']] = value
+                    arrayjson.append(jsondata)
+            except Exception as e:
+                self.sync_data_instance.logger.error(f"Error reading file for item {item.id}: {e}")
+                syncDataService = SyncDataService()
+                db_new = await config.get_db()
+                result = await syncDataService.update_error_status(db_new, item.id, IdChannel, item.id_device)
         return arrayjson,id_times
 
     async def read_data_file(self,file_name,source):
@@ -302,7 +308,7 @@ class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
     
-    async def create_headers(self, result):
+    async def create_headers(self, result,IdChannel):
         try:
             first_item = result[0]
             files = []
@@ -317,8 +323,14 @@ class FileLog(SyncData):
                 try:
                     id_time = item.id
                     id_times.append(id_time)
-                    file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
-                    files.append(file)
+                    try:
+                        file = ('LOGFILE', (item.filename, open(item.source, 'rb'), 'text/plain'))
+                        files.append(file)
+                    except FileNotFoundError:
+                        logging.error(f"File not found for item {item.id}: {item.source}")
+                        syncDataService = SyncDataService()
+                        db_new = await config.get_db()
+                        result = await syncDataService.update_error_status(db_new, id_time, IdChannel, item.id_device)
                 except Exception as e:
                     logging.error(f"Error creating file for item {item.id}: {e}")
                     print(f"Error creating file for item {item.id}: {e}")
@@ -352,40 +364,62 @@ class FTP(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
     
-    async def create_connect(self,localFilePath,ftpHost, ftpPort, ftpUname, ftpPass):
-        if os.path.exists(localFilePath):
-            # Connect to the FTP server
+    async def connect_ftp_server(self, ftpHost, ftpPort, ftpUname, ftpPass):
+        try:
             ftp_connect = ftplib.FTP(timeout=30)
             ftp_connect.connect(ftpHost, ftpPort)
             ftp_connect.login(ftpUname, ftpPass)
-            # Retrieve the list of directories on the FTP server
-            directories = []
-            ftp_connect.retrlines('LIST', lambda x: directories.append(x.split()[-1]))
-            for directory in directories:
-                chosenDirectory = directory  
-            # Change to the specified remote directory
-            if chosenDirectory:
-                ftp_connect.cwd(chosenDirectory)
-        return ftp_connect
+            return ftp_connect
+        except ftplib.all_errors as e:
+            self.sync_data_instance.logger.error(f"Unable to connect to FTP server: {e}")
+            return None 
+
+    async def upload_files_to_ftp_server(self, ftp_connect, urlFtpFolder, source_files):
+        id_times = []
+        results = []
+        if ftp_connect is None:
+            self.sync_data_instance.logger.error("Invalid FTP connection..")
+            return results, id_times
+        try:
+            if urlFtpFolder and urlFtpFolder.strip():
+                ftp_connect.cwd(urlFtpFolder)
+            for item in source_files:
+                id_time = item.id
+                id_times.append(id_time)
+                try:
+                    with open(item.source, "rb") as file:
+                        targetFilename = os.path.basename(item.source)
+                        retCode = ftp_connect.storbinary(f"STOR {targetFilename}", file, blocksize=1024*1024)
+                        if retCode.startswith('226'):
+                            results.append((id_time, True))
+                            print(f"Send file '{targetFilename}' success")
+                        else:
+                            results.append((id_time, False))
+                            print(f"Send file '{targetFilename}' failed with error code: {retCode}")
+                except FileNotFoundError:
+                    self.sync_data_instance.logger.error(f"File not found: {item.source}")
+                    results.append((id_time, False))
+                except Exception as e:
+                    self.sync_data_instance.logger.error(f"Error sending file '{item.source}': {e}")
+                    results.append((id_time, False))
+        finally:
+            if ftp_connect:
+                ftp_connect.quit()
+        
+        return results, id_times
     
-    def post_request_to_FTPcloud(self,localFilePath,ftp_connect):
-        _, targetFilename = os.path.split(localFilePath)
-        with open(localFilePath, "rb") as file:
-            retCode = ftp_connect.storbinary(f"STOR {targetFilename}", file, blocksize=1024*1024) 
-            ftp_connect.quit()
-            return retCode.startswith('226')
-    
-    async def update_reponse_ftp_to_db(self,response,IdChannel,sql_id,id_time):
+    async def update_response_ftp_to_db(self, responses, IdChannel, sql_id, id_time):
         syncDataService = SyncDataService()
         db_new = await config.get_db()
-        if response == True:
-            for id in id_time:
+
+        for index, response in enumerate(responses):
+            id = id_time[index]
+            if response:
                 result = await syncDataService.delete_synced_data(db_new, id, IdChannel, sql_id)
                 self.sync_data_instance.logger.info(f"Deleted synced data for time: {id} with id {sql_id} and delete {result}")
-        else:
-            for id in id_time:
-                number_time_rety = await syncDataService.update_number_of_time_retry(db_new,id,IdChannel,sql_id)
-                self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
-                if number_time_rety == 5 :
+            else:
+                number_time_retry = await syncDataService.update_number_of_time_retry(db_new, id, IdChannel, sql_id)
+                self.sync_data_instance.logger.info(f"Updated number retry: {number_time_retry}")
+                if number_time_retry == 5:
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_retry}")

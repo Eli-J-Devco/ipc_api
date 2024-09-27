@@ -62,6 +62,7 @@ class SyncSetting(BaseSettings):
     ftpPort : int
     ftpUname : str
     ftpPass : str
+    ftpPass : str
 class MQTTSettings(BaseSettings):
     MQTT_USERNAME: str
     MQTT_PASSWORD: str
