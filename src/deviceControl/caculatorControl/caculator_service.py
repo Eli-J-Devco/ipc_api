@@ -76,6 +76,7 @@ class PowerCalculator :
                     item = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "power limit",
                         "setpoint": PowerlimitCaculator - TotalPowerINVMan,
                         "feedback": totalProduction,
@@ -97,14 +98,14 @@ class PowerCalculator :
     # 	 * @param {StringSerialNumerInTableProjectSetup, host, port, username, password}
     # 	 * @return PowerForEachInvInModeZeroExport
     # 	 */ 
-    async def calculate_zero_export_mode (self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
+    async def calculate_zero_export_mode(self,mqtt_service,messageMQTTAllDevice,Topic_Control_WriteAuto,resultDB):
         Arraydevices = []
         ArrayDeviceList = []
         PowerForEachInvInModeZeroExport = 0
         PracticalConsumptionValue = 0.0
         Setpoint = 0 
-        ModeSystem = resultDB["ModeSystempCurrent"]
-        ModeDetail = resultDB["mode_control"]
+        ModeSystem = int(resultDB["ModeSystempCurrent"])
+        ModeDetail = int(resultDB["mode_control"])
         ThresholdZeroExport = resultDB.get("threshold_zero_export") or 0.0
         OffsetZeroExport = resultDB.get("value_offset_zero_export") or 0.0
         # Get List Device Can Control 
@@ -118,7 +119,6 @@ class PowerCalculator :
             ArrayDeviceList = [self.process_auto_instance.get_device_details(item) for item in messageMQTTAllDevice if self.process_auto_instance.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
             TotalPowerINVAll, TotalPowerINVMan = self.process_auto_instance.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
-        print("totalConsumption",totalConsumption)
         # Get Setpoint ,Value Consumption System 
         if totalConsumption:
             Setpoint, PracticalConsumptionValue = await self.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
@@ -137,8 +137,10 @@ class PowerCalculator :
                     item = {
                         "id_device": id_device,
                         "mode": mode,
+                        "time": get_utc(),
                         "status": "zero export",
                         "setpoint": Setpoint,
+                        "feedback": totalProduction,
                         "parameter": [
                             {"id_pointkey": "ControlINV", "value": 1},
                             {"id_pointkey": "WMax", "value": 0}
