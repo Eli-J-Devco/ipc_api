@@ -303,7 +303,7 @@ class URL(SyncData):
             self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
             if number_time_rety == 5 :
                 result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-            self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+            self.sync_data_instance.logger.error(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FileLog(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -359,7 +359,7 @@ class FileLog(SyncData):
                 self.sync_data_instance.logger.info(f"Updated number retry:{number_time_rety}")
                 if number_time_rety == 5 :
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
+                self.sync_data_instance.logger.error(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_rety}")
 class FTP(SyncData):
     def __init__(self, sync_data_instance):
         self.sync_data_instance = sync_data_instance
@@ -422,4 +422,4 @@ class FTP(SyncData):
                 self.sync_data_instance.logger.info(f"Updated number retry: {number_time_retry}")
                 if number_time_retry == 5:
                     result = await syncDataService.update_error_status(db_new, id, IdChannel, sql_id)
-                self.sync_data_instance.logger.info(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_retry}")
+                self.sync_data_instance.logger.error(f"Updated error status for time: {id} with id {sql_id} number retry: {number_time_retry}")

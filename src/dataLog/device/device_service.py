@@ -181,6 +181,7 @@ class LogAllDevice(LogDevice):
         converted_queries = {}
         arrayDataUsingLogDB = []
         arrayFieldOfDevice = []
+        errorCode = 0
         DictID = [item for item in resultListDevice if item["id"] == IdDeviceFromListMQTTAll]
         if DictID:
             arrayDataUsingLogDB = DictID[0]["data"]
@@ -188,6 +189,7 @@ class LogAllDevice(LogDevice):
             statusDevice = DictID[0]["status_device"]
         if not arrayDataUsingLogDB: 
             arrayDataUsingLogDB = [None] * len(arrayFieldOfDevice)
+        # Check error code device 
         errorCode = 139 if statusDevice == "offline" else 0
         try:
             ValueInsertInDB = (timeCurrent, IdDeviceFromListMQTTAll, errorCode) + tuple(arrayDataUsingLogDB)
