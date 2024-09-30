@@ -1,0 +1,10 @@
+pymodbus==3.7.2
+paho-mqtt==2.1.0
+APScheduler==3.10.4
+mqttools==0.50.0
+pydantic==1.10.15
+SQLAlchemy==2.0.34
+python-dotenv==1.0.1
+aiomysql==0.2.0
+cryptography==42.0.7
+psutil==6.0.0
