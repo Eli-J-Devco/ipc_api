@@ -19,7 +19,7 @@ from configs.config import orm_provider as config
 from utils.MQTTService import *
 from utils.libTime import *
 from dataSync.sync_service import *
-from dataLog.file.file_service import *
+from dataLog.file.file_service import LogFile
 from deviceControl.setupSite.setup_site_service import *
 from utils.logger_manager import setup_logger
 
@@ -35,10 +35,10 @@ class MainClass:
         self.type_of_file = None
     # initialize the necessary parameters
     async def start_mqtt_service(self):
-        sync_data_instance = SyncData()
-        log_file_instance = LogFile()
-        mqtt_handler_instance = MQTTHandler1(sync_data_instance)
-        setup_site_instance = SetupSite()
+        sync_data_instance = SyncData(LOGGER)
+        log_file_instance = LogFile(LOGGER)
+        mqtt_handler_instance = MQTTHandler(sync_data_instance)
+        setup_site_instance = SetupSite(LOGGER)
         db_new = await config.get_db()
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()

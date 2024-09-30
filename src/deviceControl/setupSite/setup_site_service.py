@@ -15,12 +15,12 @@ from utils.libTime import *
 from dbService.projectSetup import ProjectSetupService
 from configs.config import MQTTTopicSUD, MQTTTopicPUSH
 from configs.config import orm_provider as config
-logger = logging.getLogger(__name__)
 class SetupSite:
-    def __init__(self):
+    def __init__(self,logger: logging.Logger):
         self.mqtt_topic_sud = MQTTTopicSUD()
         self.mqtt_topic_push = MQTTTopicPUSH()
         self.project_setup_service = ProjectSetupService()
+        self.logger = logger
     # Describe initializeValueControlAuto 
     # 	 * @description initializeValueControlAuto
     # 	 * @author bnguyen
@@ -56,10 +56,10 @@ class SetupSite:
                     "high_performance": project_setup.high_performance,
                 }
             else:
-                logger.info("No data found in resultDB.")
+                self.logger.info("No data found in resultDB.")
                 return None
         except Exception as err:
-            logger.error(f"Error MQTT subscribe initializeValueControlAuto: '{err}'")
+            self.logger.error(f"Error MQTT subscribe initializeValueControlAuto: '{err}'")
             return None 
     # Describe pudFeedBackProjectSetup 
     # 	 * @description pudFeedBackProjectSetup
@@ -100,8 +100,7 @@ class SetupSite:
     # 	 * @param {mqtt_service, messageMQTT, topicFeedBack}
     # 	 * @return 
     # 	 */ 
-    @staticmethod
-    async def insert_project_setup_info(mqtt_service, messageMQTT, topicFeedBack):
+    async def insert_project_setup_info(self,mqtt_service, messageMQTT, topicFeedBack):
         try:
             resultSet = messageMQTT.get('parameter', {})
             resultSet.pop('mqtt', None)
@@ -125,7 +124,7 @@ class SetupSite:
                 }
                 MQTTService.push_data_zip(mqtt_service, topicFeedBack, data_send)
         except Exception as err:
-            logger.error(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")
+            self.logger.error(f"Error MQTT subscribe insertInformationProjectSetup: '{err}'")
     async def get_time_interval_logdevice(self):
         try :
             db_new = await config.get_db()
@@ -135,9 +134,9 @@ class SetupSite:
                     time = resultDB[0]
                     return time
                 except Exception as err:
-                    logger.error(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
+                    self.logger.error(f"Error MQTT subscribe pudFeedBackProjectSetup: '{err}'")
         except Exception as err:
-            logger.error(f"Error MQTT subscribe get_time_interval_logdevice: '{err}'")
+            self.logger.error(f"Error MQTT subscribe get_time_interval_logdevice: '{err}'")
             return None 
 class MQTTHandlerSetupSite(SetupSite):
     def __init__(self, setup_site_instance):
@@ -158,20 +157,20 @@ class MQTTHandlerSetupSite(SetupSite):
                 await self.consume_mqtt_messages(mqtt_service, client,serial)
                 await client.stop()
         except Exception as err:
-            logger.error(f"Error subscribing to MQTT topics: '{err}'")
+            self.setup_site_instance.logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    logger.info('Broker connection lost!')
+                    self.setup_site_instance.info('Broker connection lost!')
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
         except Exception as err:
-            logger.error(f"Error consuming MQTT messages: '{err}'")
+            self.setup_site_instance.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
         try:
@@ -182,6 +181,6 @@ class MQTTHandlerSetupSite(SetupSite):
                 await self.setup_site_instance.insert_project_setup_info(mqtt_service, message, self.setup_site_instance.mqtt_topic_push.Project_Set_Feedback)
                 print("set information site successfully")
         except Exception as err:
-            logger.error(f"Error handling MQTT message: '{err}'")
+            self.setup_site_instance.error(f"Error handling MQTT message: '{err}'")
     
     

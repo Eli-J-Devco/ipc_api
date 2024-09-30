@@ -48,10 +48,6 @@ class Settings(BaseSettings):
     PASSWORD_SECRET_KEY: str
     URL_SERVER_SYNC : str
     URL_SERVER_SYNC_FILE : str
-    FTPSERVER_HOSTNAME : str
-    FTPSERVER_PORT : int
-    FTPSERVER_USERNAME : str
-    FTPSERVER_PASSWORD : str
 
 class FolderSetting(BaseSettings):
     Path_File_Log : str
@@ -62,6 +58,11 @@ class SyncSetting(BaseSettings):
     Name_Key_File_Log : str
     Name_Key_Ftp : str
     Number_File_Sync_Max : int
+    ftpHost : str
+    ftpPort : int
+    ftpUname : str
+    ftpPass : str
+    ftpPass : str
 class MQTTSettings(BaseSettings):
     MQTT_USERNAME: str
     MQTT_PASSWORD: str

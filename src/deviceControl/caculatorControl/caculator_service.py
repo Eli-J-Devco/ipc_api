@@ -11,14 +11,14 @@ path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.p
 sys.path.append(path)
 from deviceControl.energyMonitor.energy_service import *
 from deviceControl.processSystem.process_service import *
-logger = logging.getLogger(__name__)
 
 class PowerCalculator :
-    def __init__(self):
+    def __init__(self,logger: logging.Logger):
+        self.logger = logger
         self.mqtt_topic_sud = MQTTTopicSUD()
         self.mqtt_topic_push = MQTTTopicPUSH()
-        self.ennergy_instance = EnergySystem()
-        self.process_system_instance = ProcessSystem()
+        self.ennergy_instance = EnergySystem(self.logger)
+        self.process_system_instance = ProcessSystem(self.logger)
         self.process_auto_instance = ProcessAuto(self.process_system_instance)
     # Describe automatedParameterManagement 
     # 	 * @description automatedParameterManagement
@@ -257,20 +257,20 @@ class MQTTHandlerPowerCalculator(PowerCalculator):
                 await self.consume_mqtt_messages(mqtt_service, client,serial)
                 await client.stop()
         except Exception as err:
-            logger.error(f"Error subscribing to MQTT topics: '{err}'")
+            self.power_caculator_instance.logger.error(f"Error subscribing to MQTT topics: '{err}'")
     
     async def consume_mqtt_messages(self,mqtt_service, client,serial):
         try:
             while True:
                 message = await client.messages.get()
                 if message is None:
-                    logger.info('Broker connection lost!')
+                    self.power_caculator_instance.logger.info('Broker connection lost!')
                     break
                 topic = message.topic
                 payload = MQTTService.gzip_decompress(mqtt_service, message.message)
                 await self.handle_mqtt_message(mqtt_service,payload,topic,serial)
         except Exception as err:
-            logger.error(f"Error consuming MQTT messages: '{err}'")
+            self.power_caculator_instance.logger.error(f"Error consuming MQTT messages: '{err}'")
     
     async def handle_mqtt_message(self, mqtt_service, message,topic, serial):
         try:
@@ -279,4 +279,4 @@ class MQTTHandlerPowerCalculator(PowerCalculator):
             if topic == serial + self.power_caculator_instance.mqtt_topic_sud.Devices_All and self.resultDB is not None:
                 await self.power_caculator_instance.calculate_auto_parameters(mqtt_service, message, self.power_caculator_instance.mqtt_topic_push.Control_WriteAuto, self.resultDB)
         except Exception as err:
-            logger.error(f"Error handling MQTT message: '{err}'")
+            self.power_caculator_instance.logger.error(f"Error handling MQTT message: '{err}'")

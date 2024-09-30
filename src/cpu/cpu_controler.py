@@ -12,7 +12,11 @@ from configs.config import MQTTSettings, MQTTTopicSUD, MQTTTopicPUSH
 from utils.MQTTService import *
 from cpu.cpu_service import CPUInfo
 from deviceControl.setupSite.setup_site_service import *
+# from logger.logger import setup_logging
+from utils.logger_manager import setup_logger
 
+LOGGER = setup_logger(module_name='device')
+LOGGER.warn(f'--- init ---')
 # create global variables
 net_io_counters_prev = {
     "TotalSent": 0,
@@ -68,9 +72,8 @@ async def getIPCHardwareInformation(mqtt_service, Topic_CPU_Information):
         print(f"Error in getIPCHardwareInformation: '{err}'")
 
 async def main():
-    setup_site_instance = SetupSite()
+    setup_site_instance = SetupSite(LOGGER)
     initialized_values = await setup_site_instance.get_project_setup_values()
-    print("Initialized values", initialized_values)
     parameterMQTT = MQTTSettings()
     topicPushMQTT = MQTTTopicPUSH()
     # Create Service MQTT

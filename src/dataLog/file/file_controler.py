@@ -29,10 +29,10 @@ class MainClass:
         self.current_time_interval = None
 
     async def start_mqtt_service(self):
-        log_file_instance = LogFile()
+        log_file_instance = LogFile(LOGGER)
         mqtt_handler_instance = MQTTHandler(log_file_instance)
         process_logfile_instance = ProcessLogFile(log_file_instance)
-        setup_site_instance = SetupSite()
+        setup_site_instance = SetupSite(LOGGER)
         project_setup_config = await setup_site_instance.get_project_setup_values()
         time_interval_log_device = await setup_site_instance.get_time_interval_logdevice()
         type_of_file = await log_file_instance.get_type_of_file(self.id_channel)
