@@ -55,6 +55,7 @@ class PowerCalculator :
             totalProduction, totalConsumption = await self.ennergy_instance.calculate_production_and_consumption(messageMQTTAllDevice)
             # Calculate Power Of INV AutoMode
             Arraydevices = await self.process_auto_instance.get_parametter_device_list_auto_mode(messageMQTTAllDevice)
+            print("Arraydevices",Arraydevices)
             TotalPowerINVAuto = self.process_auto_instance.calculate_total_power_inv_auto(Arraydevices)
             # Extract device info
             ArrayDeviceList = [self.process_system_instance.get_device_details(item) for item in messageMQTTAllDevice if self.process_system_instance.get_device_details(item)]
@@ -117,6 +118,7 @@ class PowerCalculator :
             ArrayDeviceList = [self.process_auto_instance.get_device_details(item) for item in messageMQTTAllDevice if self.process_auto_instance.get_device_details(item)]
             # Calculate the sum of wmax values of all inv in the system
             TotalPowerINVAll, TotalPowerINVMan = self.process_auto_instance.calculate_total_wmax(ArrayDeviceList, TotalPowerINVAuto)
+        print("totalConsumption",totalConsumption)
         # Get Setpoint ,Value Consumption System 
         if totalConsumption:
             Setpoint, PracticalConsumptionValue = await self.calculate_setpoint(ModeSystem,totalConsumption,TotalPowerINVMan,OffsetZeroExport)
@@ -217,25 +219,18 @@ class PowerCalculator :
         return ItemlistInvControlPowerLimitMode
     async def calculate_setpoint(self, modeSystem, ValueConsump, ValueTotalPowerInInvInManMode, ValueOffetConsump):
         ConsumptionAfterSudOfset = 0.0
-        gMaxValueChangeSetpoint = 10 
         # minus man value
         if modeSystem == 1:
             ValueConsump
         else:
             ValueConsump -= ValueTotalPowerInInvInManMode
-        
-        if not hasattr(self.calculate_setpoint, 'last_setpoint'):
-            self.calculate_setpoint.last_setpoint = ValueConsump
-        # setpoint value change limit
-        new_setpoint = ValueConsump
-        Setpoint = max(
-            self.calculate_setpoint.last_setpoint - gMaxValueChangeSetpoint,
-            min(self.calculate_setpoint.last_setpoint + gMaxValueChangeSetpoint, new_setpoint)
-        )
-        self.calculate_setpoint.last_setpoint = Setpoint
+        # Calculate value consumption after mul value offset 
+        Setpoint = ValueConsump
         ConsumptionAfterSudOfset = ValueConsump * ((100 - ValueOffetConsump) / 100)
+
         if Setpoint:
-            Setpoint -= Setpoint * ValueOffetConsump / 100
+            Setpoint -= Setpoint * ValueOffetConsump / 100 
+            Setpoint = round(Setpoint, 3)
         return Setpoint, ConsumptionAfterSudOfset
     
 class MQTTHandlerPowerCalculator(PowerCalculator):
