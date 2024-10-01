@@ -3,47 +3,61 @@ import datetime
 import json
 import os
 import sys
+from asyncio import run
 from uuid import uuid1
-from sqlalchemy.sql import func, insert, join, literal_column, select, text
+
 import mqttools
+from apscheduler.events import (EVENT_ALL, EVENT_JOB_ERROR,
+                                EVENT_JOB_MAX_INSTANCES, JobExecutionEvent,
+                                JobSubmissionEvent)
+from apscheduler.executors.asyncio import AsyncIOExecutor
+from apscheduler.executors.pool import ProcessPoolExecutor, ThreadPoolExecutor
+from apscheduler.jobstores.memory import MemoryJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from pymodbus.client import ModbusTcpClient
 from pymodbus.exceptions import ConnectionException, ModbusException
-from asyncio import run
-from apscheduler.schedulers.blocking import BlockingScheduler
-from apscheduler.executors.asyncio import AsyncIOExecutor
-from apscheduler.executors.pool import ThreadPoolExecutor
-from apscheduler.jobstores.memory import MemoryJobStore
-from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.events import JobSubmissionEvent, JobExecutionEvent, EVENT_JOB_ERROR, EVENT_JOB_MAX_INSTANCES, EVENT_ALL
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import func, insert, join, literal_column, select, text
+
+from src.async_db.wrapper import async_db_request_handler
 # import time
 # path = (lambda project_name: os.path.dirname(__file__)[:len(project_name) + os.path.dirname(__file__).find(project_name)] if project_name and project_name in os.path.dirname(__file__) else -1)("src")
 # sys.path.append(path)
 # sys.stdout.reconfigure(encoding='utf-8')
 from src.configs.config import Config
 from src.configs.config import orm_provider as db_config
+from src.device_manager.control_device.control_device_model import \
+    ControlDevice as ControlDeviceModel
+from src.device_manager.control_device.control_device_model import \
+    ControlDevices as ControlDevicesModel
+from src.device_manager.control_device.control_device_service import \
+    ControlDeviceService
+from src.device_manager.device_manager_model import \
+    Action as DriverManagerAction
+from src.device_manager.device_manager_model import (MqttDataSub, MqttMsgSub,
+                                                     StatusJob, StatusJobs)
+from src.device_manager.devices.devices_service import \
+    DevicesService as DevicesManagerService
 from src.driver_device.driver_device_service import DriverDevicesService
-from src.async_db.wrapper import async_db_request_handler
-from src.utils.devices.devices_service import DeviceService
-from src.utils.devices.devices_model import Action as DeviceAction
-from src.utils.register_block.register_block_service import RegisterBlockService
-from src.utils.device_point.device_point_service import DevicePointService
-from src.utils.point_list_control_group.point_list_control_group_service import PointListControlGroupService
 from src.mqtt_client.mqtt_client_model import MQTTConfigBase
-from src.utils.project_setup.project_setup_service import ProjectSetupService
-from src.utils.project_setup.project_setup_model import ProjectSetup
+from src.utils.device_point.device_point_service import DevicePointService
+from src.utils.devices.devices_model import Action as DeviceAction
+from src.utils.devices.devices_model import (DeviceFull, DeviceInit,
+                                             DeviceInitOutput)
+from src.utils.devices.devices_service import DeviceService
+from src.utils.point_list_control_group.point_list_control_group_service import \
+    PointListControlGroupService
 from src.utils.point_list_type.point_list_type_model import PointListTypes
-from src.utils.point_list_type.point_list_type_service import PointListTypeService
-from src.utils.devices.devices_model import DeviceInitOutput,DeviceInit,DeviceFull
-from src.device_manager.device_manager_model import Action as DriverManagerAction
-from src.device_manager.device_manager_model import MqttMsgSub, StatusJob,StatusJobs,MqttDataSub
-from src.device_manager.devices.devices_service import DevicesService as DevicesManagerService
+from src.utils.point_list_type.point_list_type_service import \
+    PointListTypeService
+from src.utils.project_setup.project_setup_model import ProjectSetup
+from src.utils.project_setup.project_setup_service import ProjectSetupService
+from src.utils.register_block.register_block_service import \
+    RegisterBlockService
 from src.utils.utils import getUTC
-from src.device_manager.control_device.control_device_model import ControlDevices as ControlDevicesModel,ControlDevice as ControlDeviceModel
-from src.device_manager.control_device.control_device_service import ControlDeviceService
+
 """
 G83VZT33/Manager/Device
 {
@@ -53,8 +67,11 @@ G83VZT33/Manager/Device
 """
 
 import logging
+
 logging.getLogger('apscheduler').setLevel(logging.CRITICAL)
-from pydantic import (BaseModel, EmailStr)
+from pydantic import BaseModel, EmailStr
+
+
 # from typing import List, Optional
 # class JobBase(BaseModel):
 #     id : Optional[int] = None
@@ -155,14 +172,9 @@ class DeviceManagerService:
     
     async def run_device(self,
                         id_device,
-                        project_setup,
-                        multi_device_parameter,
                         register_blocks,
                         device_points,
-                        device_point_data,
-                        point_control_groups,
-                        point_list_type,
-                        device_point_control,
+                        point_control_groups
                         ):
         now = datetime.datetime.now()
         job_id=id_device
@@ -171,17 +183,17 @@ class DeviceManagerService:
             
             driver_device_services=DriverDevicesService(
                                                 session=self.session,
-                                                project_setup=project_setup,
+                                                project_setup=self.project_setup,
                                                 mqtt_config=self.mqtt_config,
                                                 job_id=job_id,
                                                 job_events=self.job_events,
-                                                multi_device_parameter=multi_device_parameter,
+                                                multi_device_parameter=self.multi_device_parameter,
                                                 register_blocks=register_blocks,
                                                 device_points=device_points,
-                                                device_point_data=device_point_data,
+                                                device_point_data=self.device_point_data,
                                                 point_control_groups=point_control_groups,
-                                                point_list_type=point_list_type,
-                                                device_point_control=device_point_control,
+                                                point_list_type=self.point_list_type,
+                                                device_point_control=self.device_point_control,
                                                 device_point_parameter_write_web=self.device_point_parameter_write_web
                                                 )
             await driver_device_services.device_manager(
@@ -236,14 +248,9 @@ class DeviceManagerService:
             self.scheduler.add_job(
             self.run_device,
             args=[job_id,
-                self.project_setup,
-                self.multi_device_parameter,
                 register_blocks,
                 device_points,
-                self.device_point_data,
-                point_control_groups,
-                self.point_list_type,
-                self.device_point_control
+                point_control_groups
                 ],
             trigger='interval',
             id=f"{job_id}",

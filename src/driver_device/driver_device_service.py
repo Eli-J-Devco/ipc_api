@@ -2,23 +2,39 @@ import base64
 import datetime
 import gzip
 import json
-from pymodbus.client import ModbusTcpClient,AsyncModbusTcpClient
-from pymodbus.exceptions import ConnectionException, ModbusException
+
 import mqttools
-from .read_device.read_device_service import ReadModbusService
 import paho.mqtt.publish as publish
+from pymodbus.client import AsyncModbusTcpClient, ModbusTcpClient
+from pymodbus.exceptions import ConnectionException, ModbusException
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.utils.devices.devices_model import DeviceInitOutput,DeviceInit,DeviceFull
-from src.utils.register_block.register_block_model import RegisterBlockOutput
-from src.utils.device_point.device_point_model import DevicePointsOutput,ControlPoints
-from src.driver_device.read_device.read_device_model import ReadRegisterDevice,MergeRegisterDevice,StatusRB,RegisterData,RegisterValueDevice,PointDataOut
-from src.mqtt_client.mqtt_client_service import MQTTClientService 
-from src.mqtt_client.mqtt_client_model import MQTTConfigBase ,MQTTMsg, MQTTMsgs
-from src.driver_device.monitoring_device.monitoring_device_service import MonitoringDeviceService
+
+from src.driver_device.monitoring_device.monitoring_device_service import \
+    MonitoringDeviceService
+from src.driver_device.read_device.read_device_model import (
+    MergeRegisterDevice, PointDataOut, ReadRegisterDevice, RegisterData,
+    RegisterValueDevice, StatusRB)
+from src.driver_device.read_device.read_device_service import ReadDeviceService
+from src.driver_device.write_device.write_device_model import \
+    WriteParameter as WriteParameterModel
+
+from src.driver_device.write_device.write_device_service import \
+    WriteDeviceService
+from src.mqtt_client.mqtt_client_model import MQTTConfigBase, MQTTMsg, MQTTMsgs
+from src.mqtt_client.mqtt_client_service import MQTTClientService
+from src.utils.device_point.device_point_model import (ControlPoints,
+                                                       DevicePointsOutput)
+from src.utils.devices.devices_model import (DeviceFull, DeviceInit,
+                                             DeviceInitOutput)
+from src.utils.point_list_control_group.point_list_control_group_model import \
+    PointListControlGroupsOut
 from src.utils.project_setup.project_setup_model import ProjectSetup
-from src.utils.point_list_control_group.point_list_control_group_model import  PointListControlGroupsOut 
+from src.utils.register_block.register_block_model import RegisterBlockOutput
 
-
+from src.driver_device.write_device.write_device_model import \
+    WriteStatus as WriteStatusModel , Action as WriteDeviceAction
+    
+    
 class DriverDevicesService:
     def __init__(   self,
                     session: AsyncSession,
@@ -41,7 +57,7 @@ class DriverDevicesService:
         self.device_parameter=DeviceFull(**dict(multi_device_parameter[job_id]))
         # 
         
-        self.init_read_modbus_service=ReadModbusService(job_id=job_id,job_events=job_events)
+        self.init_read_modbus_service=ReadDeviceService(job_id=job_id,job_events=job_events)
         self.job_events=job_events
         self.job_id=job_id
         self.mqtt_config=mqtt_config
@@ -61,6 +77,8 @@ class DriverDevicesService:
         self.point_control_groups=point_control_groups
         
         self.device_point_parameter_write_web=device_point_parameter_write_web
+
+        self.write_device_service=WriteDeviceService(mqtt_config=self.mqtt_config,id_device=job_id)
     async def device_manager(self,control_data):
         try:
             print(f'device_host: {self.device_host} {'--'*50}')
@@ -86,17 +104,24 @@ class DriverDevicesService:
                                                                         client=client,
                                                                         slave_id=self.slave_id,
                                                                         register_blocks=self.register_blocks)
-            client.close()
+            
             if self.device_point_parameter_write_web:
                 data:dict=self.device_point_parameter_write_web
+                device_token=None
+                keys_id_device = [key for key, value in data.items() if value.id_device == self.job_id]
+                new_data: dict=None
                 
-                keys_to_delete = [key for key, value in data.items() if value.id_device == self.job_id]
-                new_data=None
-                for key in keys_to_delete:
-                    print(key)
-                    new_data=data[key]
-                print(f'new_data: {new_data}')
-                
+                for token in keys_id_device:
+                    device_token=token
+                    new_data=data[token]
+                    break
+                if new_data:
+                    result_write: WriteStatusModel=await self.write_device_service.write_modbus_tcp(client=client,
+                                                                                                    slave=self.slave_id,
+                                                                                                    parameter=WriteParameterModel(**new_data.__dict__))
+                    if result_write.status==WriteDeviceAction.WriteStatusSuccess.value:
+                        del self.device_point_parameter_write_web[device_token]
+            client.close()    
         except (ConnectionException,ModbusException) as exc:
             print(f"device_manager job_id: {self.job_id}|AE ConnectionException", exc)
         finally:

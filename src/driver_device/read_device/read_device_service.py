@@ -1,19 +1,25 @@
 
 import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from pymodbus.client import ModbusTcpClient
-from pymodbus.exceptions import ConnectionException, ModbusException
-from pymodbus.exceptions import (ConnectionException, ModbusException,
-                                    ModbusIOException)
-from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
-from pymodbus.constants import Endian
-from ...utils.register_block.register_block_model import RegisterBlockOutput
-from src.driver_device.read_device.read_device_model import ReadRegisterDevice,MergeRegisterDevice,StatusRB,RegisterData,RegisterValueDevice,PointDataBase,PointDataOut
-
-from src.utils.device_point.device_point_model import  DevicePointBase,DevicePointsOutput
 import time
+
+from pymodbus.client import AsyncModbusTcpClient  # ModbusTcpClient,
+from pymodbus.constants import Endian
+from pymodbus.exceptions import (ConnectionException, ModbusException,
+                                 ModbusIOException)
+from pymodbus.payload import BinaryPayloadBuilder, BinaryPayloadDecoder
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.driver_device.read_device.read_device_model import (
+    MergeRegisterDevice, PointDataBase, PointDataOut, ReadRegisterDevice,
+    RegisterData, RegisterValueDevice, StatusRB)
+from src.utils.device_point.device_point_model import (DevicePointBase,
+                                                       DevicePointsOutput)
 from src.utils.utils import getUTC
-class ReadModbusService:
+
+from ...utils.register_block.register_block_model import RegisterBlockOutput
+
+
+class ReadDeviceService:
     def __init__(self,job_id,job_events={}, **kwargs):
         self.job_id=job_id
         self.job_events=job_events
@@ -72,7 +78,7 @@ class ReadModbusService:
         finally:
             return code_desc
     
-    async def read_register_device( self,client: ModbusTcpClient, 
+    async def read_register_device( self,client: AsyncModbusTcpClient, 
                                 func: int, 
                                 address: int, 
                                 count: int, 
@@ -159,7 +165,7 @@ class ReadModbusService:
     
     async def read_data_device(self,
                             connected: bool,
-                            client: ModbusTcpClient,
+                            client: AsyncModbusTcpClient,
                             slave_id : int,
                             register_blocks:RegisterBlockOutput):
         lazy_error_count = 2
