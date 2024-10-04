@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .components_service import ComponentsService
 from .devices_filter import AddDevicesFilter, GetDeviceFilter, UpdateDeviceFilter, AddDeviceGroupFilter, \
-    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter, GetAvailableComponents, GetComponentAdditionBase
+    GetDeviceComponentFilter, DeleteDeviceFilter, ListDeviceFilter, GetComponentAdditionBase, \
+    GetAvailableComponentsFilter, DeviceComponentFilter
 from .devices_service import DevicesService
 from .devices_utils_service import UtilsService
 from ..authentication.authentication_model import Authentication
@@ -141,10 +142,11 @@ class DevicesController:
 
     @Post("/component/search/")
     async def get_available_components(self,
-                                       body: GetAvailableComponents,
+                                       body: GetAvailableComponentsFilter,
                                        session: AsyncSession = Depends(config.get_db),
                                        auth: Authentication = Depends(get_current_user)):
-        return await ServiceWrapper.async_wrapper(self.components_service.get_available_components)(body, session)
+        return await ServiceWrapper.async_wrapper(self.components_service
+                                                  .get_available_components_by_filter)(body, session)
 
     @Post("/component/addition/")
     async def get_addition_components(self,
@@ -165,3 +167,11 @@ class DevicesController:
                                    session: AsyncSession = Depends(config.get_db),
                                    auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.utils_service.get_connection_types)(session)
+
+    # @Post("/test/")
+    # async def test(self, parent: int,
+    #                new_components: list[DeviceComponentFilter],
+    #                session: AsyncSession = Depends(config.get_db),):
+    #     return await ServiceWrapper.async_wrapper(self.components_service.validate_quantity)(parent,
+    #                                                                                          new_components,
+    #                                                                                          session)

@@ -4,7 +4,6 @@
 # *
 # *********************************************************/
 import datetime
-import logging
 import random
 import string
 from typing import Any

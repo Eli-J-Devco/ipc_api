@@ -3,19 +3,20 @@
 # * All rights reserved.
 # *
 # *********************************************************/
+import logging
+from functools import reduce
 from typing import Sequence
 
 from fastapi import HTTPException, status
 from nest.core import Injectable
 from nest.core.decorators.database import async_db_request_handler
-from sqlalchemy import select, text, update, or_
+from sqlalchemy import select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql.expression import func
 
 from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity, \
     DeviceConnection as DeviceConnectionEntity
-from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetAvailableComponents, \
-    GetComponentAdditionBase, ComponentCode
+from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetComponentAdditionBase, \
+    ComponentCode, GetAvailableComponentsFilter
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
     DeviceUploadChannelMap, DeviceComponentAddition, DeviceConnectionType, \
     DeviceComponentChild, DeviceConnectionInfo
@@ -51,13 +52,9 @@ class ComponentsService:
         await session.flush()
 
         validate_quantity = await self.validate_quantity(parent, components, session)
-        for v in validate_quantity.values():
-            if not v["limit"]:
-                continue
-
-            if v["actual"] > v["limit"]:
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                    detail="Quantity limit exceeded")
+        if validate_quantity["is_valid"] is False:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="Quantity limit exceeded")
 
         count = 1
         for component in components:
@@ -127,9 +124,7 @@ class ComponentsService:
         :return: Sequence[DeviceComponent]
         """
         query = (select(DeviceComponentEntity)
-                 .where(DeviceComponentEntity.main_type == device_type.main_type)
-                 .where(DeviceComponentEntity.sub_type == device_type.sub_type
-                        if device_type.sub_type else text("1=1")))
+                 .where(DeviceComponentEntity.main_type == device_type.main_type))
         with session.no_autoflush:
             result = await session.execute(query)
             groups = result.scalars().all()
@@ -181,7 +176,6 @@ class ComponentsService:
     @async_db_request_handler
     async def component_validation(self,
                                    parent: int,
-                                   sub_type: int,
                                    components: list[DeviceComponentFilter],
                                    session: AsyncSession) -> bool:
         """
@@ -189,14 +183,12 @@ class ComponentsService:
         :author: nhan.tran
         :date: 17-06-2024
         :param parent:
-        :param sub_type:
         :param components:
         :param session:
         :return: bool
         """
         query = (select(DeviceComponentEntity)
-                 .where(DeviceComponentEntity.main_type == parent)
-                 .where(or_(DeviceComponentEntity.sub_type == sub_type, DeviceComponentEntity.sub_type.is_(None))))
+                 .where(DeviceComponentEntity.main_type == parent))
         result = await session.execute(query)
         component_types = result.scalars().all()
 
@@ -244,9 +236,13 @@ class ComponentsService:
         :param session:
         :return: list[ComponentGroup]
         """
-        query = select(DevicesEntity.id_device_type).where(DevicesEntity.id == device_id)
+        query = select(DevicesEntity).where(DevicesEntity.id == device_id)
         result = await session.execute(query)
-        id_device_type = result.scalar()
+        device = result.scalars().first()
+
+        id_device_type = device.id_device_type
+        id_template = device.id_template
+
         group_component = await self.get_device_components_by_main_type(GetDeviceComponentFilter(
             main_type=id_device_type, ), session)
 
@@ -256,6 +252,12 @@ class ComponentsService:
         output = []
 
         for group in group_component:
+            if group.addition is not None:
+                addition_quantity = await self.get_addition_components(GetComponentAdditionBase(table=group.addition,
+                                                                                                id_template=id_template),
+                                                                       session)
+                group.quantity = addition_quantity.count
+
             formatted_group = ComponentGroup(**group.dict(exclude={"components"}))
             device_type_components = list(map(lambda x: x.id, group.components))
             device_components = list(filter(lambda x: x.id_device_type in device_type_components
@@ -267,7 +269,7 @@ class ComponentsService:
                                                                                   "device_list",
                                                                                   session)
                 connection_type = DeviceConnectionType(**group.connection.dict()
-                                                       if group.connection is not None else {})
+                if group.connection is not None else {})
                 if connection:
                     connection.connection_type = connection_type
                 else:
@@ -283,7 +285,30 @@ class ComponentsService:
         return output
 
     @async_db_request_handler
-    async def validate_quantity(self, parent: int, new_components: list[DeviceComponentFilter], session: AsyncSession):
+    async def get_device_component(self, main_type: int, group: int,
+                                   plug_point: int, session: AsyncSession) -> DeviceComponentEntity:
+        """
+        Get device component by main type, group and plug point
+        :author: nhan.tran
+        :date: 04-10-2024
+        :param main_type:
+        :param group:
+        :param plug_point:
+        :param session:
+        :return: DeviceComponent
+        """
+        query = (select(DeviceComponentEntity)
+                 .where(DeviceComponentEntity.main_type == main_type)
+                 .where(DeviceComponentEntity.group == group)
+                 .where(DeviceComponentEntity.plug_point == plug_point))
+        result = await session.execute(query)
+        component = result.scalars().first()
+        return component
+
+    @async_db_request_handler
+    async def validate_quantity(self, parent: int,
+                                new_components: list[DeviceComponentFilter],
+                                session: AsyncSession) -> dict | HTTPException:
         """
         Validate quantity
         :author: nhan.tran
@@ -293,28 +318,100 @@ class ComponentsService:
         :param session:
         :return: dict
         """
-        query = (select(DevicesEntity.id_device_type, DeviceComponentEntity.quantity, func.count())
-                 .join(DeviceComponentEntity, DevicesEntity.id_device_type == DeviceComponentEntity.group)
-                 .where(DevicesEntity.parent == parent)
-                 .group_by(DevicesEntity.id_device_type))
+        # Cases:
+        # 1. Actual components must be less than or equal to the limit for each plug point
+        #    - Get all components by parent and group by plug point
+        #    - Get quantity limit for each component
+        # 2. Each component must follow the quantity limit
+        # query = (select(DevicesEntity.plug_point, DevicesEntity.id_device_type, func.count())
+        #          .where(DevicesEntity.parent == parent)
+        #          .group_by(DevicesEntity.plug_point, DevicesEntity.id_device_type))
+        # result = await session.execute(query)
+        # components = result.all()
+
+        def reduce_to_plug_point(acc, x):
+            logging.error(f"{acc} acc")
+            if not acc:
+                x.append(1)
+                return [x]
+
+            for i in range(len(acc)):
+                if acc[i][0] == x[0] and acc[i][1] == x[1]:
+                    acc[i][2] += 1
+                    break
+            else:
+                x.append(1)
+                acc.append(x)
+            return acc
+
+        query = (select(DevicesEntity)
+                 .where(DevicesEntity.id == parent))
         result = await session.execute(query)
-        components = result.all()
+        device = result.scalars().first()
+
+        components = list(map(lambda x: [x.plug_point, x.id_device_type], new_components))
+        components = list(reduce(lambda x, y: reduce_to_plug_point(x, y), components, []))
+
+        id_device_type = device.id_device_type
+        id_template = device.id_template
+
+        device_type = await self.utils_service.get_device_type_by_id(id_device_type, session)
+        if isinstance(device_type, HTTPException):
+            return device_type
+        device_type_plug_point = device_type.plug_point_count
 
         output = {}
+        component_groups = {}
         if components:
             for component in components:
-                output[component[0]] = {"limit": component[1],
-                                        "actual": component[2]}
+                # [plug_point]_[main_type]_[group]
+                key = f"{component[0]}_{id_device_type}_{component[1]}"
+                if key not in component_groups:
+                    group = await self.utils_service.get_device_type_by_id(component[1], session)
+                    if isinstance(group, HTTPException):
+                        return group
+                    component_info = await self.get_device_component(id_device_type, group.group,
+                                                                     component[0], session)
+                    component_groups[key] = {
+                        "addition": component_info.addition,
+                        "quantity": component_info.quantity
+                    }
+                addition_table = component_groups[key]["addition"]
+                if addition_table is not None:
+                    addition_filter = GetComponentAdditionBase(table=addition_table, id_template=id_template)
+                    addition_quantity = await self.get_addition_components(addition_filter,
+                                                                           session)
+                    new_quantity = component_groups[key]["quantity"] + addition_quantity.count \
+                        if component_groups[key]["quantity"] is not None else addition_quantity.count
+                    component_groups[key]["quantity"] = new_quantity
 
-        for component in new_components:
-            if component.id_device_type not in output:
-                output[component.id_device_type] = {"limit": await self.get_quantity(parent,
-                                                                                     component.id_device_type,
-                                                                                     session),
-                                                    "actual": 0}
-            output[component.id_device_type]["actual"] += 1
+                if component[0] not in output:
+                    output[component[0]] = {"limit": device_type_plug_point.get(str(component[0]), 0),
+                                            "actual": {
+                                                component[1]: {
+                                                    "limit": component_groups[key]["quantity"],
+                                                    "actual": component[2]
+                                                }
+                                            }}
+                else:
+                    output[component[0]]["actual"][component[1]] = {
+                        "limit": component_groups[key]["quantity"],
+                        "actual": component[2]
+                    }
 
-        return output
+        is_valid = True
+        for plug_point in output.values():
+            actual_count = reduce(lambda x, y: x + y["actual"], plug_point["actual"].values(), 0)
+            if actual_count > plug_point["limit"]:
+                is_valid = False
+                break
+
+            for group in plug_point["actual"].values():
+                if group["actual"] > group["limit"]:
+                    is_valid = False
+                    break
+
+        return {"is_valid": is_valid, "detail": output}
 
     @async_db_request_handler
     async def get_quantity(self, device_id: int, component: int, session: AsyncSession) -> int:
@@ -335,37 +432,13 @@ class ComponentsService:
         device = result.first()
 
         main_type = device[0]
-        sub_type = device[1] if device[1] else device[2] if device[2] else None
 
         query = (select(DeviceComponentEntity.quantity)
                  .where(DeviceComponentEntity.main_type == main_type)
-                 .where(DeviceComponentEntity.group == component)
-                 .where(or_(DeviceComponentEntity.sub_type == sub_type if sub_type else text("1=1"),
-                            DeviceComponentEntity.sub_type.is_(None))))
+                 .where(DeviceComponentEntity.group == component))
         result = await session.execute(query)
         quantity = result.scalar()
         return quantity
-
-    @async_db_request_handler
-    async def get_available_components(self, body: GetAvailableComponents, session: AsyncSession):
-        """
-        Get available components
-        :author: nhan.tran
-        :date: 30-08-2024
-        :param body: GetAvailableComponents
-        :param session: AsyncSession
-        :return: list[DeviceComponent]
-        """
-
-        query = (select(DevicesEntity)
-                 .where(DevicesEntity.id_device_type == body.id_device_type)
-                 .where(or_(DevicesEntity.parent.is_(None), DevicesEntity.parent == body.parent))
-                 .where(DevicesEntity.id.notin_(body.exclude))
-                 .where(DevicesEntity.name.like(f"%{body.name}%")))
-        result = await session.execute(query)
-        components = result.scalars().all()
-
-        return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))
 
     @async_db_request_handler
     async def get_addition_components(self, body: GetComponentAdditionBase, session: AsyncSession):
@@ -385,3 +458,48 @@ class ComponentsService:
         addition = result.scalars().all()
 
         return DeviceComponentAddition(count=len(addition))
+
+    @async_db_request_handler
+    async def get_available_components_by_filter(self, body: GetAvailableComponentsFilter,
+                                                 session: AsyncSession):
+        """
+        Get available components by filter
+        :author: nhan.tran
+        :date: 30-09-2024
+        :param body: GetAvailableComponentsFilter
+        :param session: AsyncSession
+        :return: list[DeviceComponent]
+        """
+        query = (select(DevicesEntity)
+                 .where(or_(DevicesEntity.parent.is_(None), DevicesEntity.parent == body.parent))
+                 .where(DevicesEntity.id.notin_(body.exclude)))
+
+        if body.name is not None:
+            query = query.where(DevicesEntity.name.like(f"%{body.name}%"))
+
+        if body.id_device_type is not None:
+            query = query.where(DevicesEntity.id_device_type == body.id_device_type)
+
+        if body.id_communication is not None:
+            query = query.where(DevicesEntity.id_communication == body.id_communication)
+
+        if body.ip_address is not None:
+            query = query.where(DevicesEntity.tcp_gateway_ip == body.ip_address.strip())
+
+        if body.rtu_bus_address is not None:
+            if body.rtu_bus_address.range_from is not None:
+                query = query.where(DevicesEntity.rtu_bus_address >= body.rtu_bus_address.range_from)
+
+            if body.rtu_bus_address.range_to is not None:
+                query = query.where(DevicesEntity.rtu_bus_address <= body.rtu_bus_address.range_to)
+
+        if body.tcp_port is not None:
+            if body.tcp_port.range_from is not None:
+                query = query.where(DevicesEntity.tcp_gateway_port >= body.tcp_port.range_from)
+
+            if body.tcp_port.range_to is not None:
+                query = query.where(DevicesEntity.tcp_gateway_port <= body.tcp_port.range_to)
+
+        result = await session.execute(query)
+        components = result.scalars().all()
+        return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))

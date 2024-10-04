@@ -63,7 +63,6 @@ class DeviceComponentFilter(BaseModel):
     group: Optional[int] = None
     id_device_type: Optional[int] = None
     id_device_group: Optional[int] = None
-    id_mppt: Optional[int] = None
     type: Optional[int] = None
     plug_point: Optional[int] = None
     quantity: Optional[int] = None
@@ -146,9 +145,18 @@ class DeleteDeviceFilter(DeviceSecret):
     device_id: int | list[int] = None
 
 
-class GetAvailableComponents(BaseModel):
-    name: str
-    id_device_type: int
+class FilterRange(BaseModel):
+    range_from: Optional[int] = None
+    range_to: Optional[int] = None
+
+
+class GetAvailableComponentsFilter(BaseModel):
+    name: Optional[str] = None
+    id_device_type: Optional[int] = None
+    id_communication: Optional[int] = None
+    ip_address: Optional[str] = None
+    rtu_bus_address: Optional[FilterRange] = None
+    tcp_port: Optional[FilterRange] = None
     exclude: Optional[list[int]] = []
     parent: Optional[int] = None
 

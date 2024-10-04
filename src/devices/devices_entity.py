@@ -5,7 +5,7 @@
 # *********************************************************/
 import datetime
 
-from sqlalchemy import Integer, DOUBLE, String, ForeignKey, Date
+from sqlalchemy import Integer, DOUBLE, String, ForeignKey, Date, JSON
 from sqlalchemy.dialects.mysql import json
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -113,7 +113,7 @@ class DeviceTypeGroup(config.Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=True)
     type: Mapped[int] = mapped_column(Integer, nullable=True)
-    addition: Mapped[json] = mapped_column(String, nullable=True)
+    addition: Mapped[json] = mapped_column(JSON, nullable=True)
     status: Mapped[bool] = mapped_column(Integer, nullable=True, default=True)
 
 
@@ -129,7 +129,7 @@ class DeviceType(config.Base):
                                                            onupdate="CASCADE"),
                                        nullable=True)
     image: Mapped[str] = mapped_column(String, nullable=True)
-    plug_point_count: Mapped[str] = mapped_column(String, nullable=True)
+    plug_point_count: Mapped[json] = mapped_column(JSON, nullable=True)
 
     device_type_group = relationship("DeviceTypeGroup", foreign_keys=[group])
 

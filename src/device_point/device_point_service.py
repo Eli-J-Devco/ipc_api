@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .device_point_entity import DevicePointMap as DevicePointEntity
 from .device_point_filter import PointActionFilter, ConfigPointValueUpdateFilter, PointUpdateFilter
-from .device_point_model import DevicePoint, DevicePointOutput, EnableField, TemplatePoint, PointUnit
+from .device_point_model import DevicePoint, DevicePointOutput, EnableField, PointUnit
 from ..config import env_config
 from ..devices.devices_entity import Devices
 from ..devices.devices_filter import CodeEnum
@@ -20,7 +20,6 @@ from ..devices.devices_service import DevicesService
 from ..point.point_entity import Point
 from ..project_setup.project_setup_filter import ConfigInformationType
 from ..project_setup.project_setup_service import ProjectSetupService
-from ..template.template_entity import Template
 from ..utils.service_wrapper import ServiceWrapper
 
 

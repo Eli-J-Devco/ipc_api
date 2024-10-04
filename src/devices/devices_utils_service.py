@@ -116,8 +116,7 @@ class UtilsService:
         """
         query = select(DeviceTypeGroupEntity)
         result = await session.execute(query)
-        device_type_groups = list(map(lambda x: DeviceTypeGroup(**{**x.__dict__, "addition": json.loads(x.addition)
-                                      if x.addition is not None else []}),
+        device_type_groups = list(map(lambda x: DeviceTypeGroup(**x.__dict__),
                                       result.scalars().all()))
         return device_type_groups
 
@@ -131,14 +130,10 @@ class UtilsService:
         :return: list[DeviceTypeEntity] | HTTPException
         """
 
-        def convert_str_to_dict(obj):
-            obj.plug_point_count = json.loads(obj.plug_point_count) if obj.plug_point_count is not None else None
-            return obj.__dict__
-
         query = select(DeviceTypeEntity)
         result = await session.execute(query)
         device_types = result.scalars().all()
-        return list(map(lambda x: DeviceType(**convert_str_to_dict(x)), device_types))
+        return list(map(lambda x: DeviceType(**x.__dict__), device_types))
 
     @async_db_request_handler
     async def get_device_type_by_id(self, id_device_type: int,

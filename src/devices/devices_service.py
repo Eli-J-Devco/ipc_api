@@ -219,8 +219,7 @@ class DevicesService:
             tcp_gateway_port = body.tcp_gateway_port
 
             if body.components:
-                sub_type = body.inverter_type if body.inverter_type else body.meter_type if body.meter_type else None
-                if not await self.components_service.component_validation(body.id_device_type, sub_type,
+                if not await self.components_service.component_validation(body.id_device_type,
                                                                           body.components, session):
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid component")
 
