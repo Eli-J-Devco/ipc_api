@@ -18,11 +18,13 @@ from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetComponentAdditionBase, \
     ComponentCode, GetAvailableComponentsFilter
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
-    DeviceUploadChannelMap, DeviceComponentAddition, DeviceConnectionType, \
-    DeviceComponentChild, DeviceConnectionInfo
+    DeviceComponentAddition, DeviceConnectionType, \
+    DeviceComponentChild, DeviceConnectionInfo, DeviceFull
 from .devices_utils_service import UtilsService
+from ..config import env_config
 from ..point.point_entity import Point
 from ..template.template_entity import Template
+from ..utils.pagination_model import Pagination
 
 
 @Injectable
@@ -461,12 +463,14 @@ class ComponentsService:
 
     @async_db_request_handler
     async def get_available_components_by_filter(self, body: GetAvailableComponentsFilter,
-                                                 session: AsyncSession):
+                                                 session: AsyncSession,
+                                                 pagination: Pagination = None,):
         """
         Get available components by filter
         :author: nhan.tran
         :date: 30-09-2024
         :param body: GetAvailableComponentsFilter
+        :param pagination: Pagination
         :param session: AsyncSession
         :return: list[DeviceComponent]
         """
@@ -478,7 +482,9 @@ class ComponentsService:
             query = query.where(DevicesEntity.name.like(f"%{body.name}%"))
 
         if body.id_device_type is not None:
-            query = query.where(DevicesEntity.id_device_type == body.id_device_type)
+            if isinstance(body.id_device_type, int):
+                body.id_device_type = [body.id_device_type]
+            query = query.where(DevicesEntity.id_device_type.in_(body.id_device_type))
 
         if body.id_communication is not None:
             query = query.where(DevicesEntity.id_communication == body.id_communication)
@@ -500,6 +506,17 @@ class ComponentsService:
             if body.tcp_port.range_to is not None:
                 query = query.where(DevicesEntity.tcp_gateway_port <= body.tcp_port.range_to)
 
+        if pagination:
+            if pagination.page or pagination.limit:
+                if not pagination.page or pagination.page < 0:
+                    pagination.page = env_config.PAGINATION_PAGE
+
+                if not pagination.limit or pagination.limit < 0:
+                    pagination.limit = env_config.PAGINATION_LIMIT
+
+                query = (query
+                         .offset(pagination.page)
+                         .limit(pagination.limit))
         result = await session.execute(query)
         components = result.scalars().all()
-        return list(map(lambda x: DeviceUploadChannelMap(**x.__dict__), list(components)))
+        return list(map(lambda x: DeviceFull(**x.__dict__), list(components)))

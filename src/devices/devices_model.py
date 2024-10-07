@@ -190,6 +190,9 @@ class DeviceComponentList(BaseModel):
 class Component(BaseModel):
     id: Optional[int] = None
     name: Optional[str] = None
+    rtu_bus_address: Optional[int] = None
+    tcp_gateway_ip: Optional[str] = None
+    tcp_gateway_port: Optional[int] = None
     image: Optional[str] = None
     plug_point: Optional[int] = None
     id_device_type: Optional[int] = None

@@ -152,7 +152,7 @@ class FilterRange(BaseModel):
 
 class GetAvailableComponentsFilter(BaseModel):
     name: Optional[str] = None
-    id_device_type: Optional[int] = None
+    id_device_type: Optional[list[int] | int] = None
     id_communication: Optional[int] = None
     ip_address: Optional[str] = None
     rtu_bus_address: Optional[FilterRange] = None

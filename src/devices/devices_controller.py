@@ -143,10 +143,11 @@ class DevicesController:
     @Post("/component/search/")
     async def get_available_components(self,
                                        body: GetAvailableComponentsFilter,
+                                       pagination: Pagination = Depends(),
                                        session: AsyncSession = Depends(config.get_db),
                                        auth: Authentication = Depends(get_current_user)):
         return await ServiceWrapper.async_wrapper(self.components_service
-                                                  .get_available_components_by_filter)(body, session)
+                                                  .get_available_components_by_filter)(body, session, pagination)
 
     @Post("/component/addition/")
     async def get_addition_components(self,
