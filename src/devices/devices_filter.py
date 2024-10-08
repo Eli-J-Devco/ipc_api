@@ -38,6 +38,11 @@ class IncreaseMode:
     RTU: int = 2
 
 
+class FilterRangeEnum(enum.Enum):
+    RTU_BUS_ADDRESS = {"range_from": 1, "range_to": 255}
+    TCP_GATEWAY_PORT = {"range_from": 1, "range_to": 65535}
+
+
 class SymbolicDevice(BaseModel):
     id: int
     name: str
@@ -153,10 +158,10 @@ class FilterRange(BaseModel):
 class GetAvailableComponentsFilter(BaseModel):
     name: Optional[str] = None
     id_device_type: Optional[list[int] | int] = None
-    id_communication: Optional[int] = None
+    id_communication: Optional[list[int] | int] = None
     ip_address: Optional[str] = None
     rtu_bus_address: Optional[FilterRange] = None
-    tcp_port: Optional[FilterRange] = None
+    tcp_gateway_port: Optional[FilterRange] = None
     exclude: Optional[list[int]] = []
     parent: Optional[int] = None
 

@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from .devices_entity import DeviceComponent as DeviceComponentEntity, Devices as DevicesEntity, \
     DeviceConnection as DeviceConnectionEntity
 from .devices_filter import DeviceComponentFilter, GetDeviceComponentFilter, SymbolicDevice, GetComponentAdditionBase, \
-    ComponentCode, GetAvailableComponentsFilter
+    ComponentCode, GetAvailableComponentsFilter, FilterRangeEnum
 from .devices_model import DeviceComponentList, DeviceComponent, DeviceComponentBase, Component, ComponentGroup, \
     DeviceComponentAddition, DeviceConnectionType, \
     DeviceComponentChild, DeviceConnectionInfo, DeviceFull
@@ -487,24 +487,24 @@ class ComponentsService:
             query = query.where(DevicesEntity.id_device_type.in_(body.id_device_type))
 
         if body.id_communication is not None:
-            query = query.where(DevicesEntity.id_communication == body.id_communication)
+            if isinstance(body.id_communication, int):
+                body.id_communication = [body.id_communication]
+            query = query.where(DevicesEntity.id_communication.in_(body.id_communication))
 
-        if body.ip_address is not None:
-            query = query.where(DevicesEntity.tcp_gateway_ip == body.ip_address.strip())
+        if body.ip_address is not None and body.ip_address != "":
+            body.ip_address = body.ip_address.replace("*", "")
+            query = query.where(DevicesEntity.tcp_gateway_ip.startswith(f"{body.ip_address}%"))
 
-        if body.rtu_bus_address is not None:
-            if body.rtu_bus_address.range_from is not None:
-                query = query.where(DevicesEntity.rtu_bus_address >= body.rtu_bus_address.range_from)
+        validation_range = ["rtu_bus_address", "tcp_gateway_port"]
+        for key in validation_range:
+            if getattr(body, key) is not None:
+                key_min = getattr(FilterRangeEnum, key.upper()).value["range_from"]
+                key_max = getattr(FilterRangeEnum, key.upper()).value["range_to"]
 
-            if body.rtu_bus_address.range_to is not None:
-                query = query.where(DevicesEntity.rtu_bus_address <= body.rtu_bus_address.range_to)
-
-        if body.tcp_port is not None:
-            if body.tcp_port.range_from is not None:
-                query = query.where(DevicesEntity.tcp_gateway_port >= body.tcp_port.range_from)
-
-            if body.tcp_port.range_to is not None:
-                query = query.where(DevicesEntity.tcp_gateway_port <= body.tcp_port.range_to)
+                if getattr(body, key).range_from is not None and getattr(body, key).range_from > key_min:
+                    query = query.where(getattr(DevicesEntity, key) >= getattr(body, key).range_from)
+                if getattr(body, key).range_to is not None and getattr(body, key).range_to < key_max:
+                    query = query.where(getattr(DevicesEntity, key) <= getattr(body, key).range_to)
 
         if pagination:
             if pagination.page or pagination.limit:
