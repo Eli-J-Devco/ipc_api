@@ -24,7 +24,7 @@ from src.driver_device.read_device.read_device_model import (ReadRegisterDevice,
                                                             PointDataOut)
 from src.utils.point_list_type.point_list_type_model import PointListTypes
 from src.utils.device_point.device_point_model import  DevicePointBase,DevicePointsOutput,ControlPoints
-from src.driver_device.monitoring_device.monitoring_device_model import Action as MonitorAction
+from src.driver_device.monitoring_device.monitoring_device_model import Action as MonitorAction, DeviceTypeAction
 from src.driver_device.monitoring_device.monitoring_device_model import (MonitoringParameterBase,
                                                                         MonitoringParameters,
                                                                         MonitoringPointControlGroup,
@@ -346,7 +346,7 @@ class MonitoringDeviceService:
         try:
             mode=None
             device_parameter=DeviceFull(**dict(self.multi_device_parameter[self.job_id]))
-            if device_parameter.device_type in ["PV System Inverter"]:
+            if device_parameter.device_type in [DeviceTypeAction.PVSystemInverter.value]:
                 mode =device_parameter.mode
             else:
                 mode= None

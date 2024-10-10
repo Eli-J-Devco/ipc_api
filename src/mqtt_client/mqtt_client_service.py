@@ -5,7 +5,7 @@ import json
 from typing import Optional, Any
 import paho.mqtt.publish as publish
 from src.mqtt_client.mqtt_client_model import MQTTConfigBase ,MQTTMsgs,MQTTMsg
-
+from pydantic import BaseModel
 class MQTTClientService:
     def __init__(self, mqtt_config:MQTTConfigBase,
                  **kwargs):
@@ -44,7 +44,7 @@ class MQTTClientService:
                 if encode:
                     for msg in messages.msgs:
                         
-                        if type(msg.payload)==list:
+                        if isinstance(msg.payload,list):
                             payload=[]
                             for item in msg.payload:
                                 payload.append(item.dict())
@@ -61,15 +61,22 @@ class MQTTClientService:
                         
                 else:
                     for msg in messages.msgs:
-                        if type(msg.payload)==list:
+                        
+                        if isinstance(msg.payload,list):
                             payload=[]
                             for item in msg.payload:
                                 payload.append(item.dict())
                             payload=json.dumps(payload)
                             msgs.append({**msg.__dict__,"payload":payload} )
-                        else:
-                            msgs.append({**msg.__dict__,"payload":msg.payload.json()} )
-                # print(f'msgs: {msgs}')     
+                        if isinstance(msg.payload,dict):
+                            msgs.append({**msg.__dict__,"payload":json.dumps(msg.payload)} )
+                        if isinstance(msg.payload,BaseModel):
+                            print(f'hello {"|"*100}')
+                            msgs.append({**msg.__dict__,"payload":msg.payload.json(indent=4)} )
+                        if not isinstance(msg.payload,(list, dict, int,float, str, bool,bytes,bytearray)):
+                            pass
+                if not msgs :
+                    return
                 publish.multiple(msgs, 
                                 hostname=self.host,
                                 port=self.port,

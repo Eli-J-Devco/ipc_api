@@ -25,8 +25,20 @@ class ControlDevice(BaseModel):
     parameter: Optional[list[ControlParameter]] = None
     token: Optional[str] = None
     
+    
+    time : Optional[str] = None
+    status: Optional[str] = None
+    setpoint: Optional[Any] = None
+    feedback: Optional[Any] = None
+class ControlModeDevice(BaseModel):
+    id_device: Optional[int] = None
+    time_stamp : Optional[str] = None
+    status: Optional[str] = None
+    confirm_mode: Optional[int] = None
+    token: Optional[str] = None
 class ControlDevices(list[ControlDevice]):
     pass
+
 
 
 

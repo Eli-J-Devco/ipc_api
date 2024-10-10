@@ -1,3 +1,4 @@
+import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,18 +17,31 @@ from src.pm2_manager.pm2_manager_service import Pm2ManagerService
 from src.utils.utils import getUTC
 from src.utils.devices.devices_model import DeviceInitOutput,DeviceInit,DeviceFull,ParameterListUpdate
 
+from src.device_manager.devices import device_model
+
 from src.utils.devices.devices_service import DeviceService
+
 class DevicesService:
     def __init__(self,
                 session: AsyncSession,
                 mqtt_config:MQTTConfigBase,
                 multi_device_parameter,
+                multi_device_point,
+                device_point_parameter_write_web,
+                device_point_parameter_write_auto,
+                device_point_parameter_write_mode,
                 **kwargs):
         self.mqtt_config=mqtt_config
         self.session=session
         self.mqtt_client=MQTTClientService(mqtt_config=mqtt_config)
         self.multi_device_parameter=multi_device_parameter
         self.DeviceService=DeviceService(self.session)
+        self.multi_device_point=multi_device_point
+        self.device_point_parameter_write_web=device_point_parameter_write_web
+        self.device_point_parameter_write_auto=device_point_parameter_write_auto
+        self.device_point_parameter_write_mode=device_point_parameter_write_mode
+        
+        
     async def update_status_job_with_mqtt(self,devices:DevicesModel,status_jobs:StatusJobs):
         try:
             msgs=[]
@@ -77,6 +91,7 @@ class DevicesService:
             print(f"Error run pm2 app: ", exc)
         finally:
             pass
+    
     async def delete_dev(self,code: str,func,payload:PayloadSub):
         status_jobs:StatusJobs
         devices:DevicesModel=[]
@@ -98,7 +113,9 @@ class DevicesService:
         except Exception as exc:
             print(f"Error run pm2 app: ", exc)
         finally:
-            pass
+            for device in payload.device:
+                pass
+
     async def update_dev(self,code: str,payload:PayloadSub):
         status_jobs:StatusJobs
         devices:DevicesModel=[]
@@ -139,3 +156,35 @@ class DevicesService:
         #     print(f"Error run pm2 app: ", exc)
         # finally:
         #     pass
+    
+    async def get_data_monitor(self, data_share):
+        data:dict=data_share
+        keys_id_device = [key for key, value in data.items()]
+        devices=[]
+        for id in keys_id_device:
+            device=DeviceFull(**dict(data[id]))    
+            devices.append(
+            device_model.DevicePara(id=id, name=device.name)
+            )
+        return device_model.DevicesPara(devices=devices)
+    async def monitor_data_devices(self):
+        try:
+            msgs=[]
+            
+            result_device_para=await self.get_data_monitor(data_share=self.multi_device_parameter)
+            
+            # result_device_point=await self.get_data_monitor(data_share=self.multi_device_point)
+            # device_point_share=dict(device=result_device_point)
+            
+            msgs.append(MQTTMsg(topic=f'{self.mqtt_config.serial_number}/{DevicesManagerAction.MultiDevPara.value}',payload= result_device_para))
+            # msgs.append(MQTTMsg(topic=f'{self.mqtt_config.serial_number}/{DevicesManagerAction.MultiDevPoint.value}',payload= device_point_share))
+            
+            print(f'result_device_para: {self.multi_device_point}')
+            
+            
+            
+            self.mqtt_client.public_multi_paho_zip(messages=MQTTMsgs(msgs=msgs),encode=False)
+        except Exception as exc:
+            print(f"Error update_status_job_with_mqtt: ", exc)
+        finally:
+            pass

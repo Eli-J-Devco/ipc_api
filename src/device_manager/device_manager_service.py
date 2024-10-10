@@ -29,7 +29,7 @@ from src.async_db.wrapper import async_db_request_handler
 from src.configs.config import Config
 from src.configs.config import orm_provider as db_config
 from src.device_manager.control_device.control_device_model import \
-    ControlDevice as ControlDeviceModel
+    ControlDevice as ControlDeviceModel, ControlModeDevice as ControlModeDeviceModel
 from src.device_manager.control_device.control_device_model import \
     ControlDevices as ControlDevicesModel
 from src.device_manager.control_device.control_device_service import \
@@ -112,6 +112,10 @@ class DeviceManagerService:
         self.multi_device_parameter={}
         self.multi_device_point={}
         # 
+        self.device_point_parameter_write_web={}
+        self.device_point_parameter_write_auto={}
+        self.device_point_parameter_write_mode={}
+        # 
         self.point_list_type=None
         # 
         self.sender = mqttools.Client(host=self.MQTT_BROKER, 
@@ -123,13 +127,17 @@ class DeviceManagerService:
                             )
         self.devices_manager_service =DevicesManagerService(self.session,
                                                             mqtt_config=self.mqtt_config,
-                                                            multi_device_parameter=self.multi_device_parameter)    
+                                                            multi_device_parameter=self.multi_device_parameter,
+                                                            multi_device_point=self.multi_device_point,
+                                                            device_point_parameter_write_web=self.device_point_parameter_write_web,
+                                                            device_point_parameter_write_auto=self.device_point_parameter_write_auto,
+                                                            device_point_parameter_write_mode=self.device_point_parameter_write_mode,
+                                                            )    
         self.control_device_service=ControlDeviceService(self.session,
                                                             multi_device_parameter=self.multi_device_parameter,
                                                             multi_device_point=self.multi_device_point
                                                         )
-        self.device_point_parameter_write_web={}
-        self.device_point_parameter_write_local={}
+
         try:
             
             self.scheduler = AsyncIOScheduler()
@@ -194,7 +202,9 @@ class DeviceManagerService:
                                                 point_control_groups=point_control_groups,
                                                 point_list_type=self.point_list_type,
                                                 device_point_control=self.device_point_control,
-                                                device_point_parameter_write_web=self.device_point_parameter_write_web
+                                                device_point_parameter_write_web=self.device_point_parameter_write_web,
+                                                device_point_parameter_write_auto=self.device_point_parameter_write_auto,
+                                                device_point_parameter_write_mode=self.device_point_parameter_write_mode,
                                                 )
             await driver_device_services.device_manager(
                                                 control_data=self.control_data
@@ -319,11 +329,13 @@ class DeviceManagerService:
             if not devices:
                 return
             await self.add_devices(devices)
+            await self.init_monitor_job()
             pass
         except Exception as exc:
             print(f"Error init_devices", exc)
         finally:
             print(f'init_devices finish')
+    
     @staticmethod
     async def async_task(session: AsyncSession):
         point_list_type: PointListTypes=[]
@@ -335,6 +347,33 @@ class DeviceManagerService:
             print(f"Error async_task", exc)
         finally:
             return point_list_type
+    
+    async def monitor_job(self):
+        try:
+            print(f"monitor_job {'+'*100}")
+            await self.devices_manager_service.monitor_data_devices()
+        except Exception as err:
+            print(f"Error monitor_job: '{err}'")   
+        finally:
+            pass
+    async def init_monitor_job(self):
+        try:
+            job_id=0
+            self.scheduler.add_job(
+            self.monitor_job,
+            args=[],
+            trigger='interval',
+            id=f"{job_id}",
+            seconds = 1,
+            replace_existing=True,
+            max_instances=1, 
+            coalesce=True
+            )
+        except Exception as err:
+            print(f"Error init_monitor_job: '{err}'")   
+        finally:
+            pass
+    
     async def handle_messages_device(self,client:mqttools.Client):
         try :
             # 
@@ -380,59 +419,43 @@ class DeviceManagerService:
                         case DriverManagerAction.CreateNoLogDev.value:
                             pass
                 if mqtt_data_sub.topic==f'{self.MQTT_TOPIC}/{DriverManagerAction.PathTopicWeb.value}':
-                    
                     if not mqtt_data_sub.message:
                         return 
                     msg=json.loads(mqtt_data_sub.message.decode())
                     # msg=gzip_decompress(mqtt_data_sub.message)
-                    # print(ControlDevicesModel(msg))
-                    
                     device_points:ControlDevicesModel=await self.control_device_service.get_register_control_device(device_data=msg)
                     for item in device_points:
                         token=f'token={item.token}|id={item.id_device}'
                         self.device_point_parameter_write_web[token]=ControlDeviceModel(**item.dict())
+                if mqtt_data_sub.topic==f'{self.MQTT_TOPIC}/{DriverManagerAction.PathTopicAutoControl.value}':
+                    if not mqtt_data_sub.message:
+                        return
+                    msg=json.loads(mqtt_data_sub.message.decode())
+                    # msg=gzip_decompress(mqtt_data_sub.message)
+                    device_points:ControlDevicesModel=await self.control_device_service.get_register_control_device(device_data=msg)
+                    
+                    for item in device_points:
+                        token=f'token={item.time}|id={item.id_device}'
+                        self.device_point_parameter_write_auto[token]=ControlDeviceModel(**item.dict())
+                if mqtt_data_sub.topic==f'{self.MQTT_TOPIC}/{DriverManagerAction.PathTopicModeSys.value}':   
+                    if not mqtt_data_sub.message:
+                        return
+                    msg=json.loads(mqtt_data_sub.message.decode())
+                    # msg=gzip_decompress(mqtt_data_sub.message)
+                    # device_points:ControlDevicesModel=await self.control_device_service.get_register_control_device(device_data=msg)
+                    # print(f'multi_device_parameter: {self.multi_device_parameter}')
+                    device_control:ControlDevicesModel= await self.control_device_service.get_device_control(data=msg)
+                    
+                    for item in device_control:
+                        token=f'token={item.time}|id={item.id_device}'
+                        self.device_point_parameter_write_mode[token]=ControlModeDeviceModel(
+                                                                                            id_device=item.id_device,
+                                                                                            token=token,
+                                                                                            time_stamp=item.mode,
+                                                                                            status=item.mode,
+                                                                                            confirm_mode=item.mode,
+                                                                                            )
                         
-                    # print(f'self.device_point_parameter_write_web: {self.device_point_parameter_write_web}')
-                    data={
-                        "token=4444|id=296": {
-                            "token":4444,
-                            "id_device": 296,
-                            "id_device_group": 1,
-                            "mode": 0,
-                            "rated_power": 3.33,
-                            "rated_power_custom": None,
-                            "parameter":[
-                                {
-                                    "id_pointkey": "WMaxPercentEnable",
-                                    "datatype":1,
-                                    "modbus_func":1,
-                                    "register_value":22,
-                                    "value": 0,
-                                }
-                            ]
-                        },
-                        "token=5555|id=300": {
-                            "token":5555,
-                            "id_device": 300,
-                            "id_device_group": 1,
-                            "mode": 0,
-                            "rated_power": 3.33,
-                            "rated_power_custom": None,
-                            "parameter":[]
-                        },
-                        "token=6666|id=300": {
-                            "token":6666,
-                            "id_device": 300,
-                            "id_device_group": 1,
-                            "mode": 0,
-                            "rated_power": 3.33,
-                            "rated_power_custom": None,
-                            "parameter":[]
-                        },
-                    }
-                    
-                    
-                    
                 # if 'code' in result.keys() and 'payload' in result.keys():
                 #     if result["code"]=="add_job":
                 #             job_id=result["payload"]

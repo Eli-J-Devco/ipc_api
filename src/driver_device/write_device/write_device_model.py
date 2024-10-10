@@ -35,5 +35,5 @@ class Action(enum.Enum):
     PathTopicFeedBackWeb = "Control/Feedbacksetup"
     PathTopicFeedBackAutoControl = "Control/FeedbackAuto"
     WriteStatusSuccess=200
-    WriteStatusError=200
+    WriteStatusError=400
     

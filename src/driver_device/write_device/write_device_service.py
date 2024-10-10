@@ -84,13 +84,17 @@ class WriteDeviceService():
         finally:
             return msg
         
-    async def write_modbus_tcp(self,client:AsyncModbusTcpClient, slave: int, parameter: WriteParameterModel):
-        write_status:WriteStatus =None
+    async def write_modbus_tcp(self,
+                                connected: bool,
+                                client:AsyncModbusTcpClient, 
+                                slave: int, 
+                                parameter: WriteParameterModel):
+        write_status:WriteStatus =WriteStatus(status=400)
         try:
-            # control_devices=list(map(lambda item: ControlDevice(**item), device_data))
+            if not connected:
+                return []
             write_point_status:list[WritePointStatus]=[]
             for point in parameter.parameter:
-                # print(f'point: {point}')
                 result_write_point=await self.write_point(client=client,slave=slave,
                                         datatype=point.datatype,
                                         modbus_func=point.modbus_func,
@@ -98,9 +102,6 @@ class WriteDeviceService():
                                         value=point.value
                                         )
                 write_point_status.append(WritePointStatus(**result_write_point.dict()))
-                # print(f'result_write: {result_write}')
-            print(f'write_point_status: {write_point_status}')
-            # [item for item in mppt_volt if item.quality== 1]
             if not write_point_status:
                 return                
             result: list=[item for item in write_point_status if item.status == 0]
@@ -112,8 +113,6 @@ class WriteDeviceService():
                                         address=None,
                                         code=None
                                         )
-            else:
-                write_status=WriteStatus(status=400)
         except Exception as e:
             print('Error write_modbus_tcp :', e)
         finally:
